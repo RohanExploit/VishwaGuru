@@ -7,7 +7,7 @@ api_key = os.environ.get("GEMINI_API_KEY")
 if api_key:
     genai.configure(api_key=api_key)
 
-def generate_action_plan(issue_description: str, category: str, image_path: Optional[str] = None) -> dict:
+async def generate_action_plan(issue_description: str, category: str, image_path: Optional[str] = None) -> dict:
     """
     Generates an action plan (WhatsApp message, Email draft) using Gemini.
     """
@@ -35,7 +35,7 @@ def generate_action_plan(issue_description: str, category: str, image_path: Opti
         Do not use markdown code blocks. Just the raw JSON string.
         """
 
-        response = model.generate_content(prompt)
+        response = await model.generate_content_async(prompt)
         text_response = response.text.strip()
 
         # Cleanup if markdown code blocks are returned

@@ -75,7 +75,7 @@ async def create_issue(
     db.refresh(new_issue)
 
     # Generate Action Plan (AI)
-    action_plan = generate_action_plan(description, category, image_path)
+    action_plan = await generate_action_plan(description, category, image_path)
 
     return {
         "id": new_issue.id,

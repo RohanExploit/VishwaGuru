@@ -120,6 +120,7 @@ async def run_bot():
     # Initialize and start the application
     await application.initialize()
     await application.start()
+    # Start polling (non-blocking in v20+)
     await application.updater.start_polling()
 
     # Keep the bot running
