@@ -60,19 +60,27 @@ async def create_issue(
         filename = f"{uuid.uuid4()}_{image.filename}"
         image_path = os.path.join(upload_dir, filename)
 
-        with open(image_path, "wb") as buffer:
-            shutil.copyfileobj(image.file, buffer)
+        # Offload blocking file I/O to a thread
+        def save_file():
+            with open(image_path, "wb") as buffer:
+                shutil.copyfileobj(image.file, buffer)
 
-    # Save to DB
-    new_issue = Issue(
-        description=description,
-        category=category,
-        image_path=image_path,
-        source="web"
-    )
-    db.add(new_issue)
-    db.commit()
-    db.refresh(new_issue)
+        await asyncio.to_thread(save_file)
+
+    # Offload blocking DB operations to a thread
+    def save_to_db():
+        new_issue = Issue(
+            description=description,
+            category=category,
+            image_path=image_path,
+            source="web"
+        )
+        db.add(new_issue)
+        db.commit()
+        db.refresh(new_issue)
+        return new_issue
+
+    new_issue = await asyncio.to_thread(save_to_db)
 
     # Generate Action Plan (AI)
     action_plan = await generate_action_plan(description, category, image_path)
