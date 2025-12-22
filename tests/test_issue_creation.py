@@ -3,6 +3,9 @@ import os
 import shutil
 import tempfile
 from fastapi.testclient import TestClient
+
+# Note: This test requires PYTHONPATH=backend to be set to import backend modules
+# Run with: PYTHONPATH=backend python tests/test_issue_creation.py
 from main import app
 from models import Base
 from database import engine

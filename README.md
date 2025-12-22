@@ -86,7 +86,7 @@ PYTHONPATH=backend python -m uvicorn main:app --reload
 
 The API will be available at `http://localhost:8000`.
 
-**Note for Windows**: Use `set PYTHONPATH=backend && python -m uvicorn main:app --reload`
+**Note for Windows**: Use `set PYTHONPATH=backend & python -m uvicorn main:app --reload`
 
 ### Start the Frontend Development Server
 
