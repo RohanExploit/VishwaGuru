@@ -1,4 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
+import jwt_decode from "jwt-decode";
+
+// NOTE: Replace with your actual Client ID
+const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
 
 function App() {
   const [view, setView] = useState('home'); // home, map, report, action
@@ -6,10 +11,34 @@ function App() {
   const [actionPlan, setActionPlan] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [user, setUser] = useState(null);
+
+  const handleLoginSuccess = (credentialResponse) => {
+    // In a real app, verify this token with your backend
+    const decoded = jwt_decode(credentialResponse.credential);
+    setUser(decoded);
+    console.log("Logged in user:", decoded);
+  };
+
+  const handleLoginError = () => {
+    console.log('Login Failed');
+  };
 
   // Home View Components
   const Home = () => (
     <div className="space-y-4">
+      {!user && (
+         <div className="flex justify-center mb-4">
+             <GoogleLogin
+                onSuccess={handleLoginSuccess}
+                onError={handleLoginError}
+              />
+         </div>
+      )}
+      {user && (
+          <p className="text-center text-green-600 font-semibold mb-4">Welcome, {user.name}!</p>
+      )}
+
       <button
         onClick={() => setView('report')}
         className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition font-medium shadow-md"
@@ -72,6 +101,11 @@ function App() {
       payload.append('category', formData.category);
       if (formData.image) {
         payload.append('image', formData.image);
+      }
+
+      // Pass user email if logged in (Optional)
+      if (user) {
+        payload.append('user_email', user.email);
       }
 
       try {
@@ -197,6 +231,7 @@ function App() {
   };
 
   return (
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
     <div className="min-h-screen bg-gray-100 flex flex-col items-center p-4">
       <div className="bg-white shadow-lg rounded-lg p-6 max-w-lg w-full mt-10">
         <h1 className="text-3xl font-bold text-center text-blue-600 mb-2">
@@ -216,6 +251,7 @@ function App() {
 
       </div>
     </div>
+    </GoogleOAuthProvider>
   );
 }
 

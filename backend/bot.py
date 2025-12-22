@@ -124,14 +124,6 @@ async def run_bot():
     await application.updater.start_polling()
 
     # Keep the bot running
-    # In a real asyncio loop, we might wait on a future or similar.
-    # But since this is a background task in FastAPI, it will run until the loop stops.
-    # However, application.updater.start_polling() is non-blocking (starts background task).
-    # We don't need to block here.
-
-    # Wait for stop signal?
-    # For MVP simplicity in FastAPI lifespan:
-    # We just return application so we can stop it later.
     return application
 
 if __name__ == '__main__':

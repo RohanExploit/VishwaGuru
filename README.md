@@ -10,15 +10,77 @@ VishwaGuru is a lightweight, full-stack civic action platform designed for the G
 *   **Issue Reporting (Web):** Upload a photo and description to generate an AI-drafted complaint.
 *   **Action Generator:** Get ready-to-send WhatsApp messages and Email drafts.
 *   **Telegram Bot:** Report issues directly via Telegram (User -> Bot -> Database).
+*   **Google Auth:** Optional sign-in to track identity (Client-side integration).
+*   **Android App:** Capacitor-wrapped Web App for native Android experience.
 *   **Low Resource:** No heavy cloud infrastructure, no paid APIs (optional Gemini), works on low bandwidth.
 
 ## Tech Stack
 
-*   **Frontend:** React + Vite + Tailwind CSS
-*   **Backend:** FastAPI (Python)
+*   **Frontend:** React + Vite + Tailwind CSS + Capacitor (Android)
+*   **Backend:** FastAPI (Python) + SQLAlchemy
 *   **Database:** SQLite (Local) / PostgreSQL (Production)
 *   **AI:** Google Gemini (Generative AI)
 *   **Bot:** Python Telegram Bot
+
+## Prerequisites
+
+*   Node.js (v18+)
+*   Python (3.12+)
+*   Git
+
+## Local Installation
+
+1.  **Clone the repo:**
+    ```bash
+    git clone https://github.com/RohanExploit/VishwaGuru.git
+    cd VishwaGuru
+    ```
+
+2.  **Backend Setup:**
+    ```bash
+    # Create virtual environment (optional but recommended)
+    python -m venv venv
+    source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+    # Install dependencies
+    pip install -r backend/requirements.txt
+
+    # Set Environment Variables (Create a .env file or export)
+    export TELEGRAM_BOT_TOKEN="your_bot_token"
+    export GEMINI_API_KEY="your_gemini_key"
+
+    # Run Server (from root)
+    python -m uvicorn backend.main:app --reload
+    ```
+
+3.  **Frontend Setup:**
+    ```bash
+    cd frontend
+    npm install
+
+    # Configure Google Client ID in src/App.jsx (Replace placeholder)
+
+    # Run Dev Server
+    npm run dev
+    ```
+
+## Android Build (Capacitor)
+
+1.  **Initialize & Sync:**
+    ```bash
+    cd frontend
+    npm run build
+    npx cap sync
+    ```
+
+2.  **Build APK:**
+    *   **Option A (If you have Android Studio):**
+        ```bash
+        npx cap open android
+        ```
+        Then build via Android Studio.
+    *   **Option B (CI/CD or Command Line):**
+        Use Gradle wrapper in `android/` directory (requires Java/Android SDK installed).
 
 ## Deployment (Render.com)
 
@@ -29,31 +91,17 @@ VishwaGuru is a lightweight, full-stack civic action platform designed for the G
 3.  Click **New +** -> **Web Service**.
 4.  **Connect** your GitHub repository.
 5.  **Configure** the service:
-    *   **Name:** `vishwaguru` (or any name)
+    *   **Name:** `vishwaguru`
     *   **Runtime:** `Python 3`
     *   **Build Command:** `./render-build.sh`
     *   **Start Command:** `python -m uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
     *   **Instance Type:** `Free`
-6.  **Environment Variables** (Add these in the "Environment" tab):
+6.  **Environment Variables**:
     *   `PYTHON_VERSION` = `3.12.12`
-    *   `TELEGRAM_BOT_TOKEN` = `your_telegram_bot_token`
-    *   `GEMINI_API_KEY` = `your_gemini_api_key`
-    *   *(Optional)* `DATABASE_URL` = `internal_connection_string_of_render_postgres` (If you create a separate Free Postgres database). If skipped, it uses ephemeral SQLite (data resets on restart).
+    *   `TELEGRAM_BOT_TOKEN` = `...`
+    *   `GEMINI_API_KEY` = `...`
+    *   `DATABASE_URL` (Auto-filled if using Postgres service, else leave empty for SQLite).
 7.  Click **Create Web Service**.
-
-## Local Development
-
-1.  **Backend:**
-    ```bash
-    pip install -r backend/requirements.txt
-    python -m uvicorn backend.main:app --reload
-    ```
-2.  **Frontend:**
-    ```bash
-    cd frontend
-    npm install
-    npm run dev
-    ```
 
 ## License
 AGPL-3.0

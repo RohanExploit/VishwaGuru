@@ -10,5 +10,6 @@ class Issue(Base):
     category = Column(String, index=True)
     image_path = Column(String)
     source = Column(String)  # 'telegram', 'web', etc.
+    user_email = Column(String, nullable=True)
     status = Column(String, default="open")
     created_at = Column(DateTime, default=datetime.datetime.utcnow)

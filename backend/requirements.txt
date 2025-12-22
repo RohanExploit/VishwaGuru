@@ -5,3 +5,4 @@ python-telegram-bot
 google-generativeai
 python-multipart
 psycopg2-binary
+google-auth

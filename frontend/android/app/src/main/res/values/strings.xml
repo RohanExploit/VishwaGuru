@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">VishwaGuru</string>
+    <string name="title_activity_main">VishwaGuru</string>
+    <string name="package_name">com.vishwaguru.app</string>
+    <string name="custom_url_scheme">com.vishwaguru.app</string>
+</resources>
