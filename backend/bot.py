@@ -57,12 +57,7 @@ async def receive_description(update: Update, context: ContextTypes.DEFAULT_TYPE
     )
     return CATEGORY
 
-async def receive_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    category = update.message.text
-    photo_path = context.user_data.get('photo_path')
-    description = context.user_data.get('description')
-
-    # Save to Database
+def save_issue_db_blocking(description, category, photo_path):
     db = SessionLocal()
     try:
         new_issue = Issue(
@@ -74,13 +69,29 @@ async def receive_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
         db.add(new_issue)
         db.commit()
         db.refresh(new_issue)
-        issue_id = new_issue.id
+        return new_issue.id
+    finally:
+        db.close()
+
+async def receive_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    category = update.message.text
+    photo_path = context.user_data.get('photo_path')
+    description = context.user_data.get('description')
+
+    # Save to Database (using threadpool to avoid blocking event loop)
+    from fastapi.concurrency import run_in_threadpool
+
+    try:
+        issue_id = await run_in_threadpool(
+            save_issue_db_blocking,
+            description,
+            category,
+            photo_path
+        )
     except Exception as e:
         logging.error(f"Error saving to DB: {e}")
         await update.message.reply_text("Sorry, something went wrong while saving your issue.")
         return ConversationHandler.END
-    finally:
-        db.close()
 
     await update.message.reply_text(
         f"Thank you! Your issue has been reported.\n"
