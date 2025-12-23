@@ -186,7 +186,8 @@ async def get_maharashtra_rep_contacts(pincode: str = Query(..., min_length=6, m
             "name": mla_info["mla_name"],
             "party": mla_info["party"],
             "phone": mla_info["phone"],
-            "email": mla_info["email"]
+            "email": mla_info["email"],
+            "twitter": mla_info.get("twitter")
         },
         "grievance_links": {
             "central_cpgrams": "https://pgportal.gov.in/",

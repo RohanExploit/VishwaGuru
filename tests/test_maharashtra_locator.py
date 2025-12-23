@@ -70,7 +70,7 @@ class TestMaharashtraLocator:
         """Test finding MLA with valid constituency"""
         result = find_mla_by_constituency("Kasba Peth")
         assert result is not None
-        # Validating with real data (Ravindra Dhangekar is the current MLA as of 2024)
+        # Validating with real data (Ravindra Dhangekar is the current MLA based on 2024 Assembly Election results)
         assert result["mla_name"] == "Ravindra Dhangekar"
         assert "Indian National Congress" in result["party"]
         assert "phone" in result
@@ -91,7 +91,7 @@ class TestMaharashtraLocator:
         """Test finding MLA for Colaba constituency"""
         result = find_mla_by_constituency("Colaba")
         assert result is not None
-        # Validating with real data (Rahul Narwekar is the current MLA as of 2024)
+        # Validating with real data (Rahul Narwekar is the current MLA based on 2024 Assembly Election results)
         assert result["mla_name"] == "Rahul Narwekar"
     
     def test_full_lookup_flow(self):
