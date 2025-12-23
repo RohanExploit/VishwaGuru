@@ -93,7 +93,8 @@ def find_mla_by_constituency(constituency_name: str) -> Optional[Dict[str, Any]]
                 "mla_name": entry.get("mla_name"),
                 "party": entry.get("party"),
                 "phone": entry.get("phone"),
-                "email": entry.get("email")
+                "email": entry.get("email"),
+                "twitter": entry.get("twitter")
             }
     
     return None

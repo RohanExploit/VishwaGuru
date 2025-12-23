@@ -1,26 +1,32 @@
 {
   "road": {
     "authority": "Municipal Corporation / PWD",
-    "description": "For city roads, it is the Municipal Corporation. For highways, it is PWD or NHAI."
+    "description": "For city roads, it is the Municipal Corporation. For highways, it is PWD or NHAI.",
+    "twitter": "@mybmc"
   },
   "water": {
     "authority": "Municipal Water Supply Dept / Jal Board",
-    "description": "Issues related to water supply, leakage, or quality."
+    "description": "Issues related to water supply, leakage, or quality.",
+    "twitter": "@mybmc"
   },
   "streetlight": {
     "authority": "Municipal Corporation (Electrical Dept)",
-    "description": "Non-functional streetlights or new installation requests."
+    "description": "Non-functional streetlights or new installation requests.",
+    "twitter": "@mybmc"
   },
   "garbage": {
     "authority": "Municipal Corporation (Sanitation Dept)",
-    "description": "Uncollected garbage, lack of bins, or street cleaning."
+    "description": "Uncollected garbage, lack of bins, or street cleaning.",
+    "twitter": "@mybmc"
   },
   "college_infra": {
     "authority": "University / State Education Dept",
-    "description": "Issues like broken furniture, lack of fans/lights, or poor building condition."
+    "description": "Issues like broken furniture, lack of fans/lights, or poor building condition.",
+    "twitter": "@DTE_Maharashtra"
   },
   "women_safety": {
     "authority": "Local Police / Women Helpline (1091)",
-    "description": "Harassment, unsafe areas, or immediate threats."
+    "description": "Harassment, unsafe areas, or immediate threats.",
+    "twitter": "@MahaPolice"
   }
 }

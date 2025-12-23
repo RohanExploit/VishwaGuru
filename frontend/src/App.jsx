@@ -298,6 +298,22 @@ function App() {
                 <p className="text-sm text-gray-600"><span className="font-medium">Phone:</span> {maharashtraRepInfo.mla.phone}</p>
                 <p className="text-sm text-gray-600"><span className="font-medium">Email:</span> {maharashtraRepInfo.mla.email}</p>
               </div>
+
+              {maharashtraRepInfo.mla.twitter && maharashtraRepInfo.mla.twitter !== "Not Available" && (
+                <div className="mt-3">
+                  <a
+                    href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
+                      `Hello ${maharashtraRepInfo.mla.twitter}, I am a resident of ${maharashtraRepInfo.assembly_constituency} (Pincode: ${maharashtraRepInfo.pincode}). I want to bring to your attention... @PMOIndia @CMOMaharashtra`
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block w-full text-center bg-black text-white py-2 rounded hover:bg-gray-800 transition flex items-center justify-center gap-2"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5 fill-current"><g><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></g></svg>
+                    Post on X
+                  </a>
+                </div>
+              )}
               
               {maharashtraRepInfo.description && (
                 <div className="mt-3 pt-3 border-t border-gray-200">
