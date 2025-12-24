@@ -46,6 +46,24 @@ def load_maharashtra_mla_data() -> list:
         return json.load(f)
 
 
+@lru_cache(maxsize=1)
+def _load_maharashtra_pincode_map() -> Dict[str, Dict[str, Any]]:
+    """
+    Load and cache Maharashtra pincode to constituency mapping as a dict for O(1) lookup.
+    """
+    pincode_data = load_maharashtra_pincode_data()
+    return {entry["pincode"]: entry for entry in pincode_data if "pincode" in entry}
+
+
+@lru_cache(maxsize=1)
+def _load_maharashtra_mla_map() -> Dict[str, Dict[str, Any]]:
+    """
+    Load and cache Maharashtra MLA information as a dict for O(1) lookup.
+    """
+    mla_data = load_maharashtra_mla_data()
+    return {entry["assembly_constituency"]: entry for entry in mla_data if "assembly_constituency" in entry}
+
+
 def find_constituency_by_pincode(pincode: str) -> Optional[Dict[str, Any]]:
     """
     Find constituency information by pincode.
@@ -59,15 +77,16 @@ def find_constituency_by_pincode(pincode: str) -> Optional[Dict[str, Any]]:
     if not pincode or len(pincode) != 6 or not pincode.isdigit():
         return None
     
-    pincode_data = load_maharashtra_pincode_data()
+    # Use O(1) map lookup instead of O(n) list iteration
+    pincode_map = _load_maharashtra_pincode_map()
+    entry = pincode_map.get(pincode)
     
-    for entry in pincode_data:
-        if entry.get("pincode") == pincode:
-            return {
-                "district": entry.get("district"),
-                "state": entry.get("state"),
-                "assembly_constituency": entry.get("assembly_constituency")
-            }
+    if entry:
+        return {
+            "district": entry.get("district"),
+            "state": entry.get("state"),
+            "assembly_constituency": entry.get("assembly_constituency")
+        }
     
     return None
 
@@ -85,16 +104,17 @@ def find_mla_by_constituency(constituency_name: str) -> Optional[Dict[str, Any]]
     if not constituency_name:
         return None
     
-    mla_data = load_maharashtra_mla_data()
+    # Use O(1) map lookup instead of O(n) list iteration
+    mla_map = _load_maharashtra_mla_map()
+    entry = mla_map.get(constituency_name)
     
-    for entry in mla_data:
-        if entry.get("assembly_constituency") == constituency_name:
-            return {
-                "mla_name": entry.get("mla_name"),
-                "party": entry.get("party"),
-                "phone": entry.get("phone"),
-                "email": entry.get("email"),
-                "twitter": entry.get("twitter")
-            }
+    if entry:
+        return {
+            "mla_name": entry.get("mla_name"),
+            "party": entry.get("party"),
+            "phone": entry.get("phone"),
+            "email": entry.get("email"),
+            "twitter": entry.get("twitter")
+        }
     
     return None
