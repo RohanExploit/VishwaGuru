@@ -11,12 +11,12 @@ from typing import Optional, Dict, Any
 
 
 @lru_cache(maxsize=1)
-def load_maharashtra_pincode_data() -> list:
+def load_maharashtra_pincode_data() -> Dict[str, Dict[str, Any]]:
     """
     Load and cache Maharashtra pincode to constituency mapping data.
     
     Returns:
-        list: List of pincode mapping dictionaries
+        dict: Dictionary mapping pincode -> constituency info
     """
     file_path = os.path.join(
         os.path.dirname(__file__),
@@ -25,16 +25,18 @@ def load_maharashtra_pincode_data() -> list:
     )
     
     with open(file_path, "r", encoding="utf-8") as f:
-        return json.load(f)
+        data_list = json.load(f)
+        # Convert list to dictionary keyed by pincode
+        return {item["pincode"]: item for item in data_list}
 
 
 @lru_cache(maxsize=1)
-def load_maharashtra_mla_data() -> list:
+def load_maharashtra_mla_data() -> Dict[str, Dict[str, Any]]:
     """
     Load and cache Maharashtra MLA information data.
     
     Returns:
-        list: List of MLA information dictionaries
+        dict: Dictionary mapping assembly_constituency -> MLA info
     """
     file_path = os.path.join(
         os.path.dirname(__file__),
@@ -43,7 +45,9 @@ def load_maharashtra_mla_data() -> list:
     )
     
     with open(file_path, "r", encoding="utf-8") as f:
-        return json.load(f)
+        data_list = json.load(f)
+        # Convert list to dictionary keyed by assembly_constituency
+        return {item["assembly_constituency"]: item for item in data_list}
 
 
 def find_constituency_by_pincode(pincode: str) -> Optional[Dict[str, Any]]:
@@ -61,13 +65,13 @@ def find_constituency_by_pincode(pincode: str) -> Optional[Dict[str, Any]]:
     
     pincode_data = load_maharashtra_pincode_data()
     
-    for entry in pincode_data:
-        if entry.get("pincode") == pincode:
-            return {
-                "district": entry.get("district"),
-                "state": entry.get("state"),
-                "assembly_constituency": entry.get("assembly_constituency")
-            }
+    entry = pincode_data.get(pincode)
+    if entry:
+        return {
+            "district": entry.get("district"),
+            "state": entry.get("state"),
+            "assembly_constituency": entry.get("assembly_constituency")
+        }
     
     return None
 
@@ -87,14 +91,14 @@ def find_mla_by_constituency(constituency_name: str) -> Optional[Dict[str, Any]]
     
     mla_data = load_maharashtra_mla_data()
     
-    for entry in mla_data:
-        if entry.get("assembly_constituency") == constituency_name:
-            return {
-                "mla_name": entry.get("mla_name"),
-                "party": entry.get("party"),
-                "phone": entry.get("phone"),
-                "email": entry.get("email"),
-                "twitter": entry.get("twitter")
-            }
+    entry = mla_data.get(constituency_name)
+    if entry:
+        return {
+            "mla_name": entry.get("mla_name"),
+            "party": entry.get("party"),
+            "phone": entry.get("phone"),
+            "email": entry.get("email"),
+            "twitter": entry.get("twitter")
+        }
     
     return None
