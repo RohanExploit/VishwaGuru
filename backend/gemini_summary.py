@@ -4,8 +4,18 @@ Gemini Summary Service for Maharashtra MLA Information
 Uses Gemini AI to generate human-readable summaries about MLAs and their roles.
 """
 import os
-import google.generativeai as genai
+import warnings
 from typing import Dict, Optional
+
+# Suppress the Future Warning from google.generativeai
+warnings.filterwarnings("ignore", category=FutureWarning, module="google.generativeai")
+
+import google.generativeai as genai
+
+# Simple in-memory cache to store generated summaries
+# Key: (district, assembly_constituency, mla_name, issue_category)
+# Value: Summary string
+_summary_cache: Dict[tuple, str] = {}
 
 
 # Configure Gemini (reuses existing configuration)
@@ -51,6 +61,11 @@ async def generate_mla_summary(
     Returns:
         A short paragraph describing the MLA's role and responsibilities
     """
+    # Check cache first
+    cache_key = (district, assembly_constituency, mla_name, issue_category)
+    if cache_key in _summary_cache:
+        return _summary_cache[cache_key]
+
     if not api_key:
         return _get_fallback_summary(mla_name, assembly_constituency, district)
     
@@ -70,7 +85,12 @@ async def generate_mla_summary(
         """
         
         response = await model.generate_content_async(prompt)
-        return response.text.strip()
+        summary = response.text.strip()
+
+        # Store in cache
+        _summary_cache[cache_key] = summary
+
+        return summary
         
     except Exception as e:
         print(f"Gemini Summary Error: {e}")
