@@ -64,11 +64,13 @@ All tests pass, and the new features work as expected. PR #22 actually improves 
 
 **Before PR #22:**
 ```python
+# Old implementation (replaced):
 model = genai.GenerativeModel('gemini-pro')
 ```
 
 **After PR #22:**
 ```python
+# New implementation (current):
 model = genai.GenerativeModel('gemini-1.5-flash')  # Faster!
 ```
 
@@ -101,7 +103,7 @@ DISTRICT_RANGES = [
     (400001, 400104, "Mumbai City"),
     (411001, 411062, "Pune"),
     (440001, 441204, "Nagpur"),
-    # ... 33 more districts
+    # Additional 33 districts omitted for brevity (total 36 districts)
 ]
 ```
 
