@@ -2,7 +2,7 @@ fastapi
 uvicorn
 sqlalchemy
 python-telegram-bot
-google-generativeai
+google-genai
 python-multipart
 psycopg2-binary
 async-lru

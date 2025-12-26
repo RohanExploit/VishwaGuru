@@ -1,22 +1,20 @@
 import os
-import google.generativeai as genai
+from google import genai
 from typing import Optional
-import warnings
-
-# Suppress deprecation warnings from google.generativeai
-warnings.filterwarnings("ignore", category=FutureWarning, module="google.generativeai")
+import json
 
 # Configure Gemini
 # Use provided key as fallback if env var is missing
 api_key = os.environ.get("GEMINI_API_KEY", "AIzaSyB8_i3tbDE3GmX4CsQ8G3mD3pB2WrHi5C8")
+client = None
 if api_key:
-    genai.configure(api_key=api_key)
+    client = genai.Client(api_key=api_key)
 
 async def generate_action_plan(issue_description: str, category: str, image_path: Optional[str] = None) -> dict:
     """
     Generates an action plan (WhatsApp message, Email draft) using Gemini.
     """
-    if not api_key:
+    if not client:
         return {
             "whatsapp": f"Hello, I would like to report a {category} issue: {issue_description}",
             "email_subject": f"Complaint regarding {category}",
@@ -24,9 +22,6 @@ async def generate_action_plan(issue_description: str, category: str, image_path
         }
 
     try:
-        # Use Gemini 1.5 Flash for faster response times
-        model = genai.GenerativeModel('gemini-1.5-flash')
-
         prompt = f"""
         You are a civic action assistant. A user has reported a civic issue.
         Category: {category}
@@ -41,7 +36,10 @@ async def generate_action_plan(issue_description: str, category: str, image_path
         Do not use markdown code blocks. Just the raw JSON string.
         """
 
-        response = await model.generate_content_async(prompt)
+        response = await client.aio.models.generate_content(
+            model='gemini-1.5-flash',
+            contents=prompt
+        )
         text_response = response.text.strip()
 
         # Cleanup if markdown code blocks are returned
@@ -50,7 +48,6 @@ async def generate_action_plan(issue_description: str, category: str, image_path
         elif text_response.startswith("```"):
             text_response = text_response[3:-3]
 
-        import json
         return json.loads(text_response)
 
     except Exception as e:

@@ -32,7 +32,8 @@ def test_create_issue():
                 "/api/issues",
                 data={
                     "description": "Test Issue",
-                    "category": "Road"
+                    "category": "Road",
+                    "user_email": "test@example.com"
                 },
                 files={"image": ("test.jpg", f, "image/jpeg")}
             )
