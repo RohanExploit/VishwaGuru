@@ -70,9 +70,14 @@ async def generate_mla_summary(
         Keep it factual, helpful, and encouraging for civic engagement.
         """
         
+        # Generate content without any tools (no Google Search, no internet retrieval)
+        # Explicitly set tools=None to ensure no search/grounding features are used
         response = await client.aio.models.generate_content(
             model='gemini-1.5-flash',
-            contents=prompt
+            contents=prompt,
+            config=genai.types.GenerateContentConfig(
+                tools=None  # Explicitly disable all tools including Google Search
+            )
         )
         return response.text.strip()
         
