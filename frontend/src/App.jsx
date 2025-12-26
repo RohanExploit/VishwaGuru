@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { getMaharashtraRepContacts } from './api/location';
 import PotholeDetector from './PotholeDetector';
+import ChatWidget from './components/ChatWidget';
+import { AlertTriangle, MapPin, Search, Activity, Camera } from 'lucide-react';
 
 // Get API URL from environment variable, fallback to relative URL for local dev
 const API_URL = import.meta.env.VITE_API_URL || '';
@@ -10,36 +12,100 @@ function App() {
   const [responsibilityMap, setResponsibilityMap] = useState(null);
   const [actionPlan, setActionPlan] = useState(null);
   const [maharashtraRepInfo, setMaharashtraRepInfo] = useState(null);
+  const [recentIssues, setRecentIssues] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Fetch recent issues on mount
+  useEffect(() => {
+    const fetchRecentIssues = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/issues/recent`);
+        if (response.ok) {
+          const data = await response.json();
+          setRecentIssues(data);
+        }
+      } catch (e) {
+        console.error("Failed to fetch recent issues", e);
+      }
+    };
+    fetchRecentIssues();
+  }, []);
+
   // Home View Components
   const Home = () => (
-    <div className="space-y-4">
-      <button
-        onClick={() => setView('report')}
-        className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition font-medium shadow-md"
-      >
-        Start an Issue
-      </button>
-      <button
-        onClick={() => setView('pothole')}
-        className="w-full bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 transition font-medium shadow-md"
-      >
-        Detect Potholes (Live)
-      </button>
-      <button
-        onClick={fetchResponsibilityMap}
-        className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition font-medium shadow-md"
-      >
-        Who is Responsible?
-      </button>
-      <button
-        onClick={() => setView('mh-rep')}
-        className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition font-medium shadow-md"
-      >
-        Find My MLA (Maharashtra)
-      </button>
+    <div className="space-y-6">
+      {/* Quick Actions Grid */}
+      <div className="grid grid-cols-2 gap-4">
+        <button
+          onClick={() => setView('report')}
+          className="flex flex-col items-center justify-center bg-blue-50 border-2 border-blue-100 p-4 rounded-xl hover:bg-blue-100 transition shadow-sm h-32"
+        >
+          <div className="bg-blue-500 text-white p-3 rounded-full mb-2">
+            <AlertTriangle size={24} />
+          </div>
+          <span className="font-semibold text-blue-800">Report Issue</span>
+        </button>
+
+        <button
+          onClick={() => setView('pothole')}
+          className="flex flex-col items-center justify-center bg-red-50 border-2 border-red-100 p-4 rounded-xl hover:bg-red-100 transition shadow-sm h-32"
+        >
+          <div className="bg-red-500 text-white p-3 rounded-full mb-2">
+            <Camera size={24} />
+          </div>
+          <span className="font-semibold text-red-800">Detect Pothole</span>
+        </button>
+
+        <button
+          onClick={() => setView('mh-rep')}
+          className="flex flex-col items-center justify-center bg-purple-50 border-2 border-purple-100 p-4 rounded-xl hover:bg-purple-100 transition shadow-sm h-32"
+        >
+          <div className="bg-purple-500 text-white p-3 rounded-full mb-2">
+            <Search size={24} />
+          </div>
+          <span className="font-semibold text-purple-800">Find MLA</span>
+        </button>
+
+        <button
+          onClick={fetchResponsibilityMap}
+          className="flex flex-col items-center justify-center bg-green-50 border-2 border-green-100 p-4 rounded-xl hover:bg-green-100 transition shadow-sm h-32"
+        >
+          <div className="bg-green-500 text-white p-3 rounded-full mb-2">
+            <MapPin size={24} />
+          </div>
+          <span className="font-semibold text-green-800">Responsibility</span>
+        </button>
+      </div>
+
+      {/* Recent Activity Feed */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="p-4 border-b border-gray-100 flex items-center gap-2">
+          <Activity size={18} className="text-orange-500" />
+          <h2 className="font-bold text-gray-800">Community Activity</h2>
+        </div>
+        <div className="divide-y divide-gray-50 max-h-60 overflow-y-auto">
+          {recentIssues.length > 0 ? (
+            recentIssues.map((issue) => (
+              <div key={issue.id} className="p-3 hover:bg-gray-50 transition">
+                <div className="flex justify-between items-start">
+                  <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 mb-1 capitalize">
+                    {issue.category}
+                  </span>
+                  <span className="text-xs text-gray-400">
+                    {new Date(issue.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-700 line-clamp-2">{issue.description}</p>
+              </div>
+            ))
+          ) : (
+            <div className="p-4 text-center text-gray-500 text-sm">
+              No recent activity to show.
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 
@@ -373,16 +439,28 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center p-4">
-      <div className="bg-white shadow-lg rounded-lg p-6 max-w-lg w-full mt-10">
-        <h1 className="text-3xl font-bold text-center text-blue-600 mb-2">
-          VishwaGuru
-        </h1>
-        <p className="text-gray-600 text-center mb-8">
-          Civic action, simplified.
-        </p>
+      <ChatWidget />
+      <div className="bg-white shadow-xl rounded-2xl p-6 max-w-lg w-full mt-6 mb-24 border border-gray-100">
+        <header className="text-center mb-6">
+          <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-blue-600">
+            VishwaGuru
+          </h1>
+          <p className="text-gray-500 text-sm mt-1">
+            Empowering Citizens, Solving Problems.
+          </p>
+        </header>
 
-        {loading && !['report', 'mh-rep'].includes(view) && <p className="text-center text-gray-500 my-4">Loading...</p>}
-        {error && <p className="text-center text-red-500 my-4">{error}</p>}
+        {loading && !['report', 'mh-rep'].includes(view) && (
+          <div className="flex justify-center my-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        )}
+
+        {error && (
+          <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm text-center my-4">
+            {error}
+          </div>
+        )}
 
         {view === 'home' && <Home />}
         {view === 'map' && <MapView />}

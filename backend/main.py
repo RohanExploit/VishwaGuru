@@ -4,8 +4,9 @@ from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 from database import engine, get_db
 from models import Base, Issue
-from ai_service import generate_action_plan
+from ai_service import generate_action_plan, chat_with_civic_assistant
 from maharashtra_locator import find_constituency_by_pincode, find_mla_by_constituency
+from pydantic import BaseModel
 from gemini_summary import generate_mla_summary
 import json
 import os
@@ -158,6 +159,31 @@ def get_responsibility_map():
         return _load_responsibility_map()
     except FileNotFoundError:
         return {"error": "Data file not found"}
+
+class ChatRequest(BaseModel):
+    query: str
+
+@app.post("/api/chat")
+async def chat_endpoint(request: ChatRequest):
+    response = await chat_with_civic_assistant(request.query)
+    return {"response": response}
+
+@app.get("/api/issues/recent")
+def get_recent_issues(db: Session = Depends(get_db)):
+    # Fetch last 10 issues
+    issues = db.query(Issue).order_by(Issue.created_at.desc()).limit(10).all()
+    # Sanitize data (no emails)
+    return [
+        {
+            "id": i.id,
+            "category": i.category,
+            "description": i.description[:100] + "..." if len(i.description) > 100 else i.description,
+            "created_at": i.created_at,
+            "image_path": i.image_path,
+            "status": i.status
+        }
+        for i in issues
+    ]
 
 @app.post("/api/detect-pothole")
 async def detect_pothole_endpoint(image: UploadFile = File(...)):
