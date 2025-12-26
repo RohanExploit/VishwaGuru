@@ -1,5 +1,6 @@
 import os
 import logging
+import asyncio
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters, ConversationHandler
 from database import engine, SessionLocal
@@ -57,12 +58,11 @@ async def receive_description(update: Update, context: ContextTypes.DEFAULT_TYPE
     )
     return CATEGORY
 
-async def receive_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    category = update.message.text
-    photo_path = context.user_data.get('photo_path')
-    description = context.user_data.get('description')
-
-    # Save to Database
+def save_issue_to_db(description, category, photo_path):
+    """
+    Synchronous helper to save issue to DB.
+    To be run in a threadpool to avoid blocking the async event loop.
+    """
     db = SessionLocal()
     try:
         new_issue = Issue(
@@ -74,20 +74,33 @@ async def receive_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
         db.add(new_issue)
         db.commit()
         db.refresh(new_issue)
-        issue_id = new_issue.id
+        return new_issue.id
     except Exception as e:
         logging.error(f"Error saving to DB: {e}")
-        await update.message.reply_text("Sorry, something went wrong while saving your issue.")
-        return ConversationHandler.END
+        raise e
     finally:
         db.close()
 
-    await update.message.reply_text(
-        f"Thank you! Your issue has been reported.\n"
-        f"Reference ID: #{issue_id}\n\n"
-        f"We will generate an action plan for you soon.",
-        reply_markup=ReplyKeyboardRemove()
-    )
+async def receive_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    category = update.message.text
+    photo_path = context.user_data.get('photo_path')
+    description = context.user_data.get('description')
+
+    try:
+        # Save to Database using threadpool to prevent blocking the event loop
+        # asyncio.to_thread runs the synchronous function in a separate thread (Python 3.9+)
+        issue_id = await asyncio.to_thread(save_issue_to_db, description, category, photo_path)
+
+        await update.message.reply_text(
+            f"Thank you! Your issue has been reported.\n"
+            f"Reference ID: #{issue_id}\n\n"
+            f"We will generate an action plan for you soon.",
+            reply_markup=ReplyKeyboardRemove()
+        )
+    except Exception:
+        await update.message.reply_text("Sorry, something went wrong while saving your issue.")
+        return ConversationHandler.END
+
     return ConversationHandler.END
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -134,7 +147,6 @@ async def run_bot():
     return application
 
 if __name__ == '__main__':
-    import asyncio
     loop = asyncio.get_event_loop()
     loop.run_until_complete(run_bot())
     loop.run_forever()
