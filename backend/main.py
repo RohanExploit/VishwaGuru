@@ -37,6 +37,16 @@ except Exception as e:
     # Column likely already exists
     pass
 
+# Attempt to add index on created_at for performance
+try:
+    with engine.connect() as conn:
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_issues_created_at ON issues (created_at)"))
+        conn.commit()
+        print("Migrated database: Added index on created_at.")
+except Exception as e:
+    print(f"Index migration note: {e}")
+    pass
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: Start Telegram Bot in background (non-blocking)
