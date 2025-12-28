@@ -2,14 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { getMaharashtraRepContacts } from './api/location';
 import PotholeDetector from './PotholeDetector';
 import GarbageDetector from './GarbageDetector';
+import CivicEye from './components/CivicEye';
 import ChatWidget from './components/ChatWidget';
-import { AlertTriangle, MapPin, Search, Activity, Camera, Trash2, ThumbsUp } from 'lucide-react';
+import { AlertTriangle, MapPin, Search, Activity, Camera, Trash2, ThumbsUp, Eye } from 'lucide-react';
 
 // Get API URL from environment variable, fallback to relative URL for local dev
 const API_URL = import.meta.env.VITE_API_URL || '';
 
 function App() {
-  const [view, setView] = useState('home'); // home, map, report, action, mh-rep, pothole, garbage
+  const [view, setView] = useState('home'); // home, map, report, action, mh-rep, pothole, garbage, civic-eye
   const [responsibilityMap, setResponsibilityMap] = useState(null);
   const [actionPlan, setActionPlan] = useState(null);
   const [maharashtraRepInfo, setMaharashtraRepInfo] = useState(null);
@@ -96,15 +97,25 @@ function App() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1">
+      <div className="grid grid-cols-2 gap-4 mt-4">
+         <button
+          onClick={() => setView('civic-eye')}
+          className="flex flex-col items-center justify-center bg-indigo-50 border-2 border-indigo-100 p-4 rounded-xl hover:bg-indigo-100 transition shadow-sm h-32"
+        >
+          <div className="bg-indigo-500 text-white p-3 rounded-full mb-2">
+            <Eye size={24} />
+          </div>
+          <span className="font-semibold text-indigo-800">Civic Eye (AI)</span>
+        </button>
+
          <button
           onClick={fetchResponsibilityMap}
-          className="flex flex-row items-center justify-center bg-green-50 border-2 border-green-100 p-4 rounded-xl hover:bg-green-100 transition shadow-sm h-16"
+          className="flex flex-col items-center justify-center bg-green-50 border-2 border-green-100 p-4 rounded-xl hover:bg-green-100 transition shadow-sm h-32"
         >
-          <div className="bg-green-500 text-white p-2 rounded-full mr-3">
-            <MapPin size={20} />
+          <div className="bg-green-500 text-white p-3 rounded-full mb-2">
+            <MapPin size={24} />
           </div>
-          <span className="font-semibold text-green-800">Who is Responsible?</span>
+          <span className="font-semibold text-green-800">Authority Map</span>
         </button>
       </div>
 
@@ -508,6 +519,7 @@ function App() {
         {view === 'mh-rep' && <MaharashtraRepView />}
         {view === 'pothole' && <PotholeDetector onBack={() => setView('home')} />}
         {view === 'garbage' && <GarbageDetector onBack={() => setView('home')} />}
+        {view === 'civic-eye' && <CivicEye onBack={() => setView('home')} />}
 
       </div>
     </div>
