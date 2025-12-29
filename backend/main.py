@@ -24,6 +24,7 @@ from contextlib import asynccontextmanager
 from bot import run_bot
 from pothole_detection import detect_potholes
 from garbage_detection import detect_garbage
+from hf_service import classify_image_zero_shot
 from PIL import Image
 import io
 from sqlalchemy import text
@@ -282,6 +283,26 @@ async def detect_garbage_endpoint(image: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail="Error processing image for detection")
 
     return {"detections": detections}
+
+@app.post("/api/detect-vandalism")
+async def detect_vandalism_endpoint(image: UploadFile = File(...)):
+    # Read image
+    contents = await image.read()
+
+    # Use HF API for zero-shot classification
+    candidate_labels = ["graffiti", "vandalism", "street art", "clean wall", "public infrastructure"]
+    try:
+        results = await classify_image_zero_shot(contents, candidate_labels)
+        if isinstance(results, dict) and "error" in results:
+             raise HTTPException(status_code=500, detail=results["error"])
+
+        # Results are usually a list of dicts sorted by score
+        return {"classification": results}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Vandalism detection error: {e}")
+        raise HTTPException(status_code=500, detail="Error processing image for detection")
 
 @app.get("/api/mh/rep-contacts")
 async def get_maharashtra_rep_contacts(pincode: str = Query(..., min_length=6, max_length=6)):
