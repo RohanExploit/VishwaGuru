@@ -17,6 +17,7 @@ import json
 import os
 import shutil
 from functools import lru_cache
+from async_lru import alru_cache
 import uuid
 import asyncio
 from fastapi import Depends
@@ -283,32 +284,17 @@ async def detect_garbage_endpoint(image: UploadFile = File(...)):
 
     return {"detections": detections}
 
-@app.get("/api/mh/rep-contacts")
-async def get_maharashtra_rep_contacts(pincode: str = Query(..., min_length=6, max_length=6)):
+@alru_cache(maxsize=100)
+async def _get_maharashtra_rep_contacts_cached(pincode: str):
     """
-    Get MLA and representative contact information for Maharashtra by pincode.
-    
-    Args:
-        pincode: 6-digit pincode for Maharashtra
-        
-    Returns:
-        JSON with MLA details, constituency info, and grievance portal links
+    Cached logic for getting MLA contacts.
+    Separated from the endpoint to allow caching.
     """
-    # Validate pincode format
-    if not pincode.isdigit():
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid pincode format. Must be 6 digits."
-        )
-    
     # Find constituency by pincode
     constituency_info = find_constituency_by_pincode(pincode)
     
     if not constituency_info:
-        raise HTTPException(
-            status_code=404,
-            detail="Unknown pincode for Maharashtra MVP. Currently only supporting limited pincodes."
-        )
+        return None
     
     # Find MLA by constituency
     # If constituency_info exists but assembly_constituency is None, it means we only found District info via fallback
@@ -372,6 +358,34 @@ async def get_maharashtra_rep_contacts(pincode: str = Query(..., min_length=6, m
         response["description"] = f"We found that {pincode} belongs to {constituency_info['district']} district, but we don't have the specific MLA details for this exact pincode yet."
 
     return response
+
+@app.get("/api/mh/rep-contacts")
+async def get_maharashtra_rep_contacts(pincode: str = Query(..., min_length=6, max_length=6)):
+    """
+    Get MLA and representative contact information for Maharashtra by pincode.
+
+    Args:
+        pincode: 6-digit pincode for Maharashtra
+
+    Returns:
+        JSON with MLA details, constituency info, and grievance portal links
+    """
+    # Validate pincode format
+    if not pincode.isdigit():
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid pincode format. Must be 6 digits."
+        )
+
+    result = await _get_maharashtra_rep_contacts_cached(pincode)
+
+    if not result:
+        raise HTTPException(
+            status_code=404,
+            detail="Unknown pincode for Maharashtra MVP. Currently only supporting limited pincodes."
+        )
+
+    return result
 
 # Note: Frontend serving code removed for separate deployment
 # The frontend will be deployed on Netlify and make API calls to this backend
