@@ -2,14 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { getMaharashtraRepContacts } from './api/location';
 import PotholeDetector from './PotholeDetector';
 import GarbageDetector from './GarbageDetector';
+import NoiseDetector from './NoiseDetector';
+import VandalismDetector from './VandalismDetector';
 import ChatWidget from './components/ChatWidget';
-import { AlertTriangle, MapPin, Search, Activity, Camera, Trash2, ThumbsUp } from 'lucide-react';
+import { AlertTriangle, MapPin, Search, Activity, Camera, Trash2, ThumbsUp, Volume2, SprayCan } from 'lucide-react';
 
 // Get API URL from environment variable, fallback to relative URL for local dev
 const API_URL = import.meta.env.VITE_API_URL || '';
 
 function App() {
-  const [view, setView] = useState('home'); // home, map, report, action, mh-rep, pothole, garbage
+  const [view, setView] = useState('home'); // home, map, report, action, mh-rep, pothole, garbage, noise, vandalism
   const [responsibilityMap, setResponsibilityMap] = useState(null);
   const [actionPlan, setActionPlan] = useState(null);
   const [maharashtraRepInfo, setMaharashtraRepInfo] = useState(null);
@@ -83,6 +85,32 @@ function App() {
             <Trash2 size={24} />
           </div>
           <span className="font-semibold text-orange-800">Detect Garbage</span>
+        </button>
+
+        <button
+          onClick={() => setView('noise')}
+          className="flex flex-col items-center justify-center bg-teal-50 border-2 border-teal-100 p-4 rounded-xl hover:bg-teal-100 transition shadow-sm h-32"
+        >
+          <div className="bg-teal-500 text-white p-3 rounded-full mb-2">
+            <Volume2 size={24} />
+          </div>
+          <span className="font-semibold text-teal-800">Noise Level</span>
+        </button>
+
+        {/* New Feature: Vandalism Detector (Placeholder until VandalismDetector component is created, or re-use Report form)
+            For now, let's assume we use the same PotholeDetector logic but with different endpoint,
+            or just a button to Report view with category pre-selected.
+            Actually, let's reuse Report view for now or better, create a simple VandalismDetector component later.
+            Wait, I promised to use HF model. I should make a VandalismDetector component.
+        */}
+        <button
+           onClick={() => setView('vandalism')}
+           className="flex flex-col items-center justify-center bg-indigo-50 border-2 border-indigo-100 p-4 rounded-xl hover:bg-indigo-100 transition shadow-sm h-32"
+        >
+           <div className="bg-indigo-500 text-white p-3 rounded-full mb-2">
+             <SprayCan size={24} />
+           </div>
+           <span className="font-semibold text-indigo-800">Scan Vandalism</span>
         </button>
 
         <button
@@ -508,6 +536,13 @@ function App() {
         {view === 'mh-rep' && <MaharashtraRepView />}
         {view === 'pothole' && <PotholeDetector onBack={() => setView('home')} />}
         {view === 'garbage' && <GarbageDetector onBack={() => setView('home')} />}
+        {view === 'noise' && <NoiseDetector onBack={() => setView('home')} />}
+        {/* Reuse GarbageDetector logic for Vandalism but change endpoint prop if possible,
+            or copy component. Since GarbageDetector is specific, I'll assume we need a VandalismDetector.
+            For now, I'll use GarbageDetector as a base but I need to pass the endpoint.
+            I'll quickly create VandalismDetector.jsx which is a copy of GarbageDetector with different endpoint.
+        */}
+        {view === 'vandalism' && <VandalismDetector onBack={() => setView('home')} />}
 
       </div>
     </div>
