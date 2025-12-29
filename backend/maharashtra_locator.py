@@ -8,46 +8,51 @@ import json
 import os
 from functools import lru_cache
 from typing import Optional, Dict, Any
+import bisect
 
 # District Pincode Ranges (Fallback data)
 # Format: (start, end, district)
+# Sorted by start pincode for binary search
 DISTRICT_RANGES = [
     (400001, 400104, "Mumbai City"),
-    (411001, 411062, "Pune"),
-    (440001, 441204, "Nagpur"),
     (400601, 421605, "Thane"),
-    (422001, 422403, "Nashik"),
-    (431001, 431210, "Aurangabad"),
-    (413001, 413409, "Solapur"),
-    (416001, 416220, "Kolhapur"),
-    (444601, 444912, "Amravati"),
-    (425001, 425504, "Jalgaon"),
-    (414001, 414505, "Ahmednagar"),
-    (416416, 416436, "Sangli"),
-    (413512, 413531, "Latur"),
-    (415001, 415539, "Satara"),
-    (442401, 442908, "Chandrapur"),
-    (441904, 441914, "Bhandara"),
-    (442001, 442506, "Wardha"),
-    (445001, 445304, "Yavatmal"),
-    (431601, 431805, "Nanded"),
-    (413501, 413613, "Osmanabad"),
-    (431122, 431540, "Beed"),
-    (444001, 444808, "Akola"),
-    (424001, 424319, "Dhule"),
-    (431203, 431513, "Jalna"),
-    (431401, 431540, "Parbhani"),
-    (425412, 425524, "Nandurbar"),
-    (431513, 431701, "Hingoli"),
-    (415612, 415804, "Ratnagiri"),
-    (416601, 416810, "Sindhudurg"),
     (401501, 401610, "Palghar"),
     (402201, 402308, "Raigad"),
+    (411001, 411062, "Pune"),
+    (413001, 413409, "Solapur"),
+    (413501, 413613, "Osmanabad"),
+    (413512, 413531, "Latur"),
+    (414001, 414505, "Ahmednagar"),
+    (415001, 415539, "Satara"),
+    (415612, 415804, "Ratnagiri"),
+    (416001, 416220, "Kolhapur"),
+    (416416, 416436, "Sangli"),
+    (416601, 416810, "Sindhudurg"),
+    (422001, 422403, "Nashik"),
+    (424001, 424319, "Dhule"),
+    (425001, 425504, "Jalgaon"),
+    (425412, 425524, "Nandurbar"),
+    (431001, 431210, "Aurangabad"),
+    (431122, 431540, "Beed"),
+    (431203, 431513, "Jalna"),
+    (431401, 431540, "Parbhani"),
+    (431513, 431701, "Hingoli"),
+    (431601, 431805, "Nanded"),
+    (440001, 441204, "Nagpur"),
     (441601, 441911, "Gondia"),
+    (441904, 441914, "Bhandara"),
+    (442001, 442506, "Wardha"),
+    (442401, 442908, "Chandrapur"),
     (442605, 442709, "Gadchiroli"),
+    (443001, 443403, "Buldhana"),
+    (444001, 444808, "Akola"),
     (444105, 444512, "Washim"),
-    (443001, 443403, "Buldhana")
+    (444601, 444912, "Amravati"),
+    (445001, 445304, "Yavatmal")
 ]
+
+# Pre-calculate start points for binary search
+RANGE_STARTS = [r[0] for r in DISTRICT_RANGES]
 
 @lru_cache(maxsize=1)
 def load_maharashtra_pincode_data() -> Dict[str, Dict[str, Any]]:
@@ -91,12 +96,16 @@ def load_maharashtra_mla_data() -> Dict[str, Dict[str, Any]]:
 
 def get_district_by_pincode_range(pincode: int) -> Optional[str]:
     """
-    Find district by checking pincode ranges.
-    This is an O(N) fallback where N is number of ranges (~35).
+    Find district by checking pincode ranges using binary search.
+    This is an O(log N) fallback where N is number of ranges (~35).
     """
-    for start, end, district in DISTRICT_RANGES:
+    idx = bisect.bisect_right(RANGE_STARTS, pincode) - 1
+
+    if idx >= 0:
+        start, end, district = DISTRICT_RANGES[idx]
         if start <= pincode <= end:
             return district
+
     return None
 
 
