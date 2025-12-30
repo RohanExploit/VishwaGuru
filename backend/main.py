@@ -256,11 +256,10 @@ def get_recent_issues(db: Session = Depends(get_db)):
 
 @app.post("/api/detect-pothole")
 async def detect_pothole_endpoint(image: UploadFile = File(...)):
-    # Read image
-    contents = await image.read()
     # Convert to PIL Image
+    # Optimize: Use image.file directly instead of reading into memory
     try:
-        pil_image = Image.open(io.BytesIO(contents))
+        pil_image = Image.open(image.file)
     except Exception:
          raise HTTPException(status_code=400, detail="Invalid image file")
 
@@ -275,11 +274,10 @@ async def detect_pothole_endpoint(image: UploadFile = File(...)):
 
 @app.post("/api/detect-vandalism")
 async def detect_vandalism_endpoint(image: UploadFile = File(...)):
-    # Read image
-    contents = await image.read()
     # Convert to PIL Image
+    # Optimize: Use image.file directly instead of reading into memory
     try:
-        pil_image = Image.open(io.BytesIO(contents))
+        pil_image = Image.open(image.file)
     except Exception:
          raise HTTPException(status_code=400, detail="Invalid image file")
 
@@ -298,11 +296,10 @@ async def detect_vandalism_endpoint(image: UploadFile = File(...)):
 
 @app.post("/api/detect-garbage")
 async def detect_garbage_endpoint(image: UploadFile = File(...)):
-    # Read image
-    contents = await image.read()
     # Convert to PIL Image
+    # Optimize: Use image.file directly instead of reading into memory
     try:
-        pil_image = Image.open(io.BytesIO(contents))
+        pil_image = Image.open(image.file)
     except Exception:
          raise HTTPException(status_code=400, detail="Invalid image file")
 
