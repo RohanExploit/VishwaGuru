@@ -1,8 +1,10 @@
 import os
 import google.generativeai as genai
-from typing import Optional
+from typing import Optional, List, Dict, Any
 import warnings
 from async_lru import alru_cache
+import json
+import PIL.Image
 
 # Suppress deprecation warnings from google.generativeai
 warnings.filterwarnings("ignore", category=FutureWarning, module="google.generativeai")
@@ -51,7 +53,6 @@ async def generate_action_plan(issue_description: str, category: str, image_path
         elif text_response.startswith("```"):
             text_response = text_response[3:-3]
 
-        import json
         return json.loads(text_response)
 
     except Exception as e:
@@ -64,7 +65,7 @@ async def generate_action_plan(issue_description: str, category: str, image_path
         }
 
 @alru_cache(maxsize=100)
-async def chat_with_civic_assistant(query: str) -> str:
+async def chat_with_civic_assistant(query: str, history: List[dict] = []) -> str:
     """
     Chat with the civic assistant.
     """
@@ -74,8 +75,18 @@ async def chat_with_civic_assistant(query: str) -> str:
     try:
         model = genai.GenerativeModel('gemini-1.5-flash')
 
+        # Construct context from history
+        history_context = ""
+        if history:
+            history_context = "Previous conversation:\n"
+            for msg in history[-5:]: # Keep last 5 messages for context
+                role = msg.get("role", "user")
+                content = msg.get("content", "")
+                history_context += f"{role}: {content}\n"
+
         prompt = f"""
         You are VishwaGuru, a helpful civic assistant for Indian citizens.
+        {history_context}
         User Query: {query}
 
         Answer the user's question about civic issues, government services, or local administration.
@@ -88,3 +99,103 @@ async def chat_with_civic_assistant(query: str) -> str:
     except Exception as e:
         print(f"Gemini Chat Error: {e}")
         return "I encountered an error processing your request."
+
+async def analyze_issue_image(image_path: str) -> Dict[str, Any]:
+    """
+    Analyzes an image to detect the civic issue, category, and severity.
+    """
+    if not api_key:
+        return {
+            "description": "AI analysis unavailable",
+            "category": "Uncategorized",
+            "severity": "Unknown"
+        }
+
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash')
+
+        if not os.path.exists(image_path):
+             return {"error": "Image file not found"}
+
+        img = PIL.Image.open(image_path)
+
+        prompt = """
+        Analyze this image of a civic issue.
+        Identify:
+        1. A short description of the issue.
+        2. The category (e.g., Pothole, Garbage, Flooding, Vandalism, Street Light, etc.).
+        3. The severity (Low, Medium, High).
+
+        Return valid JSON with keys: "description", "category", "severity".
+        """
+
+        response = await model.generate_content_async([prompt, img])
+        text_response = response.text.strip()
+
+        if text_response.startswith("```json"):
+            text_response = text_response[7:-3]
+        elif text_response.startswith("```"):
+            text_response = text_response[3:-3]
+
+        return json.loads(text_response)
+
+    except Exception as e:
+        print(f"Gemini Image Analysis Error: {e}")
+        return {
+            "description": "Could not analyze image",
+            "category": "Unknown",
+            "severity": "Unknown"
+        }
+
+async def analyze_issue_with_ai(description: str, image_path: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Analyzes an issue description and optional image.
+    """
+    if not api_key:
+        return {
+             "category": "General",
+             "severity": "Medium",
+             "authority": "Local Municipal Corporation",
+             "action_plan": "Report to local ward office."
+        }
+
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash')
+
+        content = []
+        prompt_text = f"""
+        Analyze this civic issue report.
+        Description: {description}
+
+        Determine:
+        1. The most appropriate Category.
+        2. Severity Level (Low, Medium, High).
+        3. Responsible Authority in India (e.g., BMC, Police, MSEB, etc.).
+        4. A recommended Action Plan (short sentence).
+
+        Return valid JSON with keys: "category", "severity", "authority", "action_plan".
+        """
+        content.append(prompt_text)
+
+        if image_path and os.path.exists(image_path):
+            img = PIL.Image.open(image_path)
+            content.append(img)
+
+        response = await model.generate_content_async(content)
+        text_response = response.text.strip()
+
+        if text_response.startswith("```json"):
+            text_response = text_response[7:-3]
+        elif text_response.startswith("```"):
+            text_response = text_response[3:-3]
+
+        return json.loads(text_response)
+
+    except Exception as e:
+        print(f"Gemini Analysis Error: {e}")
+        return {
+             "category": "General",
+             "severity": "Medium",
+             "authority": "Local Authority",
+             "action_plan": "Please visit the nearest municipal office."
+        }

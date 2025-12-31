@@ -13,7 +13,7 @@ def test_read_main():
 
 @patch("backend.main.detect_vandalism")
 @patch("backend.main.run_in_threadpool")
-@patch("backend.main.Image.open")
+@patch("PIL.Image.open")
 def test_detect_vandalism(mock_image_open, mock_run, mock_detect):
     # Mock authentication
 
@@ -35,7 +35,7 @@ def test_detect_vandalism(mock_image_open, mock_run, mock_detect):
 
     response = client.post(
         "/api/detect-vandalism",
-        files={"image": ("test.jpg", image_content, "image/jpeg")}
+        files={"file": ("test.jpg", image_content, "image/jpeg")}
     )
 
     assert response.status_code == 200
