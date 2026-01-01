@@ -4,8 +4,9 @@ import PotholeDetector from './PotholeDetector';
 import GarbageDetector from './GarbageDetector';
 import VandalismDetector from './VandalismDetector';
 import FloodDetector from './FloodDetector';
+import InfrastructureDetector from './InfrastructureDetector';
 import ChatWidget from './components/ChatWidget';
-import { AlertTriangle, MapPin, Search, Activity, Camera, Trash2, ThumbsUp, Brush, Droplets } from 'lucide-react';
+import { AlertTriangle, MapPin, Search, Activity, Camera, Trash2, ThumbsUp, Brush, Droplets, Zap } from 'lucide-react';
 
 // Get API URL from environment variable, fallback to relative URL for local dev
 const API_URL = import.meta.env.VITE_API_URL || '';
@@ -73,6 +74,16 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote }) =
           <Droplets size={24} />
         </div>
         <span className="font-semibold text-cyan-800">Detect Flood</span>
+      </button>
+
+      <button
+        onClick={() => setView('infrastructure')}
+        className="flex flex-col items-center justify-center bg-yellow-50 border-2 border-yellow-100 p-4 rounded-xl hover:bg-yellow-100 transition shadow-sm h-32"
+      >
+        <div className="bg-yellow-500 text-white p-3 rounded-full mb-2">
+          <Zap size={24} />
+        </div>
+        <span className="font-semibold text-yellow-800">Broken Infra</span>
       </button>
     </div>
 
@@ -576,6 +587,9 @@ function App() {
             </button>
             <FloodDetector />
           </div>
+        )}
+        {view === 'infrastructure' && (
+           <InfrastructureDetector onBack={() => setView('home')} />
         )}
 
       </div>
