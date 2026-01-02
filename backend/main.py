@@ -25,9 +25,7 @@ from contextlib import asynccontextmanager
 from bot import run_bot
 from pothole_detection import detect_potholes
 from garbage_detection import detect_garbage
-from vandalism_detection import detect_vandalism
-from flooding_detection import detect_flooding
-from infrastructure_detection import detect_infrastructure
+from hf_service import detect_vandalism_clip, detect_flooding_clip, detect_infrastructure_clip
 from PIL import Image
 from init_db import migrate_db
 import logging
@@ -269,9 +267,9 @@ async def detect_infrastructure_endpoint(image: UploadFile = File(...)):
         logger.error(f"Invalid image file for infrastructure detection: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail="Invalid image file")
 
-    # Run detection (blocking, so run in threadpool)
+    # Run detection (async now, so no threadpool needed for the detection call itself)
     try:
-        detections = await run_in_threadpool(detect_infrastructure, pil_image)
+        detections = await detect_infrastructure_clip(pil_image)
         return {"detections": detections}
     except Exception as e:
         logger.error(f"Infrastructure detection error: {e}", exc_info=True)
@@ -286,9 +284,9 @@ async def detect_flooding_endpoint(image: UploadFile = File(...)):
         logger.error(f"Invalid image file for flooding detection: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail="Invalid image file")
 
-    # Run detection (blocking, so run in threadpool)
+    # Run detection (async)
     try:
-        detections = await run_in_threadpool(detect_flooding, pil_image)
+        detections = await detect_flooding_clip(pil_image)
         return {"detections": detections}
     except Exception as e:
         logger.error(f"Flooding detection error: {e}", exc_info=True)
@@ -303,12 +301,9 @@ async def detect_vandalism_endpoint(image: UploadFile = File(...)):
         logger.error(f"Invalid image file for vandalism detection: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail="Invalid image file")
 
-    # Run detection (blocking, so run in threadpool)
-    # Using HF API, which is network bound, but we still run it in threadpool
-    # to avoid blocking the event loop if it was synchronous code.
-    # However, hf_service uses sync calls (InferenceClient), so wrapping in threadpool is correct.
+    # Run detection (async)
     try:
-        detections = await run_in_threadpool(detect_vandalism, pil_image)
+        detections = await detect_vandalism_clip(pil_image)
         return {"detections": detections}
     except Exception as e:
         logger.error(f"Vandalism detection error: {e}", exc_info=True)

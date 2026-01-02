@@ -6,7 +6,7 @@ class Issue(Base):
     __tablename__ = "issues"
 
     id = Column(Integer, primary_key=True, index=True)
-    description = Column(String, index=True)
+    description = Column(String)
     category = Column(String, index=True)
     image_path = Column(String)
     source = Column(String)  # 'telegram', 'web', etc.
