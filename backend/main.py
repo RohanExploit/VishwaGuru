@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from database import engine, get_db
 from models import Base, Issue
 from ai_service import generate_action_plan, chat_with_civic_assistant
@@ -226,19 +227,36 @@ async def chat_endpoint(request: ChatRequest):
 @app.get("/api/issues/recent")
 def get_recent_issues(db: Session = Depends(get_db)):
     # Fetch last 10 issues
-    issues = db.query(Issue).order_by(Issue.created_at.desc()).limit(10).all()
+    # Optimization: Fetch only necessary columns and truncate description at DB level
+    # This avoids fetching large text fields and unused columns
+    results = db.query(
+        Issue.id,
+        Issue.category,
+        func.substr(Issue.description, 1, 103).label("short_desc"),
+        func.length(Issue.description).label("desc_len"),
+        Issue.created_at,
+        Issue.image_path,
+        Issue.status,
+        Issue.upvotes
+    ).order_by(Issue.created_at.desc()).limit(10).all()
+
     # Sanitize data (no emails)
     return [
         {
-            "id": i.id,
-            "category": i.category,
-            "description": i.description[:100] + "..." if len(i.description) > 100 else i.description,
-            "created_at": i.created_at,
-            "image_path": i.image_path,
-            "status": i.status,
-            "upvotes": i.upvotes if i.upvotes is not None else 0
+            "id": r.id,
+            "category": r.category,
+            # Handle possible None description
+            "description": (
+                (r.short_desc[:100] + "...")
+                if r.desc_len and r.desc_len > 100
+                else (r.short_desc if r.short_desc is not None else "")
+            ),
+            "created_at": r.created_at,
+            "image_path": r.image_path,
+            "status": r.status,
+            "upvotes": r.upvotes if r.upvotes is not None else 0
         }
-        for i in issues
+        for r in results
     ]
 
 @app.post("/api/detect-pothole")
