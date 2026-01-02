@@ -50,6 +50,88 @@ def detect_vandalism_clip(image: Image.Image):
         # Return empty list on error
         return []
 
+def detect_fire_clip(image: Image.Image):
+    """
+    Detects fire/smoke using Zero-Shot Image Classification with CLIP.
+    """
+    try:
+        # labels to classify
+        labels = ["fire", "smoke", "burning", "forest fire", "building fire", "normal scene", "clear sky"]
+
+        # InferenceClient.zero_shot_image_classification
+        # We need to send image bytes
+        # Convert PIL image to bytes
+        img_byte_arr = io.BytesIO()
+        image.save(img_byte_arr, format=image.format if image.format else 'JPEG')
+        img_byte_arr = img_byte_arr.getvalue()
+
+        results = client.zero_shot_image_classification(
+            image=img_byte_arr,
+            labels=labels,
+            model="openai/clip-vit-base-patch32"
+        )
+
+        # Results is a list of dicts: [{'label': 'fire', 'score': 0.9}, ...]
+        # Filter for fire related
+        fire_labels = ["fire", "smoke", "burning", "forest fire", "building fire"]
+        detected = []
+
+        for res in results:
+            if res['label'] in fire_labels and res['score'] > 0.4: # Threshold
+                 detected.append({
+                     "label": res['label'],
+                     "confidence": res['score'],
+                     "box": [] # CLIP doesn't give boxes, it's classification
+                 })
+
+        return detected
+
+    except Exception as e:
+        print(f"HF Detection Error: {e}")
+        # Return empty list on error
+        return []
+
+def detect_stray_animal_clip(image: Image.Image):
+    """
+    Detects stray animals (dogs, cows, etc.) using Zero-Shot Image Classification with CLIP.
+    """
+    try:
+        # labels to classify
+        labels = ["stray dog", "stray cow", "cattle on road", "wild animal", "normal street", "empty road", "pedestrian"]
+
+        # InferenceClient.zero_shot_image_classification
+        # We need to send image bytes
+        # Convert PIL image to bytes
+        img_byte_arr = io.BytesIO()
+        image.save(img_byte_arr, format=image.format if image.format else 'JPEG')
+        img_byte_arr = img_byte_arr.getvalue()
+
+        results = client.zero_shot_image_classification(
+            image=img_byte_arr,
+            labels=labels,
+            model="openai/clip-vit-base-patch32"
+        )
+
+        # Results is a list of dicts: [{'label': 'stray dog', 'score': 0.9}, ...]
+        # Filter for animal related
+        animal_labels = ["stray dog", "stray cow", "cattle on road", "wild animal"]
+        detected = []
+
+        for res in results:
+            if res['label'] in animal_labels and res['score'] > 0.4: # Threshold
+                 detected.append({
+                     "label": res['label'],
+                     "confidence": res['score'],
+                     "box": [] # CLIP doesn't give boxes, it's classification
+                 })
+
+        return detected
+
+    except Exception as e:
+        print(f"HF Detection Error: {e}")
+        # Return empty list on error
+        return []
+
 def detect_infrastructure_clip(image: Image.Image):
     """
     Detects broken infrastructure (streetlights, signs) using Zero-Shot Image Classification with CLIP.
