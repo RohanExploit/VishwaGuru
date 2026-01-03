@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from database import engine, get_db
 from models import Base, Issue
 from ai_service import generate_action_plan, chat_with_civic_assistant
@@ -29,6 +30,7 @@ from hf_service import detect_vandalism_clip, detect_flooding_clip, detect_infra
 from PIL import Image
 from init_db import migrate_db
 import logging
+import time
 
 # Configure structured logging
 logging.basicConfig(
@@ -165,6 +167,9 @@ async def create_issue(
         # Offload blocking DB operations to threadpool
         await run_in_threadpool(save_issue_db, db, new_issue)
 
+        # Invalidate recent issues cache to ensure immediate feedback
+        RECENT_ISSUES_CACHE["timestamp"] = 0
+
         # Generate Action Plan (AI)
         action_plan = await generate_action_plan(description, category, image_path)
 
@@ -223,16 +228,35 @@ async def chat_endpoint(request: ChatRequest):
     response = await chat_with_civic_assistant(request.query)
     return {"response": response}
 
+# Simple in-memory cache for recent issues
+RECENT_ISSUES_CACHE = {"data": [], "timestamp": 0}
+CACHE_TTL = 60  # seconds
+
 @app.get("/api/issues/recent")
 def get_recent_issues(db: Session = Depends(get_db)):
-    # Fetch last 10 issues
-    issues = db.query(Issue).order_by(Issue.created_at.desc()).limit(10).all()
+    now = time.time()
+
+    # Check cache
+    if now - RECENT_ISSUES_CACHE["timestamp"] < CACHE_TTL and RECENT_ISSUES_CACHE["data"]:
+        return RECENT_ISSUES_CACHE["data"]
+
+    # Fetch last 10 issues with optimized query (selecting only needed columns)
+    issues = db.query(
+        Issue.id,
+        Issue.category,
+        Issue.created_at,
+        Issue.status,
+        Issue.upvotes,
+        Issue.image_path,
+        func.substr(Issue.description, 1, 100).label('description')
+    ).order_by(Issue.created_at.desc()).limit(10).all()
+
     # Sanitize data (no emails)
-    return [
+    result = [
         {
             "id": i.id,
             "category": i.category,
-            "description": i.description[:100] + "..." if len(i.description) > 100 else i.description,
+            "description": i.description + "..." if len(i.description) >= 100 else i.description,
             "created_at": i.created_at,
             "image_path": i.image_path,
             "status": i.status,
@@ -240,6 +264,12 @@ def get_recent_issues(db: Session = Depends(get_db)):
         }
         for i in issues
     ]
+
+    # Update cache
+    RECENT_ISSUES_CACHE["data"] = result
+    RECENT_ISSUES_CACHE["timestamp"] = now
+
+    return result
 
 @app.post("/api/detect-pothole")
 async def detect_pothole_endpoint(image: UploadFile = File(...)):
