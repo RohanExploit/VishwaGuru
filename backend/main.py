@@ -20,6 +20,7 @@ import shutil
 from functools import lru_cache
 import uuid
 import asyncio
+import time
 from fastapi import Depends
 from contextlib import asynccontextmanager
 from bot import run_bot
@@ -223,23 +224,56 @@ async def chat_endpoint(request: ChatRequest):
     response = await chat_with_civic_assistant(request.query)
     return {"response": response}
 
+# Simple in-memory cache for recent issues
+# Structure: {"data": [], "last_updated": 0}
+RECENT_ISSUES_CACHE = {"data": [], "last_updated": 0}
+CACHE_TTL = 60  # seconds
+
 @app.get("/api/issues/recent")
 def get_recent_issues(db: Session = Depends(get_db)):
-    # Fetch last 10 issues
-    issues = db.query(Issue).order_by(Issue.created_at.desc()).limit(10).all()
-    # Sanitize data (no emails)
-    return [
-        {
+    global RECENT_ISSUES_CACHE
+
+    current_time = time.time()
+
+    # Return cached data if valid
+    if current_time - RECENT_ISSUES_CACHE["last_updated"] < CACHE_TTL and RECENT_ISSUES_CACHE["data"]:
+        return RECENT_ISSUES_CACHE["data"]
+
+    # Fetch last 10 issues with optimized query (select only needed columns)
+    # Using deferred loading or specific entities avoids fetching large unused columns
+    issues = db.query(
+        Issue.id,
+        Issue.category,
+        Issue.description,
+        Issue.created_at,
+        Issue.image_path,
+        Issue.status,
+        Issue.upvotes
+    ).order_by(Issue.created_at.desc()).limit(10).all()
+
+    # Sanitize data and format response
+    formatted_issues = []
+    for i in issues:
+        description = i.description if i.description else ""
+        truncated_desc = description[:100] + "..." if len(description) > 100 else description
+
+        formatted_issues.append({
             "id": i.id,
             "category": i.category,
-            "description": i.description[:100] + "..." if len(i.description) > 100 else i.description,
+            "description": truncated_desc,
             "created_at": i.created_at,
             "image_path": i.image_path,
             "status": i.status,
             "upvotes": i.upvotes if i.upvotes is not None else 0
-        }
-        for i in issues
-    ]
+        })
+
+    # Update cache
+    RECENT_ISSUES_CACHE = {
+        "data": formatted_issues,
+        "last_updated": current_time
+    }
+
+    return formatted_issues
 
 @app.post("/api/detect-pothole")
 async def detect_pothole_endpoint(image: UploadFile = File(...)):
