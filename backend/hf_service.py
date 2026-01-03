@@ -74,6 +74,34 @@ async def detect_vandalism_clip(image: Image.Image):
         print(f"HF Detection Error: {e}")
         return []
 
+async def detect_traffic_violation_clip(image: Image.Image):
+    try:
+        labels = ["illegal parking", "car blocking driveway", "double parking", "blocked road", "traffic violation", "normal street", "parked car", "moving car"]
+
+        img_byte_arr = io.BytesIO()
+        image.save(img_byte_arr, format=image.format if image.format else 'JPEG')
+        img_bytes = img_byte_arr.getvalue()
+
+        results = await query_hf_api(img_bytes, labels)
+
+        if not isinstance(results, list):
+             return []
+
+        violation_labels = ["illegal parking", "car blocking driveway", "double parking", "blocked road", "traffic violation"]
+        detected = []
+
+        for res in results:
+            if isinstance(res, dict) and res.get('label') in violation_labels and res.get('score', 0) > 0.4:
+                 detected.append({
+                     "label": res['label'],
+                     "confidence": res['score'],
+                     "box": []
+                 })
+        return detected
+    except Exception as e:
+        print(f"HF Detection Error: {e}")
+        return []
+
 async def detect_infrastructure_clip(image: Image.Image):
     try:
         labels = ["broken streetlight", "damaged traffic sign", "fallen tree", "damaged fence", "pothole", "clean street", "normal infrastructure"]
