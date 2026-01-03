@@ -25,7 +25,7 @@ from contextlib import asynccontextmanager
 from bot import run_bot
 from pothole_detection import detect_potholes
 from garbage_detection import detect_garbage
-from hf_service import detect_vandalism_clip, detect_flooding_clip, detect_infrastructure_clip
+from hf_service import detect_vandalism_clip, detect_flooding_clip, detect_infrastructure_clip, detect_traffic_violation_clip
 from PIL import Image
 from init_db import migrate_db
 import logging
@@ -273,6 +273,23 @@ async def detect_infrastructure_endpoint(image: UploadFile = File(...)):
         return {"detections": detections}
     except Exception as e:
         logger.error(f"Infrastructure detection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.post("/api/detect-traffic")
+async def detect_traffic_endpoint(image: UploadFile = File(...)):
+    # Convert to PIL Image directly from file object to save memory
+    try:
+        pil_image = await run_in_threadpool(Image.open, image.file)
+    except Exception as e:
+        logger.error(f"Invalid image file for traffic detection: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail="Invalid image file")
+
+    # Run detection (async)
+    try:
+        detections = await detect_traffic_violation_clip(pil_image)
+        return {"detections": detections}
+    except Exception as e:
+        logger.error(f"Traffic detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.post("/api/detect-flooding")

@@ -15,6 +15,7 @@ const GarbageDetector = React.lazy(() => import('./GarbageDetector'));
 const VandalismDetector = React.lazy(() => import('./VandalismDetector'));
 const FloodDetector = React.lazy(() => import('./FloodDetector'));
 const InfrastructureDetector = React.lazy(() => import('./InfrastructureDetector'));
+const TrafficDetector = React.lazy(() => import('./TrafficDetector'));
 
 // Get API URL from environment variable, fallback to relative URL for local dev
 const API_URL = import.meta.env.VITE_API_URL || '';
@@ -167,6 +168,9 @@ function App() {
           )}
           {view === 'infrastructure' && (
              <InfrastructureDetector onBack={() => setView('home')} />
+          )}
+          {view === 'traffic' && (
+             <TrafficDetector onBack={() => setView('home')} />
           )}
         </Suspense>
 
