@@ -29,6 +29,7 @@ from hf_service import detect_vandalism_clip, detect_flooding_clip, detect_infra
 from PIL import Image
 from init_db import migrate_db
 import logging
+import time
 
 # Configure structured logging
 logging.basicConfig(
@@ -153,7 +154,7 @@ async def create_issue(
             # Offload blocking file I/O to threadpool
             await run_in_threadpool(save_file_blocking, image.file, image_path)
 
-        # Save to DB
+        # Save to DB first to ensure we capture the user's report
         new_issue = Issue(
             description=description,
             category=category,
@@ -166,7 +167,38 @@ async def create_issue(
         await run_in_threadpool(save_issue_db, db, new_issue)
 
         # Generate Action Plan (AI)
-        action_plan = await generate_action_plan(description, category, image_path)
+        action_plan = None
+        try:
+            action_plan = await generate_action_plan(description, category, image_path)
+
+            # Update the issue with the action plan
+            new_issue.action_plan = json.dumps(action_plan)
+            db.commit() # We are in the main thread (but db object might need care if reused from threadpool?
+                        # Actually save_issue_db uses the session. The session is not thread-safe but we are back in async main thread.
+                        # Wait, save_issue_db was run in threadpool. The 'new_issue' object is attached to 'db' session.
+                        # We should be careful. It is safer to re-query or just update via session in threadpool if strictly needed.
+                        # But since we are using 'run_in_threadpool', the 'db' session is technically used there.
+                        # FastAPI dependency 'db' is created in the main thread (async).
+                        # 'run_in_threadpool' runs in a separate thread.
+                        # If we use 'db' here again, it might be fine if the threadpool task is finished.
+                        # But to be safe and robust, let's wrap the update in a function run in threadpool again.
+        except Exception as e:
+            logger.error(f"Error generating action plan: {e}", exc_info=True)
+            # We don't fail the request if AI fails, just return without plan
+
+        if action_plan:
+             # Update DB with action plan
+             def update_issue_plan(db, issue_id, plan):
+                 issue = db.query(Issue).filter(Issue.id == issue_id).first()
+                 if issue:
+                     issue.action_plan = plan
+                     db.commit()
+
+             await run_in_threadpool(update_issue_plan, db, new_issue.id, json.dumps(action_plan))
+
+        # Invalidate recent issues cache
+        global RECENT_ISSUES_CACHE
+        RECENT_ISSUES_CACHE = None
 
         return {
             "id": new_issue.id,
@@ -223,12 +255,23 @@ async def chat_endpoint(request: ChatRequest):
     response = await chat_with_civic_assistant(request.query)
     return {"response": response}
 
+# Simple in-memory cache for recent issues
+RECENT_ISSUES_CACHE = None
+RECENT_ISSUES_TIMESTAMP = 0
+CACHE_TTL = 60 # 60 seconds
+
 @app.get("/api/issues/recent")
 def get_recent_issues(db: Session = Depends(get_db)):
+    global RECENT_ISSUES_CACHE, RECENT_ISSUES_TIMESTAMP
+
+    current_time = time.time()
+    if RECENT_ISSUES_CACHE and (current_time - RECENT_ISSUES_TIMESTAMP < CACHE_TTL):
+        return RECENT_ISSUES_CACHE
+
     # Fetch last 10 issues
     issues = db.query(Issue).order_by(Issue.created_at.desc()).limit(10).all()
     # Sanitize data (no emails)
-    return [
+    result = [
         {
             "id": i.id,
             "category": i.category,
@@ -240,6 +283,11 @@ def get_recent_issues(db: Session = Depends(get_db)):
         }
         for i in issues
     ]
+
+    RECENT_ISSUES_CACHE = result
+    RECENT_ISSUES_TIMESTAMP = current_time
+
+    return result
 
 @app.post("/api/detect-pothole")
 async def detect_pothole_endpoint(image: UploadFile = File(...)):
