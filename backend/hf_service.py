@@ -1,39 +1,30 @@
+"""Hugging Face CLIP zero-shot image classification for civic issue detection."""
 import os
 import io
 import httpx
 from PIL import Image
 import asyncio
 
-# HF_TOKEN is optional for public models but recommended for higher limits
-token = os.environ.get("HF_TOKEN")
-headers = {"Authorization": f"Bearer {token}"} if token else {}
-API_URL = "https://api-inference.huggingface.co/models/openai/clip-vit-base-patch32"
+# HF token optional but recommended for higher rate limits
+hf_token = os.environ.get("HF_TOKEN")
+api_headers = {"Authorization": f"Bearer {hf_token}"} if hf_token else {}
+CLIP_API_URL = "https://api-inference.huggingface.co/models/openai/clip-vit-base-patch32"
 
-async def query_hf_api(image_bytes, labels):
+async def query_hf_api(image_bytes, candidate_labels):
+    """Query CLIP API with image and candidate labels."""
     async with httpx.AsyncClient() as client:
-        # The zero-shot-image-classification pipeline expects "image" and "parameters"
-        # However, the Inference API for CLIP often takes raw bytes and parameters in headers or query params
-        # or a specific payload structure.
-        # Actually, for zero-shot image classification via API, the payload is usually:
-        # { "inputs": "image_base64...", "parameters": { "candidate_labels": [...] } }
-        # OR we can send raw bytes if the model supports it, but usually zero-shot needs candidate labels.
-
-        # Let's check the HF Inference API docs for zero-shot-image-classification.
-        # It typically expects a JSON payload with 'inputs' (image) and 'parameters' (candidate_labels).
-        # We need to base64 encode the image.
-
         import base64
         image_base64 = base64.b64encode(image_bytes).decode('utf-8')
 
-        payload = {
+        request_payload = {
             "inputs": image_base64,
             "parameters": {
-                "candidate_labels": labels
+                "candidate_labels": candidate_labels
             }
         }
 
         try:
-            response = await client.post(API_URL, headers=headers, json=payload, timeout=20.0)
+            response = await client.post(CLIP_API_URL, headers=api_headers, json=request_payload, timeout=20.0)
             if response.status_code != 200:
                 print(f"HF API Error: {response.status_code} - {response.text}")
                 return []
@@ -43,19 +34,16 @@ async def query_hf_api(image_bytes, labels):
             return []
 
 async def detect_vandalism_clip(image: Image.Image):
-    """
-    Detects vandalism/graffiti using Zero-Shot Image Classification with CLIP (Async).
-    """
+    """Detect vandalism/graffiti using CLIP zero-shot classification."""
     try:
         labels = ["graffiti", "vandalism", "spray paint", "street art", "clean wall", "public property", "normal street"]
 
-        img_byte_arr = io.BytesIO()
-        image.save(img_byte_arr, format=image.format if image.format else 'JPEG')
-        img_bytes = img_byte_arr.getvalue()
+        img_buffer = io.BytesIO()
+        image.save(img_buffer, format=image.format if image.format else 'JPEG')
+        img_bytes = img_buffer.getvalue()
 
         results = await query_hf_api(img_bytes, labels)
 
-        # Results format: [{'label': 'graffiti', 'score': 0.9}, ...]
         if not isinstance(results, list):
              return []
 
@@ -71,16 +59,17 @@ async def detect_vandalism_clip(image: Image.Image):
                  })
         return detected
     except Exception as e:
-        print(f"HF Detection Error: {e}")
+        print(f"Vandalism Detection Error: {e}")
         return []
 
 async def detect_infrastructure_clip(image: Image.Image):
+    """Detect infrastructure damage (lights, signs, trees, fences) using CLIP."""
     try:
         labels = ["broken streetlight", "damaged traffic sign", "fallen tree", "damaged fence", "pothole", "clean street", "normal infrastructure"]
 
-        img_byte_arr = io.BytesIO()
-        image.save(img_byte_arr, format=image.format if image.format else 'JPEG')
-        img_bytes = img_byte_arr.getvalue()
+        img_buffer = io.BytesIO()
+        image.save(img_buffer, format=image.format if image.format else 'JPEG')
+        img_bytes = img_buffer.getvalue()
 
         results = await query_hf_api(img_bytes, labels)
 
@@ -99,27 +88,28 @@ async def detect_infrastructure_clip(image: Image.Image):
                  })
         return detected
     except Exception as e:
-        print(f"HF Detection Error: {e}")
+        print(f"Infrastructure Detection Error: {e}")
         return []
 
 async def detect_flooding_clip(image: Image.Image):
+    """Detect flooding and water damage using CLIP."""
     try:
-        labels = ["flooded street", "waterlogging", "blocked drain", "heavy rain", "dry street", "normal road"]
+        labels = ["flooding", "water damage", "wet ground", "submerged", "dry ground", "normal"]
 
-        img_byte_arr = io.BytesIO()
-        image.save(img_byte_arr, format=image.format if image.format else 'JPEG')
-        img_bytes = img_byte_arr.getvalue()
+        img_buffer = io.BytesIO()
+        image.save(img_buffer, format=image.format if image.format else 'JPEG')
+        img_bytes = img_buffer.getvalue()
 
         results = await query_hf_api(img_bytes, labels)
 
         if not isinstance(results, list):
              return []
 
-        flooding_labels = ["flooded street", "waterlogging", "blocked drain", "heavy rain"]
+        flood_labels = ["flooding", "water damage", "wet ground", "submerged"]
         detected = []
 
         for res in results:
-            if isinstance(res, dict) and res.get('label') in flooding_labels and res.get('score', 0) > 0.4:
+            if isinstance(res, dict) and res.get('label') in flood_labels and res.get('score', 0) > 0.4:
                  detected.append({
                      "label": res['label'],
                      "confidence": res['score'],
@@ -127,5 +117,5 @@ async def detect_flooding_clip(image: Image.Image):
                  })
         return detected
     except Exception as e:
-        print(f"HF Detection Error: {e}")
+        print(f"Flooding Detection Error: {e}")
         return []

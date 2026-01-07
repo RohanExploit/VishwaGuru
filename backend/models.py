@@ -1,8 +1,33 @@
+"""
+Data Models for VishwaGuru Civic Issue Reporting System
+
+This module defines SQLAlchemy ORM models for storing civic issues
+reported by citizens through the web interface or Telegram bot.
+"""
 from sqlalchemy import Column, Integer, String, DateTime
 from database import Base
 import datetime
 
+
 class Issue(Base):
+    """
+    Represents a civic issue reported by a citizen.
+    
+    Attributes:
+        id (int): Unique identifier for the issue (primary key)
+        description (str): Detailed description of the issue
+        category (str): Category/type of issue (e.g., 'Road', 'Water', 'Garbage', etc.)
+                       Indexed for efficient filtering by category
+        image_path (str): File path to the uploaded image evidence of the issue
+        source (str): Source of the report - either 'telegram' or 'web'
+        status (str): Current status of the issue (default: 'open')
+                     Indexed for efficient filtering by status
+        created_at (datetime): Timestamp when the issue was reported (UTC)
+                              Indexed for efficient sorting and filtering
+        user_email (str): Email address of the reporter (optional, nullable)
+        upvotes (int): Number of upvotes/supporting votes for the issue (default: 0)
+                      Indexed for efficient sorting by popularity
+    """
     __tablename__ = "issues"
 
     id = Column(Integer, primary_key=True, index=True)

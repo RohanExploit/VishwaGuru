@@ -1,16 +1,15 @@
 """
-Maharashtra Locator Service
+Maharashtra Location Services
 
-Provides functions to lookup constituency and MLA information
-based on pincode for Maharashtra state.
+Lookup constituency and MLA information by pincode.
+Uses JSON data files with fallback to pincode ranges.
 """
 import json
 import os
 from functools import lru_cache
 from typing import Optional, Dict, Any
 
-# District Pincode Ranges (Fallback data)
-# Format: (start, end, district)
+# Pincode range to district mapping (fallback lookup)
 DISTRICT_RANGES = [
     (400001, 400104, "Mumbai City"),
     (411001, 411062, "Pune"),
@@ -51,12 +50,7 @@ DISTRICT_RANGES = [
 
 @lru_cache(maxsize=1)
 def load_maharashtra_pincode_data() -> Dict[str, Dict[str, Any]]:
-    """
-    Load and cache Maharashtra pincode to constituency mapping data.
-    
-    Returns:
-        dict: Dictionary mapping pincode to data
-    """
+    """Load pincode-to-constituency map from JSON. Cached once."""
     file_path = os.path.join(
         os.path.dirname(__file__),
         "data",
@@ -65,18 +59,13 @@ def load_maharashtra_pincode_data() -> Dict[str, Dict[str, Any]]:
     
     with open(file_path, "r", encoding="utf-8") as f:
         data_list = json.load(f)
-        # Convert list to dictionary for O(1) lookup
+        # Convert to dict for O(1) lookup
         return {item["pincode"]: item for item in data_list}
 
 
 @lru_cache(maxsize=1)
 def load_maharashtra_mla_data() -> Dict[str, Dict[str, Any]]:
-    """
-    Load and cache Maharashtra MLA information data.
-    
-    Returns:
-        dict: Dictionary mapping constituency to MLA data
-    """
+    """Load MLA information from JSON. Cached once."""
     file_path = os.path.join(
         os.path.dirname(__file__),
         "data",
@@ -85,15 +74,12 @@ def load_maharashtra_mla_data() -> Dict[str, Dict[str, Any]]:
     
     with open(file_path, "r", encoding="utf-8") as f:
         data_list = json.load(f)
-        # Convert list to dictionary for O(1) lookup
+        # Convert to dict for O(1) lookup
         return {item["assembly_constituency"]: item for item in data_list}
 
 
 def get_district_by_pincode_range(pincode: int) -> Optional[str]:
-    """
-    Find district by checking pincode ranges.
-    This is an O(N) fallback where N is number of ranges (~35).
-    """
+    """Find district using pincode ranges. Fallback O(N) lookup."""
     for start, end, district in DISTRICT_RANGES:
         if start <= pincode <= end:
             return district
@@ -101,19 +87,11 @@ def get_district_by_pincode_range(pincode: int) -> Optional[str]:
 
 
 def find_constituency_by_pincode(pincode: str) -> Optional[Dict[str, Any]]:
-    """
-    Find constituency information by pincode.
-    
-    Args:
-        pincode: 6-digit pincode string
-        
-    Returns:
-        Dictionary with district, state, and assembly_constituency or None if not found
-    """
+    """Find constituency by pincode. Falls back to range lookup."""
     if not pincode or len(pincode) != 6 or not pincode.isdigit():
         return None
     
-    # 1. Exact Lookup
+    # Try exact lookup first
     pincode_map = load_maharashtra_pincode_data()
     entry = pincode_map.get(pincode)
     
@@ -124,7 +102,7 @@ def find_constituency_by_pincode(pincode: str) -> Optional[Dict[str, Any]]:
             "assembly_constituency": entry.get("assembly_constituency")
         }
     
-    # 2. Range Fallback
+    # Fallback: pincode range lookup
     try:
         pincode_int = int(pincode)
         district = get_district_by_pincode_range(pincode_int)
@@ -132,7 +110,7 @@ def find_constituency_by_pincode(pincode: str) -> Optional[Dict[str, Any]]:
             return {
                 "district": district,
                 "state": "Maharashtra",
-                "assembly_constituency": None # Unknown constituency, but we know the district
+                "assembly_constituency": None
             }
     except ValueError:
         pass
@@ -141,15 +119,7 @@ def find_constituency_by_pincode(pincode: str) -> Optional[Dict[str, Any]]:
 
 
 def find_mla_by_constituency(constituency_name: str) -> Optional[Dict[str, Any]]:
-    """
-    Find MLA information by assembly constituency name.
-    
-    Args:
-        constituency_name: Name of the assembly constituency
-        
-    Returns:
-        Dictionary with mla_name, party, phone, email or None if not found
-    """
+    """Find MLA by assembly constituency name."""
     if not constituency_name:
         return None
     

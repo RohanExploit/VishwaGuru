@@ -1,7 +1,8 @@
 """
-Gemini Summary Service for Maharashtra MLA Information
+Gemini MLA Summary Service
 
-Uses Gemini AI to generate human-readable summaries about MLAs and their roles.
+Generates AI-powered summaries about MLAs using Google's Generative AI.
+Caches results to improve performance.
 """
 import os
 import google.generativeai as genai
@@ -9,32 +10,20 @@ from typing import Dict, Optional
 import warnings
 from async_lru import alru_cache
 
-# Suppress deprecation warnings from google.generativeai
+# Suppress deprecation warnings
 warnings.filterwarnings("ignore", category=FutureWarning, module="google.generativeai")
 
-# Configure Gemini (reuses existing configuration)
-# Use provided key as fallback if env var is missing
+# Configure Gemini
 api_key = os.environ.get("GEMINI_API_KEY", "AIzaSyB8_i3tbDE3GmX4CsQ8G3mD3pB2WrHi5C8")
 if api_key:
     genai.configure(api_key=api_key)
 
 
 def _get_fallback_summary(mla_name: str, assembly_constituency: str, district: str) -> str:
-    """
-    Generate a fallback summary when Gemini is unavailable or fails.
-    
-    Args:
-        mla_name: Name of the MLA
-        assembly_constituency: Assembly constituency name
-        district: District name
-        
-    Returns:
-        A simple fallback description
-    """
+    """Generate fallback summary when Gemini is unavailable."""
     return (
-        f"{mla_name} represents the {assembly_constituency} assembly constituency "
-        f"in {district} district, Maharashtra. MLAs handle local issues such as "
-        f"infrastructure, public services, and constituent welfare."
+        f"{mla_name} represents {assembly_constituency} in {district}, Maharashtra. "
+        f"MLAs handle local infrastructure, public services, and constituent welfare."
     )
 
 
@@ -45,41 +34,24 @@ async def generate_mla_summary(
     mla_name: str,
     issue_category: Optional[str] = None
 ) -> str:
-    """
-    Generate a human-readable summary about an MLA using Gemini.
-    
-    Args:
-        district: District name
-        assembly_constituency: Assembly constituency name
-        mla_name: Name of the MLA
-        issue_category: Optional category of issue for context
-        
-    Returns:
-        A short paragraph describing the MLA's role and responsibilities
-    """
+    """Generate MLA role summary using Gemini. Results cached (100 entries)."""
     if not api_key:
         return _get_fallback_summary(mla_name, assembly_constituency, district)
     
     try:
-        # Use Gemini 1.5 Flash for faster response times
         model = genai.GenerativeModel('gemini-1.5-flash')
 
-        issue_context = f" particularly regarding {issue_category} issues" if issue_category else ""
+        context = f" for {issue_category} issues" if issue_category else ""
         
         prompt = f"""
-        You are helping an Indian citizen understand who represents them. 
-        In one short paragraph (max 100 words), explain that the MLA {mla_name} represents 
-        the assembly constituency {assembly_constituency} in district {district}, state Maharashtra{issue_context}, 
-        and what type of local issues they typically handle.
-        
-        Do not hallucinate phone numbers or emails; only talk about roles and responsibilities.
-        Keep it factual, helpful, and encouraging for civic engagement.
+        In one short paragraph (max 100 words), explain that MLA {mla_name} 
+        represents {assembly_constituency} in {district}, Maharashtra{context}, 
+        and what local issues they typically handle. Keep it factual and encouraging.
         """
         
         response = await model.generate_content_async(prompt)
         return response.text.strip()
         
     except Exception as e:
-        print(f"Gemini Summary Error: {e}")
-        # Fallback to simple description
+        print(f"Gemini Error: {e}")
         return _get_fallback_summary(mla_name, assembly_constituency, district)

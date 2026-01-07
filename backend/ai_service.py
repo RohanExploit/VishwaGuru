@@ -1,3 +1,9 @@
+"""
+AI Service Module - Gemini Integration
+
+Provides AI-powered services for VishwaGuru using Google's Generative AI (Gemini).
+Includes action plan generation for civic issues and an interactive civic assistant chatbot.
+"""
 import os
 import google.generativeai as genai
 from typing import Optional
@@ -13,10 +19,12 @@ api_key = os.environ.get("GEMINI_API_KEY", "AIzaSyB8_i3tbDE3GmX4CsQ8G3mD3pB2WrHi
 if api_key:
     genai.configure(api_key=api_key)
 
-async def generate_action_plan(issue_description: str, category: str, image_path: Optional[str] = None) -> dict:
-    """
-    Generates an action plan (WhatsApp message, Email draft) using Gemini.
-    """
+async def generate_action_plan(
+    issue_description: str, 
+    category: str, 
+    image_path: Optional[str] = None
+) -> dict:
+    """Generate WhatsApp message and email draft for reporting issue to authorities."""
     if not api_key:
         return {
             "whatsapp": f"Hello, I would like to report a {category} issue: {issue_description}",
@@ -65,9 +73,7 @@ async def generate_action_plan(issue_description: str, category: str, image_path
 
 @alru_cache(maxsize=100)
 async def chat_with_civic_assistant(query: str) -> str:
-    """
-    Chat with the civic assistant.
-    """
+    """Answer questions on civic issues using Gemini. Results cached (100 entries)."""
     if not api_key:
         return "I am currently offline. Please try again later."
 

@@ -1,3 +1,19 @@
+"""
+VishwaGuru Backend API
+
+A FastAPI-based civic issue reporting system that enables citizens to report
+infrastructure problems, get action plans via email/WhatsApp, and connect with
+local government representatives (MLAs) in Maharashtra.
+
+Features:
+- Issue creation with image uploads
+- Computer vision-based issue detection (potholes, garbage, flooding, vandalism)
+- AI-powered action plan generation using Gemini
+- Telegram bot integration for issue reporting
+- MLA/representative lookup by pincode
+- Issue upvoting and trending
+- Persistent database with SQLite/PostgreSQL support
+"""
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -38,7 +54,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Simple in-memory cache
+# Simple in-memory cache for recent issues (TTL-based)
 RECENT_ISSUES_CACHE = {
     "data": None,
     "timestamp": 0,
@@ -130,11 +146,14 @@ def root():
 def health():
     return {"status": "healthy"}
 
-def save_file_blocking(file_obj, path):
-    with open(path, "wb") as buffer:
+def save_uploaded_file(file_obj, file_path):
+    """Save uploaded file to disk. Run in threadpool to avoid blocking async."""
+    with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file_obj, buffer)
 
-def save_issue_db(db: Session, issue: Issue):
+
+def save_issue_to_database(db: Session, issue: Issue):
+    """Save issue to database and return with populated ID."""
     db.add(issue)
     db.commit()
     db.refresh(issue)
@@ -148,18 +167,19 @@ async def create_issue(
     image: UploadFile = File(None),
     db: Session = Depends(get_db)
 ):
+    """Create issue with image and generate action plan using AI."""
     try:
         # Save image if provided
         image_path = None
         if image:
             upload_dir = "data/uploads"
             os.makedirs(upload_dir, exist_ok=True)
-            # Generate unique filename
+            # Generate unique filename to avoid collisions
             filename = f"{uuid.uuid4()}_{image.filename}"
             image_path = os.path.join(upload_dir, filename)
 
             # Offload blocking file I/O to threadpool
-            await run_in_threadpool(save_file_blocking, image.file, image_path)
+            await run_in_threadpool(save_uploaded_file, image.file, image_path)
 
         # Save to DB
         new_issue = Issue(
@@ -171,7 +191,7 @@ async def create_issue(
         )
 
         # Offload blocking DB operations to threadpool
-        await run_in_threadpool(save_issue_db, db, new_issue)
+        await run_in_threadpool(save_issue_to_database, db, new_issue)
 
         # Generate Action Plan (AI)
         action_plan = await generate_action_plan(description, category, image_path)
@@ -187,6 +207,7 @@ async def create_issue(
 
 @app.post("/api/issues/{issue_id}/vote")
 def upvote_issue(issue_id: int, db: Session = Depends(get_db)):
+    """Increment upvotes for an issue to show community support."""
     issue = db.query(Issue).filter(Issue.id == issue_id).first()
     if not issue:
         raise HTTPException(status_code=404, detail="Issue not found")
@@ -203,6 +224,7 @@ def upvote_issue(issue_id: int, db: Session = Depends(get_db)):
 
 @lru_cache(maxsize=1)
 def _load_responsibility_map():
+    """Load responsibility map (cached) showing dept responsibility by issue category."""
     # Assuming the data folder is at the root level relative to where backend is run
     # Adjust path as necessary. If running from root, it is "data/responsibility_map.json"
     file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "responsibility_map.json")
@@ -212,8 +234,7 @@ def _load_responsibility_map():
 
 @app.get("/api/responsibility-map")
 def get_responsibility_map():
-    # In a real app, this might read from the file or database
-    # For MVP, we can return the structure directly or read the file
+    """Get mapping of govt departments responsible for different issue types."""
     try:
         return _load_responsibility_map()
     except FileNotFoundError:
@@ -224,15 +245,19 @@ def get_responsibility_map():
         raise HTTPException(status_code=500, detail="Internal server error")
 
 class ChatRequest(BaseModel):
+    """User query for civic assistant."""
     query: str
+
 
 @app.post("/api/chat")
 async def chat_endpoint(request: ChatRequest):
+    """Get AI-powered guidance on civic issues and government services."""
     response = await chat_with_civic_assistant(request.query)
     return {"response": response}
 
 @app.get("/api/issues/recent")
 def get_recent_issues(db: Session = Depends(get_db)):
+    """Get 10 most recent issues (cached 60s). Sanitized - no emails."""
     current_time = time.time()
     if RECENT_ISSUES_CACHE["data"] and (current_time - RECENT_ISSUES_CACHE["timestamp"] < RECENT_ISSUES_CACHE["ttl"]):
         return RECENT_ISSUES_CACHE["data"]
@@ -260,6 +285,7 @@ def get_recent_issues(db: Session = Depends(get_db)):
 
 @app.post("/api/detect-pothole")
 async def detect_pothole_endpoint(image: UploadFile = File(...)):
+    """Detect potholes in image using YOLOv8 model."""
     # Convert to PIL Image directly from file object to save memory
     try:
         pil_image = await run_in_threadpool(Image.open, image.file)
@@ -277,6 +303,7 @@ async def detect_pothole_endpoint(image: UploadFile = File(...)):
 
 @app.post("/api/detect-infrastructure")
 async def detect_infrastructure_endpoint(image: UploadFile = File(...)):
+    """Detect infrastructure issues (lights, signs, fences) using CLIP."""
     # Convert to PIL Image directly from file object to save memory
     try:
         pil_image = await run_in_threadpool(Image.open, image.file)
@@ -284,7 +311,7 @@ async def detect_infrastructure_endpoint(image: UploadFile = File(...)):
         logger.error(f"Invalid image file for infrastructure detection: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail="Invalid image file")
 
-    # Run detection (async now, so no threadpool needed for the detection call itself)
+    # Run detection (async)
     try:
         detections = await detect_infrastructure_clip(pil_image)
         return {"detections": detections}
@@ -294,6 +321,7 @@ async def detect_infrastructure_endpoint(image: UploadFile = File(...)):
 
 @app.post("/api/detect-flooding")
 async def detect_flooding_endpoint(image: UploadFile = File(...)):
+    """Detect flooding and water damage using CLIP."""
     # Convert to PIL Image directly from file object to save memory
     try:
         pil_image = await run_in_threadpool(Image.open, image.file)
@@ -311,6 +339,7 @@ async def detect_flooding_endpoint(image: UploadFile = File(...)):
 
 @app.post("/api/detect-vandalism")
 async def detect_vandalism_endpoint(image: UploadFile = File(...)):
+    """Detect vandalism and graffiti using CLIP."""
     # Convert to PIL Image directly from file object to save memory
     try:
         pil_image = await run_in_threadpool(Image.open, image.file)
@@ -328,6 +357,7 @@ async def detect_vandalism_endpoint(image: UploadFile = File(...)):
 
 @app.post("/api/detect-garbage")
 async def detect_garbage_endpoint(image: UploadFile = File(...)):
+    """Detect garbage/litter using YOLOv8 model."""
     # Convert to PIL Image directly from file object to save memory
     try:
         pil_image = await run_in_threadpool(Image.open, image.file)

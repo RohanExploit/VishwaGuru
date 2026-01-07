@@ -7,68 +7,50 @@ logger = logging.getLogger(__name__)
 _model = None
 
 def load_model():
-    """
-    Loads the YOLO model lazily.
-    The model file will be downloaded on the first call if not cached.
-    This prevents blocking the application startup.
-    """
+    """Load YOLOv8 pothole model lazily on first use."""
     logger.info("Loading Pothole Detection Model...")
     try:
-        # Move import here to prevent blocking startup with heavy imports/checks
+        # Import here to avoid blocking startup
         from ultralyticsplus import YOLO
 
         model = YOLO('keremberke/yolov8n-pothole-segmentation')
 
-        # set model parameters
-        model.overrides['conf'] = 0.25  # NMS confidence threshold
-        model.overrides['iou'] = 0.45  # NMS IoU threshold
-        model.overrides['agnostic_nms'] = False  # NMS class-agnostic
-        model.overrides['max_det'] = 1000  # maximum number of detections per image
+        # Detection parameters
+        model.overrides['conf'] = 0.25
+        model.overrides['iou'] = 0.45
+        model.overrides['agnostic_nms'] = False
+        model.overrides['max_det'] = 1000
 
-        logger.info("Model loaded successfully.")
+        logger.info("Pothole model loaded successfully.")
         return model
     except Exception as e:
-        logger.error(f"Failed to load model: {e}")
+        logger.error(f"Failed to load pothole model: {e}")
         raise e
 
 def get_model():
+    """Get cached model instance. Lazy-loads on first call."""
     global _model
     if _model is None:
         _model = load_model()
     return _model
 
 def detect_potholes(image_source):
-    """
-    Detects potholes in an image.
-
-    Args:
-        image_source: Path to image file, URL, or numpy array (from cv2)
-
-    Returns:
-        List of detections. Each detection is a dict with 'box', 'confidence', 'label'.
-    """
+    """Detect potholes. Returns list with boxes, confidence, and labels."""
     model = get_model()
-
-    # perform inference
-    # stream=False ensures we get all results in memory
     results = model.predict(image_source, stream=False)
-
-    # observe results
-    result = results[0] # Single image
+    result = results[0]
 
     detections = []
 
     if hasattr(result, 'boxes'):
         for i, box in enumerate(result.boxes):
-            # box.xyxy is [x1, y1, x2, y2] tensor
-            # Convert to list
             coords = box.xyxy[0].cpu().numpy().tolist()
             conf = float(box.conf[0].cpu().numpy())
             cls_id = int(box.cls[0].cpu().numpy())
             label = result.names[cls_id]
 
             detections.append({
-                "box": coords, # [x1, y1, x2, y2]
+                "box": coords,
                 "confidence": conf,
                 "label": label
             })
