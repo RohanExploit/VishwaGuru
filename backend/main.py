@@ -1,27 +1,12 @@
-"""
-VishwaGuru Backend API
-
-A FastAPI-based civic issue reporting system that enables citizens to report
-infrastructure problems, get action plans via email/WhatsApp, and connect with
-local government representatives (MLAs) in Maharashtra.
-
-Features:
-- Issue creation with image uploads
-- Computer vision-based issue detection (potholes, garbage, flooding, vandalism)
-- AI-powered action plan generation using Gemini
-- Telegram bot integration for issue reporting
-- MLA/representative lookup by pincode
-- Issue upvoting and trending
-- Persistent database with SQLite/PostgreSQL support
-"""
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 from database import engine, get_db
 from models import Base, Issue
-from ai_service import generate_action_plan, chat_with_civic_assistant
+from ai_interfaces import get_ai_services, initialize_ai_services
+from ai_factory import create_all_ai_services
 from maharashtra_locator import (
     find_constituency_by_pincode,
     find_mla_by_constituency,
@@ -29,7 +14,6 @@ from maharashtra_locator import (
     load_maharashtra_mla_data
 )
 from pydantic import BaseModel
-from gemini_summary import generate_mla_summary
 import json
 import os
 import shutil
@@ -41,11 +25,26 @@ from contextlib import asynccontextmanager
 from bot import run_bot
 from pothole_detection import detect_potholes
 from garbage_detection import detect_garbage
-from hf_service import detect_vandalism_clip, detect_flooding_clip, detect_infrastructure_clip
+from hf_service import (
+    detect_vandalism_clip,
+    detect_flooding_clip,
+    detect_infrastructure_clip,
+    detect_illegal_parking_clip,
+    detect_street_light_clip,
+    detect_fire_clip,
+    detect_stray_animal_clip,
+    detect_blocked_road_clip,
+    detect_tree_hazard_clip,
+    detect_pest_clip
+)
 from PIL import Image
 from init_db import migrate_db
 import logging
 import time
+import httpx
+from cache import recent_issues_cache
+from typing import List
+from schemas import IssueResponse, IssueCreateResponse, DetectionResponse, ActionPlan, ChatRequest
 
 # Configure structured logging
 logging.basicConfig(
@@ -68,6 +67,24 @@ Base.metadata.create_all(bind=engine)
 async def lifespan(app: FastAPI):
     # Startup: Migrate DB
     migrate_db()
+
+    # Startup: Initialize Shared HTTP Client for external APIs (Connection Pooling)
+    app.state.http_client = httpx.AsyncClient()
+    logger.info("Shared HTTP Client initialized.")
+
+    # Startup: Initialize AI services
+    try:
+        action_plan_service, chat_service, mla_summary_service = create_all_ai_services()
+
+        initialize_ai_services(
+            action_plan_service=action_plan_service,
+            chat_service=chat_service,
+            mla_summary_service=mla_summary_service
+        )
+        logger.info("AI services initialized successfully.")
+    except Exception as e:
+        logger.error(f"Error initializing AI services: {e}", exc_info=True)
+        raise
 
     # Startup: Load static data to avoid first-request latency
     try:
@@ -95,6 +112,10 @@ async def lifespan(app: FastAPI):
     
     yield
     
+    # Shutdown: Close Shared HTTP Client
+    await app.state.http_client.aclose()
+    logger.info("Shared HTTP Client closed.")
+
     # Shutdown: Stop Telegram Bot
     if bot_task and not bot_task.done():
         try:
@@ -164,6 +185,9 @@ async def create_issue(
     description: str = Form(...),
     category: str = Form(...),
     user_email: str = Form(None),
+    latitude: float = Form(None),
+    longitude: float = Form(None),
+    location: str = Form(None),
     image: UploadFile = File(None),
     db: Session = Depends(get_db)
 ):
@@ -181,26 +205,37 @@ async def create_issue(
             # Offload blocking file I/O to threadpool
             await run_in_threadpool(save_uploaded_file, image.file, image_path)
 
+        # Generate Action Plan (AI)
+        ai_services = get_ai_services()
+        action_plan_data = await ai_services.action_plan_service.generate_action_plan(description, category, image_path)
+
+        # Serialize action plan to JSON string for storage
+        action_plan_json = json.dumps(action_plan_data) if action_plan_data else None
+
         # Save to DB
         new_issue = Issue(
             description=description,
             category=category,
             image_path=image_path,
             source="web",
-            user_email=user_email
+            user_email=user_email,
+            latitude=latitude,
+            longitude=longitude,
+            location=location,
+            action_plan=action_plan_json
         )
 
         # Offload blocking DB operations to threadpool
         await run_in_threadpool(save_issue_to_database, db, new_issue)
 
-        # Generate Action Plan (AI)
-        action_plan = await generate_action_plan(description, category, image_path)
+        # Invalidate cache
+        recent_issues_cache.invalidate()
 
-        return {
-            "id": new_issue.id,
-            "message": "Issue reported successfully",
-            "action_plan": action_plan
-        }
+        return IssueCreateResponse(
+            id=new_issue.id,
+            message="Issue reported successfully",
+            action_plan=action_plan_data
+        )
     except Exception as e:
         logger.error(f"Error creating issue: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -253,33 +288,53 @@ class ChatRequest(BaseModel):
 async def chat_endpoint(request: ChatRequest):
     """Get AI-powered guidance on civic issues and government services."""
     response = await chat_with_civic_assistant(request.query)
+@app.post("/api/chat")
+async def chat_endpoint(request: ChatRequest):
+    ai_services = get_ai_services()
+    response = await ai_services.chat_service.chat(request.query)
     return {"response": response}
 
-@app.get("/api/issues/recent")
+@app.get("/api/issues/recent", response_model=List[IssueResponse])
 def get_recent_issues(db: Session = Depends(get_db)):
-    """Get 10 most recent issues (cached 60s). Sanitized - no emails."""
-    current_time = time.time()
-    if RECENT_ISSUES_CACHE["data"] and (current_time - RECENT_ISSUES_CACHE["timestamp"] < RECENT_ISSUES_CACHE["ttl"]):
-        return RECENT_ISSUES_CACHE["data"]
+    cached_data = recent_issues_cache.get()
+    if cached_data:
+        # Check if cached data is already serialized (list of dicts)
+        # If we return it directly, FastAPI will re-validate it against the response_model
+        return cached_data
 
     # Fetch last 10 issues
     issues = db.query(Issue).order_by(Issue.created_at.desc()).limit(10).all()
-    # Sanitize data (no emails)
-    data = [
-        {
-            "id": i.id,
-            "category": i.category,
-            "description": i.description[:100] + "..." if len(i.description) > 100 else i.description,
-            "created_at": i.created_at,
-            "image_path": i.image_path,
-            "status": i.status,
-            "upvotes": i.upvotes if i.upvotes is not None else 0
-        }
-        for i in issues
-    ]
 
-    RECENT_ISSUES_CACHE["data"] = data
-    RECENT_ISSUES_CACHE["timestamp"] = current_time
+    # Process issues to handle action_plan deserialization if needed
+    # Since action_plan is Text in DB, we should keep it that way for IssueResponse or parse it.
+    # The frontend expects it. IssueResponse defines action_plan as Optional[Any].
+
+    # Convert to Pydantic models for validation and serialization
+    data = []
+    for i in issues:
+        # Handle action_plan JSON string
+        action_plan_val = i.action_plan
+        if isinstance(action_plan_val, str) and action_plan_val:
+            try:
+                action_plan_val = json.loads(action_plan_val)
+            except json.JSONDecodeError:
+                pass # Keep as string if not valid JSON
+
+        data.append(IssueResponse(
+            id=i.id,
+            category=i.category,
+            description=i.description[:100] + "..." if len(i.description) > 100 else i.description,
+            created_at=i.created_at,
+            image_path=i.image_path,
+            status=i.status,
+            upvotes=i.upvotes if i.upvotes is not None else 0,
+            location=i.location,
+            latitude=i.latitude,
+            longitude=i.longitude,
+            action_plan=action_plan_val
+        ).model_dump()) # Store as dict in cache
+
+    recent_issues_cache.set(data)
 
     return data
 
@@ -305,15 +360,19 @@ async def detect_pothole_endpoint(image: UploadFile = File(...)):
 async def detect_infrastructure_endpoint(image: UploadFile = File(...)):
     """Detect infrastructure issues (lights, signs, fences) using CLIP."""
     # Convert to PIL Image directly from file object to save memory
+async def detect_infrastructure_endpoint(request: Request, image: UploadFile = File(...)):
+    # Read bytes directly from UploadFile to avoid PIL overhead
     try:
-        pil_image = await run_in_threadpool(Image.open, image.file)
+        image_bytes = await image.read()
     except Exception as e:
         logger.error(f"Invalid image file for infrastructure detection: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail="Invalid image file")
 
     # Run detection (async)
     try:
-        detections = await detect_infrastructure_clip(pil_image)
+        # Use shared HTTP client from app state
+        client = request.app.state.http_client
+        detections = await detect_infrastructure_clip(image_bytes, client=client)
         return {"detections": detections}
     except Exception as e:
         logger.error(f"Infrastructure detection error: {e}", exc_info=True)
@@ -323,15 +382,19 @@ async def detect_infrastructure_endpoint(image: UploadFile = File(...)):
 async def detect_flooding_endpoint(image: UploadFile = File(...)):
     """Detect flooding and water damage using CLIP."""
     # Convert to PIL Image directly from file object to save memory
+async def detect_flooding_endpoint(request: Request, image: UploadFile = File(...)):
+    # Read bytes directly from UploadFile to avoid PIL overhead
     try:
-        pil_image = await run_in_threadpool(Image.open, image.file)
+        image_bytes = await image.read()
     except Exception as e:
         logger.error(f"Invalid image file for flooding detection: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail="Invalid image file")
 
     # Run detection (async)
     try:
-        detections = await detect_flooding_clip(pil_image)
+        # Use shared HTTP client from app state
+        client = request.app.state.http_client
+        detections = await detect_flooding_clip(image_bytes, client=client)
         return {"detections": detections}
     except Exception as e:
         logger.error(f"Flooding detection error: {e}", exc_info=True)
@@ -341,15 +404,19 @@ async def detect_flooding_endpoint(image: UploadFile = File(...)):
 async def detect_vandalism_endpoint(image: UploadFile = File(...)):
     """Detect vandalism and graffiti using CLIP."""
     # Convert to PIL Image directly from file object to save memory
+async def detect_vandalism_endpoint(request: Request, image: UploadFile = File(...)):
+    # Read bytes directly from UploadFile to avoid PIL overhead
     try:
-        pil_image = await run_in_threadpool(Image.open, image.file)
+        image_bytes = await image.read()
     except Exception as e:
         logger.error(f"Invalid image file for vandalism detection: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail="Invalid image file")
 
     # Run detection (async)
     try:
-        detections = await detect_vandalism_clip(pil_image)
+        # Use shared HTTP client from app state
+        client = request.app.state.http_client
+        detections = await detect_vandalism_clip(image_bytes, client=client)
         return {"detections": detections}
     except Exception as e:
         logger.error(f"Vandalism detection error: {e}", exc_info=True)
@@ -372,6 +439,121 @@ async def detect_garbage_endpoint(image: UploadFile = File(...)):
     except Exception as e:
         logger.error(f"Garbage detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.post("/api/detect-illegal-parking")
+async def detect_illegal_parking_endpoint(request: Request, image: UploadFile = File(...)):
+    try:
+        image_bytes = await image.read()
+    except Exception as e:
+        logger.error(f"Invalid image file: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail="Invalid image file")
+
+    try:
+        client = request.app.state.http_client
+        detections = await detect_illegal_parking_clip(image_bytes, client=client)
+        return {"detections": detections}
+    except Exception as e:
+        logger.error(f"Illegal parking detection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.post("/api/detect-street-light")
+async def detect_street_light_endpoint(request: Request, image: UploadFile = File(...)):
+    try:
+        image_bytes = await image.read()
+    except Exception as e:
+        logger.error(f"Invalid image file: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail="Invalid image file")
+
+    try:
+        client = request.app.state.http_client
+        detections = await detect_street_light_clip(image_bytes, client=client)
+        return {"detections": detections}
+    except Exception as e:
+        logger.error(f"Street light detection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.post("/api/detect-fire")
+async def detect_fire_endpoint(request: Request, image: UploadFile = File(...)):
+    try:
+        image_bytes = await image.read()
+    except Exception as e:
+        logger.error(f"Invalid image file: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail="Invalid image file")
+
+    try:
+        client = request.app.state.http_client
+        detections = await detect_fire_clip(image_bytes, client=client)
+        return {"detections": detections}
+    except Exception as e:
+        logger.error(f"Fire detection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.post("/api/detect-stray-animal")
+async def detect_stray_animal_endpoint(request: Request, image: UploadFile = File(...)):
+    try:
+        image_bytes = await image.read()
+    except Exception as e:
+        logger.error(f"Invalid image file: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail="Invalid image file")
+
+    try:
+        client = request.app.state.http_client
+        detections = await detect_stray_animal_clip(image_bytes, client=client)
+        return {"detections": detections}
+    except Exception as e:
+        logger.error(f"Stray animal detection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.post("/api/detect-blocked-road")
+async def detect_blocked_road_endpoint(request: Request, image: UploadFile = File(...)):
+    try:
+        image_bytes = await image.read()
+    except Exception as e:
+        logger.error(f"Invalid image file: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail="Invalid image file")
+
+    try:
+        client = request.app.state.http_client
+        detections = await detect_blocked_road_clip(image_bytes, client=client)
+        return {"detections": detections}
+    except Exception as e:
+        logger.error(f"Blocked road detection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@app.post("/api/detect-tree-hazard")
+async def detect_tree_hazard_endpoint(request: Request, image: UploadFile = File(...)):
+    try:
+        image_bytes = await image.read()
+    except Exception as e:
+        logger.error(f"Invalid image file: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail="Invalid image file")
+
+    try:
+        client = request.app.state.http_client
+        detections = await detect_tree_hazard_clip(image_bytes, client=client)
+        return {"detections": detections}
+    except Exception as e:
+        logger.error(f"Tree hazard detection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@app.post("/api/detect-pest")
+async def detect_pest_endpoint(request: Request, image: UploadFile = File(...)):
+    try:
+        image_bytes = await image.read()
+    except Exception as e:
+        logger.error(f"Invalid image file: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail="Invalid image file")
+
+    try:
+        client = request.app.state.http_client
+        detections = await detect_pest_clip(image_bytes, client=client)
+        return {"detections": detections}
+    except Exception as e:
+        logger.error(f"Pest detection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
 
 @app.get("/api/mh/rep-contacts")
 async def get_maharashtra_rep_contacts(pincode: str = Query(..., min_length=6, max_length=6)):
@@ -426,7 +608,8 @@ async def get_maharashtra_rep_contacts(pincode: str = Query(..., min_length=6, m
     try:
         # Only generate summary if we have a valid constituency and MLA
         if assembly_constituency and mla_info["mla_name"] != "MLA Info Unavailable":
-            description = await generate_mla_summary(
+            ai_services = get_ai_services()
+            description = await ai_services.mla_summary_service.generate_mla_summary(
                 district=constituency_info["district"],
                 assembly_constituency=assembly_constituency,
                 mla_name=mla_info["mla_name"]

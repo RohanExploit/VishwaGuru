@@ -27,6 +27,25 @@ const ActionView = ({ actionPlan, setView }) => {
         </a>
       </div>
 
+      {actionPlan.x_post && (
+        <div className="bg-white p-4 rounded shadow border">
+          <h3 className="font-bold text-lg mb-2 flex items-center">
+            <span className="bg-black text-white px-2 py-1 rounded text-sm mr-2">X.com</span>
+          </h3>
+          <div className="bg-gray-100 p-3 rounded text-sm mb-3 whitespace-pre-wrap">
+            {actionPlan.x_post}
+          </div>
+          <a
+            href={`https://x.com/intent/post?text=${encodeURIComponent(actionPlan.x_post)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block w-full text-center bg-slate-900 text-white py-2 rounded hover:bg-slate-800 transition"
+          >
+            Post on X.com
+          </a>
+        </div>
+      )}
+
       <div className="bg-white p-4 rounded shadow border">
         <h3 className="font-bold text-lg mb-2">Email Draft</h3>
         <div className="mb-2">
