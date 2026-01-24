@@ -1,12 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { fakeActionPlan } from '../fakeData';
 import { Camera, Image as ImageIcon, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
+import { saveReportOffline, registerBackgroundSync } from '../offlineQueue';
+import VoiceInput from '../components/VoiceInput';
 
 // Get API URL from environment variable, fallback to relative URL for local dev
 const API_URL = import.meta.env.VITE_API_URL || '';
 
 const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) => {
+  const { t, i18n } = useTranslation();
   const locationState = useLocation().state || {};
   const [formData, setFormData] = useState({
     description: locationState.description || '',
@@ -22,6 +26,21 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
   const [describing, setDescribing] = useState(false);
   const [urgencyAnalysis, setUrgencyAnalysis] = useState(null);
   const [analyzingUrgency, setAnalyzingUrgency] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState({ state: 'idle', message: '' });
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const analyzeUrgency = async () => {
       if (!formData.description || formData.description.length < 5) return;
@@ -133,9 +152,39 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
     setError(null);
     setSubmitStatus({ state: 'pending', message: 'Submitting your issue…' });
 
+    const isOnline = navigator.onLine;
+
+    if (!isOnline) {
+      // Save offline
+      try {
+        const reportData = {
+          category: formData.category,
+          description: formData.description,
+          latitude: formData.latitude,
+          longitude: formData.longitude,
+          location: formData.location,
+          imageBlob: formData.image,
+          severity_level: severity?.level,
+          severity_score: severity?.confidence
+        };
+        await saveReportOffline(reportData);
+        registerBackgroundSync();
+        setSubmitStatus({ state: 'success', message: 'Report saved offline. Will sync when online.' });
+        setActionPlan(fakeActionPlan); // Show fallback plan
+        setView('action');
+      } catch (err) {
+        setSubmitStatus({ state: 'error', message: 'Failed to save offline.' });
+        setError('Failed to save report offline.');
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     const payload = new FormData();
     payload.append('description', formData.description);
     payload.append('category', formData.category);
+    payload.append('language', i18n.language);
     if (formData.latitude) payload.append('latitude', formData.latitude);
     if (formData.longitude) payload.append('longitude', formData.longitude);
     if (formData.location) payload.append('location', formData.location);
@@ -197,16 +246,37 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">Description</label>
-            <textarea
-              required
+            <label className="block text-sm font-medium text-gray-700">Language</label>
+            <select
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
-              rows="3"
-              value={formData.description}
-              onChange={(e) => setFormData({...formData, description: e.target.value})}
-              onBlur={analyzeUrgency}
-              placeholder="Describe the issue..."
-            />
+              value={i18n.language}
+              onChange={(e) => i18n.changeLanguage(e.target.value)}
+            >
+              <option value="en">English</option>
+              <option value="hi">हिंदी (Hindi)</option>
+              <option value="mr">मराठी (Marathi)</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Description</label>
+            <div className="relative">
+              <textarea
+                required
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border pr-12"
+                rows="3"
+                value={formData.description}
+                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                onBlur={analyzeUrgency}
+                placeholder="Describe the issue..."
+              />
+              <div className="absolute top-2 right-2">
+                <VoiceInput
+                  onTranscript={(transcript) => setFormData(prev => ({...prev, description: prev.description + ' ' + transcript}))}
+                  language={i18n.language}
+                />
+              </div>
+            </div>
             {analyzingUrgency && (
                <div className="mt-1 text-xs text-blue-600 animate-pulse">
                    Checking urgency...
@@ -323,8 +393,12 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
             disabled={loading}
             className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 font-bold shadow-md"
           >
-            {loading ? 'Processing…' : 'Generate Action Plan'}
+            {loading ? 'Processing…' : isOnline ? 'Generate Action Plan' : 'Save Offline'}
           </button>
+
+          <div className={`mt-2 text-center text-sm ${isOnline ? 'text-green-600' : 'text-orange-600'}`}>
+            {isOnline ? '🟢 Online - Report will be submitted immediately' : '🟠 Offline - Report will be saved and synced later'}
+          </div>
 
           {submitStatus.state !== 'idle' && (
             <div

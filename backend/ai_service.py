@@ -106,7 +106,7 @@ def build_x_post(issue_description: str, category: str) -> str:
     return f"{base_message} #CivicIssue #VishwaGuru"
 
 
-async def generate_action_plan(issue_description: str, category: str, image_path: Optional[str] = None) -> dict:
+async def generate_action_plan(issue_description: str, category: str, language: str = 'en', image_path: Optional[str] = None) -> dict:
     """
     Generates an action plan (WhatsApp message, Email draft) using Gemini with retry logic.
     """
@@ -130,7 +130,7 @@ async def generate_action_plan(issue_description: str, category: str, image_path
         Category: {category}
         Description: {issue_description}
 
-        Please generate:
+        Please generate the following messages in {language} language:
         1. A concise WhatsApp message (max 200 chars) that can be sent to authorities.
         2. A formal but firm email subject.
         3. A formal email body (max 150 words) addressed to the relevant authority (e.g., Municipal Commissioner, Police, etc. based on category).
