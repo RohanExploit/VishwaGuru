@@ -16,6 +16,7 @@ class ActionPlanService(Protocol):
         self,
         issue_description: str,
         category: str,
+        language: str = 'en',
         image_path: Optional[str] = None
     ) -> Dict[str, str]:
         """

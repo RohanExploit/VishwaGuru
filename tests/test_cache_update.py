@@ -77,7 +77,7 @@ def test_cache_invalidation_behavior():
                 files={"image": ("test.jpg", b"fake image content", "image/jpeg")}
             )
 
-        assert response.status_code == 200
+        assert response.status_code == 201
 
         # NEW BEHAVIOR CHECK (After Optimization):
 

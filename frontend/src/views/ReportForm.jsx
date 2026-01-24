@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { fakeActionPlan } from '../fakeData';
 import { Camera, Image as ImageIcon, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { saveReportOffline, registerBackgroundSync } from '../offlineQueue';
+import VoiceInput from '../components/VoiceInput';
 
 // Get API URL from environment variable, fallback to relative URL for local dev
 const API_URL = import.meta.env.VITE_API_URL || '';
 
 const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) => {
+  const { t, i18n } = useTranslation();
   const locationState = useLocation().state || {};
   const [formData, setFormData] = useState({
     description: locationState.description || '',
@@ -181,6 +184,7 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
     const payload = new FormData();
     payload.append('description', formData.description);
     payload.append('category', formData.category);
+    payload.append('language', i18n.language);
     if (formData.latitude) payload.append('latitude', formData.latitude);
     if (formData.longitude) payload.append('longitude', formData.longitude);
     if (formData.location) payload.append('location', formData.location);
@@ -242,16 +246,37 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">Description</label>
-            <textarea
-              required
+            <label className="block text-sm font-medium text-gray-700">Language</label>
+            <select
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
-              rows="3"
-              value={formData.description}
-              onChange={(e) => setFormData({...formData, description: e.target.value})}
-              onBlur={analyzeUrgency}
-              placeholder="Describe the issue..."
-            />
+              value={i18n.language}
+              onChange={(e) => i18n.changeLanguage(e.target.value)}
+            >
+              <option value="en">English</option>
+              <option value="hi">हिंदी (Hindi)</option>
+              <option value="mr">मराठी (Marathi)</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Description</label>
+            <div className="relative">
+              <textarea
+                required
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border pr-12"
+                rows="3"
+                value={formData.description}
+                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                onBlur={analyzeUrgency}
+                placeholder="Describe the issue..."
+              />
+              <div className="absolute top-2 right-2">
+                <VoiceInput
+                  onTranscript={(transcript) => setFormData(prev => ({...prev, description: prev.description + ' ' + transcript}))}
+                  language={i18n.language}
+                />
+              </div>
+            </div>
             {analyzingUrgency && (
                <div className="mt-1 text-xs text-blue-600 animate-pulse">
                    Checking urgency...

@@ -28,22 +28,25 @@ def test_create_issue():
         tmp_path = tmp.name
 
     try:
-        with TestClient(app) as client:
-            with open(tmp_path, "rb") as f:
-                response = client.post(
-                    "/api/issues",
-                    data={
-                        "description": "Test Issue",
-                        "category": "Road",
-                        "user_email": "test@example.com"
-                    },
-                    files={"image": ("test.jpg", f, "image/jpeg")}
-                )
+        from unittest.mock import patch, AsyncMock
+        # Patch validation to avoid PIL/magic issues with dummy image
+        with patch("backend.main.validate_uploaded_file", new_callable=AsyncMock) as mock_validate:
+            with TestClient(app) as client:
+                with open(tmp_path, "rb") as f:
+                    response = client.post(
+                        "/api/issues",
+                        data={
+                            "description": "Test Issue",
+                            "category": "Road",
+                            "user_email": "test@example.com"
+                        },
+                        files={"image": ("test.jpg", f, "image/jpeg")}
+                    )
 
         print(f"Status Code: {response.status_code}")
         print(f"Response: {response.json()}")
 
-        assert response.status_code == 200
+        assert response.status_code == 201
         assert "action_plan" in response.json()
         # Action plan should be None initially (async)
         assert response.json()["action_plan"] is None

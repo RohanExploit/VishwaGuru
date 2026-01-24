@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.concurrency import run_in_threadpool
-from sqlalchemy.orm import Session, defer
+from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
 from functools import lru_cache
@@ -18,23 +18,20 @@ import uuid
 import asyncio
 import logging
 import time
-from pywebpush import webpush, WebPushException
 import magic
 import httpx
 
-from backend.cache import recent_issues_cache, user_upload_cache
+from backend.cache import recent_issues_cache
 from backend.database import engine, Base, SessionLocal, get_db
-from backend.models import Issue, PushSubscription
+from backend.models import Issue
 from backend.schemas import (
-    IssueResponse, IssueSummaryResponse, IssueCreateRequest, IssueCreateResponse, ChatRequest, ChatResponse,
+    IssueResponse, IssueCreateRequest, IssueCreateResponse, ChatRequest, ChatResponse,
     VoteRequest, VoteResponse, DetectionResponse, UrgencyAnalysisRequest,
     UrgencyAnalysisResponse, HealthResponse, MLStatusResponse, ResponsibilityMapResponse,
-    ErrorResponse, SuccessResponse, IssueCategory, IssueStatus,
-    IssueStatusUpdateRequest, IssueStatusUpdateResponse,
-    PushSubscriptionRequest, PushSubscriptionResponse
+    ErrorResponse, SuccessResponse, IssueCategory, IssueStatus
 )
 from backend.exceptions import EXCEPTION_HANDLERS
-from backend.bot import run_bot, start_bot_thread, stop_bot_thread
+from backend.bot import run_bot
 from backend.ai_factory import create_all_ai_services
 from backend.ai_service import generate_action_plan, chat_with_civic_assistant
 from backend.maharashtra_locator import (
@@ -85,40 +82,9 @@ ALLOWED_MIME_TYPES = {
     'image/tiff'
 }
 
-# User upload limits
-UPLOAD_LIMIT_PER_USER = 5  # max uploads per user per hour
-UPLOAD_LIMIT_PER_IP = 10  # max uploads per IP per hour
-
-def check_upload_limits(identifier: str, limit: int) -> None:
-    """
-    Check if the user/IP has exceeded upload limits using thread-safe cache.
-    """
-    current_uploads = user_upload_cache.get(identifier) or []
-    now = datetime.now()
-    one_hour_ago = now - timedelta(hours=1)
-    
-    # Filter out old timestamps (older than 1 hour)
-    recent_uploads = [ts for ts in current_uploads if ts > one_hour_ago]
-    
-    if len(recent_uploads) >= limit:
-        raise HTTPException(
-            status_code=429,
-            detail=f"Upload limit exceeded. Maximum {limit} uploads per hour allowed."
-        )
-    
-    # Add current timestamp and update cache atomically
-    recent_uploads.append(now)
-    user_upload_cache.set(recent_uploads, identifier)
-
 def _validate_uploaded_file_sync(file: UploadFile) -> None:
     """
     Synchronous validation logic to be run in a threadpool.
-    
-    Security measures:
-    - File size limits
-    - MIME type validation using content detection
-    - Image content validation using PIL
-    - TODO: Add virus/malware scanning (consider integrating ClamAV or similar)
     """
     # Check file size
     file.file.seek(0, 2)  # Seek to end
@@ -144,21 +110,6 @@ def _validate_uploaded_file_sync(file: UploadFile) -> None:
                 status_code=400,
                 detail=f"Invalid file type. Only image files are allowed. Detected: {detected_mime}"
             )
-        
-        # Additional content validation: Try to open with PIL to ensure it's a valid image
-        try:
-            img = Image.open(file.file)
-            img.verify()  # Verify the image is not corrupted
-            file.file.seek(0)  # Reset after PIL operations
-        except Exception as pil_error:
-            logger.error(f"PIL validation failed for {file.filename}: {pil_error}")
-            raise HTTPException(
-                status_code=400,
-                detail="Invalid image file. The file appears to be corrupted or not a valid image."
-            )
-            
-    except HTTPException:
-        raise
     except Exception as e:
         logger.error(f"Error validating file {file.filename}: {e}")
         raise HTTPException(
@@ -181,11 +132,11 @@ async def validate_uploaded_file(file: UploadFile) -> None:
 # Create tables if they don't exist
 Base.metadata.create_all(bind=engine)
 
-async def process_action_plan_background(issue_id: int, description: str, category: str, language: str, image_path: str):
+async def process_action_plan_background(issue_id: int, description: str, category: str, image_path: str):
     db = SessionLocal()
     try:
         # Generate Action Plan (AI)
-        action_plan = await generate_action_plan(description, category, language, image_path)
+        action_plan = await generate_action_plan(description, category, image_path)
 
         # Update issue in DB
         issue = db.query(Issue).filter(Issue.id == issue_id).first()
@@ -194,7 +145,7 @@ async def process_action_plan_background(issue_id: int, description: str, catego
             db.commit()
 
             # Invalidate cache to ensure users get the updated action plan
-            recent_issues_cache.invalidate("recent_issues")
+            recent_issues_cache.invalidate()
     except Exception as e:
         logger.error(f"Background action plan generation failed for issue {issue_id}: {e}", exc_info=True)
     finally:
@@ -264,10 +215,6 @@ for exception_type, handler in EXCEPTION_HANDLERS.items():
     app.add_exception_handler(exception_type, handler)
 
 # CORS Configuration - Security Enhanced
-# For separate frontend/backend deployment (e.g., Netlify + Render)
-# FRONTEND_URL environment variable is REQUIRED for security
-# Example: https://your-app.netlify.app
-
 frontend_url = os.environ.get("FRONTEND_URL")
 if not frontend_url:
     raise ValueError(
@@ -344,26 +291,8 @@ async def ml_status():
     )
 
 def save_file_blocking(file_obj, path):
-    """
-    Save uploaded file with security measures:
-    - Strip EXIF metadata from images to protect privacy
-    - For non-images, save as-is
-    """
-    try:
-        # Try to open as image with PIL
-        img = Image.open(file_obj)
-        # Strip EXIF data by creating a new image without metadata
-        img_no_exif = Image.new(img.mode, img.size)
-        img_no_exif.putdata(list(img.getdata()))
-        # Save without EXIF
-        img_no_exif.save(path, format=img.format)
-        logger.info(f"Saved image {path} with EXIF metadata stripped")
-    except Exception:
-        # If not an image or PIL fails, save as binary
-        file_obj.seek(0)  # Reset in case PIL read some
-        with open(path, "wb") as buffer:
-            shutil.copyfileobj(file_obj, buffer)
-        logger.info(f"Saved file {path} as binary (not an image or PIL failed)")
+    with open(path, "wb") as buffer:
+        shutil.copyfileobj(file_obj, buffer)
 
 def save_issue_db(db: Session, issue: Issue):
     db.add(issue)
@@ -373,11 +302,9 @@ def save_issue_db(db: Session, issue: Issue):
 
 @app.post("/api/issues", response_model=IssueCreateResponse, status_code=201)
 async def create_issue(
-    request: Request,
     background_tasks: BackgroundTasks,
     description: str = Form(..., min_length=10, max_length=1000),
     category: str = Form(..., pattern=f"^({'|'.join([cat.value for cat in IssueCategory])})$"),
-    language: str = Form('en'),
     user_email: str = Form(None),
     latitude: float = Form(None, ge=-90, le=90),
     longitude: float = Form(None, ge=-180, le=180),
@@ -386,15 +313,6 @@ async def create_issue(
     db: Session = Depends(get_db)
 ):
     image_path = None
-    
-    # Check upload limits if image is being uploaded
-    if image:
-        # Get client IP
-        client_ip = request.client.host if request.client else "unknown"
-        # Use user_email if provided, otherwise IP
-        identifier = user_email if user_email else client_ip
-        limit = UPLOAD_LIMIT_PER_USER if user_email else UPLOAD_LIMIT_PER_IP
-        check_upload_limits(identifier, limit)
     
     try:
         # Validate uploaded image if provided
@@ -421,7 +339,6 @@ async def create_issue(
     try:
         # Save to DB
         new_issue = Issue(
-            reference_id=str(uuid.uuid4()),
             description=description,
             category=category,
             image_path=image_path,
@@ -447,15 +364,14 @@ async def create_issue(
         raise HTTPException(status_code=500, detail="Failed to save issue to database")
 
     # Add background task for AI generation
-    background_tasks.add_task(process_action_plan_background, new_issue.id, description, category, language, image_path)
+    background_tasks.add_task(process_action_plan_background, new_issue.id, description, category, image_path)
 
-    # Optimistic Cache Update with thread-safe operations
+    # Optimistic Cache Update
     try:
-        current_cache = recent_issues_cache.get("recent_issues")
+        current_cache = recent_issues_cache.get()
         if current_cache:
-            # Create a dict representation of the new issue
-            # Using IssueSummaryResponse to match the list view optimization
-            new_issue_dict = IssueSummaryResponse(
+            # Create a dict representation of the new issue (similar to IssueResponse)
+            new_issue_dict = IssueResponse(
                 id=new_issue.id,
                 category=new_issue.category,
                 description=new_issue.description[:100] + "..." if len(new_issue.description) > 100 else new_issue.description,
@@ -465,19 +381,18 @@ async def create_issue(
                 upvotes=new_issue.upvotes if new_issue.upvotes is not None else 0,
                 location=new_issue.location,
                 latitude=new_issue.latitude,
-                longitude=new_issue.longitude
-                # action_plan excluded
+                longitude=new_issue.longitude,
+                action_plan=new_issue.action_plan
             ).model_dump(mode='json')
 
-            # Prepend new issue to the list (atomic operation)
+            # Prepend new issue to the list
             current_cache.insert(0, new_issue_dict)
 
-            # Keep only last 10 entries
+            # Keep only last 10 (or matching the limit in get_recent_issues)
             if len(current_cache) > 10:
                 current_cache.pop()
 
-            # Atomic cache update
-            recent_issues_cache.set(current_cache, "recent_issues")
+            recent_issues_cache.set(current_cache)
     except Exception as e:
         logger.error(f"Error updating cache optimistically: {e}")
         # Failure to update cache is not critical, don't fail the request
@@ -508,107 +423,9 @@ def upvote_issue(issue_id: int, db: Session = Depends(get_db)):
         message="Issue upvoted successfully"
     )
 
-@app.put("/api/issues/status", response_model=IssueStatusUpdateResponse)
-def update_issue_status(
-    request: IssueStatusUpdateRequest,
-    background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db)
-):
-    """Update issue status via secure reference ID (for government portals)"""
-    issue = db.query(Issue).filter(Issue.reference_id == request.reference_id).first()
-    if not issue:
-        raise HTTPException(status_code=404, detail="Issue not found")
-
-    # Validate status transition (simple state machine)
-    valid_transitions = {
-        "open": ["verified"],
-        "verified": ["assigned", "open"],
-        "assigned": ["in_progress", "verified"],
-        "in_progress": ["resolved", "assigned"],
-        "resolved": []  # Terminal state
-    }
-
-    if request.status.value not in valid_transitions.get(issue.status, []):
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid status transition from {issue.status} to {request.status.value}"
-        )
-
-    # Update issue
-    old_status = issue.status
-    issue.status = request.status.value
-    if request.assigned_to:
-        issue.assigned_to = request.assigned_to
-
-    # Set timestamps
-    now = datetime.datetime.now(datetime.timezone.utc)
-    if request.status.value == "verified":
-        issue.verified_at = now
-    elif request.status.value == "assigned":
-        issue.assigned_at = now
-    elif request.status.value == "resolved":
-        issue.resolved_at = now
-
-    db.commit()
-    db.refresh(issue)
-
-    # Send notification to citizen
-    background_tasks.add_task(send_status_notification, issue.id, old_status, request.status.value, request.notes)
-
-    return IssueStatusUpdateResponse(
-        id=issue.id,
-        reference_id=issue.reference_id,
-        status=request.status,
-        message=f"Issue status updated to {request.status.value}"
-    )
-
-@app.post("/api/push-subscription", response_model=PushSubscriptionResponse)
-def subscribe_push_notifications(
-    request: PushSubscriptionRequest,
-    db: Session = Depends(get_db)
-):
-    """Subscribe to push notifications for issue updates"""
-    # Check if subscription already exists
-    existing = db.query(PushSubscription).filter(
-        PushSubscription.endpoint == request.endpoint
-    ).first()
-
-    if existing:
-        # Update existing subscription
-        existing.user_email = request.user_email
-        existing.p256dh = request.p256dh
-        existing.auth = request.auth
-        existing.issue_id = request.issue_id
-        db.commit()
-        return PushSubscriptionResponse(
-            id=existing.id,
-            message="Push subscription updated"
-        )
-
-    # Create new subscription
-    subscription = PushSubscription(
-        user_email=request.user_email,
-        endpoint=request.endpoint,
-        p256dh=request.p256dh,
-        auth=request.auth,
-        issue_id=request.issue_id
-    )
-
-    db.add(subscription)
-    db.commit()
-    db.refresh(subscription)
-
-    return PushSubscriptionResponse(
-        id=subscription.id,
-        message="Push subscription created"
-    )
-
 @lru_cache(maxsize=1)
 def _load_responsibility_map():
-    # Assuming the data folder is at the root level relative to where backend is run
-    # Adjust path as necessary. If running from root, it is "data/responsibility_map.json"
     file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "responsibility_map.json")
-
     with open(file_path, "r") as f:
         return json.load(f)
 
@@ -648,19 +465,19 @@ async def chat_endpoint(request: ChatRequest):
         logger.error(f"Chat service error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Chat service temporarily unavailable")
 
-@app.get("/api/issues/recent", response_model=List[IssueSummaryResponse])
+@app.get("/api/issues/recent", response_model=List[IssueResponse])
 def get_recent_issues(db: Session = Depends(get_db)):
-    cached_data = recent_issues_cache.get("recent_issues")
+    cached_data = recent_issues_cache.get()
     if cached_data:
         return JSONResponse(content=cached_data)
 
-    # Fetch last 10 issues, deferring action_plan for performance
-    issues = db.query(Issue).options(defer(Issue.action_plan)).order_by(Issue.created_at.desc()).limit(10).all()
+    # Fetch last 10 issues
+    issues = db.query(Issue).order_by(Issue.created_at.desc()).limit(10).all()
 
     # Convert to Pydantic models for validation and serialization
     data = []
     for i in issues:
-        data.append(IssueSummaryResponse(
+        data.append(IssueResponse(
             id=i.id,
             category=i.category,
             description=i.description[:100] + "..." if len(i.description) > 100 else i.description,
@@ -670,14 +487,14 @@ def get_recent_issues(db: Session = Depends(get_db)):
             upvotes=i.upvotes if i.upvotes is not None else 0,
             location=i.location,
             latitude=i.latitude,
-            longitude=i.longitude
-            # action_plan is deferred and excluded
+            longitude=i.longitude,
+            action_plan=i.action_plan
         ).model_dump(mode='json'))
 
-    # Thread-safe cache update
-    recent_issues_cache.set(data, "recent_issues")
+    recent_issues_cache.set(data)
     return data
 
+# FIXED: Standardized Detection Endpoints with Consistent Validation
 @app.post("/api/detect-pothole", response_model=DetectionResponse)
 async def detect_pothole_endpoint(image: UploadFile = File(...)):
     # Validate uploaded file
@@ -728,16 +545,17 @@ async def detect_infrastructure_endpoint(request: Request, image: UploadFile = F
         logger.error(f"Infrastructure detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Infrastructure detection service temporarily unavailable")
 
+# FIXED: Single flooding detection endpoint with proper async validation
 @app.post("/api/detect-flooding", response_model=DetectionResponse)
 async def detect_flooding_endpoint(request: Request, image: UploadFile = File(...)):
     # Validate uploaded file
-    validate_uploaded_file(image)
+    await validate_uploaded_file(image)
     
     # Convert to PIL Image directly from file object to save memory
     try:
         pil_image = await run_in_threadpool(Image.open, image.file)
         # Validate image for processing
-        validate_image_for_processing(pil_image)
+        await run_in_threadpool(validate_image_for_processing, pil_image)
     except HTTPException:
         raise  # Re-raise HTTP exceptions from validation
     except Exception as e:
@@ -754,7 +572,6 @@ async def detect_flooding_endpoint(request: Request, image: UploadFile = File(..
         logger.error(f"Flooding detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Flooding detection service temporarily unavailable")
 
-# FIXED: Standardized Detection Endpoints with Consistent Validation
 @app.post("/api/detect-vandalism", response_model=DetectionResponse)
 async def detect_vandalism_endpoint(request: Request, image: UploadFile = File(...)):
     # Validate uploaded file
@@ -805,6 +622,7 @@ async def detect_garbage_endpoint(image: UploadFile = File(...)):
         logger.error(f"Garbage detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Detection service temporarily unavailable")
 
+# External API Detection Endpoints (HuggingFace CLIP-based)
 @app.post("/api/detect-illegal-parking")
 async def detect_illegal_parking_endpoint(request: Request, image: UploadFile = File(...)):
     try:
@@ -885,7 +703,6 @@ async def detect_blocked_road_endpoint(request: Request, image: UploadFile = Fil
         logger.error(f"Blocked road detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
-
 @app.post("/api/detect-tree-hazard")
 async def detect_tree_hazard_endpoint(request: Request, image: UploadFile = File(...)):
     try:
@@ -901,7 +718,6 @@ async def detect_tree_hazard_endpoint(request: Request, image: UploadFile = File
     except Exception as e:
         logger.error(f"Tree hazard detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
-
 
 @app.post("/api/detect-pest")
 async def detect_pest_endpoint(request: Request, image: UploadFile = File(...)):
@@ -919,7 +735,6 @@ async def detect_pest_endpoint(request: Request, image: UploadFile = File(...)):
         logger.error(f"Pest detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
-
 @app.post("/api/detect-severity")
 async def detect_severity_endpoint(request: Request, image: UploadFile = File(...)):
     try:
@@ -936,7 +751,6 @@ async def detect_severity_endpoint(request: Request, image: UploadFile = File(..
         logger.error(f"Severity detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
-
 @app.post("/api/detect-smart-scan")
 async def detect_smart_scan_endpoint(request: Request, image: UploadFile = File(...)):
     try:
@@ -952,7 +766,6 @@ async def detect_smart_scan_endpoint(request: Request, image: UploadFile = File(
     except Exception as e:
         logger.error(f"Smart scan detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
-
 
 @app.post("/api/generate-description")
 async def generate_description_endpoint(request: Request, image: UploadFile = File(...)):
@@ -972,17 +785,10 @@ async def generate_description_endpoint(request: Request, image: UploadFile = Fi
         logger.error(f"Description generation error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
-
 @app.get("/api/mh/rep-contacts")
 async def get_maharashtra_rep_contacts(pincode: str = Query(..., min_length=6, max_length=6)):
     """
     Get MLA and representative contact information for Maharashtra by pincode.
-    
-    Args:
-        pincode: 6-digit pincode for Maharashtra
-        
-    Returns:
-        JSON with MLA details, constituency info, and grievance portal links
     """
     # Validate pincode format
     if not pincode.isdigit():
@@ -1001,7 +807,6 @@ async def get_maharashtra_rep_contacts(pincode: str = Query(..., min_length=6, m
         )
     
     # Find MLA by constituency
-    # If constituency_info exists but assembly_constituency is None, it means we only found District info via fallback
     assembly_constituency = constituency_info.get("assembly_constituency")
     mla_info = None
 
@@ -1063,73 +868,6 @@ async def get_maharashtra_rep_contacts(pincode: str = Query(..., min_length=6, m
         response["description"] = f"We found that {pincode} belongs to {constituency_info['district']} district, but we don't have the specific MLA details for this exact pincode yet."
 
     return response
-
-async def send_status_notification(issue_id: int, old_status: str, new_status: str, notes: str = None):
-    """Send push notification for issue status update"""
-    try:
-        # Get issue details
-        db = next(get_db())
-        issue = db.query(Issue).filter(Issue.id == issue_id).first()
-        if not issue:
-            return
-
-        # Get subscriptions for this issue or general subscriptions
-        subscriptions = db.query(PushSubscription).filter(
-            (PushSubscription.issue_id == issue_id) | (PushSubscription.issue_id.is_(None))
-        ).all()
-
-        # VAPID keys (in production, these should be environment variables)
-        vapid_private_key = os.getenv("VAPID_PRIVATE_KEY", "dev_private_key")
-        vapid_public_key = os.getenv("VAPID_PUBLIC_KEY", "dev_public_key")
-        vapid_email = os.getenv("VAPID_EMAIL", "mailto:test@example.com")
-
-        status_messages = {
-            "verified": "Your issue has been verified by authorities",
-            "assigned": f"Your issue has been assigned to {issue.assigned_to or 'authorities'}",
-            "in_progress": "Work on your issue has begun",
-            "resolved": "Your issue has been resolved!"
-        }
-
-        message = status_messages.get(new_status, f"Your issue status changed to {new_status}")
-
-        payload = {
-            "title": "Issue Update",
-            "body": message,
-            "icon": "/icon-192.png",
-            "badge": "/icon-192.png",
-            "data": {
-                "issue_id": issue_id,
-                "status": new_status,
-                "url": f"/issue/{issue_id}"
-            }
-        }
-
-        for subscription in subscriptions:
-            try:
-                webpush(
-                    subscription_info={
-                        "endpoint": subscription.endpoint,
-                        "keys": {
-                            "p256dh": subscription.p256dh,
-                            "auth": subscription.auth
-                        }
-                    },
-                    data=json.dumps(payload),
-                    vapid_private_key=vapid_private_key,
-                    vapid_claims={
-                        "sub": vapid_email
-                    }
-                )
-            except WebPushException as e:
-                logger.error(f"Failed to send push notification: {e}")
-                # Remove invalid subscriptions
-                if e.response.status_code in [400, 404, 410]:
-                    db.delete(subscription)
-
-        db.commit()
-
-    except Exception as e:
-        logger.error(f"Error sending status notification: {e}")
 
 # Note: Frontend serving code removed for separate deployment
 # The frontend will be deployed on Netlify and make API calls to this backend

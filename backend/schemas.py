@@ -37,7 +37,7 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     response: str = Field(..., description="AI assistant's response")
 
-class IssueResponse(BaseModel):
+class IssueSummaryResponse(BaseModel):
     id: int = Field(..., description="Unique issue identifier")
     category: str = Field(..., description="Issue category")
     description: str = Field(..., description="Issue description")
@@ -48,9 +48,12 @@ class IssueResponse(BaseModel):
     location: Optional[str] = Field(None, description="Location description")
     latitude: Optional[float] = Field(None, ge=-90, le=90, description="Latitude coordinate")
     longitude: Optional[float] = Field(None, ge=-180, le=180, description="Longitude coordinate")
-    action_plan: Optional[Dict[str, Any]] = Field(None, description="Generated action plan")
+    # action_plan excluded to optimize payload size
 
     model_config = ConfigDict(from_attributes=True)
+
+class IssueResponse(IssueSummaryResponse):
+    action_plan: Optional[Dict[str, Any]] = Field(None, description="Generated action plan")
 
 class IssueCreateRequest(BaseModel):
     description: str = Field(..., min_length=10, max_length=1000, description="Issue description")
@@ -103,7 +106,7 @@ class PushSubscriptionResponse(BaseModel):
     id: int = Field(..., description="Subscription ID")
     message: str = Field(..., description="Subscription confirmation")
 
-class DetectionRequest(BaseModel):
+class DetectionResponse(BaseModel):
     detections: List[Dict[str, Any]] = Field(..., description="List of detected objects/items")
 
 class UrgencyAnalysisRequest(BaseModel):

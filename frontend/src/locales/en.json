@@ -1,0 +1,46 @@
+{
+  "home": {
+    "title": "VishwaGuru - Smart Civic Issue Reporter",
+    "subtitle": "Report and track civic issues in your community",
+    "privacyActive": "AI-Powered Privacy Protection Active",
+    "communityImpact": "Community Impact",
+    "makingChange": "Together we are making a change!",
+    "issuesSolved": "Issues Solved",
+    "smartScanner": "Smart City Scanner",
+    "aiPoweredDetection": "AI-powered instant detection",
+    "categories": {
+      "roadTraffic": "Road & Traffic",
+      "environmentSafety": "Environment & Safety",
+      "civicServices": "Civic Services"
+    },
+    "issues": {
+      "pothole": "Pothole",
+      "blockedRoad": "Blocked Road",
+      "illegalParking": "Illegal Parking",
+      "darkStreet": "Dark Street",
+      "garbage": "Garbage",
+      "flood": "Flood",
+      "fireSmoke": "Fire/Smoke",
+      "treeHazard": "Tree Hazard",
+      "strayAnimal": "Stray Animal",
+      "pestControl": "Pest Control",
+      "reportIssue": "Report Issue",
+      "brokenInfra": "Broken Infra",
+      "graffiti": "Graffiti",
+      "findMLA": "Find MLA"
+    },
+    "stats": {
+      "totalImpact": "Total Impact",
+      "issuesResolved": "Issues Resolved",
+      "activeUsers": "Active Users"
+    }
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "yes": "Yes",
+    "no": "No"
+  }
+}

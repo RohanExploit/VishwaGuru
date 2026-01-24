@@ -1,0 +1,46 @@
+{
+  "home": {
+    "title": "विश्वगुरु - स्मार्ट सिविक इश्यू रिपोर्टर",
+    "subtitle": "तुमच्या समुदायात सिविक समस्या नोंदवा आणि ट्रॅक करा",
+    "privacyActive": "AI-चालित गोपनीयता संरक्षण सक्रिय",
+    "communityImpact": "समुदाय प्रभाव",
+    "makingChange": "आम्ही एकत्र बदल घडवत आहोत!",
+    "issuesSolved": "समस्या सोडवल्या",
+    "smartScanner": "स्मार्ट सिटी स्कॅनर",
+    "aiPoweredDetection": "AI-चालित त्वरित शोध",
+    "categories": {
+      "roadTraffic": "रस्ता आणि वाहतूक",
+      "environmentSafety": "पर्यावरण आणि सुरक्षा",
+      "civicServices": "नागरीक सेवा"
+    },
+    "issues": {
+      "pothole": "खड्डा",
+      "blockedRoad": "अवरोधित रस्ता",
+      "illegalParking": "अवैध पार्किंग",
+      "darkStreet": "अंधूक रस्ता",
+      "garbage": "कचरा",
+      "flood": "पुर",
+      "fireSmoke": "आग/धूर",
+      "treeHazard": "झाडाचा धोका",
+      "strayAnimal": "भटकणारे प्राणी",
+      "pestControl": "कीटक नियंत्रण",
+      "reportIssue": "समस्या नोंदवा",
+      "brokenInfra": "तुटलेली पायाभूत सुविधा",
+      "graffiti": "गंदा लेख",
+      "findMLA": "MLA शोधा"
+    },
+    "stats": {
+      "totalImpact": "एकूण प्रभाव",
+      "issuesResolved": "समस्या सोडवल्या",
+      "activeUsers": "सक्रिय वापरकर्ते"
+    }
+  },
+  "common": {
+    "loading": "लोड होत आहे...",
+    "error": "त्रुटी",
+    "submit": "सबमिट करा",
+    "cancel": "रद्द करा",
+    "yes": "होय",
+    "no": "नाही"
+  }
+}
