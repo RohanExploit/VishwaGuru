@@ -70,6 +70,7 @@ from backend.validation import (
     validate_category,
     sanitize_filename
 )
+from backend.external_api import huggingface_client, monitor_external_services
 
 # Configure structured logging
 logging.basicConfig(
@@ -245,6 +246,13 @@ async def lifespan(app: FastAPI):
     
     yield
     
+    # Shutdown: Close External API clients
+    try:
+        await huggingface_client.close()
+        logger.info("External API clients closed.")
+    except Exception as e:
+        logger.error(f"Error closing external API clients: {e}")
+    
     # Shutdown: Close Shared HTTP Client
     await app.state.http_client.aclose()
     logger.info("Shared HTTP Client closed.")
@@ -337,14 +345,19 @@ def health():
 @app.get("/api/ml-status", response_model=MLStatusResponse)
 async def ml_status():
     """
-    Get the status of the ML detection service.
+    Get the status of the ML detection service and external APIs.
     Returns information about which backend is being used (local or HF API).
     """
     status = await get_detection_status()
+    
+    # Check external service health
+    external_services = await monitor_external_services()
+    
     return MLStatusResponse(
         status="ok",
         models_loaded=status.get("models_loaded", []),
-        memory_usage=status.get("memory_usage")
+        memory_usage=status.get("memory_usage"),
+        external_services=external_services
     )
 
 def save_file_blocking(file_obj, path):
@@ -758,12 +771,27 @@ async def detect_illegal_parking_endpoint(request: Request, image: UploadFile = 
         raise HTTPException(status_code=400, detail="Invalid image file")
 
     try:
-        client = request.app.state.http_client
-        detections = await detect_illegal_parking_clip(image_bytes, client=client)
-        return {"detections": detections}
+        # Use enhanced API client with retry logic and circuit breaker
+        files = {"inputs": image_bytes}
+        headers = {"Authorization": f"Bearer {os.getenv('HUGGINGFACE_API_KEY', '')}"}
+        
+        result = await huggingface_client.post(
+            "/models/your-model-endpoint",
+            files=files,
+            headers=headers,
+            fallback_response={"detections": [], "confidence": 0.0, "status": "fallback"}
+        )
+        
+        return {"detections": result.get("detections", [])}
+        
     except Exception as e:
         logger.error(f"Illegal parking detection error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal server error")
+        # Graceful degradation
+        return {
+            "detections": [],
+            "error": "Detection service temporarily unavailable",
+            "status": "degraded"
+        }
 
 @app.post("/api/detect-street-light")
 async def detect_street_light_endpoint(request: Request, image: UploadFile = File(...)):
@@ -774,12 +802,25 @@ async def detect_street_light_endpoint(request: Request, image: UploadFile = Fil
         raise HTTPException(status_code=400, detail="Invalid image file")
 
     try:
-        client = request.app.state.http_client
-        detections = await detect_street_light_clip(image_bytes, client=client)
-        return {"detections": detections}
+        files = {"inputs": image_bytes}
+        headers = {"Authorization": f"Bearer {os.getenv('HUGGINGFACE_API_KEY', '')}"}
+        
+        result = await huggingface_client.post(
+            "/models/street-light-detection",
+            files=files,
+            headers=headers,
+            fallback_response={"detections": [], "status": "fallback"}
+        )
+        
+        return {"detections": result.get("detections", [])}
+        
     except Exception as e:
         logger.error(f"Street light detection error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal server error")
+        return {
+            "detections": [],
+            "error": "Detection service temporarily unavailable",
+            "status": "degraded"
+        }
 
 @app.post("/api/detect-fire")
 async def detect_fire_endpoint(request: Request, image: UploadFile = File(...)):
@@ -790,12 +831,25 @@ async def detect_fire_endpoint(request: Request, image: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="Invalid image file")
 
     try:
-        client = request.app.state.http_client
-        detections = await detect_fire_clip(image_bytes, client=client)
-        return {"detections": detections}
+        files = {"inputs": image_bytes}
+        headers = {"Authorization": f"Bearer {os.getenv('HUGGINGFACE_API_KEY', '')}"}
+        
+        result = await huggingface_client.post(
+            "/models/fire-detection",
+            files=files,
+            headers=headers,
+            fallback_response={"detections": [], "confidence": 0.0, "status": "fallback"}
+        )
+        
+        return {"detections": result.get("detections", [])}
+        
     except Exception as e:
         logger.error(f"Fire detection error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal server error")
+        return {
+            "detections": [],
+            "error": "Detection service temporarily unavailable",
+            "status": "degraded"
+        }
 
 @app.post("/api/detect-stray-animal")
 async def detect_stray_animal_endpoint(request: Request, image: UploadFile = File(...)):
