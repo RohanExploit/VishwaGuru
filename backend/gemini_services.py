@@ -18,9 +18,10 @@ class GeminiActionPlanService(ActionPlanService):
         self,
         issue_description: str,
         category: str,
+        language: str = 'en',
         image_path: Optional[str] = None
     ) -> Dict[str, str]:
-        return await _generate_action_plan(issue_description, category, image_path)
+        return await _generate_action_plan(issue_description, category, language, image_path)
 
 
 class GeminiChatService(ChatService):

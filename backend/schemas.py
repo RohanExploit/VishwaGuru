@@ -12,10 +12,11 @@ class IssueCategory(str, Enum):
     WOMEN_SAFETY = "Women Safety"
 
 class IssueStatus(str, Enum):
-    PENDING = "pending"
+    OPEN = "open"
+    VERIFIED = "verified"
+    ASSIGNED = "assigned"
     IN_PROGRESS = "in_progress"
     RESOLVED = "resolved"
-    CLOSED = "closed"
 
 class ActionPlan(BaseModel):
     whatsapp: Optional[str] = Field(None, description="WhatsApp message template")
@@ -79,10 +80,30 @@ class VoteResponse(BaseModel):
     upvotes: int = Field(..., description="Updated upvote count")
     message: str = Field(..., description="Vote confirmation message")
 
-class DetectionRequest(BaseModel):
-    pass  # Base class for detection requests
+class IssueStatusUpdateRequest(BaseModel):
+    reference_id: str = Field(..., description="Secure reference ID for the issue")
+    status: IssueStatus = Field(..., description="New status for the issue")
+    assigned_to: Optional[str] = Field(None, description="Government official/department assigned")
+    notes: Optional[str] = Field(None, description="Additional notes from government")
 
-class DetectionResponse(BaseModel):
+class IssueStatusUpdateResponse(BaseModel):
+    id: int = Field(..., description="Issue ID")
+    reference_id: str = Field(..., description="Reference ID")
+    status: IssueStatus = Field(..., description="Updated status")
+    message: str = Field(..., description="Update confirmation message")
+
+class PushSubscriptionRequest(BaseModel):
+    user_email: Optional[str] = Field(None, description="User email for notifications")
+    endpoint: str = Field(..., description="Push service endpoint")
+    p256dh: str = Field(..., description="P-256 DH key")
+    auth: str = Field(..., description="Authentication secret")
+    issue_id: Optional[int] = Field(None, description="Specific issue to subscribe to")
+
+class PushSubscriptionResponse(BaseModel):
+    id: int = Field(..., description="Subscription ID")
+    message: str = Field(..., description="Subscription confirmation")
+
+class DetectionRequest(BaseModel):
     detections: List[Dict[str, Any]] = Field(..., description="List of detected objects/items")
 
 class UrgencyAnalysisRequest(BaseModel):

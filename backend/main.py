@@ -18,6 +18,7 @@ import uuid
 import asyncio
 import logging
 import time
+from pywebpush import webpush, WebPushException
 import magic
 import httpx
 
@@ -185,11 +186,11 @@ async def validate_uploaded_file(file: UploadFile) -> None:
 # Create tables if they don't exist
 Base.metadata.create_all(bind=engine)
 
-async def process_action_plan_background(issue_id: int, description: str, category: str, image_path: str):
+async def process_action_plan_background(issue_id: int, description: str, category: str, language: str, image_path: str):
     db = SessionLocal()
     try:
         # Generate Action Plan (AI)
-        action_plan = await generate_action_plan(description, category, image_path)
+        action_plan = await generate_action_plan(description, category, language, image_path)
 
         # Update issue in DB
         issue = db.query(Issue).filter(Issue.id == issue_id).first()
@@ -462,6 +463,7 @@ async def create_issue(
     try:
         # Save to DB
         new_issue = Issue(
+            reference_id=str(uuid.uuid4()),
             description=description,
             category=category,
             image_path=image_path,
@@ -487,7 +489,7 @@ async def create_issue(
         raise HTTPException(status_code=500, detail="Failed to save issue to database")
 
     # Add background task for AI generation
-    background_tasks.add_task(process_action_plan_background, new_issue.id, description, category, image_path)
+    background_tasks.add_task(process_action_plan_background, new_issue.id, description, category, language, image_path)
 
     # Optimistic Cache Update with thread-safe operations
     try:
@@ -545,6 +547,101 @@ def upvote_issue(issue_id: int, db: Session = Depends(get_db)):
         id=issue.id,
         upvotes=issue.upvotes,
         message="Issue upvoted successfully"
+    )
+
+@app.put("/api/issues/status", response_model=IssueStatusUpdateResponse)
+def update_issue_status(
+    request: IssueStatusUpdateRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    """Update issue status via secure reference ID (for government portals)"""
+    issue = db.query(Issue).filter(Issue.reference_id == request.reference_id).first()
+    if not issue:
+        raise HTTPException(status_code=404, detail="Issue not found")
+
+    # Validate status transition (simple state machine)
+    valid_transitions = {
+        "open": ["verified"],
+        "verified": ["assigned", "open"],
+        "assigned": ["in_progress", "verified"],
+        "in_progress": ["resolved", "assigned"],
+        "resolved": []  # Terminal state
+    }
+
+    if request.status.value not in valid_transitions.get(issue.status, []):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid status transition from {issue.status} to {request.status.value}"
+        )
+
+    # Update issue
+    old_status = issue.status
+    issue.status = request.status.value
+    if request.assigned_to:
+        issue.assigned_to = request.assigned_to
+
+    # Set timestamps
+    now = datetime.datetime.now(datetime.timezone.utc)
+    if request.status.value == "verified":
+        issue.verified_at = now
+    elif request.status.value == "assigned":
+        issue.assigned_at = now
+    elif request.status.value == "resolved":
+        issue.resolved_at = now
+
+    db.commit()
+    db.refresh(issue)
+
+    # Send notification to citizen
+    background_tasks.add_task(send_status_notification, issue.id, old_status, request.status.value, request.notes)
+
+    return IssueStatusUpdateResponse(
+        id=issue.id,
+        reference_id=issue.reference_id,
+        status=request.status,
+        message=f"Issue status updated to {request.status.value}"
+    )
+
+@app.post("/api/push-subscription", response_model=PushSubscriptionResponse)
+def subscribe_push_notifications(
+    request: PushSubscriptionRequest,
+    db: Session = Depends(get_db)
+):
+    """Subscribe to push notifications for issue updates"""
+    # Check if subscription already exists
+    existing = db.query(PushSubscription).filter(
+        PushSubscription.endpoint == request.endpoint
+    ).first()
+
+    if existing:
+        # Update existing subscription
+        existing.user_email = request.user_email
+        existing.p256dh = request.p256dh
+        existing.auth = request.auth
+        existing.issue_id = request.issue_id
+        db.commit()
+        return PushSubscriptionResponse(
+            id=existing.id,
+            message="Push subscription updated"
+        )
+
+    # Create new subscription
+    subscription = PushSubscription(
+        user_email=request.user_email,
+        endpoint=request.endpoint,
+        p256dh=request.p256dh,
+        auth=request.auth,
+        issue_id=request.issue_id
+    )
+
+    db.add(subscription)
+    db.commit()
+    db.refresh(subscription)
+
+    return PushSubscriptionResponse(
+        id=subscription.id,
+        message="Push subscription created"
     )
 
 @lru_cache(maxsize=1)
@@ -1004,6 +1101,73 @@ async def get_maharashtra_rep_contacts(pincode: str = Query(...)):
         response["description"] = f"We found that {pincode} belongs to {constituency_info['district']} district, but we don't have the specific MLA details for this exact pincode yet."
 
     return response
+
+async def send_status_notification(issue_id: int, old_status: str, new_status: str, notes: str = None):
+    """Send push notification for issue status update"""
+    try:
+        # Get issue details
+        db = next(get_db())
+        issue = db.query(Issue).filter(Issue.id == issue_id).first()
+        if not issue:
+            return
+
+        # Get subscriptions for this issue or general subscriptions
+        subscriptions = db.query(PushSubscription).filter(
+            (PushSubscription.issue_id == issue_id) | (PushSubscription.issue_id.is_(None))
+        ).all()
+
+        # VAPID keys (in production, these should be environment variables)
+        vapid_private_key = os.getenv("VAPID_PRIVATE_KEY", "dev_private_key")
+        vapid_public_key = os.getenv("VAPID_PUBLIC_KEY", "dev_public_key")
+        vapid_email = os.getenv("VAPID_EMAIL", "mailto:test@example.com")
+
+        status_messages = {
+            "verified": "Your issue has been verified by authorities",
+            "assigned": f"Your issue has been assigned to {issue.assigned_to or 'authorities'}",
+            "in_progress": "Work on your issue has begun",
+            "resolved": "Your issue has been resolved!"
+        }
+
+        message = status_messages.get(new_status, f"Your issue status changed to {new_status}")
+
+        payload = {
+            "title": "Issue Update",
+            "body": message,
+            "icon": "/icon-192.png",
+            "badge": "/icon-192.png",
+            "data": {
+                "issue_id": issue_id,
+                "status": new_status,
+                "url": f"/issue/{issue_id}"
+            }
+        }
+
+        for subscription in subscriptions:
+            try:
+                webpush(
+                    subscription_info={
+                        "endpoint": subscription.endpoint,
+                        "keys": {
+                            "p256dh": subscription.p256dh,
+                            "auth": subscription.auth
+                        }
+                    },
+                    data=json.dumps(payload),
+                    vapid_private_key=vapid_private_key,
+                    vapid_claims={
+                        "sub": vapid_email
+                    }
+                )
+            except WebPushException as e:
+                logger.error(f"Failed to send push notification: {e}")
+                # Remove invalid subscriptions
+                if e.response.status_code in [400, 404, 410]:
+                    db.delete(subscription)
+
+        db.commit()
+
+    except Exception as e:
+        logger.error(f"Error sending status notification: {e}")
 
 # Note: Frontend serving code removed for separate deployment
 # The frontend will be deployed on Netlify and make API calls to this backend
