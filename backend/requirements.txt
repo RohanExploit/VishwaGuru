@@ -19,3 +19,5 @@ Pillow
 firebase-functions
 firebase-admin
 a2wsgi
+# Security dependencies
+bleach>=6.0.0  # HTML sanitization for XSS protection

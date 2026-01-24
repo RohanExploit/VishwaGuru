@@ -63,6 +63,13 @@ from backend.hf_api_service import (
     generate_image_caption,
     analyze_urgency_text
 )
+from backend.validation import (
+    validate_and_sanitize_text,
+    validate_email,
+    validate_coordinates,
+    validate_category,
+    sanitize_filename
+)
 
 # Configure structured logging
 logging.basicConfig(
@@ -372,15 +379,52 @@ def save_issue_db(db: Session, issue: Issue):
 async def create_issue(
     request: Request,
     background_tasks: BackgroundTasks,
-    description: str = Form(..., min_length=10, max_length=1000),
-    category: str = Form(..., pattern=f"^({'|'.join([cat.value for cat in IssueCategory])})$"),
+    description: str = Form(...),
+    category: str = Form(...),
     user_email: str = Form(None),
-    latitude: float = Form(None, ge=-90, le=90),
-    longitude: float = Form(None, ge=-180, le=180),
-    location: str = Form(None, max_length=200),
+    latitude: float = Form(None),
+    longitude: float = Form(None),
+    location: str = Form(None),
     image: UploadFile = File(None),
     db: Session = Depends(get_db)
 ):
+    # Input validation and sanitization
+    try:
+        # Validate and sanitize description
+        description = validate_and_sanitize_text(
+            description, 
+            "Description", 
+            min_length=10, 
+            max_length=1000,
+            allow_html=False
+        )
+        
+        # Validate category
+        allowed_categories = [cat.value for cat in IssueCategory]
+        category = validate_category(category, allowed_categories)
+        
+        # Validate email if provided
+        if user_email:
+            user_email = validate_email(user_email)
+        
+        # Validate coordinates
+        latitude, longitude = validate_coordinates(latitude, longitude)
+        
+        # Validate and sanitize location
+        if location:
+            location = validate_and_sanitize_text(
+                location,
+                "Location",
+                min_length=0,
+                max_length=200,
+                allow_html=False
+            )
+        
+    except HTTPException:
+        raise  # Re-raise validation errors
+    except Exception as e:
+        logger.error(f"Validation error: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail="Invalid input data")
     image_path = None
     
     # Check upload limits if image is being uploaded
@@ -397,12 +441,13 @@ async def create_issue(
         if image:
             await validate_uploaded_file(image)
         
-        # Save image if provided
+        # Save image if provided with secure filename
         if image:
             upload_dir = "data/uploads"
             os.makedirs(upload_dir, exist_ok=True)
-            filename = f"{uuid.uuid4()}_{image.filename}"
-            image_path = os.path.join(upload_dir, filename)
+            # Use secure filename to prevent path traversal
+            secure_filename = sanitize_filename(image.filename)
+            image_path = os.path.join(upload_dir, secure_filename)
             await run_in_threadpool(save_file_blocking, image.file, image_path)
     except HTTPException:
         # Re-raise HTTP exceptions (from validation)
@@ -873,22 +918,19 @@ async def generate_description_endpoint(request: Request, image: UploadFile = Fi
 
 
 @app.get("/api/mh/rep-contacts")
-async def get_maharashtra_rep_contacts(pincode: str = Query(..., min_length=6, max_length=6)):
+async def get_maharashtra_rep_contacts(pincode: str = Query(...)):
     """
     Get MLA and representative contact information for Maharashtra by pincode.
-    
-    Args:
-        pincode: 6-digit pincode for Maharashtra
-        
-    Returns:
-        JSON with MLA details, constituency info, and grievance portal links
     """
-    # Validate pincode format
-    if not pincode.isdigit():
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid pincode format. Must be 6 digits."
-        )
+    # Validate and sanitize pincode
+    try:
+        from backend.validation import validate_pincode
+        pincode = validate_pincode(pincode)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Pincode validation error: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail="Invalid pincode format")
     
     # Find constituency by pincode
     constituency_info = find_constituency_by_pincode(pincode)
