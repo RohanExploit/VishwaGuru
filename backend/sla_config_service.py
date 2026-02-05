@@ -83,6 +83,17 @@ class SLAConfigService:
                 return sla_config.sla_hours
 
             # Return default
+            # Return default based on severity if available
+            severity_defaults = {
+                SeverityLevel.CRITICAL: 6,
+                SeverityLevel.HIGH: 24,
+                SeverityLevel.MEDIUM: 48,
+                SeverityLevel.LOW: 72
+            }
+            
+            if severity in severity_defaults:
+                return severity_defaults[severity]
+            
             return self.default_sla_hours
 
         finally:

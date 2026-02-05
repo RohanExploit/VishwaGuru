@@ -41,6 +41,7 @@ async def create_issue(
     background_tasks: BackgroundTasks,
     description: str = Form(..., min_length=10, max_length=1000),
     category: str = Form(..., pattern=f"^({'|'.join([cat.value for cat in IssueCategory])})$"),
+    severity: str = Form('medium', pattern="^(low|medium|high|critical)$"),
     language: str = Form('en'),
     user_email: str = Form(None),
     latitude: float = Form(None, ge=-90, le=90),
@@ -158,7 +159,8 @@ async def create_issue(
                 latitude=latitude,
                 longitude=longitude,
                 location=location,
-                action_plan=None
+                action_plan=None,
+                severity=severity
             )
 
             # Offload blocking DB operations to threadpool
@@ -505,7 +507,8 @@ def get_recent_issues(
             upvotes=i.upvotes if i.upvotes is not None else 0,
             location=i.location,
             latitude=i.latitude,
-            longitude=i.longitude
+            longitude=i.longitude,
+            severity=i.severity.value if hasattr(i.severity, 'value') else i.severity
             # action_plan is deferred and excluded
         ).model_dump(mode='json'))
 

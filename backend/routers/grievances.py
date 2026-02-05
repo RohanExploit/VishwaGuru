@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func
+from sqlalchemy import func, case
 from typing import List, Optional
 import os
 import json
 import logging
 
 from backend.database import get_db
-from backend.models import Grievance, EscalationAudit
+from backend.models import Grievance, EscalationAudit, SeverityLevel
 from backend.schemas import (
     GrievanceSummaryResponse, EscalationAuditResponse, EscalationStatsResponse,
     ResponsibilityMapResponse
@@ -37,6 +37,16 @@ def get_grievances(
             query = query.filter(Grievance.status == status)
         if category:
             query = query.filter(Grievance.category == category)
+
+        # Priority Queue Logic: Sort by Severity (Critical > High > Medium > Low) then by Date (Oldest first for resolution)
+        severity_order = case(
+            (Grievance.severity == SeverityLevel.CRITICAL, 1),
+            (Grievance.severity == SeverityLevel.HIGH, 2),
+            (Grievance.severity == SeverityLevel.MEDIUM, 3),
+            (Grievance.severity == SeverityLevel.LOW, 4),
+            else_=5
+        )
+        query = query.order_by(severity_order.asc(), Grievance.created_at.asc())
 
         grievances = query.offset(offset).limit(limit).all()
 

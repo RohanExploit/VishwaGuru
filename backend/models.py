@@ -135,6 +135,7 @@ class Issue(Base):
     longitude = Column(Float, nullable=True, index=True)
     location = Column(String, nullable=True)
     action_plan = Column(JSONEncodedDict, nullable=True)
+    severity = Column(Enum(SeverityLevel), default=SeverityLevel.MEDIUM, index=True)
 
 class PushSubscription(Base):
     __tablename__ = "push_subscriptions"

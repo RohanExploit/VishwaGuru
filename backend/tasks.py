@@ -59,7 +59,16 @@ async def create_grievance_from_issue_background(issue_id: int):
             'vandalism': 'medium'
         }
 
-        severity = severity_mapping.get(issue.category.lower(), 'medium')
+        # Prefer issue's own severity if set, otherwise fallback to mapping
+        if hasattr(issue, 'severity') and issue.severity:
+            severity = issue.severity.value if hasattr(issue.severity, 'value') else issue.severity
+        else:
+            severity = severity_mapping.get(issue.category.lower(), 'medium')
+        
+        # Check for immediate escalation triggers (e.g. Critical severity)
+        if severity == 'critical':
+            logger.warning(f"CRITICAL ISSUE REPORTED: {issue.id} - {issue.description[:50]}...")
+            # Here we could trigger immediate SMS/Call alerts or specialized notifications
 
         # Create grievance data
         grievance_data = {

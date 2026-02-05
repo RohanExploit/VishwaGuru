@@ -41,12 +41,11 @@ class IssueResponse(BaseModel):
     location: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+    severity: Optional[str] = "medium"
     action_plan: Optional[Any] = None
 
     model_config = ConfigDict(from_attributes=True)
 
-class IssueResponse(IssueSummaryResponse):
-    action_plan: Optional[Dict[str, Any]] = Field(None, description="Generated action plan")
 
 class IssueCreateRequest(BaseModel):
     description: str = Field(..., min_length=10, max_length=1000, description="Issue description")
@@ -55,6 +54,7 @@ class IssueCreateRequest(BaseModel):
     latitude: Optional[float] = Field(None, ge=-90, le=90, description="Latitude coordinate")
     longitude: Optional[float] = Field(None, ge=-180, le=180, description="Longitude coordinate")
     location: Optional[str] = Field(None, max_length=200, description="Location description")
+    severity: Optional[str] = Field("medium", pattern="^(low|medium|high|critical)$", description="Severity level")
 
     @field_validator('description')
     @classmethod
@@ -157,6 +157,7 @@ class NearbyIssueResponse(BaseModel):
     upvotes: int = Field(..., description="Number of upvotes")
     created_at: datetime = Field(..., description="Issue creation timestamp")
     status: str = Field(..., description="Issue status")
+    severity: str = Field(default="medium", description="Issue severity")
 
 
 class DeduplicationCheckResponse(BaseModel):
