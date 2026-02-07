@@ -1,6 +1,7 @@
 import logging
 import json
 import os
+import hashlib
 from pywebpush import webpush, WebPushException
 from backend.database import SessionLocal
 from backend.models import Issue, PushSubscription
@@ -68,8 +69,8 @@ async def create_grievance_from_issue_background(issue_id: int):
         # Check for immediate escalation triggers (e.g. Critical severity)
         if severity == 'critical':
             # Log critical issue with safe identifiers only (no PII)
-            import hashlib
-            desc_hash = hashlib.sha256(issue.description.encode('utf-8')).hexdigest()[:12]
+            description_text = issue.description or ""
+            desc_hash = hashlib.sha256(description_text.encode('utf-8')).hexdigest()[:12]
             logger.warning(f"CRITICAL ISSUE REPORTED: ID={issue.id} [Hash={desc_hash}]")
             # Here we could trigger immediate SMS/Call alerts or specialized notifications
 
