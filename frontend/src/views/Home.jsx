@@ -78,39 +78,39 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loa
       title: t('home.categories.roadTraffic'),
       icon: <LayoutGrid size={20} className="text-blue-600" />,
       items: [
-        { id: 'pothole', label: t('home.issues.pothole'), icon: <Camera size={24} />, color: 'text-red-600', bg: 'bg-red-50' },
-        { id: 'blocked', label: t('home.issues.blockedRoad'), icon: <XCircle size={24} />, color: 'text-gray-600', bg: 'bg-gray-50' },
-        { id: 'parking', label: t('home.issues.illegalParking'), icon: <Truck size={24} />, color: 'text-rose-600', bg: 'bg-rose-50' },
-        { id: 'streetlight', label: t('home.issues.darkStreet'), icon: <Lightbulb size={24} />, color: 'text-slate-600', bg: 'bg-slate-50' },
-        { id: 'traffic-sign', label: t('home.issues.trafficSign'), icon: <Signpost size={24} />, color: 'text-yellow-600', bg: 'bg-yellow-50' },
-        { id: 'abandoned-vehicle', label: t('home.issues.abandonedVehicle'), icon: <Car size={24} />, color: 'text-gray-600', bg: 'bg-gray-50' },
+        { id: 'pothole', labelKey: 'home.issues.pothole', icon: <Camera size={24} />, color: 'text-red-600', bg: 'bg-red-50' },
+        { id: 'blocked', labelKey: 'home.issues.blockedRoad', icon: <XCircle size={24} />, color: 'text-gray-600', bg: 'bg-gray-50' },
+        { id: 'parking', labelKey: 'home.issues.illegalParking', icon: <Truck size={24} />, color: 'text-rose-600', bg: 'bg-rose-50' },
+        { id: 'streetlight', labelKey: 'home.issues.darkStreet', icon: <Lightbulb size={24} />, color: 'text-slate-600', bg: 'bg-slate-50' },
+        { id: 'traffic-sign', labelKey: 'home.issues.trafficSign', icon: <Signpost size={24} />, color: 'text-yellow-600', bg: 'bg-yellow-50' },
+        { id: 'abandoned-vehicle', labelKey: 'home.issues.abandonedVehicle', icon: <Car size={24} />, color: 'text-gray-600', bg: 'bg-gray-50' },
       ]
     },
     {
       title: t('home.categories.environmentSafety'),
       icon: <Leaf size={20} className="text-green-600" />,
       items: [
-        { id: 'garbage', label: t('home.issues.garbage'), icon: <Trash2 size={24} />, color: 'text-orange-600', bg: 'bg-orange-50' },
-        { id: 'flood', label: t('home.issues.flood'), icon: <Droplets size={24} />, color: 'text-cyan-600', bg: 'bg-cyan-50' },
-        { id: 'fire', label: t('home.issues.fireSmoke'), icon: <Flame size={24} />, color: 'text-red-600', bg: 'bg-red-50' },
-        { id: 'tree', label: t('home.issues.treeHazard'), icon: <TreeDeciduous size={24} />, color: 'text-green-600', bg: 'bg-green-50' },
-        { id: 'animal', label: t('home.issues.strayAnimal'), icon: <Dog size={24} />, color: 'text-amber-600', bg: 'bg-amber-50' },
-        { id: 'pest', label: t('home.issues.pestControl'), icon: <Bug size={24} />, color: 'text-amber-800', bg: 'bg-amber-50' },
-        { id: 'noise', label: "Noise", icon: <Volume2 size={24} />, color: 'text-purple-600', bg: 'bg-purple-50' },
-        { id: 'crowd', label: "Crowd", icon: <Users size={24} />, color: 'text-red-500', bg: 'bg-red-50' },
-        { id: 'water-leak', label: "Water Leak", icon: <Waves size={24} />, color: 'text-blue-500', bg: 'bg-blue-50' },
-        { id: 'waste', label: "Waste Sorter", icon: <Recycle size={24} />, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+        { id: 'garbage', labelKey: 'home.issues.garbage', icon: <Trash2 size={24} />, color: 'text-orange-600', bg: 'bg-orange-50' },
+        { id: 'flood', labelKey: 'home.issues.flood', icon: <Droplets size={24} />, color: 'text-cyan-600', bg: 'bg-cyan-50' },
+        { id: 'fire', labelKey: 'home.issues.fireSmoke', icon: <Flame size={24} />, color: 'text-red-600', bg: 'bg-red-50' },
+        { id: 'tree', labelKey: 'home.issues.treeHazard', icon: <TreeDeciduous size={24} />, color: 'text-green-600', bg: 'bg-green-50' },
+        { id: 'animal', labelKey: 'home.issues.strayAnimal', icon: <Dog size={24} />, color: 'text-amber-600', bg: 'bg-amber-50' },
+        { id: 'pest', labelKey: 'home.issues.pestControl', icon: <Bug size={24} />, color: 'text-amber-800', bg: 'bg-amber-50' },
+        { id: 'noise', labelKey: 'home.issues.noise', icon: <Volume2 size={24} />, color: 'text-purple-600', bg: 'bg-purple-50' },
+        { id: 'crowd', labelKey: 'home.issues.crowd', icon: <Users size={24} />, color: 'text-red-500', bg: 'bg-red-50' },
+        { id: 'water-leak', labelKey: 'home.issues.waterLeak', icon: <Waves size={24} />, color: 'text-blue-500', bg: 'bg-blue-50' },
+        { id: 'waste', labelKey: 'home.issues.wasteSorter', icon: <Recycle size={24} />, color: 'text-emerald-600', bg: 'bg-emerald-50' },
       ]
     },
     {
       title: t('home.categories.management'),
       icon: <Monitor size={20} className="text-gray-600" />,
       items: [
-        { id: 'civic-eye', label: "Civic Eye", icon: <Eye size={24} />, color: 'text-blue-600', bg: 'bg-blue-50' },
-        { id: 'grievance', label: t('home.issues.grievanceManagement'), icon: <AlertTriangle size={24} />, color: 'text-orange-600', bg: 'bg-orange-50' },
-        { id: 'stats', label: t('home.issues.viewStats'), icon: <Activity size={24} />, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-        { id: 'leaderboard', label: t('home.issues.leaderboard'), icon: <Trophy size={24} />, color: 'text-yellow-600', bg: 'bg-yellow-50' },
-        { id: 'map', label: t('home.issues.responsibilityMap'), icon: <MapPin size={24} />, color: 'text-green-600', bg: 'bg-green-50' },
+        { id: 'civic-eye', labelKey: 'home.issues.civicEye', icon: <Eye size={24} />, color: 'text-blue-600', bg: 'bg-blue-50' },
+        { id: 'grievance', labelKey: 'home.issues.grievanceManagement', icon: <AlertTriangle size={24} />, color: 'text-orange-600', bg: 'bg-orange-50' },
+        { id: 'stats', labelKey: 'home.issues.viewStats', icon: <Activity size={24} />, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+        { id: 'leaderboard', labelKey: 'home.issues.leaderboard', icon: <Trophy size={24} />, color: 'text-yellow-600', bg: 'bg-yellow-50' },
+        { id: 'map', labelKey: 'home.issues.responsibilityMap', icon: <MapPin size={24} />, color: 'text-green-600', bg: 'bg-green-50' },
       ]
     }
   ];
@@ -343,7 +343,7 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loa
                       <div className={`${item.bg} ${item.color} p-3 rounded-full transition-transform group-hover:scale-110 duration-200`}>
                         {item.icon}
                       </div>
-                      <span className="font-medium text-gray-700 text-sm text-center">{item.label}</span>
+                      <span className="font-medium text-gray-700 text-sm text-center">{t(item.labelKey)}</span>
                     </button>
                   ))}
                 </div>
@@ -402,7 +402,7 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loa
                     </span>
                     {(issue.severity === 'high' || issue.severity === 'critical') && (
                       <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide mb-1 bg-red-100 text-red-700 ml-2 animate-pulse">
-                        Urgent
+                        {t('home.urgent')}
                       </span>
                     )}
                     <span className="text-xs text-gray-400">

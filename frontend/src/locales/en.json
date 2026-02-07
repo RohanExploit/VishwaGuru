@@ -14,7 +14,13 @@
       "civicServices": "Civic Services",
       "management": "Management"
     },
+    "urgent": "URGENT",
     "issues": {
+      "noise": "Noise",
+      "crowd": "Crowd",
+      "waterLeak": "Water Leak",
+      "wasteSorter": "Waste Sorter",
+      "civicEye": "Civic Eye",
       "pothole": "Pothole",
       "blockedRoad": "Blocked Road",
       "illegalParking": "Illegal Parking",

@@ -67,7 +67,10 @@ async def create_grievance_from_issue_background(issue_id: int):
         
         # Check for immediate escalation triggers (e.g. Critical severity)
         if severity == 'critical':
-            logger.warning(f"CRITICAL ISSUE REPORTED: {issue.id} - {issue.description[:50]}...")
+            # Log critical issue with safe identifiers only (no PII)
+            import hashlib
+            desc_hash = hashlib.sha256(issue.description.encode('utf-8')).hexdigest()[:12]
+            logger.warning(f"CRITICAL ISSUE REPORTED: ID={issue.id} [Hash={desc_hash}]")
             # Here we could trigger immediate SMS/Call alerts or specialized notifications
 
         # Create grievance data

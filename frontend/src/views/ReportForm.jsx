@@ -453,6 +453,39 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
         </div>
 
         <div>
+          <label className="block text-sm font-medium text-gray-700">Severity</label>
+          <select
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
+            value={formData.severity}
+            onChange={(e) => setFormData(prev => ({ ...prev, severity: e.target.value }))}
+          >
+            <option value="low">Low - Minor Issue</option>
+            <option value="medium">Medium - Standard Priority</option>
+            <option value="high">High - Needs Attention</option>
+            <option value="critical">Critical - Immediate Action</option>
+          </select>
+          {severity && (
+            <div className={`mt-2 p-3 rounded-lg border ${severity.level === 'Critical' ? 'bg-red-50 border-red-200 text-red-800' :
+              severity.level === 'High' ? 'bg-orange-50 border-orange-200 text-orange-800' :
+                severity.level === 'Medium' ? 'bg-yellow-50 border-yellow-200 text-yellow-800' :
+                  'bg-green-50 border-green-200 text-green-800'
+              }`}>
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-xs font-bold uppercase tracking-wider">AI Severity Analysis</span>
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${severity.level === 'Critical' ? 'bg-red-200 text-red-900' :
+                  severity.level === 'High' ? 'bg-orange-200 text-orange-900' :
+                    severity.level === 'Medium' ? 'bg-yellow-200 text-yellow-900' :
+                      'bg-green-200 text-green-900'
+                  }`}>{severity.level}</span>
+              </div>
+              <p className="text-sm">
+                Detected <b>{severity.raw_label || severity.level}</b> with {(severity.confidence * 100).toFixed(0)}% confidence.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div>
           <label className="block text-sm font-medium text-gray-700">Language</label>
           <select
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
@@ -625,25 +658,7 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
             </div>
           )}
 
-          {severity && (
-            <div className={`p-3 rounded-lg border ${severity.level === 'Critical' ? 'bg-red-50 border-red-200 text-red-800' :
-              severity.level === 'High' ? 'bg-orange-50 border-orange-200 text-orange-800' :
-                severity.level === 'Medium' ? 'bg-yellow-50 border-yellow-200 text-yellow-800' :
-                  'bg-green-50 border-green-200 text-green-800'
-              }`}>
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-xs font-bold uppercase tracking-wider">AI Severity Analysis</span>
-                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${severity.level === 'Critical' ? 'bg-red-200 text-red-900' :
-                  severity.level === 'High' ? 'bg-orange-200 text-orange-900' :
-                    severity.level === 'Medium' ? 'bg-yellow-200 text-yellow-900' :
-                      'bg-green-200 text-green-900'
-                  }`}>{severity.level}</span>
-              </div>
-              <p className="text-sm">
-                Detected <b>{severity.raw_label}</b> with {(severity.confidence * 100).toFixed(0)}% confidence.
-              </p>
-            </div>
-          )}
+
         </div>
 
         <button
