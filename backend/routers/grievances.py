@@ -5,14 +5,23 @@ from typing import List, Optional
 import os
 import json
 import logging
+from datetime import datetime, timezone
 
 from backend.database import get_db
+ Emergency-and-High-Severity-#290
 from backend.models import Grievance, EscalationAudit, SeverityLevel
+from backend.models import Grievance, EscalationAudit, GrievanceFollower, ClosureConfirmation
+ main
 from backend.schemas import (
     GrievanceSummaryResponse, EscalationAuditResponse, EscalationStatsResponse,
-    ResponsibilityMapResponse
+    ResponsibilityMapResponse,
+    FollowGrievanceRequest, FollowGrievanceResponse,
+    RequestClosureRequest, RequestClosureResponse,
+    ConfirmClosureRequest, ConfirmClosureResponse,
+    ClosureStatusResponse
 )
 from backend.grievance_service import GrievanceService
+from backend.closure_service import ClosureService
 
 logger = logging.getLogger(__name__)
 
@@ -223,3 +232,208 @@ def get_responsibility_map():
     except Exception as e:
         logger.error(f"Error loading responsibility map: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to load responsibility map")
+
+
+# ============================================================================
+# COMMUNITY CONFIRMATION ENDPOINTS (Issue #289)
+# ============================================================================
+
+@router.post("/api/grievances/{grievance_id}/follow", response_model=FollowGrievanceResponse)
+def follow_grievance(
+    grievance_id: int,
+    request: FollowGrievanceRequest,
+    db: Session = Depends(get_db)
+):
+    """Follow a grievance to receive updates and participate in closure confirmation"""
+    try:
+        # Check if grievance exists
+        grievance = db.query(Grievance).filter(Grievance.id == grievance_id).first()
+        if not grievance:
+            raise HTTPException(status_code=404, detail="Grievance not found")
+        
+        # Check if already following
+        existing = db.query(GrievanceFollower).filter(
+            GrievanceFollower.grievance_id == grievance_id,
+            GrievanceFollower.user_email == request.user_email
+        ).first()
+        
+        if existing:
+            raise HTTPException(status_code=400, detail="Already following this grievance")
+        
+        # Create follower record
+        follower = GrievanceFollower(
+            grievance_id=grievance_id,
+            user_email=request.user_email
+        )
+        db.add(follower)
+        db.commit()
+        
+        # Count total followers
+        total_followers = db.query(func.count(GrievanceFollower.id)).filter(
+            GrievanceFollower.grievance_id == grievance_id
+        ).scalar()
+        
+        return FollowGrievanceResponse(
+            grievance_id=grievance_id,
+            user_email=request.user_email,
+            message="Successfully following grievance",
+            total_followers=total_followers
+        )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error following grievance {grievance_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to follow grievance")
+
+
+@router.delete("/api/grievances/{grievance_id}/follow")
+def unfollow_grievance(
+    grievance_id: int,
+    user_email: str = Query(..., description="Email of user to unfollow"),
+    db: Session = Depends(get_db)
+):
+    """Unfollow a grievance"""
+    try:
+        follower = db.query(GrievanceFollower).filter(
+            GrievanceFollower.grievance_id == grievance_id,
+            GrievanceFollower.user_email == user_email
+        ).first()
+        
+        if not follower:
+            raise HTTPException(status_code=404, detail="Not following this grievance")
+        
+        db.delete(follower)
+        db.commit()
+        
+        return {"message": "Successfully unfollowed grievance"}
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error unfollowing grievance {grievance_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to unfollow grievance")
+
+
+@router.post("/api/grievances/{grievance_id}/request-closure", response_model=RequestClosureResponse)
+def request_grievance_closure(
+    grievance_id: int,
+    request_data: RequestClosureRequest,
+    db: Session = Depends(get_db)
+):
+    """Request closure of a grievance (admin only) - triggers community confirmation"""
+    try:
+        result = ClosureService.request_closure(grievance_id, db)
+        
+        if result.get("skip_confirmation"):
+            return RequestClosureResponse(
+                grievance_id=grievance_id,
+                message=result["message"],
+                confirmation_deadline=datetime.now(timezone.utc),
+                total_followers=result["follower_count"],
+                required_confirmations=0
+            )
+        
+        return RequestClosureResponse(
+            grievance_id=grievance_id,
+            message=result["message"],
+            confirmation_deadline=result["deadline"],
+            total_followers=result["follower_count"],
+            required_confirmations=result["required_confirmations"]
+        )
+    
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error requesting closure for grievance {grievance_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to request closure")
+
+
+@router.post("/api/grievances/{grievance_id}/confirm-closure", response_model=ConfirmClosureResponse)
+def confirm_grievance_closure(
+    grievance_id: int,
+    confirmation: ConfirmClosureRequest,
+    db: Session = Depends(get_db)
+):
+    """Confirm or dispute a grievance closure (followers only)"""
+    try:
+        result = ClosureService.submit_confirmation(
+            grievance_id=grievance_id,
+            user_email=confirmation.user_email,
+            confirmation_type=confirmation.confirmation_type,
+            reason=confirmation.reason,
+            db=db
+        )
+        
+        message = "Confirmation recorded"
+        if result.get("closure_finalized"):
+            if result.get("approved"):
+                message = "Grievance closure approved by community!"
+            else:
+                message = "Confirmation recorded - grievance remains open"
+        
+        return ConfirmClosureResponse(
+            grievance_id=grievance_id,
+            message=message,
+            current_confirmations=result.get("confirmations", 0),
+            required_confirmations=result.get("required", 0),
+            current_disputes=result.get("disputes", 0),
+            closure_approved=result.get("approved", False)
+        )
+    
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error confirming closure for grievance {grievance_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to confirm closure")
+
+
+@router.get("/api/grievances/{grievance_id}/closure-status", response_model=ClosureStatusResponse)
+def get_closure_status(
+    grievance_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get current closure confirmation status for a grievance"""
+    try:
+        grievance = db.query(Grievance).filter(Grievance.id == grievance_id).first()
+        if not grievance:
+            raise HTTPException(status_code=404, detail="Grievance not found")
+        
+        total_followers = db.query(func.count(GrievanceFollower.id)).filter(
+            GrievanceFollower.grievance_id == grievance_id
+        ).scalar()
+        
+        confirmations_count = db.query(func.count(ClosureConfirmation.id)).filter(
+            ClosureConfirmation.grievance_id == grievance_id,
+            ClosureConfirmation.confirmation_type == "confirmed"
+        ).scalar()
+        
+        disputes_count = db.query(func.count(ClosureConfirmation.id)).filter(
+            ClosureConfirmation.grievance_id == grievance_id,
+            ClosureConfirmation.confirmation_type == "disputed"
+        ).scalar()
+        
+        required_confirmations = max(1, int(total_followers * ClosureService.CONFIRMATION_THRESHOLD))
+        
+        days_remaining = None
+        if grievance.closure_confirmation_deadline:
+            delta = grievance.closure_confirmation_deadline - datetime.now(timezone.utc)
+            days_remaining = max(0, delta.days)
+        
+        return ClosureStatusResponse(
+            grievance_id=grievance_id,
+            pending_closure=grievance.pending_closure or False,
+            closure_approved=grievance.closure_approved or False,
+            total_followers=total_followers,
+            confirmations_count=confirmations_count,
+            disputes_count=disputes_count,
+            required_confirmations=required_confirmations,
+            confirmation_deadline=grievance.closure_confirmation_deadline,
+            days_remaining=days_remaining
+        )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting closure status for grievance {grievance_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to get closure status")

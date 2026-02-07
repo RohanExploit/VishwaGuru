@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { grievancesApi } from '../api';
 
-const GrievanceView = ({ setView }) => {
+const GrievanceView = () => {
   const [grievances, setGrievances] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -14,11 +14,7 @@ const GrievanceView = ({ setView }) => {
     offset: 0
   });
 
-  useEffect(() => {
-    loadData();
-  }, [filters]);
-
-  const loadData = async () => {
+  const loadData = React.useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -36,7 +32,11 @@ const GrievanceView = ({ setView }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleEscalate = async (grievanceId) => {
     const reason = prompt('Enter reason for escalation:');

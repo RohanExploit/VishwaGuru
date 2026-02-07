@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Mic, MicOff, Loader2 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 
 const VoiceInput = ({ onTranscript, language = 'en' }) => {
-  const { t } = useTranslation();
   const [isListening, setIsListening] = useState(false);
   const [recognition, setRecognition] = useState(null);
   const [error, setError] = useState(null);
+
+  const getLanguageCode = (lang) => {
+    const langMap = {
+      'en': 'en-US',
+      'hi': 'hi-IN',
+      'mr': 'mr-IN'
+    };
+    return langMap[lang] || 'en-US';
+  };
 
   useEffect(() => {
     // Check if browser supports SpeechRecognition
@@ -49,15 +56,6 @@ const VoiceInput = ({ onTranscript, language = 'en' }) => {
       }
     };
   }, [language, onTranscript]);
-
-  const getLanguageCode = (lang) => {
-    const langMap = {
-      'en': 'en-US',
-      'hi': 'hi-IN',
-      'mr': 'mr-IN'
-    };
-    return langMap[lang] || 'en-US';
-  };
 
   const toggleListening = () => {
     if (!recognition) return;

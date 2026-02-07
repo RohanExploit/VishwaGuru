@@ -99,6 +99,15 @@ def get_model():
             raise ModelLoadException("keremberke/yolov8n-pothole-segmentation", details={"error": str(e)}) from e
 
 
+def validate_image_for_processing(image):
+    """
+    Validates if the image is suitable for processing.
+    """
+    if image is None:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="No image provided for processing")
+    return True
+
 def reset_model():
     """
     Resets the model singleton state. Primarily for testing purposes.

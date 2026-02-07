@@ -9,7 +9,7 @@ MODEL_PATH = os.path.join(os.path.dirname(__file__), 'ml/grievance_model.joblib'
 class GrievanceClassifier:
     def __init__(self):
         self.model = None
-        self.load_model()
+        self._initialized = False
 
     def load_model(self):
         if os.path.exists(MODEL_PATH):
@@ -37,7 +37,10 @@ class GrievanceClassifier:
             return "Error"
 
 # Global instance
-_classifier = GrievanceClassifier()
+_classifier = None
 
 def get_grievance_classifier():
+    global _classifier
+    if _classifier is None:
+        _classifier = GrievanceClassifier()
     return _classifier

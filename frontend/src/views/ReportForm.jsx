@@ -11,11 +11,12 @@ import { detectorsApi } from '../api';
 const API_URL = import.meta.env.VITE_API_URL || '';
 
 const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) => {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const locationState = useLocation().state || {};
   const [formData, setFormData] = useState({
     description: locationState.description || '',
     category: locationState.category || 'road',
+    email: localStorage.getItem('user_email') || '',
     image: null,
     latitude: null,
     longitude: null,
@@ -338,7 +339,8 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
         setSubmitStatus({ state: 'success', message: 'Report saved offline. Will sync when online.' });
         setActionPlan(fakeActionPlan); // Show fallback plan
         setView('action');
-      } catch (err) {
+      } catch (error) {
+        console.error("Offline save failed", error);
         setSubmitStatus({ state: 'error', message: 'Failed to save offline.' });
         setError('Failed to save report offline.');
       } finally {
@@ -543,6 +545,7 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
           )}
         </div>
 
+         Emergency-and-High-Severity-#290
         <div>
           <label className="block text-sm font-medium text-gray-700">Location (Optional)</label>
           <div className="flex gap-2 mt-1">
@@ -558,6 +561,25 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
               onClick={getLocation}
               disabled={gettingLocation}
               className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded inline-flex items-center"
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Email (Optional)</label>
+            <input
+              type="email"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
+              placeholder="Enter your email to track your reports"
+              value={formData.email}
+              onChange={(e) => setFormData({...formData, email: e.target.value})}
+            />
+            <p className="text-xs text-gray-500 mt-1">We'll use this to group your reports under "My Reports".</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Language</label>
+            <select
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
+              value={i18n.language}
+              onChange={(e) => i18n.changeLanguage(e.target.value)}
+         main
             >
               {gettingLocation ? '...' : '📍'}
             </button>

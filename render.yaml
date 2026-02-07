@@ -3,7 +3,7 @@ services:
   - type: web
     name: vishwaguru-backend
     runtime: python
-    buildCommand: "pip install -r backend/requirements.txt"
+    buildCommand: "pip install -r backend/requirements-render.txt"
     startCommand: "python start-backend.py"
     envVars:
       - key: PYTHON_VERSION

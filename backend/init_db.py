@@ -97,6 +97,13 @@ def migrate_db():
             except Exception:
                 pass
 
+            # Add integrity_hash column for blockchain feature
+            try:
+                conn.execute(text("ALTER TABLE issues ADD COLUMN integrity_hash VARCHAR"))
+                print("Migrated database: Added integrity_hash column.")
+            except Exception:
+                pass
+
             # Add index on user_email
             try:
                 conn.execute(text("CREATE INDEX ix_issues_user_email ON issues (user_email)"))
@@ -171,6 +178,13 @@ def migrate_db():
             try:
                 conn.execute(text("CREATE INDEX ix_grievances_assigned_authority ON grievances (assigned_authority)"))
                 logger.info("Migrated database: Added index on assigned_authority for grievances.")
+            except Exception:
+                pass
+
+            # Add composite index for category+status (grievances) - Optimized for filtering
+            try:
+                conn.execute(text("CREATE INDEX ix_grievances_category_status ON grievances (category, status)"))
+                logger.info("Migrated database: Added composite index on category, status for grievances.")
             except Exception:
                 pass
 

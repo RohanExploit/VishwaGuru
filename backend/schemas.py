@@ -25,12 +25,15 @@ class ActionPlan(BaseModel):
     x_post: Optional[str] = Field(None, description="X (Twitter) post content")
 
 class ChatRequest(BaseModel):
-    query: str
+    query: str = Field(..., min_length=1, max_length=1000, description="Chat query text")
+
+class ChatResponse(BaseModel):
+    response: str
 
 class GrievanceRequest(BaseModel):
     text: str
 
-class IssueResponse(BaseModel):
+class IssueSummaryResponse(BaseModel):
     id: int
     category: str
     description: str
@@ -41,11 +44,17 @@ class IssueResponse(BaseModel):
     location: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+      Emergency-and-High-Severity-#290
     severity: Optional[str] = "medium"
     action_plan: Optional[Any] = None
 
     model_config = ConfigDict(from_attributes=True)
 
+    model_config = ConfigDict(from_attributes=True)
+
+class IssueResponse(IssueSummaryResponse):
+    action_plan: Optional[Union[Dict[str, Any], Any]] = Field(None, description="Generated action plan")
+     main
 
 class IssueCreateRequest(BaseModel):
     description: str = Field(..., min_length=10, max_length=1000, description="Issue description")
@@ -98,9 +107,6 @@ class PushSubscriptionRequest(BaseModel):
 class PushSubscriptionResponse(BaseModel):
     id: int = Field(..., description="Subscription ID")
     message: str = Field(..., description="Subscription confirmation")
-
-class DetectionResponse(BaseModel):
-    detections: List[Dict[str, Any]] = Field(..., description="List of detected objects/items")
 
 class DetectionResponse(BaseModel):
     detections: List[Dict[str, Any]] = Field(..., description="List of detected objects/items")
@@ -217,3 +223,54 @@ class EscalationStatsResponse(BaseModel):
     active_grievances: int = Field(..., description="Number of active grievances")
     resolved_grievances: int = Field(..., description="Number of resolved grievances")
     escalation_rate: float = Field(..., description="Percentage of grievances that were escalated")
+
+# Community Confirmation Schemas (Issue #289)
+
+class FollowGrievanceRequest(BaseModel):
+    user_email: str = Field(..., description="Email of the user following the grievance")
+
+
+class FollowGrievanceResponse(BaseModel):
+    grievance_id: int = Field(..., description="Grievance ID")
+    user_email: str = Field(..., description="User email")
+    message: str = Field(..., description="Success message")
+    total_followers: int = Field(..., description="Total number of followers")
+
+
+class RequestClosureRequest(BaseModel):
+    admin_notes: Optional[str] = Field(None, description="Optional notes from admin")
+
+
+class RequestClosureResponse(BaseModel):
+    grievance_id: int = Field(..., description="Grievance ID")
+    message: str = Field(..., description="Status message")
+    confirmation_deadline: datetime = Field(..., description="Deadline for community confirmation")
+    total_followers: int = Field(..., description="Number of followers who will be notified")
+    required_confirmations: int = Field(..., description="Number of confirmations needed")
+
+
+class ConfirmClosureRequest(BaseModel):
+    user_email: str = Field(..., description="Email of the user confirming")
+    confirmation_type: str = Field(..., pattern="^(confirmed|disputed)$", description="Type: 'confirmed' or 'disputed'")
+    reason: Optional[str] = Field(None, max_length=500, description="Reason for dispute (optional)")
+
+
+class ConfirmClosureResponse(BaseModel):
+    grievance_id: int = Field(..., description="Grievance ID")
+    message: str = Field(..., description="Confirmation message")
+    current_confirmations: int = Field(..., description="Current number of confirmations")
+    required_confirmations: int = Field(..., description="Required confirmations")
+    current_disputes: int = Field(..., description="Current number of disputes")
+    closure_approved: bool = Field(..., description="Whether closure has been approved")
+
+
+class ClosureStatusResponse(BaseModel):
+    grievance_id: int = Field(..., description="Grievance ID")
+    pending_closure: bool = Field(..., description="Whether closure is pending confirmation")
+    closure_approved: bool = Field(..., description="Whether closure has been approved")
+    total_followers: int = Field(..., description="Total number of followers")
+    confirmations_count: int = Field(..., description="Number of confirmations received")
+    disputes_count: int = Field(..., description="Number of disputes received")
+    required_confirmations: int = Field(..., description="Number of confirmations needed")
+    confirmation_deadline: Optional[datetime] = Field(None, description="Deadline for confirmations")
+    days_remaining: Optional[int] = Field(None, description="Days until deadline")

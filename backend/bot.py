@@ -18,9 +18,6 @@ logging.basicConfig(
 # States for ConversationHandler
 PHOTO, DESCRIPTION, CATEGORY = range(3)
 
-# Initialize Database
-Base.metadata.create_all(bind=engine)
-
 # Global variables for bot management
 _bot_application = None
 _bot_thread = None

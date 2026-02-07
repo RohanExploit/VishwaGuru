@@ -238,11 +238,20 @@ class UnifiedDetectionService:
         Returns:
             Dictionary mapping detection type to list of results
         """
+        import asyncio
+
+        results = await asyncio.gather(
+            self.detect_vandalism(image),
+            self.detect_infrastructure(image),
+            self.detect_flooding(image),
+            self.detect_garbage(image)
+        )
+
         return {
-            "vandalism": await self.detect_vandalism(image),
-            "infrastructure": await self.detect_infrastructure(image),
-            "flooding": await self.detect_flooding(image),
-            "garbage": await self.detect_garbage(image)
+            "vandalism": results[0],
+            "infrastructure": results[1],
+            "flooding": results[2],
+            "garbage": results[3]
         }
     
     async def get_status(self) -> Dict:

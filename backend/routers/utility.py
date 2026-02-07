@@ -98,7 +98,14 @@ async def chat_endpoint(request: ChatRequest):
 
 @router.get("/api/leaderboard", response_model=LeaderboardResponse)
 def get_leaderboard(db: Session = Depends(get_db)):
+    """Get top reporters leaderboard (cached)"""
+    cache_key = "leaderboard"
+    cached_data = recent_issues_cache.get(cache_key)
+    if cached_data:
+        return JSONResponse(content=cached_data)
+
     # Group by user_email, count issues, sum upvotes
+    # Optimization: Only select needed columns and use aggregation
     results = db.query(
         Issue.user_email,
         func.count(Issue.id).label('count'),
@@ -108,26 +115,30 @@ def get_leaderboard(db: Session = Depends(get_db)):
         Issue.user_email != ""
     ).group_by(Issue.user_email).order_by(func.count(Issue.id).desc()).limit(10).all()
 
-    leaderboard = []
+    leaderboard_data = []
     for idx, (email, count, upvotes) in enumerate(results):
-        # Mask email
+        # Mask email for privacy
         try:
             if '@' in email:
                 name, domain = email.split('@')
                 masked_email = f"{name[0]}***@{domain}"
             else:
                 masked_email = email[:3] + "***"
-        except:
+        except Exception:
             masked_email = "User***"
 
-        leaderboard.append(LeaderboardEntry(
+        leaderboard_data.append(LeaderboardEntry(
             user_email=masked_email,
             reports_count=count,
             total_upvotes=upvotes or 0,
             rank=idx + 1
-        ))
+        ).model_dump(mode='json'))
 
-    return LeaderboardResponse(leaderboard=leaderboard)
+    response_data = {"leaderboard": leaderboard_data}
+    # Cache for 5 minutes to reduce DB load on frequent hits
+    recent_issues_cache.set(response_data, cache_key)
+
+    return response_data
 
 
 @router.get("/api/mh/rep-contacts")
