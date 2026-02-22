@@ -8,6 +8,7 @@ import os
 import shutil
 import logging
 import io
+import secrets
 from typing import Optional
 
 from backend.cache import user_upload_cache
@@ -293,6 +294,12 @@ def save_issue_db(db: Session, issue: Issue):
     db.commit()
     db.refresh(issue)
     return issue
+
+def generate_reference_id() -> str:
+    """Generate a secure random reference ID in format XXXX-XXXX-XXXX"""
+    # 6 bytes = 12 hex chars. We want 3 groups of 4.
+    token = secrets.token_hex(6).upper()
+    return f"{token[:4]}-{token[4:8]}-{token[8:]}"
 
 # --- Password Hashing Utils ---
 
