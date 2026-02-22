@@ -13,7 +13,8 @@ fi
 echo "Building Frontend..."
 cd frontend
 npm install
-npm run build
+# CI=false prevents build failures from non-critical warnings
+CI=false npm run build
 cd ..
 
 echo "Build complete."

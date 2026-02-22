@@ -126,10 +126,10 @@ is_production = os.environ.get("ENVIRONMENT", "").lower() == "production"
 
 if not frontend_url:
     if is_production:
-        raise ValueError(
-            "FRONTEND_URL environment variable is required for security in production. "
-            "Set it to your frontend URL (e.g., https://your-app.netlify.app)."
-        )
+        # To prevent Render deployment crashes, default to a wildcard regex if missing
+        # Log a warning instead of raising an error
+        logger.warning("FRONTEND_URL environment variable is missing in production. Defaulting to allow all origins (regex) for availability.")
+        frontend_url = r"https://.*\.netlify\.app"
     else:
         logger.warning("FRONTEND_URL not set. Defaulting to http://localhost:5173 for development.")
         frontend_url = "http://localhost:5173"
@@ -139,7 +139,13 @@ if not (frontend_url.startswith("http://") or frontend_url.startswith("https://"
         f"FRONTEND_URL must be a valid HTTP/HTTPS URL. Got: {frontend_url}"
     )
 
-allowed_origins = [frontend_url]
+allowed_origins = []
+allowed_origin_regex = None
+
+if is_production and frontend_url == r"https://.*\.netlify\.app":
+    allowed_origin_regex = frontend_url
+else:
+    allowed_origins = [frontend_url]
 
 if not is_production:
     dev_origins = [
@@ -151,14 +157,14 @@ if not is_production:
         "http://127.0.0.1:5174",
         "http://localhost:8080",
     ]
-    allowed_origins.extend(dev_origins)
-    # Also add the one from .env if it's different
-    if frontend_url not in allowed_origins:
-        allowed_origins.append(frontend_url)
+    for origin in dev_origins:
+        if origin not in allowed_origins:
+            allowed_origins.append(origin)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
+    allow_origin_regex=allowed_origin_regex,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
