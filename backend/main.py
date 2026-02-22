@@ -75,10 +75,13 @@ async def lifespan(app: FastAPI):
     # Startup: Database setup (Blocking but necessary for app consistency)
     try:
         logger.info("Starting database initialization...")
-        await run_in_threadpool(Base.metadata.create_all, bind=engine)
+        # Use a timeout for DB operations during startup to prevent hanging
+        await asyncio.wait_for(run_in_threadpool(Base.metadata.create_all, bind=engine), timeout=10)
         logger.info("Base.metadata.create_all completed.")
-        await run_in_threadpool(migrate_db)
+        await asyncio.wait_for(run_in_threadpool(migrate_db), timeout=20)
         logger.info("migrate_db completed. Database initialized successfully.")
+    except asyncio.TimeoutError:
+        logger.error("Database initialization timed out!")
     except Exception as e:
         logger.error(f"Database initialization failed: {e}", exc_info=True)
         # We continue to allow health checks even if DB has issues (for debugging)

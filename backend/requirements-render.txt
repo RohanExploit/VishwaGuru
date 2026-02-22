@@ -21,3 +21,8 @@ SpeechRecognition
 pydub
 googletrans==4.0.2
 langdetect
+six
+ecdsa
+rsa
+pyasn1
+python-dotenv
