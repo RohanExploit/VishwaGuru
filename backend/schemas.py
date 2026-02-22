@@ -307,3 +307,58 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     email: Optional[str] = None
     role: Optional[str] = None
+
+# Voice and Language Support Schemas (Issue #291)
+
+class VoiceTranscriptionRequest(BaseModel):
+    """Request model for voice transcription"""
+    preferred_language: Optional[str] = Field(
+        'auto', 
+        description="Preferred language code for transcription (e.g., 'hi', 'mr', 'auto')"
+    )
+
+class VoiceTranscriptionResponse(BaseModel):
+    """Response model for voice transcription"""
+    original_text: Optional[str] = Field(None, description="Transcribed text in original language")
+    translated_text: Optional[str] = Field(None, description="Translated text (English)")
+    source_language: Optional[str] = Field(None, description="Detected language code")
+    source_language_name: Optional[str] = Field(None, description="Detected language name")
+    confidence: float = Field(..., description="Transcription confidence score (0-1)")
+    manual_correction_needed: bool = Field(..., description="Flag indicating if manual correction is needed")
+    error: Optional[str] = Field(None, description="Error message if transcription failed")
+
+class TextTranslationRequest(BaseModel):
+    """Request model for text translation"""
+    text: str = Field(..., min_length=1, max_length=2000, description="Text to translate")
+    source_language: str = Field('auto', description="Source language code ('auto' for detection)")
+    target_language: str = Field('en', description="Target language code")
+
+class TextTranslationResponse(BaseModel):
+    """Response model for text translation"""
+    translated_text: Optional[str] = Field(None, description="Translated text")
+    source_language: Optional[str] = Field(None, description="Detected source language")
+    source_language_name: Optional[str] = Field(None, description="Source language name")
+    target_language: Optional[str] = Field(None, description="Target language")
+    target_language_name: Optional[str] = Field(None, description="Target language name")
+    original_text: str = Field(..., description="Original text")
+    error: Optional[str] = Field(None, description="Error message if translation failed")
+
+class VoiceIssueCreateRequest(BaseModel):
+    """Extended issue creation request with voice/language support"""
+    description: Optional[str] = Field(None, description="Issue description (for manual corrections)")
+    category: IssueCategory = Field(..., description="Issue category")
+    user_email: Optional[str] = Field(None, description="User's email address")
+    latitude: Optional[float] = Field(None, ge=-90, le=90, description="Latitude coordinate")
+    longitude: Optional[float] = Field(None, ge=-180, le=180, description="Longitude coordinate")
+    location: Optional[str] = Field(None, max_length=200, description="Location description")
+    
+    # Voice/Language specific fields
+    submission_type: str = Field('text', pattern="^(text|voice)$", description="Submission type")
+    original_language: Optional[str] = Field(None, description="Original language code")
+    original_text: Optional[str] = Field(None, description="Original text in regional language")
+    transcription_confidence: Optional[float] = Field(None, ge=0, le=1, description="Confidence score")
+
+class SupportedLanguagesResponse(BaseModel):
+    """Response model for supported languages"""
+    languages: Dict[str, str] = Field(..., description="Dictionary of language code to language name")
+    total_count: int = Field(..., description="Total number of supported languages")

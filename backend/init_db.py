@@ -95,6 +95,31 @@ def migrate_db():
                 if not index_exists("issues", "ix_issues_user_email"):
                     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_issues_user_email ON issues (user_email)"))
 
+                # Voice and Language Support Columns (Issue #291)
+                if not column_exists("issues", "submission_type"):
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN submission_type VARCHAR DEFAULT 'text'"))
+                    logger.info("Added submission_type column to issues")
+
+                if not column_exists("issues", "original_language"):
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN original_language VARCHAR"))
+                    logger.info("Added original_language column to issues")
+
+                if not column_exists("issues", "original_text"):
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN original_text TEXT"))
+                    logger.info("Added original_text column to issues")
+
+                if not column_exists("issues", "transcription_confidence"):
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN transcription_confidence FLOAT"))
+                    logger.info("Added transcription_confidence column to issues")
+
+                if not column_exists("issues", "manual_correction_applied"):
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN manual_correction_applied BOOLEAN DEFAULT FALSE"))
+                    logger.info("Added manual_correction_applied column to issues")
+
+                if not column_exists("issues", "audio_file_path"):
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN audio_file_path VARCHAR"))
+                    logger.info("Added audio_file_path column to issues")
+
             # Grievances Table Migrations
             if inspector.has_table("grievances"):
                 if not column_exists("grievances", "latitude"):

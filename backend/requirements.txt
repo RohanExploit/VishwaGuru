@@ -27,3 +27,10 @@ pytest
 python-jose[cryptography]
 passlib
 bcrypt==3.2.2
+passlib[bcrypt]
+# Voice and Language Support (Issue #291)
+SpeechRecognition
+pydub
+googletrans==4.0.2
+langdetect
+indic-nlp-library

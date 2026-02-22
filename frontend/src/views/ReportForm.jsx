@@ -395,318 +395,489 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
   };
 
   return (
-    <div className="mt-6">
-      <h2 className="text-xl font-semibold mb-4 text-center">{t('home.landing.cta')}</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">{t('home.landing.features.civicIssues')}</label>
-          <select
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
-            value={formData.category}
-            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-          >
-            <option value="road">{t('home.issues.pothole')}</option>
-            <option value="water">{t('home.issues.waterLeak')}</option>
-            <option value="garbage">{t('home.issues.garbage')}</option>
-            <option value="streetlight">{t('home.issues.darkStreet')}</option>
-            <option value="college_infra">{t('home.issues.brokenInfra')}</option>
-            <option value="women_safety">{t('home.issues.civicEye')}</option>
-          </select>
-          {analyzingSmartScan && (
-            <div className="text-xs text-blue-600 mt-1 animate-pulse flex items-center gap-1">
-              <Loader2 size={12} className="animate-spin" />
-              AI is analyzing image for category...
-            </div>
-          )}
-          {analysisErrors.smartScan && (
-            <div className="text-xs text-orange-600 mt-1 flex items-center gap-1">
-              <AlertTriangle size={12} />
-              {analysisErrors.smartScan}
-            </div>
-          )}
-          {smartCategory && (
-            <div
-              onClick={() => setFormData({ ...formData, category: smartCategory.mapped })}
-              className="mt-2 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-100 p-2 rounded-lg cursor-pointer hover:bg-purple-100 transition flex items-center justify-between group"
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-lg">✨</span>
-                <div>
-                  <p className="text-xs text-purple-800 font-bold uppercase tracking-wide">AI Suggestion</p>
-                  <p className="text-sm font-medium text-purple-900 capitalize">{smartCategory.original}</p>
+    <div className="mt-12 max-w-2xl mx-auto pb-20">
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative"
+      >
+        {/* Decorative background glow */}
+        <div className="absolute -top-20 -left-20 w-64 h-64 bg-blue-500/10 rounded-full blur-[100px] -z-10"></div>
+        <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-purple-500/10 rounded-full blur-[100px] -z-10"></div>
+
+        <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-3xl rounded-[2.5rem] border border-white/20 dark:border-gray-800/50 shadow-2xl overflow-hidden p-8 md:p-12">
+          {/* Header */}
+          <div className="text-center mb-10 space-y-3">
+            <h2 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white tracking-tight">
+              {t('home.landing.cta') || 'Report Civic Issue'}
+            </h2>
+            <p className="text-gray-500 dark:text-gray-400 font-medium">
+              Join thousands of citizens making their city better.
+            </p>
+            <div className="h-1.5 w-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full mx-auto"></div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-8">
+            {/* Category Section */}
+            <div className="space-y-3">
+              <label className="text-sm font-black text-gray-700 dark:text-gray-300 uppercase tracking-widest ml-1 flex items-center gap-2">
+                <Layers size={14} className="text-blue-600" />
+                {t('home.landing.features.civicIssues')}
+              </label>
+              <div className="relative group">
+                <select
+                  className="w-full bg-white/50 dark:bg-gray-800/50 rounded-2xl border-2 border-gray-100 dark:border-gray-800 p-4 pl-5 appearance-none focus:outline-none focus:border-blue-600 dark:focus:border-blue-400 font-bold text-gray-900 dark:text-white transition-all transition-colors cursor-pointer group-hover:bg-white dark:group-hover:bg-gray-800"
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                >
+                  <option value="road">{t('home.issues.pothole')}</option>
+                  <option value="water">{t('home.issues.waterLeak')}</option>
+                  <option value="garbage">{t('home.issues.garbage')}</option>
+                  <option value="streetlight">{t('home.issues.darkStreet')}</option>
+                  <option value="college_infra">{t('home.issues.brokenInfra')}</option>
+                  <option value="women_safety">{t('home.issues.civicEye')}</option>
+                </select>
+                <div className="absolute inset-y-0 right-5 flex items-center pointer-events-none text-gray-400">
+                  <ChevronRight size={20} className="rotate-90" />
                 </div>
               </div>
-              <div className="bg-white text-purple-600 px-3 py-1 rounded text-xs font-bold shadow-sm group-hover:shadow transition">
-                Apply
+
+              {/* AI Category Suggestion Widget */}
+              <AnimatePresence>
+                {analyzingSmartScan && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="flex items-center gap-3 p-4 bg-blue-50/50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800/50"
+                  >
+                    <Loader2 size={18} className="animate-spin text-blue-600" />
+                    <span className="text-sm font-bold text-blue-800 dark:text-blue-300">AI identifying category...</span>
+                  </motion.div>
+                )}
+
+                {smartCategory && !analyzingSmartScan && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    onClick={() => setFormData({ ...formData, category: smartCategory.mapped })}
+                    className="group relative bg-gradient-to-br from-indigo-600/5 to-purple-600/5 dark:from-indigo-400/10 dark:to-purple-400/10 border border-indigo-100 dark:border-indigo-800/50 p-5 rounded-2xl cursor-pointer hover:shadow-lg transition-all"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="p-2.5 bg-white dark:bg-gray-800 rounded-xl shadow-sm text-indigo-600">
+                          <Zap size={20} />
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-indigo-500 font-black uppercase tracking-widest">AI SUGGESTION</p>
+                          <p className="text-base font-black text-gray-900 dark:text-white capitalize">{smartCategory.original}</p>
+                        </div>
+                      </div>
+                      <button type="button" className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-black shadow-lg shadow-indigo-600/20 group-hover:scale-105 transition-transform">
+                        Apply
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Email Field */}
+            <div className="space-y-3">
+              <label className="text-sm font-black text-gray-700 dark:text-gray-300 uppercase tracking-widest ml-1 flex items-center gap-2">
+                <CheckCircle2 size={14} className="text-gray-400" />
+                Email (Optional)
+              </label>
+              <div className="relative group">
+                <input
+                  type="email"
+                  className="w-full bg-white/50 dark:bg-gray-800/50 rounded-2xl border-2 border-gray-100 dark:border-gray-800 p-4 appearance-none focus:outline-none focus:border-blue-600 dark:focus:border-blue-400 font-bold text-gray-900 dark:text-white transition-all group-hover:bg-white dark:group-hover:bg-gray-800"
+                  placeholder="name@example.com"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
               </div>
             </div>
-          )}
-        </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Email (Optional)</label>
-          <input
-            type="email"
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
-            placeholder="Enter your email to track your reports"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-          />
-        </div>
+            {/* Description Section */}
+            <div className="space-y-3">
+              <label className="text-sm font-black text-gray-700 dark:text-gray-300 uppercase tracking-widest ml-1 flex items-center gap-2">
+                <FileText size={14} className="text-indigo-600" />
+                Description
+              </label>
+              <div className="relative group">
+                <textarea
+                  required
+                  className="w-full bg-white/50 dark:bg-gray-800/50 rounded-2xl border-2 border-gray-100 dark:border-gray-800 p-5 appearance-none focus:outline-none focus:border-blue-600 dark:focus:border-blue-400 font-bold text-gray-900 dark:text-white transition-all group-hover:bg-white dark:group-hover:bg-gray-800 min-h-[140px]"
+                  rows="4"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  onBlur={analyzeUrgency}
+                  placeholder="High priority potholes near main signal..."
+                />
+                <div className="absolute bottom-4 right-4 z-10">
+                  <VoiceInput
+                    onTranscript={(transcript) => setFormData(prev => ({ ...prev, description: (prev.description + ' ' + transcript).trim() }))}
+                    language={i18n.language}
+                  />
+                </div>
+              </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Description</label>
-          <div className="relative">
-            <textarea
-              required
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border pr-12"
-              rows="3"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              onBlur={analyzeUrgency}
-              placeholder="Describe the issue..."
-            />
-            <div className="absolute top-2 right-2">
-              <VoiceInput
-                onTranscript={(transcript) => setFormData(prev => ({ ...prev, description: prev.description + ' ' + transcript }))}
-                language={i18n.language}
-              />
+              {/* AI Indicators */}
+              <div className="flex flex-wrap gap-3">
+                {analyzingUrgency && (
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-xs font-black rounded-lg border border-blue-100 dark:border-blue-800/50">
+                    <Loader2 size={12} className="animate-spin" />
+                    Checking Priority...
+                  </div>
+                )}
+                {urgencyAnalysis && !analyzingUrgency && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className={`px-4 py-2 rounded-xl text-xs font-black border flex items-center gap-2 shadow-sm ${urgencyAnalysis.urgency === 'High' ? 'bg-rose-50 border-rose-100 text-rose-700 dark:bg-rose-900/20 dark:border-rose-900/50 dark:text-rose-400' :
+                      urgencyAnalysis.urgency === 'Medium' ? 'bg-amber-50 border-amber-100 text-amber-700 dark:bg-amber-900/20 dark:border-amber-900/50 dark:text-amber-400' :
+                        'bg-emerald-50 border-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-900/50 dark:text-emerald-400'
+                      }`}
+                  >
+                    <div className={`w-2 h-2 rounded-full animate-pulse ${urgencyAnalysis.urgency === 'High' ? 'bg-rose-500' : urgencyAnalysis.urgency === 'Medium' ? 'bg-amber-500' : 'bg-emerald-500'}`}></div>
+                    {urgencyAnalysis.urgency} Priority Detected
+                  </motion.div>
+                )}
+                {formData.image && (
+                  <button
+                    type="button"
+                    onClick={autoDescribe}
+                    disabled={describing}
+                    className="text-xs bg-purple-600 text-white px-4 py-2 rounded-xl shadow-lg shadow-purple-600/20 hover:scale-105 transition-transform flex items-center gap-2 font-black disabled:opacity-50"
+                  >
+                    {describing ? <Loader2 size={12} className="animate-spin" /> : '✨'}
+                    {describing ? 'Describing...' : 'Auto-fill Description'}
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
-          {analyzingUrgency && (
-            <div className="mt-1 text-xs text-blue-600 animate-pulse">
-              Checking urgency...
-            </div>
-          )}
-          {urgencyAnalysis && !analyzingUrgency && (
-            <div className={`mt-2 p-2 rounded text-sm flex items-center justify-between ${urgencyAnalysis.urgency === 'High' ? 'bg-red-50 text-red-800 border border-red-200' :
-                urgencyAnalysis.urgency === 'Medium' ? 'bg-orange-50 text-orange-800 border border-orange-200' :
-                  'bg-green-50 text-green-800 border border-green-200'
-              }`}>
-              <span className="font-semibold">Urgency: {urgencyAnalysis.urgency}</span>
-              <span className="text-xs opacity-75">Sentiment: {urgencyAnalysis.sentiment}</span>
-            </div>
-          )}
-          {formData.image && (
-            <button
-              type="button"
-              onClick={autoDescribe}
-              disabled={describing}
-              className="mt-2 text-xs bg-purple-100 text-purple-700 px-3 py-1 rounded hover:bg-purple-200 transition flex items-center gap-1 font-medium"
-            >
-              {describing ? 'Generating description...' : '✨ Auto-fill description from image'}
-            </button>
-          )}
-        </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Location (Optional)</label>
-          <div className="flex gap-2 mt-1">
-            <input
-              type="text"
-              readOnly
-              placeholder="Location not set"
-              className="block w-full rounded-md border-gray-300 shadow-sm p-2 border bg-gray-50"
-              value={formData.location || ''}
-            />
-            <button
-              type="button"
-              onClick={getLocation}
-              disabled={gettingLocation}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded inline-flex items-center"
-            >
-              {gettingLocation ? '...' : '📍'}
-            </button>
-          </div>
-          {formData.latitude && (
-            <button
-              type="button"
-              onClick={checkNearbyIssues}
-              disabled={checkingNearby}
-              className="mt-2 text-xs text-blue-600 hover:text-blue-800 underline flex items-center gap-1"
-            >
-              {checkingNearby ? <Loader2 size={12} className="animate-spin" /> : <Layers size={12} />}
-              Check for existing reports nearby
-            </button>
-          )}
-        </div>
+            {/* Location Section */}
+            <div className="space-y-3">
+              <label className="text-sm font-black text-gray-700 dark:text-gray-300 uppercase tracking-widest ml-1 flex items-center gap-2">
+                <MapPin size={14} className="text-rose-600" />
+                Location Information
+              </label>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative group flex-1">
+                  <input
+                    type="text"
+                    readOnly
+                    placeholder="Auto-detecting address..."
+                    className="w-full bg-white/50 dark:bg-gray-800/50 rounded-2xl border-2 border-gray-100 dark:border-gray-800 p-4 appearance-none focus:outline-none font-bold text-gray-900 dark:text-white transition-all group-hover:bg-white dark:group-hover:bg-gray-800 leading-tight"
+                    value={formData.location || ''}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={getLocation}
+                  disabled={gettingLocation}
+                  className="bg-gray-900 dark:bg-blue-600 text-white font-black py-4 px-8 rounded-2xl flex items-center justify-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/10 disabled:opacity-50"
+                >
+                  {gettingLocation ? <Loader2 size={20} className="animate-spin" /> : <MapPin size={20} />}
+                  {gettingLocation ? 'Detecting...' : 'Get Pin'}
+                </button>
+              </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Photo Evidence</label>
-
-          <div className="flex gap-3 mb-2">
-            <label className="flex-1 cursor-pointer bg-white hover:bg-gray-50 text-gray-700 font-medium py-3 px-4 rounded-lg text-center border border-gray-300 shadow-sm flex items-center justify-center gap-2 transition">
-              <ImageIcon size={20} />
-              <span>Upload</span>
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleImageChange}
-              />
-            </label>
-            <label className="flex-1 cursor-pointer bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium py-3 px-4 rounded-lg text-center border border-blue-200 shadow-sm flex items-center justify-center gap-2 transition">
-              <Camera size={20} />
-              <span>Camera</span>
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={handleImageChange}
-              />
-            </label>
-          </div>
-
-          {formData.image && (
-            <div className="text-sm text-green-600 mb-2 text-center flex items-center justify-center gap-2">
-              {uploading ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  Processing image...
-                </>
-              ) : (
-                <>Selected: {formData.image.name}</>
+              {formData.latitude && (
+                <button
+                  type="button"
+                  onClick={checkNearbyIssues}
+                  disabled={checkingNearby}
+                  className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-2 font-black ml-1 transition-all"
+                >
+                  {checkingNearby ? <Loader2 size={14} className="animate-spin" /> : <Layers size={14} />}
+                  Check for similar reports in this area
+                </button>
               )}
             </div>
-          )}
 
-          {formData.image && !depthMap && (
-            <button
-              type="button"
-              onClick={analyzeDepth}
-              disabled={analyzingDepth}
-              className="w-full text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-2 rounded-lg hover:bg-indigo-100 transition flex items-center justify-center gap-2 font-medium mb-2"
-            >
-              {analyzingDepth ? (
-                <div className="w-3 h-3 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-              ) : (
-                <Layers size={14} />
+            {/* Evidence Section */}
+            <div className="space-y-3">
+              <label className="text-sm font-black text-gray-700 dark:text-gray-300 uppercase tracking-widest ml-1 flex items-center gap-2">
+                <Camera size={14} className="text-blue-600" />
+                Visual Evidence
+              </label>
+
+              <div className="grid grid-cols-2 gap-4">
+                <label className="group cursor-pointer bg-white dark:bg-gray-800 rounded-3xl border-2 border-dashed border-gray-200 dark:border-gray-700 p-6 text-center hover:border-blue-600 dark:hover:border-blue-400 transition-all flex flex-col items-center justify-center gap-3">
+                  <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl group-hover:scale-110 transition-transform text-gray-400 group-hover:text-blue-600">
+                    <ImageIcon size={32} />
+                  </div>
+                  <span className="font-black text-sm text-gray-900 dark:text-white">Upload Gallery</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+                </label>
+
+                <label className="group cursor-pointer bg-blue-50/50 dark:bg-blue-900/20 rounded-3xl border-2 border-dashed border-blue-200 dark:border-blue-800 p-6 text-center hover:border-blue-600 dark:hover:border-blue-400 transition-all flex flex-col items-center justify-center gap-3">
+                  <div className="p-4 bg-blue-100 dark:bg-blue-900 rounded-2xl group-hover:scale-110 transition-transform text-blue-600">
+                    <Camera size={32} />
+                  </div>
+                  <span className="font-black text-sm text-blue-800 dark:text-blue-200">Snap Photo</span>
+                  <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageChange} />
+                </label>
+              </div>
+
+              {/* Image Preview & Analysis Hub */}
+              <AnimatePresence>
+                {formData.image && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="space-y-4 pt-2"
+                  >
+                    <div className="relative rounded-3xl overflow-hidden shadow-xl border-4 border-white dark:border-gray-800">
+                      {uploading && (
+                        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-10">
+                          <div className="flex flex-col items-center gap-3">
+                            <Loader2 size={40} className="animate-spin text-white" />
+                            <span className="text-white font-black uppercase tracking-widest text-xs">Optimizing Image...</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Depth Map Preview */}
+                      {depthMap ? (
+                        <div className="grid grid-cols-2 gap-1 bg-gray-900">
+                          <img src={URL.createObjectURL(formData.image)} alt="Original" className="w-full h-48 object-cover opacity-80" />
+                          <img src={`data:image/jpeg;base64,${depthMap}`} alt="Depth map" className="w-full h-48 object-cover" />
+                        </div>
+                      ) : (
+                        <img src={URL.createObjectURL(formData.image)} alt="Issue" className="w-full h-64 object-cover" />
+                      )}
+                    </div>
+
+                    {/* AI Severity Analysis Widget */}
+                    {!depthMap && !analyzingDepth && (
+                      <button
+                        type="button"
+                        onClick={analyzeDepth}
+                        className="w-full py-4 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-black text-sm shadow-xl shadow-blue-600/20 flex items-center justify-center gap-3 hover:scale-[1.02] transition-transform"
+                      >
+                        <Layers size={20} />
+                        Run AI Depth Severity Analysis
+                      </button>
+                    )}
+
+                    {analyzingDepth && (
+                      <div className="w-full p-4 bg-gray-100 dark:bg-gray-800 rounded-2xl flex items-center justify-center gap-3">
+                        <div className="flex gap-1">
+                          {[0, 1, 2].map(i => (
+                            <motion.div
+                              key={i}
+                              animate={{ scaleY: [1, 2, 1] }}
+                              transition={{ repeat: Infinity, duration: 1, delay: i * 0.2 }}
+                              className="w-1 h-3 bg-blue-600"
+                            />
+                          ))}
+                        </div>
+                        <span className="text-xs font-black uppercase tracking-widest text-gray-500">Generating 3D spatial map...</span>
+                      </div>
+                    )}
+
+                    <AnimatePresence>
+                      {(analyzing || severity || analysisErrors.severity) && (
+                        <motion.div
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          className={`p-6 rounded-3xl border shadow-xl ${severity?.level === 'Critical' ? 'bg-rose-50 border-rose-100 text-rose-900' :
+                            severity?.level === 'High' ? 'bg-amber-50 border-amber-100 text-amber-900' :
+                              'bg-emerald-50 border-emerald-100 text-emerald-900'
+                            }`}
+                        >
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                              <div className={`p-2 rounded-xl bg-white shadow-sm ${severity?.level === 'Critical' ? 'text-rose-600' : 'text-emerald-600'}`}>
+                                <Zap size={18} />
+                              </div>
+                              <h5 className="font-black uppercase tracking-widest text-xs">AI Impact Analysis</h5>
+                            </div>
+                            {severity && (
+                              <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${severity.level === 'Critical' ? 'bg-rose-200 text-rose-900' : 'bg-emerald-200 text-emerald-900'
+                                }`}>
+                                {severity.level} Match
+                              </span>
+                            )}
+                          </div>
+
+                          {analyzing ? (
+                            <div className="flex items-center gap-3 text-blue-600 animate-pulse">
+                              <Loader2 size={16} className="animate-spin" />
+                              <span className="text-sm font-black">AI Calculating Severity...</span>
+                            </div>
+                          ) : severity ? (
+                            <div className="space-y-4">
+                              <p className="text-sm font-medium leading-relaxed">
+                                Our vision engine detected a <span className="font-black underline">{severity.raw_label}</span>.
+                                We've flagged this for priority processing based on visual indicators.
+                              </p>
+                              <div className="w-full h-2 bg-white/50 rounded-full overflow-hidden">
+                                <motion.div
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${severity.confidence * 100}%` }}
+                                  className={`h-full ${severity.level === 'Critical' ? 'bg-rose-500' : 'bg-emerald-500'}`}
+                                />
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 text-rose-600">
+                              <AlertTriangle size={16} />
+                              <span className="text-xs font-black">{analysisErrors.severity}</span>
+                            </div>
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Submit Section */}
+            <div className="pt-6 space-y-4">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="submit"
+                disabled={loading}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 rounded-3xl font-black text-xl shadow-2xl shadow-blue-600/30 flex items-center justify-center gap-3 transition-all disabled:opacity-50"
+              >
+                {loading ? <Loader2 className="animate-spin" size={24} /> : isOnline ? <Zap size={24} /> : <CheckCircle2 size={24} />}
+                {loading ? 'Processing Mission…' : isOnline ? 'Generate Action Plan' : 'Commit Offline'}
+              </motion.button>
+
+              <div className="flex items-center justify-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`}></div>
+                <span className={`text-xs font-black uppercase tracking-widest ${isOnline ? 'text-emerald-600' : 'text-amber-600'}`}>
+                  {isOnline ? 'System Live - Real-time Sync' : 'Network Offline - Secure Vault Storage'}
+                </span>
+              </div>
+
+              {submitStatus.state !== 'idle' && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`p-5 rounded-2xl border flex items-center gap-4 ${submitStatus.state === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-800' :
+                    submitStatus.state === 'pending' ? 'bg-blue-50 border-blue-100 text-blue-800' :
+                      'bg-rose-50 border-rose-100 text-rose-800'
+                    }`}
+                >
+                  <div className={`p-2 rounded-xl bg-white shadow-sm ${submitStatus.state === 'success' ? 'text-emerald-600' :
+                    submitStatus.state === 'pending' ? 'text-blue-600' : 'text-rose-600'
+                    }`}>
+                    {submitStatus.state === 'success' ? <CheckCircle2 size={20} /> :
+                      submitStatus.state === 'pending' ? <Loader2 size={20} className="animate-spin" /> :
+                        <AlertTriangle size={20} />}
+                  </div>
+                  <span className="text-sm font-black">{submitStatus.message}</span>
+                </motion.div>
               )}
-              {analyzingDepth ? 'Generating 3D Map...' : 'Analyze Severity (3D)'}
-            </button>
-          )}
 
-          {depthMap && (
-            <div className="mb-2 border border-gray-200 rounded-lg overflow-hidden">
-              <div className="bg-gray-50 px-2 py-1 text-xs text-gray-500 font-medium border-b border-gray-200">
-                3D Depth Analysis Map
-              </div>
-              <img
-                src={`data:image/jpeg;base64,${depthMap}`}
-                alt="Depth Map"
-                className="w-full h-auto object-cover"
-              />
-            </div>
-          )}
-
-          {analyzing && (
-            <div className="flex items-center justify-center gap-2 text-blue-600 bg-blue-50 p-3 rounded-lg border border-blue-100 animate-pulse">
-              <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-              <span className="text-sm font-medium">Analyzing severity...</span>
-            </div>
-          )}
-
-          {analysisErrors.severity && (
-            <div className="flex items-center justify-center gap-2 text-red-600 bg-red-50 p-3 rounded-lg border border-red-100">
-              <AlertTriangle size={16} />
-              <span className="text-sm font-medium">Severity analysis: {analysisErrors.severity}</span>
-            </div>
-          )}
-
-          {severity && (
-            <div className={`p-3 rounded-lg border ${severity.level === 'Critical' ? 'bg-red-50 border-red-200 text-red-800' :
-                severity.level === 'High' ? 'bg-orange-50 border-orange-200 text-orange-800' :
-                  severity.level === 'Medium' ? 'bg-yellow-50 border-yellow-200 text-yellow-800' :
-                    'bg-green-50 border-green-200 text-green-800'
-              }`}>
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-xs font-bold uppercase tracking-wider">AI Severity Analysis</span>
-                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${severity.level === 'Critical' ? 'bg-red-200 text-red-900' :
-                    severity.level === 'High' ? 'bg-orange-200 text-orange-900' :
-                      severity.level === 'Medium' ? 'bg-yellow-200 text-yellow-900' :
-                        'bg-green-200 text-green-900'
-                  }`}>{severity.level}</span>
-              </div>
-              <p className="text-sm">
-                Detected <b>{severity.raw_label}</b> with {(severity.confidence * 100).toFixed(0)}% confidence.
-              </p>
-            </div>
-          )}
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 font-bold shadow-md"
-        >
-          {loading ? 'Processing…' : isOnline ? 'Generate Action Plan' : 'Save Offline'}
-        </button>
-
-        <div className={`mt-2 text-center text-sm ${isOnline ? 'text-green-600' : 'text-orange-600'}`}>
-          {isOnline ? '🟢 Online - Report will be submitted immediately' : '🟠 Offline - Report will be saved and synced later'}
-        </div>
-
-        {submitStatus.state !== 'idle' && (
-          <div
-            className={`mt-3 flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium shadow-sm ${submitStatus.state === 'success'
-                ? 'bg-green-50 border-green-200 text-green-800'
-                : submitStatus.state === 'pending'
-                  ? 'bg-blue-50 border-blue-200 text-blue-800'
-                  : 'bg-red-50 border-red-200 text-red-800'
-              }`}
-          >
-            {submitStatus.state === 'success' && <CheckCircle2 size={18} />}
-            {submitStatus.state === 'pending' && <Loader2 size={18} className="animate-spin" />}
-            {submitStatus.state === 'error' && <AlertTriangle size={18} />}
-            <span>{submitStatus.message}</span>
-          </div>
-        )}
-        <button type="button" onClick={() => setView('home')} className="mt-2 text-gray-500 hover:text-gray-700 underline text-center w-full block text-sm">{t('common.cancel')}</button>
-      </form>
-
-      {showNearbyModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[80vh] flex flex-col">
-            <div className="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-xl">
-              <h3 className="font-bold text-gray-800">Nearby Issues ({nearbyIssues.length})</h3>
-              <button onClick={() => setShowNearbyModal(false)} className="text-gray-500 hover:text-gray-700">
-                <CheckCircle2 size={24} className="rotate-45" />
+              <button
+                type="button"
+                onClick={() => setView('home')}
+                className="w-full text-center text-gray-400 dark:text-gray-500 text-sm font-black uppercase tracking-widest hover:text-gray-600 dark:hover:text-gray-300 transition-colors py-4"
+              >
+                Abort Reporting
               </button>
             </div>
-            <div className="overflow-y-auto p-4 space-y-3 custom-scrollbar flex-1">
-              {nearbyIssues.length === 0 ? (
-                <p className="text-center text-gray-500 py-4">No similar issues found nearby. You are good to report!</p>
-              ) : (
-                nearbyIssues.map(issue => (
-                  <div key={issue.id} className="border rounded-lg p-3 hover:bg-gray-50">
-                    <div className="flex justify-between items-start">
-                      <span className="text-xs font-bold uppercase bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">{issue.category}</span>
-                      <span className="text-xs text-gray-500">{Math.round(issue.distance_meters)}m away</span>
+          </form>
+        </div>
+      </motion.div>
+
+      {/* Nearby Issues Overlay - Professional Modal */}
+      <AnimatePresence>
+        {showNearbyModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowNearbyModal(false)}
+              className="absolute inset-0 bg-gray-950/80 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-2xl shadow-blue-500/10 overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="p-8 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
+                <div className="space-y-1">
+                  <h3 className="text-2xl font-black text-gray-900 dark:text-white">Nearby Activity</h3>
+                  <p className="text-xs font-black uppercase tracking-widest text-indigo-600">{nearbyIssues.length} Matches Detected</p>
+                </div>
+                <button onClick={() => setShowNearbyModal(false)} className="p-3 bg-white dark:bg-gray-700 rounded-2xl shadow-sm hover:scale-110 transition-transform">
+                  <XCircle size={24} className="text-gray-400" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-8 space-y-4 custom-scrollbar">
+                {nearbyIssues.length === 0 ? (
+                  <div className="py-12 text-center space-y-4">
+                    <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto text-emerald-600">
+                      <CheckCircle2 size={32} />
                     </div>
-                    <p className="text-sm font-medium mt-1">{issue.description}</p>
-                    <div className="flex justify-between items-center mt-2">
-                      <span className="text-xs text-gray-400">{new Date(issue.created_at).toLocaleDateString()}</span>
-                      <div className="flex gap-2">
-                        <span className="text-xs font-bold text-blue-600">{issue.upvotes} Upvotes</span>
-                        <span className={`text-xs font-bold px-1.5 rounded ${issue.status === 'open' ? 'text-green-600 bg-green-50' : 'text-gray-600 bg-gray-50'}`}>{issue.status}</span>
-                      </div>
+                    <div>
+                      <h4 className="font-black text-gray-900 dark:text-white">Safe Zone</h4>
+                      <p className="text-sm text-gray-500">No overlapping issues found. Your report is unique!</p>
                     </div>
                   </div>
-                ))
-              )}
-            </div>
-            <div className="p-4 border-t bg-gray-50 rounded-b-xl">
-              <button
-                onClick={() => setShowNearbyModal(false)}
-                className="w-full bg-blue-600 text-white py-2 rounded-lg font-bold"
-              >
-                {nearbyIssues.length > 0 ? "I'll Report Anyway (New Issue)" : "Continue"}
-              </button>
-            </div>
+                ) : (
+                  nearbyIssues.map((issue, idx) => (
+                    <motion.div
+                      key={issue.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: idx * 0.1 }}
+                      className="group p-5 bg-gray-50 dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 hover:border-indigo-600 dark:hover:border-indigo-400 transition-all"
+                    >
+                      <div className="flex justify-between items-start mb-3">
+                        <span className="px-3 py-1 bg-white dark:bg-gray-700 rounded-full text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 shadow-sm">
+                          {issue.category}
+                        </span>
+                        <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-gray-400">
+                          <MapPin size={10} />
+                          {Math.round(issue.distance_meters)}m
+                        </div>
+                      </div>
+                      <p className="text-sm font-bold text-gray-800 dark:text-white leading-relaxed mb-4">{issue.description}</p>
+                      <div className="flex justify-between items-center bg-white/50 dark:bg-gray-700/50 p-3 rounded-2xl border border-white/50 dark:border-gray-600/50">
+                        <div className="flex gap-3">
+                          <div className="flex items-center gap-1 text-blue-600">
+                            <ThumbsUp size={12} />
+                            <span className="text-xs font-black">{issue.upvotes}</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-emerald-600 font-black text-xs uppercase tracking-tighter">
+                            {issue.status}
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                          {new Date(issue.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </motion.div>
+                  ))
+                )}
+              </div>
+
+              <div className="p-8 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800">
+                <button
+                  onClick={() => setShowNearbyModal(false)}
+                  className="w-full bg-gray-900 dark:bg-blue-600 text-white py-5 rounded-2xl font-black text-lg shadow-xl hover:scale-[1.02] transition-transform"
+                >
+                  {nearbyIssues.length > 0 ? "Commit New Independent Report" : "Proceed with Clearance"}
+                </button>
+              </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   );
 };

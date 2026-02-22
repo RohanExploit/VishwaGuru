@@ -3,7 +3,8 @@ import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from
 import { useTranslation } from 'react-i18next';
 import { fakeRecentIssues, fakeResponsibilityMap } from './fakeData';
 import { issuesApi, miscApi } from './api';
-import AppHeader from './components/AppHeader';
+import Navbar from './components/Navbar';
+import Footer from './components/Footer';
 import FloatingButtonsManager from './components/FloatingButtonsManager';
 import LoadingSpinner from './components/LoadingSpinner';
 import { DarkModeProvider, useDarkMode } from './contexts/DarkModeContext';
@@ -181,7 +182,7 @@ function AppContent() {
 
   // Otherwise render the main app layout
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-100 dark:from-gray-950 dark:via-blue-950/30 dark:to-gray-900 text-gray-900 dark:text-gray-100 font-sans transition-colors duration-300 bg-fixed">
+    <div className={`min-h-screen relative overflow-hidden font-sans transition-colors duration-300 ${isDarkMode ? 'dark bg-gray-950 text-white' : 'bg-gray-50 text-gray-900'}`}>
       {/* Animated background elements - Optimized for performance */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         <div
@@ -196,15 +197,11 @@ function AppContent() {
 
       <FloatingButtonsManager setView={navigateToView} />
 
-      <div className="relative z-10 flex flex-col w-full">
-        <AppHeader />
+      <div className="relative z-10 flex flex-col min-h-screen w-full">
+        <Navbar />
 
         <main className="flex-grow">
-          <Suspense fallback={
-            <div className="flex justify-center my-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-            </div>
-          }>
+          <Suspense fallback={<LoadingSpinner size="lg" />}>
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Login initialIsLogin={false} />} />
