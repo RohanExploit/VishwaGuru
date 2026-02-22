@@ -40,7 +40,8 @@ async def test_detect_severity_endpoint():
     # Mock AI services initialization to prevent startup failure
     with patch('backend.main.create_all_ai_services') as mock_create_services, \
          patch('backend.main.initialize_ai_services') as mock_init_services, \
-         patch('backend.routers.detection.detect_severity_clip', new_callable=AsyncMock) as mock_detect:
+         patch('backend.routers.detection.detect_severity_clip', new_callable=AsyncMock) as mock_detect, \
+         patch('backend.routers.detection.process_uploaded_image', new_callable=AsyncMock) as mock_process_image:
 
         # Setup mocks
         mock_create_services.return_value = (MagicMock(), MagicMock(), MagicMock())
@@ -51,6 +52,9 @@ async def test_detect_severity_endpoint():
             "raw_label": "critical emergency",
             "confidence": 0.95
         }
+
+        # Mock image processing to succeed with dummy data
+        mock_process_image.return_value = (MagicMock(), b"dummybytes")
 
         # Create a dummy image file
         file_content = b"fake image content"

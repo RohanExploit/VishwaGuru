@@ -88,6 +88,7 @@ class PriorityEngine:
             "Vandalism": ["graffiti", "paint", "broken", "destroy", "damage", "poster"],
             "Infrastructure": ["bridge", "flyover", "pillar", "crack", "collapse", "structure", "manhole", "drain", "wire", "cable", "pole", "electrical box", "electric box", "transformer", "sidewalk", "pavement", "tile", "speed breaker", "road"],
             "Traffic Sign": ["sign", "signal", "light", "traffic", "board", "direction", "stop sign"],
+            "Abandoned Vehicle": ["abandoned", "vehicle", "car", "parked", "rust", "rusting", "scooter", "bike"],
             "Public Facilities": ["toilet", "washroom", "bench", "seat", "park", "garden", "playground", "slide", "swing"],
             "Tree Hazard": ["tree", "branch", "fallen", "root", "leaf"],
             "Accessibility": ["ramp", "wheelchair", "step", "stair", "access", "disability"],
