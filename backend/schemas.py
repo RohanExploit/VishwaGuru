@@ -55,6 +55,8 @@ class IssueSummaryResponse(BaseModel):
 
 class IssueResponse(IssueSummaryResponse):
     action_plan: Optional[Union[Dict[str, Any], Any]] = Field(None, description="Generated action plan")
+    integrity_hash: Optional[str] = Field(None, description="Current integrity hash")
+    previous_integrity_hash: Optional[str] = Field(None, description="Previous issue integrity hash")
 
 class IssueCreateRequest(BaseModel):
     description: str = Field(..., min_length=10, max_length=1000, description="Issue description")
@@ -276,6 +278,7 @@ class ClosureStatusResponse(BaseModel):
 class BlockchainVerificationResponse(BaseModel):
     is_valid: bool = Field(..., description="Whether the issue integrity is intact")
     current_hash: Optional[str] = Field(None, description="Current integrity hash stored in DB")
+    previous_hash: Optional[str] = Field(None, description="Previous integrity hash used for verification")
     computed_hash: str = Field(..., description="Hash computed from current issue data and previous issue's hash")
     message: str = Field(..., description="Verification result message")
 

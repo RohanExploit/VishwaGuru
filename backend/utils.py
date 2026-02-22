@@ -8,6 +8,8 @@ import os
 import shutil
 import logging
 import io
+import secrets
+import string
 from typing import Optional
 
 from backend.cache import user_upload_cache
@@ -303,3 +305,14 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
+
+def generate_reference_id() -> str:
+    """
+    Generate a secure, random reference identifier in the format XXXX-XXXX-XXXX.
+    Uses secrets module for cryptographically strong random numbers.
+    """
+    alphabet = string.ascii_uppercase + string.digits
+    def get_part(k=4):
+        return ''.join(secrets.choice(alphabet) for _ in range(k))
+
+    return f"{get_part()}-{get_part()}-{get_part()}"
