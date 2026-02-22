@@ -14,6 +14,7 @@ import speech_recognition as sr
 from googletrans import Translator
 from langdetect import detect, LangDetectException
 from pydub import AudioSegment
+from pydub.exceptions import CouldntDecodeError
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +86,12 @@ class VoiceService:
                 temp_wav_path = temp_input_path + '.wav'
                 os.rename(temp_input_path, temp_wav_path)
                 temp_input_path = None  # Mark as renamed
+            except CouldntDecodeError:
+                # Specific pydub error when ffmpeg fails or file is corrupt
+                logger.warning("Could not decode audio file (FFmpeg missing or corrupt file). Attempting fallback.")
+                temp_wav_path = temp_input_path + '.wav'
+                os.rename(temp_input_path, temp_wav_path)
+                temp_input_path = None
             except Exception as conv_error:
                 logger.warning(f"Audio conversion failed, trying direct load: {conv_error}")
                 # Try renaming to .wav and loading directly

@@ -410,11 +410,8 @@ async def detect_graffiti_endpoint(image: UploadFile = File(...)):
 
 @router.post("/api/detect-traffic-sign")
 async def detect_traffic_sign_endpoint(request: Request, image: UploadFile = File(...)):
-    try:
-        image_bytes = await image.read()
-    except Exception as e:
-        logger.error(f"Invalid image file: {e}", exc_info=True)
-        raise HTTPException(status_code=400, detail="Invalid image file")
+    # Optimized Image Processing: Validation + Optimization
+    _, image_bytes = await process_uploaded_image(image)
 
     try:
         client = get_http_client(request)
@@ -427,11 +424,8 @@ async def detect_traffic_sign_endpoint(request: Request, image: UploadFile = Fil
 
 @router.post("/api/detect-abandoned-vehicle")
 async def detect_abandoned_vehicle_endpoint(request: Request, image: UploadFile = File(...)):
-    try:
-        image_bytes = await image.read()
-    except Exception as e:
-        logger.error(f"Invalid image file: {e}", exc_info=True)
-        raise HTTPException(status_code=400, detail="Invalid image file")
+    # Optimized Image Processing: Validation + Optimization
+    _, image_bytes = await process_uploaded_image(image)
 
     try:
         client = get_http_client(request)
@@ -444,11 +438,8 @@ async def detect_abandoned_vehicle_endpoint(request: Request, image: UploadFile 
 
 @router.post("/api/detect-air-quality")
 async def detect_air_quality_endpoint(request: Request, image: UploadFile = File(...)):
-    try:
-        image_bytes = await image.read()
-    except Exception as e:
-        logger.error(f"Invalid image file: {e}", exc_info=True)
-        raise HTTPException(status_code=400, detail="Invalid image file")
+    # Optimized Image Processing: Validation + Optimization
+    _, image_bytes = await process_uploaded_image(image)
 
     try:
         client = get_http_client(request)
@@ -461,11 +452,8 @@ async def detect_air_quality_endpoint(request: Request, image: UploadFile = File
 
 @router.post("/api/detect-playground")
 async def detect_playground_endpoint(request: Request, image: UploadFile = File(...)):
-    try:
-        image_bytes = await image.read()
-    except Exception as e:
-        logger.error(f"Invalid image file: {e}", exc_info=True)
-        raise HTTPException(status_code=400, detail="Invalid image file")
+    # Optimized Image Processing: Validation + Optimization
+    _, image_bytes = await process_uploaded_image(image)
 
     try:
         client = get_http_client(request)
@@ -478,11 +466,8 @@ async def detect_playground_endpoint(request: Request, image: UploadFile = File(
 
 @router.post("/api/detect-public-transport")
 async def detect_public_transport_endpoint(request: Request, image: UploadFile = File(...)):
-    try:
-        image_bytes = await image.read()
-    except Exception as e:
-        logger.error(f"Invalid image file: {e}", exc_info=True)
-        raise HTTPException(status_code=400, detail="Invalid image file")
+    # Optimized Image Processing: Validation + Optimization
+    _, image_bytes = await process_uploaded_image(image)
 
     try:
         client = get_http_client(request)
@@ -495,11 +480,8 @@ async def detect_public_transport_endpoint(request: Request, image: UploadFile =
 
 @router.post("/api/detect-cleanliness")
 async def detect_cleanliness_endpoint(request: Request, image: UploadFile = File(...)):
-    try:
-        image_bytes = await image.read()
-    except Exception as e:
-        logger.error(f"Invalid image file: {e}", exc_info=True)
-        raise HTTPException(status_code=400, detail="Invalid image file")
+    # Optimized Image Processing: Validation + Optimization
+    _, image_bytes = await process_uploaded_image(image)
 
     try:
         client = get_http_client(request)
