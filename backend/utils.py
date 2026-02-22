@@ -15,6 +15,8 @@ from backend.models import Issue
 from backend.schemas import DetectionResponse
 from backend.pothole_detection import validate_image_for_processing
 from passlib.context import CryptContext
+import secrets
+import string
 
 # Handle python-magic gracefully
 HAS_MAGIC = False
@@ -303,3 +305,15 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
+
+def generate_reference_id() -> str:
+    """
+    Generate a secure, random reference ID for issues.
+    Format: XXXX-XXXX-XXXX (Alphanumeric)
+    """
+    alphabet = string.ascii_uppercase + string.digits
+    # Generate 3 groups of 4 chars
+    group1 = ''.join(secrets.choice(alphabet) for _ in range(4))
+    group2 = ''.join(secrets.choice(alphabet) for _ in range(4))
+    group3 = ''.join(secrets.choice(alphabet) for _ in range(4))
+    return f"{group1}-{group2}-{group3}"

@@ -39,6 +39,16 @@ const SmartScanner = React.lazy(() => import('./SmartScanner'));
 const GrievanceAnalysis = React.lazy(() => import('./views/GrievanceAnalysis'));
 const NoiseDetector = React.lazy(() => import('./NoiseDetector'));
 const CivicEyeDetector = React.lazy(() => import('./CivicEyeDetector'));
+const CrowdDetector = React.lazy(() => import('./CrowdDetector'));
+const WasteDetector = React.lazy(() => import('./WasteDetector'));
+const WaterLeakDetector = React.lazy(() => import('./WaterLeakDetector'));
+const AccessibilityDetector = React.lazy(() => import('./AccessibilityDetector'));
+const AirQualityDetector = React.lazy(() => import('./AirQualityDetector'));
+const PlaygroundDetector = React.lazy(() => import('./PlaygroundDetector'));
+const PublicTransportDetector = React.lazy(() => import('./PublicTransportDetector'));
+const CleanlinessDetector = React.lazy(() => import('./CleanlinessDetector'));
+const TrafficSignDetector = React.lazy(() => import('./TrafficSignDetector'));
+const AbandonedVehicleDetector = React.lazy(() => import('./AbandonedVehicleDetector'));
 const MyReportsView = React.lazy(() => import('./views/MyReportsView'));
 
 
@@ -68,7 +78,14 @@ function AppContent() {
 
   // Safe navigation helper
   const navigateToView = useCallback((view) => {
-    const validViews = ['home', 'map', 'report', 'action', 'mh-rep', 'pothole', 'garbage', 'vandalism', 'flood', 'infrastructure', 'parking', 'streetlight', 'fire', 'animal', 'blocked', 'tree', 'pest', 'smart-scan', 'grievance-analysis', 'noise', 'safety-check', 'my-reports', 'grievance', 'login', 'signup'];
+    const validViews = [
+      'home', 'map', 'report', 'action', 'mh-rep', 'pothole', 'garbage', 'vandalism', 'flood',
+      'infrastructure', 'parking', 'streetlight', 'fire', 'animal', 'blocked', 'tree', 'pest',
+      'smart-scan', 'grievance-analysis', 'noise', 'safety-check', 'my-reports', 'grievance',
+      'login', 'signup',
+      'crowd', 'waste', 'water-leak', 'accessibility', 'air-quality', 'playground',
+      'public-transport', 'cleanliness', 'traffic-sign', 'abandoned-vehicle'
+    ];
     if (validViews.includes(view)) {
       navigate(view === 'home' ? '/' : `/${view}`);
     } else {
@@ -333,6 +350,16 @@ function AppContent() {
               <Route path="/smart-scan" element={<SmartScanner onBack={() => navigate('/')} />} />
               <Route path="/grievance-analysis" element={<GrievanceAnalysis onBack={() => navigate('/')} />} />
               <Route path="/noise" element={<NoiseDetector onBack={() => navigate('/')} />} />
+              <Route path="/crowd" element={<CrowdDetector onBack={() => navigate('/')} />} />
+              <Route path="/waste" element={<WasteDetector onBack={() => navigate('/')} />} />
+              <Route path="/water-leak" element={<WaterLeakDetector onBack={() => navigate('/')} />} />
+              <Route path="/accessibility" element={<AccessibilityDetector onBack={() => navigate('/')} />} />
+              <Route path="/air-quality" element={<AirQualityDetector onBack={() => navigate('/')} />} />
+              <Route path="/playground" element={<PlaygroundDetector onBack={() => navigate('/')} />} />
+              <Route path="/public-transport" element={<PublicTransportDetector onBack={() => navigate('/')} />} />
+              <Route path="/cleanliness" element={<CleanlinessDetector onBack={() => navigate('/')} />} />
+              <Route path="/traffic-sign" element={<TrafficSignDetector onBack={() => navigate('/')} />} />
+              <Route path="/abandoned-vehicle" element={<AbandonedVehicleDetector onBack={() => navigate('/')} />} />
               <Route path="/safety-check" element={
                 <div className="flex flex-col h-full p-4">
                   <button onClick={() => navigate('/')} className="self-start text-blue-600 mb-2 font-bold">

@@ -456,3 +456,39 @@ async def detect_abandoned_vehicle_clip(image: Union[Image.Image, bytes], client
     labels = ["abandoned car", "rusted vehicle", "car with flat tires", "wrecked car", "normal parked car"]
     targets = ["abandoned car", "rusted vehicle", "car with flat tires", "wrecked car"]
     return await _detect_clip_generic(image, labels, targets, client)
+
+
+async def detect_air_quality_clip(image: Union[Image.Image, bytes], client: httpx.AsyncClient = None):
+    """
+    Detects visible air quality issues like smog or smoke.
+    """
+    labels = ["clear sky", "blue sky", "smog", "heavy smoke", "haze", "air pollution"]
+    targets = ["smog", "heavy smoke", "haze", "air pollution"]
+    return await _detect_clip_generic(image, labels, targets, client)
+
+
+async def detect_playground_clip(image: Union[Image.Image, bytes], client: httpx.AsyncClient = None):
+    """
+    Detects safety issues in playgrounds.
+    """
+    labels = ["safe playground", "broken swing", "rusted slide", "damaged equipment", "clean playground", "dangerous playground"]
+    targets = ["broken swing", "rusted slide", "damaged equipment", "dangerous playground"]
+    return await _detect_clip_generic(image, labels, targets, client)
+
+
+async def detect_public_transport_clip(image: Union[Image.Image, bytes], client: httpx.AsyncClient = None):
+    """
+    Detects issues with public transport infrastructure.
+    """
+    labels = ["clean bus stop", "damaged bus shelter", "broken seat", "graffiti on bus stop", "missing schedule", "safe transport stop"]
+    targets = ["damaged bus shelter", "broken seat", "graffiti on bus stop", "missing schedule"]
+    return await _detect_clip_generic(image, labels, targets, client)
+
+
+async def detect_cleanliness_clip(image: Union[Image.Image, bytes], client: httpx.AsyncClient = None):
+    """
+    Detects general cleanliness issues.
+    """
+    labels = ["clean street", "litter on ground", "overflowing garbage bin", "dirty floor", "spotless area", "trash scattered"]
+    targets = ["litter on ground", "overflowing garbage bin", "dirty floor", "trash scattered"]
+    return await _detect_clip_generic(image, labels, targets, client)
