@@ -185,7 +185,7 @@ gh pr create --title "docs: add VishwaGuru - AI-powered civic engagement platfor
 
 ### **Typo Fixes (10 min each)**
 
-**Search**: `"recieve" OR "occured" path:README.md stars:>500`
+**Search**: `"receive" OR "occured" path:README.md stars:>500`
 
 **Commands**:
 ```bash
@@ -196,7 +196,7 @@ git checkout -b fix/readme-typo
 git add README.md
 git commit -m "docs: fix typo in README
 
-Changed 'recieve' to 'receive'"
+Changed 'receive' to 'receive'"
 git push origin fix/readme-typo
 gh pr create --title "docs: fix typo in README"
 ```
@@ -233,7 +233,7 @@ GitHub: https://github.com/Ewocs/VishwaGuru
 ### **Morning (30 min)**
 ```bash
 # Find 3 typos
-gh search code "recieve" --language markdown --stars ">1000" --limit 3
+gh search code "receive" --language markdown --stars ">1000" --limit 3
 
 # Fix each (10 min per typo)
 ```
@@ -349,7 +349,7 @@ git push origin docs/badges
 gh pr create --title "docs: add badges"
 
 # 3. Find and fix 1 typo in external repo (20 min)
-gh search code "recieve" --limit 1
+gh search code "receive" --limit 1
 # Fork, fix, PR
 
 # 4. Add to awesome list (20 min)
