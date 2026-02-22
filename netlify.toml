@@ -3,7 +3,7 @@
 [build]
   # Execute from root, explicit paths
   publish = "frontend/dist"
-  command = "cd frontend && npm ci && npm run build"
+  command = "cd frontend && npm ci && CI=false npm run build"
 
 [build.environment]
   NODE_VERSION = "20"
