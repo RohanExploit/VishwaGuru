@@ -20,3 +20,6 @@ pydub
 googletrans==4.0.2
 langdetect
 indic-nlp-library
+ultralyticsplus==0.0.28
+ultralytics
+opencv-python-headless

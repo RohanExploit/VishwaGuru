@@ -132,19 +132,11 @@ def test_civic_intelligence_run(mock_listdir, mock_json_dump, mock_file_open, mo
         }
     })
 
-    # Configure mock_open to return previous snapshot content when reading
-    # and to provide a separate handle when writing the new snapshot.
-    read_mock = mock_open(read_data=previous_snapshot_content)
-    write_mock = mock_open()
+    # Configure mock_open to return previous snapshot content when read
+    # But for writing, it should just return a file handle
+    # A simple way is to make read() return the content
+    mock_file_open.return_value.read.return_value = previous_snapshot_content
 
-    def open_side_effect(file, mode='r', *args, **kwargs):
-        # Use the read_mock for reading the previous snapshot
-        if 'r' in mode:
-            return read_mock(file, mode, *args, **kwargs)
-        # Use a separate mock for writing the new snapshot
-        return write_mock(file, mode, *args, **kwargs)
-
-    mock_file_open.side_effect = open_side_effect
     # Mock query objects
     mock_query_issues = MagicMock()
     mock_query_upgrades = MagicMock()
