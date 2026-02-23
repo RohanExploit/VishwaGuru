@@ -199,8 +199,10 @@ def process_uploaded_image_sync(file: UploadFile) -> tuple[Image.Image, bytes]:
             img = img.resize((new_width, new_height), Image.Resampling.BILINEAR)
 
         # Strip EXIF
-        img_no_exif = Image.new(img.mode, img.size)
-        img_no_exif.paste(img)
+        # Performance Boost: O(1) stripping by deleting metadata dictionary
+        # instead of O(N) pixel-by-pixel pasting.
+        if "exif" in img.info:
+            del img.info["exif"]
 
         # Save to BytesIO
         output = io.BytesIO()
@@ -211,10 +213,10 @@ def process_uploaded_image_sync(file: UploadFile) -> tuple[Image.Image, bytes]:
         else:
             fmt = 'PNG' if img.mode == 'RGBA' else 'JPEG'
 
-        img_no_exif.save(output, format=fmt, quality=85)
+        img.save(output, format=fmt, quality=85)
         img_bytes = output.getvalue()
 
-        return img_no_exif, img_bytes
+        return img, img_bytes
 
     except Exception as pil_error:
         logger.error(f"PIL processing failed: {pil_error}")
@@ -274,14 +276,14 @@ def save_file_blocking(file_obj, path, image: Optional[Image.Image] = None):
         else:
              img = Image.open(file_obj)
 
-        # Strip EXIF data by creating a new image without metadata
-        # Use paste() instead of getdata() for O(1) performance (vs O(N) list creation)
-        img_no_exif = Image.new(img.mode, img.size)
-        img_no_exif.paste(img)
+        # Strip EXIF data (O(1) optimization)
+        if hasattr(img, "info") and "exif" in img.info:
+            del img.info["exif"]
+
         # Save without EXIF
         # Use original format if available, otherwise default to JPEG if mode is RGB, PNG if RGBA
         fmt = img.format or ('PNG' if img.mode == 'RGBA' else 'JPEG')
-        img_no_exif.save(path, format=fmt)
+        img.save(path, format=fmt)
         logger.info(f"Saved image {path} with EXIF metadata stripped")
     except Exception:
         # If not an image or PIL fails, save as binary

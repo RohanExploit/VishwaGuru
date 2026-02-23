@@ -4,15 +4,10 @@ services:
     name: vishwaguru-backend
     runtime: python
     buildCommand: "./render-build.sh"
-    startCommand: "python start-backend.py"
+    startCommand: "uvicorn backend.main:app --host 0.0.0.0 --port $PORT"
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.0
-      - key: PORT
-        fromService:
-          type: web
-          name: vishwaguru-backend
-          property: port
       - key: PYTHONPATH
         value: .
       # Required API Keys (must be set in Render dashboard)

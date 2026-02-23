@@ -15,7 +15,7 @@ a2wsgi
 python-jose
 cryptography
 passlib
-bcrypt<4.0.0
+bcrypt
 SpeechRecognition
 pydub
 googletrans==4.0.2

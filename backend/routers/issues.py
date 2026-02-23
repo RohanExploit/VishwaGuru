@@ -615,35 +615,37 @@ def get_user_issues(
 @router.get("/api/issues/{issue_id}/blockchain-verify", response_model=BlockchainVerificationResponse)
 async def verify_blockchain_integrity(issue_id: int, db: Session = Depends(get_db)):
     """
-    Verify the cryptographic integrity of a report using the blockchain-style chaining.
-    Optimized: Uses previous_integrity_hash column for O(1) verification when available.
+    Verify the cryptographic integrity of a report using blockchain-style chaining.
+    Optimized: Fetches current data and previous hash in a SINGLE database roundtrip.
     """
-    # Fetch current issue data (including the linked previous hash)
-    current_issue = await run_in_threadpool(
+    # Define subquery to fetch the hash of the actual preceding record (securely)
+    prev_hash_subquery = db.query(Issue.integrity_hash).filter(
+        Issue.id < issue_id
+    ).order_by(Issue.id.desc()).limit(1).scalar_subquery()
+
+    # Perform a single query to get everything needed for verification
+    # This reduces roundtrips from 2 to 1 while maintaining cryptographic chain of trust.
+    data = await run_in_threadpool(
         lambda: db.query(
-            Issue.id, Issue.description, Issue.category, Issue.integrity_hash, Issue.previous_integrity_hash
+            Issue.description,
+            Issue.category,
+            Issue.integrity_hash,
+            prev_hash_subquery.label("prev_hash")
         ).filter(Issue.id == issue_id).first()
     )
 
-    if not current_issue:
+    if not data:
         raise HTTPException(status_code=404, detail="Issue not found")
 
-    # Optimization: Use stored previous hash if available, avoiding an extra DB lookup
-    if current_issue.previous_integrity_hash is not None:
-        prev_hash = current_issue.previous_integrity_hash
-    else:
-        # Fallback for legacy records: Fetch previous issue's integrity hash via query
-        prev_issue_hash = await run_in_threadpool(
-            lambda: db.query(Issue.integrity_hash).filter(Issue.id < issue_id).order_by(Issue.id.desc()).first()
-        )
-        prev_hash = prev_issue_hash[0] if prev_issue_hash and prev_issue_hash[0] else ""
+    # prev_hash will be None for the very first issue
+    prev_hash = data.prev_hash if data.prev_hash is not None else ""
 
-    # Recompute hash based on current data and previous hash
+    # Recompute hash based on current data and verified previous hash
     # Chaining logic: hash(description|category|prev_hash)
-    hash_content = f"{current_issue.description}|{current_issue.category}|{prev_hash}"
+    hash_content = f"{data.description}|{data.category}|{prev_hash}"
     computed_hash = hashlib.sha256(hash_content.encode()).hexdigest()
 
-    is_valid = (computed_hash == current_issue.integrity_hash)
+    is_valid = (computed_hash == data.integrity_hash)
 
     if is_valid:
         message = "Integrity verified. This report is cryptographically sealed and has not been tampered with."
@@ -652,7 +654,7 @@ async def verify_blockchain_integrity(issue_id: int, db: Session = Depends(get_d
 
     return BlockchainVerificationResponse(
         is_valid=is_valid,
-        current_hash=current_issue.integrity_hash,
+        current_hash=data.integrity_hash,
         computed_hash=computed_hash,
         message=message
     )
