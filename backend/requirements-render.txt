@@ -14,3 +14,8 @@ firebase-admin
 a2wsgi
 python-jose[cryptography]
 passlib[bcrypt]
+async-lru
+SpeechRecognition
+googletrans==4.0.0-rc1
+langdetect
+pydub
