@@ -6,7 +6,7 @@ google-generativeai
 python-multipart
 psycopg2-binary
 huggingface-hub
-httpx
+httpx<0.28.0
 pywebpush
 Pillow
 firebase-functions

@@ -9,7 +9,7 @@ ultralyticsplus==0.0.28
 ultralytics
 opencv-python-headless
 huggingface-hub
-httpx
+httpx<0.28.0
 python-magic
 pywebpush
 # Local ML dependencies (Issue #76)
