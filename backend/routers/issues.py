@@ -97,7 +97,8 @@ async def create_issue(
             # Optimization: Use bounding box to filter candidates in SQL
             min_lat, max_lat, min_lon, max_lon = get_bounding_box(latitude, longitude, 50.0)
 
-            # Performance Boost: Use column projection to avoid loading full model instances
+            # Performance Boost: Use column projection and limit results to avoid loading full model instances
+            # in dense areas (max 100 records for spatial search candidates)
             open_issues = await run_in_threadpool(
                 lambda: db.query(
                     Issue.id,
@@ -114,7 +115,7 @@ async def create_issue(
                     Issue.latitude <= max_lat,
                     Issue.longitude >= min_lon,
                     Issue.longitude <= max_lon
-                ).all()
+                ).limit(100).all()
             )
 
             nearby_issues_with_distance = find_nearby_issues(
@@ -309,7 +310,8 @@ def get_nearby_issues(
         # Optimization: Use bounding box to filter candidates in SQL
         min_lat, max_lat, min_lon, max_lon = get_bounding_box(latitude, longitude, radius)
 
-        # Performance Boost: Use column projection to avoid loading full model instances
+        # Performance Boost: Use column projection and limit results to avoid loading full model instances
+        # in dense areas (max 100 records for spatial search candidates)
         open_issues = db.query(
             Issue.id,
             Issue.description,
@@ -325,7 +327,7 @@ def get_nearby_issues(
             Issue.latitude <= max_lat,
             Issue.longitude >= min_lon,
             Issue.longitude <= max_lon
-        ).all()
+        ).limit(100).all()
 
         nearby_issues_with_distance = find_nearby_issues(
             open_issues, latitude, longitude, radius_meters=radius
@@ -618,27 +620,25 @@ def get_user_issues(
 async def verify_blockchain_integrity(issue_id: int, db: Session = Depends(get_db)):
     """
     Verify the cryptographic integrity of a report using the blockchain-style chaining.
-    Optimized: Uses stored previous hash for O(1) verification.
+    Secure: Fetches the actual previous record's hash from DB to ensure chain integrity.
     """
-    # Fetch current issue data including stored previous hash
+    # Fetch current issue data
     current_issue = await run_in_threadpool(
         lambda: db.query(
-            Issue.id, Issue.description, Issue.category, Issue.integrity_hash, Issue.previous_integrity_hash
+            Issue.id, Issue.description, Issue.category, Issue.integrity_hash
         ).filter(Issue.id == issue_id).first()
     )
 
     if not current_issue:
         raise HTTPException(status_code=404, detail="Issue not found")
 
-    # Optimization: Use stored previous hash if available for O(1) verification
-    if current_issue.previous_integrity_hash is not None:
-        prev_hash = current_issue.previous_integrity_hash
-    else:
-        # Fallback for legacy records
-        prev_issue_hash = await run_in_threadpool(
-            lambda: db.query(Issue.integrity_hash).filter(Issue.id < issue_id).order_by(Issue.id.desc()).first()
-        )
-        prev_hash = prev_issue_hash[0] if prev_issue_hash and prev_issue_hash[0] else ""
+    # Fetch previous issue's integrity hash to verify the chain
+    # This ensures that we are verifying against the actual data in the DB, not a stored copy.
+    prev_issue_hash = await run_in_threadpool(
+        lambda: db.query(Issue.integrity_hash).filter(Issue.id < issue_id).order_by(Issue.id.desc()).first()
+    )
+
+    prev_hash = prev_issue_hash[0] if prev_issue_hash and prev_issue_hash[0] else ""
 
     # Recompute hash based on current data and previous hash
     # Chaining logic: hash(description|category|prev_hash)
