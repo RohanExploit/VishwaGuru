@@ -188,6 +188,19 @@ def migrate_db():
                 if not index_exists("field_officer_visits", "ix_field_officer_visits_check_in_time"):
                     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_field_officer_visits_check_in_time ON field_officer_visits (check_in_time)"))
 
+            # Resolution Proof Tables (Issue #292)
+            if not inspector.has_table("resolution_proof_tokens"):
+                logger.info("Creating resolution_proof_tokens table...")
+                Base.metadata.tables['resolution_proof_tokens'].create(bind=conn)
+
+            if not inspector.has_table("resolution_evidence"):
+                logger.info("Creating resolution_evidence table...")
+                Base.metadata.tables['resolution_evidence'].create(bind=conn)
+
+            if not inspector.has_table("evidence_audit_logs"):
+                logger.info("Creating evidence_audit_logs table...")
+                Base.metadata.tables['evidence_audit_logs'].create(bind=conn)
+
             logger.info("Database migration check completed successfully.")
 
     except Exception as e:
