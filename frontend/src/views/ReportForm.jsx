@@ -269,11 +269,13 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
+          const lat = position.coords.latitude;
+          const lng =  position.coords.longitude;
           setFormData(prev => ({
             ...prev,
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            location: `Lat: ${position.coords.latitude.toFixed(4)}, Long: ${position.coords.longitude.toFixed(4)}`
+            latitude: lat,
+            longitude: lng,
+            location: `Lat: ${lat.toFixed(4)}, Long: ${lng.toFixed(4)}`
           }));
           setGettingLocation(false);
         },
@@ -283,10 +285,11 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
           setGettingLocation(false);
         }
       );
-    } else {
-      setError("Geolocation is not supported by this browser.");
-      setGettingLocation(false);
     }
+    //  else {
+    //   setError("Geolocation is not supported by this browser.");
+    //   setGettingLocation(false);
+    // }
   };
 
   const checkNearbyIssues = async () => {

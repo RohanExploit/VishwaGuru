@@ -85,7 +85,44 @@ def get_grievances(
     except Exception as e:
         logger.error(f"Error getting grievances: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to retrieve grievances")
+@router.get("/api/grievances/map")
+def get_grievances_for_map(
+    status: Optional[str] = None,
+    db: Session = Depends(get_db)
+): 
+    """
+    Optimized endpoint for map rendering.
+    Returns only geo + minimal fields.
+    """
+    query = db.query(
+        Grievance.id,
+        Grievance.category,
+        Grievance.severity,
+        Grievance.status,
+        Grievance.latitude,
+        Grievance.longitude,
+        Grievance.assigned_authority
+    ).filter(
+        Grievance.latitude.isnot(None),
+        Grievance.longitude.isnot(None)
+    )
+    if status:
+        query = query.filter(Grievance.status == status)
+    results = query.all()
 
+    return [
+        {
+            "id": g.id,
+            "category": g.category,
+            "severity": g.severity.value,
+            "status": g.status.value,
+            "latitude": g.latitude,
+            "longitude": g.longitude,
+            "authority": g.assigned_authority,
+            
+        }
+        for g in results
+    ]
 @router.get("/api/grievances/{grievance_id}", response_model=GrievanceSummaryResponse)
 def get_grievance(grievance_id: int, db: Session = Depends(get_db)):
     """Get detailed grievance information with escalation history"""

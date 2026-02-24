@@ -8,8 +8,12 @@ import os
 import shutil
 import logging
 import io
+
 import secrets
 import string
+
+import uuid
+
 from typing import Optional
 
 from backend.cache import user_upload_cache
@@ -325,3 +329,4 @@ def generate_reference_id() -> str:
     timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
     random_suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
     return f"VOICE-{timestamp}-{random_suffix}"
+

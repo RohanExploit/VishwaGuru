@@ -2,7 +2,9 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+
+import { motion, AnimatePresence } from 'framer-motion';
+
 import {
   AlertTriangle, MapPin, Search, Activity, Camera, Trash2, ThumbsUp, Brush,
   Droplets, Zap, Truck, Flame, Dog, XCircle, Lightbulb, TreeDeciduous, Bug,
@@ -253,7 +255,13 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loa
                     whileInView={{ opacity: 1, scale: 1 }}
                     viewport={{ once: true }}
                     transition={{ delay: itemIdx * 0.05 }}
-                    onClick={() => setView(item.id)}
+                    onClick={() => {
+                      if(item.id === "map"){
+                        navigate("/grievance-map");
+                      } else {
+                        setView(item.id)
+                    }
+                    }}
                     className="group bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl rounded-[2rem] border border-white/50 dark:border-gray-800/50 p-8 flex flex-col items-start gap-6 hover:shadow-2xl hover:bg-white dark:hover:bg-gray-800 transition-all duration-300 h-56"
                   >
                     <div className={`${item.bg} ${item.color} p-4 rounded-2xl shadow-sm transition-transform group-hover:scale-110 duration-300`}>

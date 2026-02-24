@@ -90,6 +90,20 @@ class GrievanceService:
             longitude = location_data.get('longitude') if isinstance(location_data, dict) else None
             address = location_data.get('address') if isinstance(location_data, dict) else None
 
+            # Validate geo coordinates
+            if latitude is not None and longitude is not None:
+                try:
+                    latitude = float(latitude)
+                    longitude = float(longitude)
+
+                    if not (-90 <- latitude <=90):
+                        raise ValueError("Invalid latitude range")
+                    if not(-180 <= longitude <=180):
+                        raise ValueError("Invalid longitude range")
+                except(ValueError, TypeError):
+                    print("Invalid latitude/longitude provided")
+                    latitude = None
+                    longitude = None
             # Create grievance
             grievance = Grievance(
                 unique_id=unique_id,

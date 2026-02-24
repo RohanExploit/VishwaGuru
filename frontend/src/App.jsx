@@ -8,6 +8,7 @@ import Footer from './components/Footer';
 import FloatingButtonsManager from './components/FloatingButtonsManager';
 import LoadingSpinner from './components/LoadingSpinner';
 import { DarkModeProvider, useDarkMode } from './contexts/DarkModeContext';
+import GrievanceMap from "./views/GrievanceMap";
 
 // Lazy Load Views
 const Landing = React.lazy(() => import('./views/Landing'));
@@ -69,7 +70,9 @@ function AppContent() {
 
   // Safe navigation helper
   const navigateToView = useCallback((view) => {
-    const validViews = ['home', 'map', 'report', 'action', 'mh-rep', 'pothole', 'garbage', 'vandalism', 'flood', 'infrastructure', 'parking', 'streetlight', 'fire', 'animal', 'blocked', 'tree', 'pest', 'smart-scan', 'grievance-analysis', 'noise', 'safety-check', 'insight', 'my-reports', 'grievance', 'login', 'signup'];
+
+    const validViews = ['home', 'map', 'report', 'action', 'mh-rep', 'pothole', 'garbage', 'vandalism', 'flood', 'infrastructure', 'parking', 'streetlight', 'fire', 'animal', 'blocked', 'tree', 'pest', 'smart-scan', 'grievance-analysis', 'noise', 'safety-check', 'my-reports', 'grievance', 'login', 'signup','grievance-map'];
+
     if (validViews.includes(view)) {
       navigate(view === 'home' ? '/' : `/${view}`);
     } else {
@@ -352,12 +355,21 @@ function AppContent() {
                   <GrievanceView />
                 </ProtectedRoute>
               } />
+
               <Route path="/insight" element={
                 <ProtectedRoute>
                   <CivicInsight />
                 </ProtectedRoute>
               } />
+
+              <Route path= "/grievance-map" element={
+                <ProtectedRoute>
+                  <GrievanceMap/>
+                </ProtectedRoute>
+                
+                } />
               <Route path="*" element={<NotFound />} />
+              
             </Routes>
           </Suspense>
         </main>
