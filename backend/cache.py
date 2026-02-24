@@ -85,8 +85,8 @@ class ThreadSafeCache:
         with self._lock:
             current_time = time.time()
             expired_count = sum(
-                1 for ts in self._timestamps.values() 
-                if current_time - ts >= self._ttl
+                1 for data, expiry in self._data.values()
+                if current_time >= expiry
             )
             
             return {
