@@ -114,7 +114,7 @@ async def create_issue(
                     Issue.latitude <= max_lat,
                     Issue.longitude >= min_lon,
                     Issue.longitude <= max_lon
-                ).all()
+                ).limit(100).all()
             )
 
             nearby_issues_with_distance = find_nearby_issues(
@@ -322,7 +322,7 @@ def get_nearby_issues(
             Issue.latitude <= max_lat,
             Issue.longitude >= min_lon,
             Issue.longitude <= max_lon
-        ).all()
+        ).limit(100).all()
 
         nearby_issues_with_distance = find_nearby_issues(
             open_issues, latitude, longitude, radius_meters=radius

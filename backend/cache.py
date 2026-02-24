@@ -1,81 +1,82 @@
 import time
 import logging
 import threading
+import collections
 from typing import Any, Optional
-from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
 class ThreadSafeCache:
     """
-    Thread-safe cache implementation with TTL and memory management.
-    Fixes race conditions and implements proper cache expiration.
+    Thread-safe cache implementation with TTL and LRU eviction.
+    Uses collections.OrderedDict for O(1) LRU operations.
     """
     
     def __init__(self, ttl: int = 300, max_size: int = 100):
-        self._data = {}
-        self._timestamps = {}
-        self._ttl = ttl  # Time to live in seconds
-        self._max_size = max_size  # Maximum number of cache entries
-        self._lock = threading.RLock()  # Reentrant lock for thread safety
-        self._access_count = {}  # Track access frequency for LRU eviction
+        self._cache = collections.OrderedDict()  # Maps key -> (value, timestamp)
+        self._ttl = ttl
+        self._max_size = max_size
+        self._lock = threading.RLock()
         
     def get(self, key: str = "default") -> Optional[Any]:
         """
-        Thread-safe get operation with automatic cleanup.
+        Thread-safe get operation.
+        Removes item if expired. Updates LRU position if valid.
         """
         with self._lock:
-            current_time = time.time()
+            if key not in self._cache:
+                return None
+
+            value, timestamp = self._cache[key]
             
-            # Check if key exists and is not expired
-            if key in self._data and key in self._timestamps:
-                if current_time - self._timestamps[key] < self._ttl:
-                    # Update access count for LRU
-                    self._access_count[key] = self._access_count.get(key, 0) + 1
-                    return self._data[key]
-                else:
-                    # Expired entry - remove it
-                    self._remove_key(key)
+            # Check expiration
+            if time.time() - timestamp > self._ttl:
+                del self._cache[key]
+                return None
             
-            return None
+            # Move to end (most recently used)
+            self._cache.move_to_end(key)
+            return value
     
     def set(self, data: Any, key: str = "default") -> None:
         """
-        Thread-safe set operation with memory management.
+        Thread-safe set operation.
+        Evicts least recently used item if cache is full.
         """
         with self._lock:
             current_time = time.time()
             
-            # Clean up expired entries before adding new one
-            self._cleanup_expired()
+            # If updating existing key, move to end
+            if key in self._cache:
+                self._cache.move_to_end(key)
             
-            # If cache is full, evict least recently used entry
-            if len(self._data) >= self._max_size and key not in self._data:
-                self._evict_lru()
+            self._cache[key] = (data, current_time)
             
-            # Set new data atomically
-            self._data[key] = data
-            self._timestamps[key] = current_time
-            self._access_count[key] = 1
-            
-            logger.debug(f"Cache set: key={key}, size={len(self._data)}")
-    
+            # Check size and evict if needed
+            # We first try to remove expired items if we are over limit
+            if len(self._cache) > self._max_size:
+                self._cleanup_expired()
+
+                # If still over limit, evict LRU (first item)
+                while len(self._cache) > self._max_size:
+                    self._cache.popitem(last=False)
+                    logger.debug(f"Evicted LRU cache entry due to size limit")
+
     def invalidate(self, key: str = "default") -> None:
         """
         Thread-safe invalidation of specific key.
         """
         with self._lock:
-            self._remove_key(key)
-            logger.debug(f"Cache invalidated: key={key}")
+            if key in self._cache:
+                del self._cache[key]
+                logger.debug(f"Cache invalidated: key={key}")
     
     def clear(self) -> None:
         """
         Thread-safe clear all cache entries.
         """
         with self._lock:
-            self._data.clear()
-            self._timestamps.clear()
-            self._access_count.clear()
+            self._cache.clear()
             logger.debug("Cache cleared")
     
     def get_stats(self) -> dict:
@@ -84,56 +85,36 @@ class ThreadSafeCache:
         """
         with self._lock:
             current_time = time.time()
+            # Count expired items without removing them (read-only scan)
             expired_count = sum(
-                1 for ts in self._timestamps.values() 
-                if current_time - ts >= self._ttl
+                1 for _, timestamp in self._cache.values()
+                if current_time - timestamp >= self._ttl
             )
             
             return {
-                "total_entries": len(self._data),
+                "total_entries": len(self._cache),
                 "expired_entries": expired_count,
                 "max_size": self._max_size,
                 "ttl_seconds": self._ttl
             }
-    
-    def _remove_key(self, key: str) -> None:
-        """
-        Internal method to remove a key from all tracking dictionaries.
-        Must be called within lock context.
-        """
-        self._data.pop(key, None)
-        self._timestamps.pop(key, None)
-        self._access_count.pop(key, None)
-    
+
     def _cleanup_expired(self) -> None:
         """
         Internal method to clean up expired entries.
         Must be called within lock context.
         """
         current_time = time.time()
-        expired_keys = [
-            key for key, timestamp in self._timestamps.items()
+        # Create a list of keys to remove to avoid modifying dict while iterating
+        keys_to_remove = [
+            k for k, (_, timestamp) in self._cache.items()
             if current_time - timestamp >= self._ttl
         ]
         
-        for key in expired_keys:
-            self._remove_key(key)
+        for k in keys_to_remove:
+            del self._cache[k]
         
-        if expired_keys:
-            logger.debug(f"Cleaned up {len(expired_keys)} expired cache entries")
-    
-    def _evict_lru(self) -> None:
-        """
-        Internal method to evict least recently used entry.
-        Must be called within lock context.
-        """
-        if not self._access_count:
-            return
-        
-        # Find key with lowest access count
-        lru_key = min(self._access_count.keys(), key=lambda k: self._access_count[k])
-        self._remove_key(lru_key)
-        logger.debug(f"Evicted LRU cache entry: {lru_key}")
+        if keys_to_remove:
+            logger.debug(f"Cleaned up {len(keys_to_remove)} expired cache entries")
 
 class SimpleCache:
     """
