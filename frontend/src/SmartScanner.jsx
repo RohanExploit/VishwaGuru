@@ -176,8 +176,8 @@ const SmartScanner = ({ onBack }) => {
                     &larr; Back
                 </button>
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-600/80 backdrop-blur-md rounded-full border border-blue-400/30">
-                    <Zap size={14} className="text-yellow-300 fill-yellow-300" />
-                    <span className="text-white text-xs font-black uppercase tracking-wider">AI Active</span>
+                    {isAnalyzing ? <Loader2 size={14} className="animate-spin text-yellow-300" /> : <Zap size={14} className="text-yellow-300 fill-yellow-300" />}
+                    <span className="text-white text-xs font-black uppercase tracking-wider">{isAnalyzing ? "Analyzing..." : "AI Active"}</span>
                 </div>
             </div>
 
@@ -254,7 +254,7 @@ const SmartScanner = ({ onBack }) => {
                         {isDetecting ? (
                             <div className="w-6 h-6 bg-white rounded-md"></div>
                         ) : (
-                            <div className="w-6 h-6 bg-red-500 rounded-full"></div>
+                            <Camera size={24} className="text-red-500" />
                         )}
                     </button>
                 </div>
