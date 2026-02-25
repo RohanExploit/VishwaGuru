@@ -58,7 +58,7 @@ def migrate_db():
                     logger.info("Added longitude column to issues")
 
                 if not column_exists("issues", "location"):
-                    conn.execute(text("ALTER TABLE issues ADD COLUMN location VARCHAR"))
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN location VARCHAR(255)"))
                     logger.info("Added location column to issues")
 
                 if not column_exists("issues", "action_plan"):
@@ -66,11 +66,11 @@ def migrate_db():
                     logger.info("Added action_plan column to issues")
 
                 if not column_exists("issues", "integrity_hash"):
-                    conn.execute(text("ALTER TABLE issues ADD COLUMN integrity_hash VARCHAR"))
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN integrity_hash VARCHAR(255)"))
                     logger.info("Added integrity_hash column to issues")
 
                 if not column_exists("issues", "previous_integrity_hash"):
-                    conn.execute(text("ALTER TABLE issues ADD COLUMN previous_integrity_hash VARCHAR"))
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN previous_integrity_hash VARCHAR(255)"))
                     logger.info("Added previous_integrity_hash column to issues")
 
                 # Indexes (using IF NOT EXISTS syntax where supported or check first)
@@ -103,11 +103,11 @@ def migrate_db():
 
                 # Voice and Language Support Columns (Issue #291)
                 if not column_exists("issues", "submission_type"):
-                    conn.execute(text("ALTER TABLE issues ADD COLUMN submission_type VARCHAR DEFAULT 'text'"))
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN submission_type VARCHAR(50) DEFAULT 'text'"))
                     logger.info("Added submission_type column to issues")
 
                 if not column_exists("issues", "original_language"):
-                    conn.execute(text("ALTER TABLE issues ADD COLUMN original_language VARCHAR"))
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN original_language VARCHAR(10)"))
                     logger.info("Added original_language column to issues")
 
                 if not column_exists("issues", "original_text"):
@@ -123,7 +123,7 @@ def migrate_db():
                     logger.info("Added manual_correction_applied column to issues")
 
                 if not column_exists("issues", "audio_file_path"):
-                    conn.execute(text("ALTER TABLE issues ADD COLUMN audio_file_path VARCHAR"))
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN audio_file_path VARCHAR(255)"))
                     logger.info("Added audio_file_path column to issues")
 
             # Grievances Table Migrations
@@ -137,7 +137,7 @@ def migrate_db():
                     logger.info("Added longitude column to grievances")
 
                 if not column_exists("grievances", "address"):
-                    conn.execute(text("ALTER TABLE grievances ADD COLUMN address VARCHAR"))
+                    conn.execute(text("ALTER TABLE grievances ADD COLUMN address VARCHAR(255)"))
                     logger.info("Added address column to grievances")
 
                 if not column_exists("grievances", "issue_id"):
