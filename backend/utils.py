@@ -159,54 +159,22 @@ def process_uploaded_image_sync(file: UploadFile) -> tuple[Image.Image, bytes]:
     Synchronously validate, resize, and strip EXIF from uploaded image.
     Returns a tuple of (PIL Image, image bytes).
     """
-    # Check file size
-    file.file.seek(0, 2)
-    file_size = file.file.tell()
-    file.file.seek(0)
-
-    if file_size > MAX_FILE_SIZE:
-        raise HTTPException(
-            status_code=413,
-            detail=f"File too large. Maximum size allowed is {MAX_FILE_SIZE // (1024*1024)}MB"
-        )
-
-    # Check MIME type if magic is available
-    if HAS_MAGIC:
-        try:
-            file_content = file.file.read(1024)
-            file.file.seek(0)
-            detected_mime = magic.from_buffer(file_content, mime=True)
-
-            if detected_mime not in ALLOWED_MIME_TYPES:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Invalid file type. Only image files are allowed. Detected: {detected_mime}"
-                )
-        except Exception as e:
-            logger.error(f"Magic check failed: {e}")
-            pass
+    # Use existing validation logic (which handles size limits and basic validation)
+    img = _validate_uploaded_file_sync(file)
 
     try:
-        img = Image.open(file.file)
-        original_format = img.format
-
-        # Resize if needed
-        if img.width > 1024 or img.height > 1024:
-            ratio = min(1024 / img.width, 1024 / img.height)
-            new_width = int(img.width * ratio)
-            new_height = int(img.height * ratio)
-            img = img.resize((new_width, new_height), Image.Resampling.BILINEAR)
-
         # Strip EXIF
         img_no_exif = Image.new(img.mode, img.size)
         img_no_exif.paste(img)
 
         # Save to BytesIO
         output = io.BytesIO()
-        # Preserve format or default to JPEG (handling mode compatibility)
-        # JPEG doesn't support RGBA, so use PNG for RGBA if format not specified
-        if original_format:
-            fmt = original_format
+        # Preserve format or default to JPEG/PNG based on mode
+        # _validate_uploaded_file_sync doesn't return the format explicitly if resized,
+        # but img.format is None if resized.
+        # If not resized, img.format is available.
+        if img.format:
+            fmt = img.format
         else:
             fmt = 'PNG' if img.mode == 'RGBA' else 'JPEG'
 
@@ -215,11 +183,11 @@ def process_uploaded_image_sync(file: UploadFile) -> tuple[Image.Image, bytes]:
 
         return img_no_exif, img_bytes
 
-    except Exception as pil_error:
-        logger.error(f"PIL processing failed: {pil_error}")
+    except Exception as e:
+        logger.error(f"Image processing failed: {e}")
         raise HTTPException(
             status_code=400,
-            detail="Invalid image file."
+            detail="Failed to process image file."
         )
 
 async def process_uploaded_image(file: UploadFile) -> tuple[Image.Image, bytes]:

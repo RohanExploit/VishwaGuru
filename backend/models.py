@@ -1,26 +1,9 @@
-import json
-from sqlalchemy import Column, Integer, String, DateTime, Float, Text, ForeignKey, Enum, Index, Boolean
-from sqlalchemy.types import TypeDecorator
+from sqlalchemy import Column, Integer, String, DateTime, Float, Text, ForeignKey, Enum, Index, Boolean, JSON
 from backend.database import Base
 from sqlalchemy.orm import relationship
 
 import datetime
 import enum
-
-class JSONEncodedDict(TypeDecorator):
-    """Represents an immutable structure as a json-encoded string."""
-    impl = Text
-    cache_ok = True
-
-    def process_bind_param(self, value, dialect):
-        if value is not None:
-            value = json.dumps(value)
-        return value
-
-    def process_result_value(self, value, dialect):
-        if value is not None:
-            value = json.loads(value)
-        return value
 
 class JurisdictionLevel(enum.Enum):
     LOCAL = "local"
@@ -67,7 +50,7 @@ class Jurisdiction(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     level = Column(Enum(JurisdictionLevel), nullable=False, index=True)
-    geographic_coverage = Column(JSONEncodedDict, nullable=False)  # e.g., {"states": ["Maharashtra"], "districts": ["Mumbai"]}
+    geographic_coverage = Column(JSON, nullable=False)  # e.g., {"states": ["Maharashtra"], "districts": ["Mumbai"]}
     responsible_authority = Column(String, nullable=False)  # Department or authority name
     default_sla_hours = Column(Integer, nullable=False)  # Default SLA in hours
 
@@ -162,7 +145,7 @@ class Issue(Base):
     latitude = Column(Float, nullable=True, index=True)
     longitude = Column(Float, nullable=True, index=True)
     location = Column(String, nullable=True)
-    action_plan = Column(JSONEncodedDict, nullable=True)
+    action_plan = Column(JSON, nullable=True)
     integrity_hash = Column(String, nullable=True)  # Blockchain integrity seal
     
     # Voice and Language Support (Issue #291)
@@ -248,7 +231,7 @@ class FieldOfficerVisit(Base):
     
     # Visit details
     visit_notes = Column(Text, nullable=True)  # Officer's notes about the visit
-    visit_images = Column(JSONEncodedDict, nullable=True)  # Paths to uploaded images
+    visit_images = Column(JSON, nullable=True)  # Paths to uploaded images
     visit_duration_minutes = Column(Integer, nullable=True)  # Estimated duration of visit
     
     # Check-out (optional)

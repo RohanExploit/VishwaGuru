@@ -204,6 +204,14 @@ async def create_issue(
         else:
             # Don't create new issue, just return deduplication info
             new_issue = None
+
+            # Cleanup unused image since we are not creating a new issue
+            if image_path and os.path.exists(image_path):
+                try:
+                    os.remove(image_path)
+                except OSError:
+                    pass
+
     except Exception as e:
         # Clean up uploaded file if DB save failed
         if image_path and os.path.exists(image_path):
@@ -662,7 +670,7 @@ def get_recent_issues(
     cache_key = f"recent_issues_{limit}_{offset}"
     cached_data = recent_issues_cache.get(cache_key)
     if cached_data:
-        return JSONResponse(content=cached_data)
+        return cached_data
 
     # Fetch issues with pagination
     # Optimized: Use column projection to fetch only needed fields
