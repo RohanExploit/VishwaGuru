@@ -20,3 +20,5 @@ pydub
 googletrans==4.0.2
 langdetect
 indic-nlp-library
+scikit-learn
+numpy
