@@ -62,6 +62,42 @@ def test_blockchain_verification_success(client, db_session):
     assert data["is_valid"] == True
     assert data["current_hash"] == hash2
 
+def test_blockchain_o1_storage(client, db_session):
+    # Create first issue
+    hash1_content = "First issue|Road|"
+    hash1 = hashlib.sha256(hash1_content.encode()).hexdigest()
+
+    issue1 = Issue(
+        description="First issue",
+        category="Road",
+        integrity_hash=hash1
+    )
+    db_session.add(issue1)
+    db_session.commit()
+
+    # Create second issue via API to test previous_integrity_hash population
+    response = client.post(
+        "/api/issues",
+        data={
+            "description": "Second issue for O(1) test",
+            "category": "Road",
+            "language": "en"
+        }
+    )
+    assert response.status_code == 201
+    issue2_id = response.json()["id"]
+
+    # Verify previous_integrity_hash is stored in DB for issue2
+    issue2 = db_session.query(Issue).filter(Issue.id == issue2_id).first()
+    assert issue2.previous_integrity_hash == hash1
+
+    # Verify verification response includes previous_hash
+    response = client.get(f"/api/issues/{issue2_id}/blockchain-verify")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["is_valid"] == True
+    assert data["previous_hash"] == hash1
+
 def test_blockchain_verification_failure(client, db_session):
     # Create issue with tampered hash
     issue = Issue(

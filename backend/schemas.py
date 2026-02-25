@@ -276,6 +276,7 @@ class ClosureStatusResponse(BaseModel):
 class BlockchainVerificationResponse(BaseModel):
     is_valid: bool = Field(..., description="Whether the issue integrity is intact")
     current_hash: Optional[str] = Field(None, description="Current integrity hash stored in DB")
+    previous_hash: Optional[str] = Field(None, description="Previous issue's integrity hash used for chaining")
     computed_hash: str = Field(..., description="Hash computed from current issue data and previous issue's hash")
     message: str = Field(..., description="Verification result message")
 
