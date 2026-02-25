@@ -19,6 +19,5 @@ SpeechRecognition
 pydub
 googletrans==4.0.2
 langdetect
-indic-nlp-library
 scikit-learn
-numpy
+numpy<2.0.0
