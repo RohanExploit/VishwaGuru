@@ -3,227 +3,818 @@
 > eslint .
 
 
-/app/frontend/src/BlockedRoadDetector.jsx
-   1:28  error  'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
-  78:38  error  'err' is defined but never used                                                   no-unused-vars
+/app/frontend/coverage/lcov-report/block-navigation.js
+  1:1  warning  Unused eslint-disable directive (no problems were reported)
 
-/app/frontend/src/FireDetector.jsx
-   1:28  error  'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
-  78:38  error  'err' is defined but never used                                                   no-unused-vars
+/app/frontend/jest.transform.js
+  2:16  warning  'filename' is defined but never used  no-unused-vars
 
-/app/frontend/src/GarbageDetector.jsx
-   9:12  error    'detections' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                no-unused-vars
-   9:24  error    'setDetections' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             no-unused-vars
-  15:13  error    Error: Cannot access variable before it is declared
+/app/frontend/src/AccessibilityDetector.jsx
+  14:13  error    Error: Cannot access variable before it is declared
 
 `startCamera` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
 
-  13 |         let interval;
-  14 |         if (isDetecting) {
-> 15 |             startCamera();
+  12 |         let interval;
+  13 |         if (isDetecting) {
+> 14 |             startCamera();
      |             ^^^^^^^^^^^ `startCamera` accessed before it is declared
-  16 |             interval = setInterval(detectFrame, 2000); // Check every 2 seconds
-  17 |         } else {
-  18 |             stopCamera();
+  15 |             interval = setInterval(detectFrame, 2000);
+  16 |         } else {
+  17 |             stopCamera();
 
-  30 |     }, [isDetecting]);
-  31 |
-> 32 |     const startCamera = async () => {
+  28 |     }, [isDetecting]);
+  29 |
+> 30 |     const startCamera = async () => {
      |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-> 33 |         setError(null);
+> 31 |         setError(null);
      | ^^^^^^^^^^^^^^^^^^^^^^^
-> 34 |         try {
+> 32 |         try {
      …
      | ^^^^^^^^^^^^^^^^^^^^^^^
-> 48 |         }
+> 46 |         }
      | ^^^^^^^^^^^^^^^^^^^^^^^
-> 49 |     };
+> 47 |     };
      | ^^^^^^^ `startCamera` is declared here
-  50 |
-  51 |     const stopCamera = () => {
-  52 |         if (videoRef.current && videoRef.current.srcObject) {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             react-hooks/immutability
-  16:36  error    Error: Cannot access variable before it is declared
+  48 |
+  49 |     const stopCamera = () => {
+  50 |         if (videoRef.current && videoRef.current.srcObject) {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  react-hooks/immutability
+  15:36  error    Error: Cannot access variable before it is declared
 
 `detectFrame` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
 
-  14 |         if (isDetecting) {
-  15 |             startCamera();
-> 16 |             interval = setInterval(detectFrame, 2000); // Check every 2 seconds
+  13 |         if (isDetecting) {
+  14 |             startCamera();
+> 15 |             interval = setInterval(detectFrame, 2000);
      |                                    ^^^^^^^^^^^ `detectFrame` accessed before it is declared
-  17 |         } else {
-  18 |             stopCamera();
-  19 |             if (interval) clearInterval(interval);
+  16 |         } else {
+  17 |             stopCamera();
+  18 |             if (interval) clearInterval(interval);
 
-   80 |     };
-   81 |
->  82 |     const detectFrame = async () => {
-      |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
->  83 |         if (!videoRef.current || !canvasRef.current || !isDetecting) return;
-      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
->  84 |
-      …
-      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-> 129 |         }, 'image/jpeg', 0.8);
-      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-> 130 |     };
-      | ^^^^^^^ `detectFrame` is declared here
-  131 |
-  132 |     return (
-  133 |         <div className="mt-6 flex flex-col items-center w-full">                                                                                                                                                                                                                                                             react-hooks/immutability
-  18:13  error    Error: Cannot access variable before it is declared
+  55 |     };
+  56 |
+> 57 |     const detectFrame = async () => {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 58 |         if (!videoRef.current || !canvasRef.current || !isDetecting) return;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 59 |
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 92 |         }, 'image/jpeg', 0.8);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 93 |     };
+     | ^^^^^^^ `detectFrame` is declared here
+  94 |
+  95 |     const drawDetections = (detections, context) => {
+  96 |         context.clearRect(0, 0, context.canvas.width, context.canvas.height);                                                                                                                                                                                                                            react-hooks/immutability
+  17:13  error    Error: Cannot access variable before it is declared
 
 `stopCamera` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
 
-  16 |             interval = setInterval(detectFrame, 2000); // Check every 2 seconds
-  17 |         } else {
-> 18 |             stopCamera();
+  15 |             interval = setInterval(detectFrame, 2000);
+  16 |         } else {
+> 17 |             stopCamera();
      |             ^^^^^^^^^^ `stopCamera` accessed before it is declared
-  19 |             if (interval) clearInterval(interval);
-  20 |             // Clear canvas when stopping
-  21 |             if (canvasRef.current) {
+  18 |             if (interval) clearInterval(interval);
+  19 |             if (canvasRef.current) {
+  20 |                 const ctx = canvasRef.current.getContext('2d');
 
-  49 |     };
-  50 |
-> 51 |     const stopCamera = () => {
+  47 |     };
+  48 |
+> 49 |     const stopCamera = () => {
      |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
-> 52 |         if (videoRef.current && videoRef.current.srcObject) {
+> 50 |         if (videoRef.current && videoRef.current.srcObject) {
      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-> 53 |             const tracks = videoRef.current.srcObject.getTracks();
+> 51 |             const tracks = videoRef.current.srcObject.getTracks();
      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-> 54 |             tracks.forEach(track => track.stop());
+> 52 |             tracks.forEach(track => track.stop());
      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-> 55 |             videoRef.current.srcObject = null;
+> 53 |             videoRef.current.srcObject = null;
      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-> 56 |         }
+> 54 |         }
      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-> 57 |     };
+> 55 |     };
      | ^^^^^^^ `stopCamera` is declared here
-  58 |
-  59 |     const drawDetections = (detections, context) => {
-  60 |         context.clearRect(0, 0, context.canvas.width, context.canvas.height);  react-hooks/immutability
-  30:8   warning  React Hook useEffect has a missing dependency: 'detectFrame'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            react-hooks/exhaustive-deps
+  56 |
+  57 |     const detectFrame = async () => {
+  58 |         if (!videoRef.current || !canvasRef.current || !isDetecting) return;  react-hooks/immutability
+  28:8   warning  React Hook useEffect has a missing dependency: 'detectFrame'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        react-hooks/exhaustive-deps
 
-/app/frontend/src/IllegalParkingDetector.jsx
-   1:28  error  'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
-  80:38  error  'err' is defined but never used                                                   no-unused-vars
+/app/frontend/src/App.jsx
+    1:61  warning  'useMemo' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                      no-unused-vars
+   59:11  warning  't' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                   no-unused-vars
+   72:10  warning  'error' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                               no-unused-vars
+   73:10  warning  'success' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                             no-unused-vars
+  151:6   warning  React Hook useCallback has an unnecessary dependency: 'navigate'. Either exclude it or remove the dependency array  react-hooks/exhaustive-deps
 
-/app/frontend/src/PestDetector.jsx
-   1:28  error  'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
-  80:36  error  'err' is defined but never used                                                   no-unused-vars
+/app/frontend/src/CivicEyeDetector.jsx
+   5:29  warning  'onBack' is defined but never used                                                                             no-unused-vars
+  16:8   warning  React Hook useEffect has a missing dependency: 'stopCamera'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
 
-/app/frontend/src/PotholeDetector.jsx
-    9:12  error    'detections' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               no-unused-vars
-    9:24  error    'setDetections' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            no-unused-vars
-   15:13  error    Error: Cannot access variable before it is declared
+/app/frontend/src/CrowdDetector.jsx
+  14:13  error    Error: Cannot access variable before it is declared
 
 `startCamera` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
 
-  13 |         let interval;
-  14 |         if (isDetecting) {
-> 15 |             startCamera();
+  12 |         let interval;
+  13 |         if (isDetecting) {
+> 14 |             startCamera();
      |             ^^^^^^^^^^^ `startCamera` accessed before it is declared
-  16 |             interval = setInterval(detectFrame, 2000); // Check every 2 seconds
-  17 |         } else {
-  18 |             stopCamera();
+  15 |             interval = setInterval(detectFrame, 2000);
+  16 |         } else {
+  17 |             stopCamera();
 
-  30 |     }, [isDetecting]);
-  31 |
-> 32 |     const startCamera = async () => {
+  28 |     }, [isDetecting]);
+  29 |
+> 30 |     const startCamera = async () => {
      |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-> 33 |         setError(null);
+> 31 |         setError(null);
      | ^^^^^^^^^^^^^^^^^^^^^^^
-> 34 |         try {
+> 32 |         try {
      …
      | ^^^^^^^^^^^^^^^^^^^^^^^
-> 48 |         }
+> 46 |         }
      | ^^^^^^^^^^^^^^^^^^^^^^^
-> 49 |     };
+> 47 |     };
      | ^^^^^^^ `startCamera` is declared here
-  50 |
-  51 |     const stopCamera = () => {
-  52 |         if (videoRef.current && videoRef.current.srcObject) {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            react-hooks/immutability
-   16:36  error    Error: Cannot access variable before it is declared
+  48 |
+  49 |     const stopCamera = () => {
+  50 |         if (videoRef.current && videoRef.current.srcObject) {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  react-hooks/immutability
+  15:36  error    Error: Cannot access variable before it is declared
 
 `detectFrame` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
 
-  14 |         if (isDetecting) {
-  15 |             startCamera();
-> 16 |             interval = setInterval(detectFrame, 2000); // Check every 2 seconds
+  13 |         if (isDetecting) {
+  14 |             startCamera();
+> 15 |             interval = setInterval(detectFrame, 2000);
      |                                    ^^^^^^^^^^^ `detectFrame` accessed before it is declared
-  17 |         } else {
-  18 |             stopCamera();
-  19 |             if (interval) clearInterval(interval);
+  16 |         } else {
+  17 |             stopCamera();
+  18 |             if (interval) clearInterval(interval);
 
-   57 |     };
-   58 |
->  59 |     const detectFrame = async () => {
-      |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
->  60 |         if (!videoRef.current || !canvasRef.current || !isDetecting) return;
-      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
->  61 |
-      …
-      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-> 106 |         }, 'image/jpeg', 0.8);
-      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-> 107 |     };
-      | ^^^^^^^ `detectFrame` is declared here
-  108 |
-  109 |     const drawDetections = (detections, context, video) => {
-  110 |         // Redraw current video frame so boxes are on top of *latest* video?                                                                                                                                                                                react-hooks/immutability
-   18:13  error    Error: Cannot access variable before it is declared
+  55 |     };
+  56 |
+> 57 |     const detectFrame = async () => {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 58 |         if (!videoRef.current || !canvasRef.current || !isDetecting) return;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 59 |
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 92 |         }, 'image/jpeg', 0.8);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 93 |     };
+     | ^^^^^^^ `detectFrame` is declared here
+  94 |
+  95 |     const drawDetections = (detections, context) => {
+  96 |         context.clearRect(0, 0, context.canvas.width, context.canvas.height);                                                                                                                                                                                                                            react-hooks/immutability
+  17:13  error    Error: Cannot access variable before it is declared
 
 `stopCamera` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
 
-  16 |             interval = setInterval(detectFrame, 2000); // Check every 2 seconds
-  17 |         } else {
-> 18 |             stopCamera();
+  15 |             interval = setInterval(detectFrame, 2000);
+  16 |         } else {
+> 17 |             stopCamera();
      |             ^^^^^^^^^^ `stopCamera` accessed before it is declared
-  19 |             if (interval) clearInterval(interval);
-  20 |             // Clear canvas when stopping
-  21 |             if (canvasRef.current) {
+  18 |             if (interval) clearInterval(interval);
+  19 |             if (canvasRef.current) {
+  20 |                 const ctx = canvasRef.current.getContext('2d');
 
-  49 |     };
-  50 |
-> 51 |     const stopCamera = () => {
+  47 |     };
+  48 |
+> 49 |     const stopCamera = () => {
      |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
-> 52 |         if (videoRef.current && videoRef.current.srcObject) {
+> 50 |         if (videoRef.current && videoRef.current.srcObject) {
      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-> 53 |             const tracks = videoRef.current.srcObject.getTracks();
+> 51 |             const tracks = videoRef.current.srcObject.getTracks();
      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-> 54 |             tracks.forEach(track => track.stop());
+> 52 |             tracks.forEach(track => track.stop());
      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-> 55 |             videoRef.current.srcObject = null;
+> 53 |             videoRef.current.srcObject = null;
      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-> 56 |         }
+> 54 |         }
      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-> 57 |     };
+> 55 |     };
      | ^^^^^^^ `stopCamera` is declared here
-  58 |
-  59 |     const detectFrame = async () => {
-  60 |         if (!videoRef.current || !canvasRef.current || !isDetecting) return;  react-hooks/immutability
-   30:8   warning  React Hook useEffect has a missing dependency: 'detectFrame'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react-hooks/exhaustive-deps
-  109:50  error    'video' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        no-unused-vars
+  56 |
+  57 |     const detectFrame = async () => {
+  58 |         if (!videoRef.current || !canvasRef.current || !isDetecting) return;  react-hooks/immutability
+  28:8   warning  React Hook useEffect has a missing dependency: 'detectFrame'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        react-hooks/exhaustive-deps
 
-/app/frontend/src/StrayAnimalDetector.jsx
-   1:28  error  'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
-  78:38  error  'err' is defined but never used                                                   no-unused-vars
+/app/frontend/src/NoiseDetector.jsx
+  17:13  error    Error: Cannot access variable before it is declared
 
-/app/frontend/src/StreetLightDetector.jsx
-   1:28  error  'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
-  78:38  error  'err' is defined but never used                                                   no-unused-vars
+`stopRecording` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
 
-/app/frontend/src/TreeDetector.jsx
-   1:28  error  'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
-  80:36  error  'err' is defined but never used                                                   no-unused-vars
+  15 |         // Cleanup on unmount
+  16 |         return () => {
+> 17 |             stopRecording();
+     |             ^^^^^^^^^^^^^ `stopRecording` accessed before it is declared
+  18 |         };
+  19 |     }, []);
+  20 |
 
-/app/frontend/src/VandalismDetector.jsx
-   1:28  error  'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
-  76:36  error  'err' is defined but never used                                                   no-unused-vars
+   93 |     };
+   94 |
+>  95 |     const stopRecording = () => {
+      |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  96 |         setIsRecording(false);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  97 |         stopLoop();
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  98 |     };
+      | ^^^^^^^ `stopRecording` is declared here
+   99 |
+  100 |     const sendAudio = async (blob) => {
+  101 |         setStatus('Analyzing...');                                                                   react-hooks/immutability
+  19:8   warning  React Hook useEffect has a missing dependency: 'stopRecording'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 react-hooks/exhaustive-deps
+  23:13  error    Error: Cannot access variable before it is declared
 
-/app/frontend/src/api/detectors.js
-  1:21  error  'getApiUrl' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+`startLoop` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
 
-/app/frontend/src/views/ActionView.jsx
-  10:3  error  React Hook "useEffect" is called conditionally. React Hooks must be called in the exact same order in every component render  react-hooks/rules-of-hooks
+  21 |     useEffect(() => {
+  22 |         if (isRecording) {
+> 23 |             startLoop();
+     |             ^^^^^^^^^ `startLoop` accessed before it is declared
+  24 |         } else {
+  25 |             stopLoop();
+  26 |         }
 
-✖ 31 problems (29 errors, 2 warnings)
+  27 |     }, [isRecording]);
+  28 |
+> 29 |     const startLoop = async () => {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 30 |         setError(null);
+     | ^^^^^^^^^^^^^^^^^^^^^^^
+> 31 |         setStatus('Initializing...');
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^
+> 80 |         }
+     | ^^^^^^^^^^^^^^^^^^^^^^^
+> 81 |     };
+     | ^^^^^^^ `startLoop` is declared here
+  82 |
+  83 |     const stopLoop = () => {
+  84 |         if (intervalRef.current) {               react-hooks/immutability
+  25:13  error    Error: Cannot access variable before it is declared
+
+`stopLoop` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  23 |             startLoop();
+  24 |         } else {
+> 25 |             stopLoop();
+     |             ^^^^^^^^ `stopLoop` accessed before it is declared
+  26 |         }
+  27 |     }, [isRecording]);
+  28 |
+
+  81 |     };
+  82 |
+> 83 |     const stopLoop = () => {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^
+> 84 |         if (intervalRef.current) {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 85 |             clearInterval(intervalRef.current);
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 92 |         setStatus('Ready');
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 93 |     };
+     | ^^^^^^^ `stopLoop` is declared here
+  94 |
+  95 |     const stopRecording = () => {
+  96 |         setIsRecording(false);  react-hooks/immutability
+  27:8   warning  React Hook useEffect has a missing dependency: 'startLoop'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     react-hooks/exhaustive-deps
+
+/app/frontend/src/WasteDetector.jsx
+   5:26  warning  'onBack' is defined but never used                                                                             no-unused-vars
+  16:8   warning  React Hook useEffect has a missing dependency: 'stopCamera'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/app/frontend/src/WaterLeakDetector.jsx
+  14:13  error    Error: Cannot access variable before it is declared
+
+`startCamera` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  12 |         let interval;
+  13 |         if (isDetecting) {
+> 14 |             startCamera();
+     |             ^^^^^^^^^^^ `startCamera` accessed before it is declared
+  15 |             interval = setInterval(detectFrame, 2000); // Check every 2 seconds
+  16 |         } else {
+  17 |             stopCamera();
+
+  28 |     }, [isDetecting]);
+  29 |
+> 30 |     const startCamera = async () => {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 31 |         setError(null);
+     | ^^^^^^^^^^^^^^^^^^^^^^^
+> 32 |         try {
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^
+> 46 |         }
+     | ^^^^^^^^^^^^^^^^^^^^^^^
+> 47 |     };
+     | ^^^^^^^ `startCamera` is declared here
+  48 |
+  49 |     const stopCamera = () => {
+  50 |         if (videoRef.current && videoRef.current.srcObject) {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  react-hooks/immutability
+  15:36  error    Error: Cannot access variable before it is declared
+
+`detectFrame` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  13 |         if (isDetecting) {
+  14 |             startCamera();
+> 15 |             interval = setInterval(detectFrame, 2000); // Check every 2 seconds
+     |                                    ^^^^^^^^^^^ `detectFrame` accessed before it is declared
+  16 |         } else {
+  17 |             stopCamera();
+  18 |             if (interval) clearInterval(interval);
+
+  55 |     };
+  56 |
+> 57 |     const detectFrame = async () => {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 58 |         if (!videoRef.current || !canvasRef.current || !isDetecting) return;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 59 |
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 92 |         }, 'image/jpeg', 0.8);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 93 |     };
+     | ^^^^^^^ `detectFrame` is declared here
+  94 |
+  95 |     const drawDetections = (detections, context) => {
+  96 |         context.clearRect(0, 0, context.canvas.width, context.canvas.height);                                                                                                                                                                                                                            react-hooks/immutability
+  17:13  error    Error: Cannot access variable before it is declared
+
+`stopCamera` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  15 |             interval = setInterval(detectFrame, 2000); // Check every 2 seconds
+  16 |         } else {
+> 17 |             stopCamera();
+     |             ^^^^^^^^^^ `stopCamera` accessed before it is declared
+  18 |             if (interval) clearInterval(interval);
+  19 |             if (canvasRef.current) {
+  20 |                 const ctx = canvasRef.current.getContext('2d');
+
+  47 |     };
+  48 |
+> 49 |     const stopCamera = () => {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 50 |         if (videoRef.current && videoRef.current.srcObject) {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 51 |             const tracks = videoRef.current.srcObject.getTracks();
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 52 |             tracks.forEach(track => track.stop());
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 53 |             videoRef.current.srcObject = null;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 54 |         }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 55 |     };
+     | ^^^^^^^ `stopCamera` is declared here
+  56 |
+  57 |     const detectFrame = async () => {
+  58 |         if (!videoRef.current || !canvasRef.current || !isDetecting) return;  react-hooks/immutability
+  28:8   warning  React Hook useEffect has a missing dependency: 'detectFrame'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 react-hooks/exhaustive-deps
+
+/app/frontend/src/__mocks__/client.js
+  3:10  error  'process' is not defined  no-undef
+
+/app/frontend/src/__mocks__/location.js
+  5:10  error  'process' is not defined  no-undef
+
+/app/frontend/src/api/__tests__/client.test.js
+    4:1   error  'global' is not defined      no-undef
+    4:16  error  'jest' is not defined        no-undef
+    6:1   error  'describe' is not defined    no-undef
+    7:3   error  'beforeEach' is not defined  no-undef
+    8:5   error  'jest' is not defined        no-undef
+   10:12  error  'process' is not defined     no-undef
+   13:3   error  'describe' is not defined    no-undef
+   14:5   error  'it' is not defined          no-undef
+   15:7   error  'expect' is not defined      no-undef
+   18:5   error  'it' is not defined          no-undef
+   19:7   error  'process' is not defined     no-undef
+   20:7   error  'expect' is not defined      no-undef
+   24:3   error  'describe' is not defined    no-undef
+   25:5   error  'it' is not defined          no-undef
+   29:15  error  'jest' is not defined        no-undef
+   32:7   error  'global' is not defined      no-undef
+   36:7   error  'expect' is not defined      no-undef
+   36:14  error  'global' is not defined      no-undef
+   41:7   error  'expect' is not defined      no-undef
+   44:5   error  'it' is not defined          no-undef
+   50:7   error  'global' is not defined      no-undef
+   52:13  error  'expect' is not defined      no-undef
+   55:5   error  'it' is not defined          no-undef
+   56:7   error  'process' is not defined     no-undef
+   60:15  error  'jest' is not defined        no-undef
+   63:7   error  'global' is not defined      no-undef
+   67:7   error  'expect' is not defined      no-undef
+   67:14  error  'global' is not defined      no-undef
+   75:3   error  'describe' is not defined    no-undef
+   76:5   error  'it' is not defined          no-undef
+   80:15  error  'jest' is not defined        no-undef
+   83:7   error  'global' is not defined      no-undef
+   88:7   error  'expect' is not defined      no-undef
+   88:14  error  'global' is not defined      no-undef
+   95:7   error  'expect' is not defined      no-undef
+   98:5   error  'it' is not defined          no-undef
+  104:7   error  'global' is not defined      no-undef
+  106:13  error  'expect' is not defined      no-undef
+  109:5   error  'it' is not defined          no-undef
+  110:7   error  'process' is not defined     no-undef
+  114:15  error  'jest' is not defined        no-undef
+  117:7   error  'global' is not defined      no-undef
+  121:7   error  'expect' is not defined      no-undef
+  121:14  error  'global' is not defined      no-undef
+  121:90  error  'expect' is not defined      no-undef
+  125:3   error  'describe' is not defined    no-undef
+  126:5   error  'it' is not defined          no-undef
+  130:15  error  'jest' is not defined        no-undef
+  133:7   error  'global' is not defined      no-undef
+  140:7   error  'expect' is not defined      no-undef
+  140:14  error  'global' is not defined      no-undef
+  144:7   error  'expect' is not defined      no-undef
+  147:5   error  'it' is not defined          no-undef
+  153:7   error  'global' is not defined      no-undef
+  157:13  error  'expect' is not defined      no-undef
+  160:5   error  'it' is not defined          no-undef
+  161:7   error  'process' is not defined     no-undef
+  165:15  error  'jest' is not defined        no-undef
+  168:7   error  'global' is not defined      no-undef
+  174:7   error  'expect' is not defined      no-undef
+  174:14  error  'global' is not defined      no-undef
+  174:92  error  'expect' is not defined      no-undef
+
+/app/frontend/src/api/__tests__/detectors.test.js
+    4:1   error  'jest' is not defined        no-undef
+    6:15  error  'jest' is not defined        no-undef
+    8:14  error  'jest' is not defined        no-undef
+   13:1   error  'describe' is not defined    no-undef
+   14:3   error  'beforeEach' is not defined  no-undef
+   15:5   error  'jest' is not defined        no-undef
+   34:5   error  'describe' is not defined    no-undef
+   35:7   error  'it' is not defined          no-undef
+   49:9   error  'expect' is not defined      no-undef
+   50:9   error  'expect' is not defined      no-undef
+   53:7   error  'it' is not defined          no-undef
+   66:9   error  'expect' is not defined      no-undef
+   69:7   error  'it' is not defined          no-undef
+   77:9   error  'expect' is not defined      no-undef
+   80:7   error  'it' is not defined          no-undef
+   86:15  error  'expect' is not defined      no-undef
+   89:7   error  'it' is not defined          no-undef
+   95:15  error  'expect' is not defined      no-undef
+  100:3   error  'describe' is not defined    no-undef
+  101:5   error  'it' is not defined          no-undef
+  117:9   error  'expect' is not defined      no-undef
+  121:5   error  'it' is not defined          no-undef
+  133:7   error  'expect' is not defined      no-undef
+  137:3   error  'describe' is not defined    no-undef
+  138:5   error  'it' is not defined          no-undef
+  146:13  error  'expect' is not defined      no-undef
+  149:5   error  'it' is not defined          no-undef
+  162:15  error  'expect' is not defined      no-undef
+
+/app/frontend/src/api/__tests__/index.test.js
+   4:1   error  'jest' is not defined      no-undef
+   5:21  error  'jest' is not defined      no-undef
+   5:38  error  'jest' is not defined      no-undef
+   5:59  error  'jest' is not defined      no-undef
+   6:14  error  'jest' is not defined      no-undef
+   9:1   error  'jest' is not defined      no-undef
+  10:27  error  'jest' is not defined      no-undef
+  10:46  error  'jest' is not defined      no-undef
+  10:63  error  'jest' is not defined      no-undef
+  13:1   error  'jest' is not defined      no-undef
+  15:14  error  'jest' is not defined      no-undef
+  16:14  error  'jest' is not defined      no-undef
+  17:16  error  'jest' is not defined      no-undef
+  18:15  error  'jest' is not defined      no-undef
+  19:21  error  'jest' is not defined      no-undef
+  20:21  error  'jest' is not defined      no-undef
+  21:18  error  'jest' is not defined      no-undef
+  22:11  error  'jest' is not defined      no-undef
+  23:18  error  'jest' is not defined      no-undef
+  24:18  error  'jest' is not defined      no-undef
+  25:17  error  'jest' is not defined      no-undef
+  26:11  error  'jest' is not defined      no-undef
+  30:1   error  'jest' is not defined      no-undef
+  32:27  error  'jest' is not defined      no-undef
+  33:11  error  'jest' is not defined      no-undef
+  34:20  error  'jest' is not defined      no-undef
+  35:15  error  'jest' is not defined      no-undef
+  39:1   error  'describe' is not defined  no-undef
+  40:3   error  'it' is not defined        no-undef
+  41:5   error  'expect' is not defined    no-undef
+  42:5   error  'expect' is not defined    no-undef
+  43:5   error  'expect' is not defined    no-undef
+  44:5   error  'expect' is not defined    no-undef
+  45:5   error  'expect' is not defined    no-undef
+  48:3   error  'it' is not defined        no-undef
+  49:5   error  'expect' is not defined    no-undef
+  50:5   error  'expect' is not defined    no-undef
+  51:5   error  'expect' is not defined    no-undef
+  52:5   error  'expect' is not defined    no-undef
+  55:3   error  'it' is not defined        no-undef
+  56:5   error  'expect' is not defined    no-undef
+  65:7   error  'expect' is not defined    no-undef
+  69:3   error  'it' is not defined        no-undef
+  70:5   error  'expect' is not defined    no-undef
+  71:5   error  'expect' is not defined    no-undef
+  72:5   error  'expect' is not defined    no-undef
+  73:5   error  'expect' is not defined    no-undef
+  74:5   error  'expect' is not defined    no-undef
+  77:3   error  'it' is not defined        no-undef
+  80:7   error  'expect' is not defined    no-undef
+  81:7   error  'expect' is not defined    no-undef
+  85:3   error  'it' is not defined        no-undef
+  92:5   error  'expect' is not defined    no-undef
+  96:7   error  'expect' is not defined    no-undef
+
+/app/frontend/src/api/__tests__/issues.test.js
+    5:1   error  'jest' is not defined        no-undef
+    7:10  error  'jest' is not defined        no-undef
+    8:11  error  'jest' is not defined        no-undef
+    9:15  error  'jest' is not defined        no-undef
+   14:1   error  'jest' is not defined        no-undef
+   23:1   error  'describe' is not defined    no-undef
+   24:3   error  'beforeEach' is not defined  no-undef
+   25:5   error  'jest' is not defined        no-undef
+   28:3   error  'describe' is not defined    no-undef
+   29:5   error  'it' is not defined          no-undef
+   39:7   error  'expect' is not defined      no-undef
+   40:7   error  'expect' is not defined      no-undef
+   43:5   error  'it' is not defined          no-undef
+   44:30  error  'jest' is not defined        no-undef
+   51:7   error  'expect' is not defined      no-undef
+   52:7   error  'expect' is not defined      no-undef
+   53:7   error  'expect' is not defined      no-undef
+   58:5   error  'it' is not defined          no-undef
+   59:30  error  'jest' is not defined        no-undef
+   66:7   error  'expect' is not defined      no-undef
+   67:7   error  'expect' is not defined      no-undef
+   73:3   error  'describe' is not defined    no-undef
+   74:5   error  'it' is not defined          no-undef
+   84:7   error  'expect' is not defined      no-undef
+   85:7   error  'expect' is not defined      no-undef
+   88:5   error  'it' is not defined          no-undef
+   94:13  error  'expect' is not defined      no-undef
+   97:5   error  'it' is not defined          no-undef
+  109:7   error  'expect' is not defined      no-undef
+  110:7   error  'expect' is not defined      no-undef
+  114:3   error  'describe' is not defined    no-undef
+  115:5   error  'it' is not defined          no-undef
+  123:7   error  'expect' is not defined      no-undef
+  124:7   error  'expect' is not defined      no-undef
+  127:5   error  'it' is not defined          no-undef
+  135:9   error  'expect' is not defined      no-undef
+  139:5   error  'it' is not defined          no-undef
+  145:13  error  'expect' is not defined      no-undef
+
+/app/frontend/src/api/__tests__/location.test.js
+    5:1   error  'global' is not defined      no-undef
+    5:16  error  'jest' is not defined        no-undef
+    8:1   error  'jest' is not defined        no-undef
+   17:1   error  'describe' is not defined    no-undef
+   18:3   error  'beforeEach' is not defined  no-undef
+   19:5   error  'jest' is not defined        no-undef
+   21:12  error  'process' is not defined     no-undef
+   24:3   error  'it' is not defined          no-undef
+   36:13  error  'jest' is not defined        no-undef
+   39:5   error  'global' is not defined      no-undef
+   43:5   error  'expect' is not defined      no-undef
+   43:12  error  'global' is not defined      no-undef
+   44:5   error  'expect' is not defined      no-undef
+   47:3   error  'it' is not defined          no-undef
+   48:5   error  'process' is not defined     no-undef
+   54:13  error  'jest' is not defined        no-undef
+   57:5   error  'global' is not defined      no-undef
+   61:5   error  'expect' is not defined      no-undef
+   61:12  error  'global' is not defined      no-undef
+   64:3   error  'it' is not defined          no-undef
+   65:29  error  'jest' is not defined        no-undef
+   69:5   error  'global' is not defined      no-undef
+   73:5   error  'expect' is not defined      no-undef
+   74:5   error  'expect' is not defined      no-undef
+   79:3   error  'it' is not defined          no-undef
+   80:29  error  'jest' is not defined        no-undef
+   86:13  error  'jest' is not defined        no-undef
+   89:5   error  'global' is not defined      no-undef
+   93:5   error  'expect' is not defined      no-undef
+   94:5   error  'expect' is not defined      no-undef
+   99:3   error  'it' is not defined          no-undef
+  106:15  error  'jest' is not defined        no-undef
+  109:7   error  'global' is not defined      no-undef
+  113:7   error  'expect' is not defined      no-undef
+  113:14  error  'global' is not defined      no-undef
+  114:7   error  'expect' is not defined      no-undef
+  118:3   error  'it' is not defined          no-undef
+  119:29  error  'jest' is not defined        no-undef
+  124:13  error  'jest' is not defined        no-undef
+  127:5   error  'global' is not defined      no-undef
+  131:5   error  'expect' is not defined      no-undef
+  132:5   error  'expect' is not defined      no-undef
+  137:3   error  'it' is not defined          no-undef
+  138:29  error  'jest' is not defined        no-undef
+  142:5   error  'global' is not defined      no-undef
+  146:5   error  'expect' is not defined      no-undef
+  147:5   error  'expect' is not defined      no-undef
+  152:3   error  'it' is not defined          no-undef
+  153:29  error  'jest' is not defined        no-undef
+  156:5   error  'global' is not defined      no-undef
+  160:5   error  'expect' is not defined      no-undef
+  161:5   error  'expect' is not defined      no-undef
+  162:5   error  'expect' is not defined      no-undef
+  167:3   error  'it' is not defined          no-undef
+  173:13  error  'jest' is not defined        no-undef
+  176:5   error  'global' is not defined      no-undef
+  180:5   error  'expect' is not defined      no-undef
+  180:12  error  'global' is not defined      no-undef
+  181:5   error  'expect' is not defined      no-undef
+
+/app/frontend/src/api/__tests__/misc.test.js
+    5:1   error  'jest' is not defined        no-undef
+    7:10  error  'jest' is not defined        no-undef
+    8:11  error  'jest' is not defined        no-undef
+   13:1   error  'jest' is not defined        no-undef
+   22:1   error  'describe' is not defined    no-undef
+   23:3   error  'beforeEach' is not defined  no-undef
+   24:5   error  'jest' is not defined        no-undef
+   27:3   error  'describe' is not defined    no-undef
+   28:5   error  'it' is not defined          no-undef
+   38:7   error  'expect' is not defined      no-undef
+   39:7   error  'expect' is not defined      no-undef
+   42:5   error  'it' is not defined          no-undef
+   43:30  error  'jest' is not defined        no-undef
+   50:7   error  'expect' is not defined      no-undef
+   51:7   error  'expect' is not defined      no-undef
+   52:7   error  'expect' is not defined      no-undef
+   57:5   error  'it' is not defined          no-undef
+   58:30  error  'jest' is not defined        no-undef
+   64:7   error  'expect' is not defined      no-undef
+   65:7   error  'expect' is not defined      no-undef
+   71:3   error  'describe' is not defined    no-undef
+   72:5   error  'it' is not defined          no-undef
+   82:7   error  'expect' is not defined      no-undef
+   83:7   error  'expect' is not defined      no-undef
+   86:5   error  'it' is not defined          no-undef
+   99:9   error  'expect' is not defined      no-undef
+  103:5   error  'it' is not defined          no-undef
+  109:13  error  'expect' is not defined      no-undef
+  112:5   error  'it' is not defined          no-undef
+  120:7   error  'expect' is not defined      no-undef
+  121:7   error  'expect' is not defined      no-undef
+  125:3   error  'describe' is not defined    no-undef
+  126:5   error  'it' is not defined          no-undef
+  138:7   error  'expect' is not defined      no-undef
+  139:7   error  'expect' is not defined      no-undef
+  142:5   error  'it' is not defined          no-undef
+  150:9   error  'expect' is not defined      no-undef
+  154:5   error  'it' is not defined          no-undef
+  160:13  error  'expect' is not defined      no-undef
+  163:5   error  'it' is not defined          no-undef
+  171:7   error  'expect' is not defined      no-undef
+  175:3   error  'describe' is not defined    no-undef
+  176:5   error  'it' is not defined          no-undef
+  192:7   error  'expect' is not defined      no-undef
+  193:7   error  'expect' is not defined      no-undef
+  196:5   error  'it' is not defined          no-undef
+  208:7   error  'expect' is not defined      no-undef
+  211:5   error  'it' is not defined          no-undef
+  216:13  error  'expect' is not defined      no-undef
+  219:5   error  'it' is not defined          no-undef
+  224:13  error  'expect' is not defined      no-undef
+
+/app/frontend/src/components/BaseDetector.jsx
+  87:36  warning  'e' is defined but never used  no-unused-vars
+
+/app/frontend/src/components/Navbar.jsx
+  4:10  warning  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/app/frontend/src/components/ResolutionProofCapture.jsx
+  99:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+   97 |         const distance = R * c;
+   98 |
+>  99 |         setGeofenceStatus({
+      |         ^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  100 |             distance: Math.round(distance),
+  101 |             isInside: distance <= token.geofence_radius_meters,
+  102 |             radius: token.geofence_radius_meters,  react-hooks/set-state-in-effect
+
+/app/frontend/src/components/SupabaseExample.jsx
+   54:13  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  52 |     useEffect(() => {
+  53 |         if (fetchedReports) {
+> 54 |             setReports(fetchedReports);
+     |             ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  55 |         }
+  56 |     }, [fetchedReports]);
+  57 |  react-hooks/set-state-in-effect
+   61:17  warning  'data' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           no-unused-vars
+   73:17  warning  'data' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           no-unused-vars
+  100:17  warning  'data' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           no-unused-vars
+
+/app/frontend/src/components/VoiceInput.jsx
+  13:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  11 |   useEffect(() => {
+  12 |      if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
+> 13 |         setIsSupported(false);
+     |         ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  14 |      }
+  15 |   }, []);
+  16 |  react-hooks/set-state-in-effect
+  58:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  56 |     };
+  57 |
+> 58 |     setRecognition(recognitionInstance);
+     |     ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  59 |
+  60 |     return () => {
+  61 |       if (recognitionInstance) {                                               react-hooks/set-state-in-effect
+
+/app/frontend/src/contexts/AuthContext.jsx
+  31:13  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  29 |         } else {
+  30 |             apiClient.removeToken();
+> 31 |             setLoading(false);
+     |             ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  32 |         }
+  33 |     }, [token]);
+  34 |  react-hooks/set-state-in-effect
+  49:18  warning  'e' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  no-unused-vars
+  65:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 react-refresh/only-export-components
+
+/app/frontend/src/contexts/DarkModeContext.jsx
+  38:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/app/frontend/src/lib/supabaseHooks.js
+   95:8   warning  React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array                              react-hooks/exhaustive-deps
+   95:16  warning  React Hook useEffect has a complex expression in the dependency array. Extract it to a separate variable so it can be statically checked  react-hooks/exhaustive-deps
+  234:8   warning  React Hook useEffect has a missing dependency: 'filter.filter'. Either include it or remove the dependency array                          react-hooks/exhaustive-deps
+  234:26  warning  React Hook useEffect has a complex expression in the dependency array. Extract it to a separate variable so it can be statically checked  react-hooks/exhaustive-deps
+
+/app/frontend/src/setupTests.js
+  4:1   error  'global' is not defined  no-undef
+  4:17  error  'global' is not defined  no-undef
+  5:1   error  'global' is not defined  no-undef
+
+/app/frontend/src/views/AdminDashboard.jsx
+  17:8  warning  React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/app/frontend/src/views/Home.jsx
+   3:10  warning  'createPortal' is defined but never used. Allowed unused vars must match /^[A-Z_]/u              no-unused-vars
+   5:27  warning  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                    no-unused-vars
+  58:10  warning  'showCameraCheck' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  59:10  warning  'showScrollTop' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u    no-unused-vars
+  63:9   warning  'scrollToTop' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u      no-unused-vars
+
+/app/frontend/src/views/Landing.jsx
+   3:10  warning  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                      no-unused-vars
+  16:11  warning  'containerVariants' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  27:11  warning  'itemVariants' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u       no-unused-vars
+
+/app/frontend/src/views/Login.jsx
+  3:10  warning  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+✖ 352 problems (314 errors, 38 warnings)
+  0 errors and 1 warning potentially fixable with the `--fix` option.
+
