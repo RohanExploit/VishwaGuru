@@ -14,6 +14,7 @@ firebase-admin
 a2wsgi
 python-jose[cryptography]
 passlib[bcrypt]
+bcrypt
 async_lru
 SpeechRecognition
 pydub
