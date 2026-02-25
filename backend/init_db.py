@@ -45,6 +45,11 @@ def migrate_db():
         with engine.begin() as conn:
             # Issues Table Migrations
             if inspector.has_table("issues"):
+                if not column_exists("issues", "reference_id"):
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN reference_id VARCHAR(255)"))
+                    conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_issues_reference_id ON issues (reference_id)"))
+                    logger.info("Added reference_id column to issues")
+
                 if not column_exists("issues", "upvotes"):
                     conn.execute(text("ALTER TABLE issues ADD COLUMN upvotes INTEGER DEFAULT 0"))
                     logger.info("Added upvotes column to issues")
@@ -64,6 +69,22 @@ def migrate_db():
                 if not column_exists("issues", "action_plan"):
                     conn.execute(text("ALTER TABLE issues ADD COLUMN action_plan TEXT"))
                     logger.info("Added action_plan column to issues")
+
+                if not column_exists("issues", "verified_at"):
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN verified_at TIMESTAMP"))
+                    logger.info("Added verified_at column to issues")
+
+                if not column_exists("issues", "assigned_at"):
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN assigned_at TIMESTAMP"))
+                    logger.info("Added assigned_at column to issues")
+
+                if not column_exists("issues", "resolved_at"):
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN resolved_at TIMESTAMP"))
+                    logger.info("Added resolved_at column to issues")
+
+                if not column_exists("issues", "assigned_to"):
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN assigned_to VARCHAR(255)"))
+                    logger.info("Added assigned_to column to issues")
 
                 if not column_exists("issues", "integrity_hash"):
                     conn.execute(text("ALTER TABLE issues ADD COLUMN integrity_hash VARCHAR(255)"))
