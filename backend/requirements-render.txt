@@ -16,9 +16,7 @@ python-jose
 cryptography
 passlib
 bcrypt<4.0.0
-async_lru
 SpeechRecognition
 pydub
 googletrans==4.0.2
 langdetect
-indic-nlp-library
