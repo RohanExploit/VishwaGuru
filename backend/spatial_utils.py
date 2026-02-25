@@ -167,14 +167,14 @@ def cluster_issues_dbscan(issues: List[Issue], eps_meters: float = 30.0) -> List
         [issue.latitude, issue.longitude] for issue in valid_issues
     ])
 
-    # Convert eps from meters to degrees (approximate)
-    # 1 degree latitude ≈ 111,000 meters
-    # 1 degree longitude ≈ 111,000 * cos(latitude) meters
-    eps_degrees = eps_meters / 111000  # Rough approximation
+    # Convert eps from meters to radians
+    # Haversine metric expects inputs in radians and eps in radians
+    R = 6371000.0  # Earth's radius in meters
+    eps_radians = eps_meters / R
 
     # Perform DBSCAN clustering
     try:
-        db = DBSCAN(eps=eps_degrees, min_samples=1, metric='haversine').fit(
+        db = DBSCAN(eps=eps_radians, min_samples=1, metric='haversine').fit(
             np.radians(coordinates)
         )
 

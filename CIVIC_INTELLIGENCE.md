@@ -1,62 +1,71 @@
-# Daily Civic Intelligence Refinement Engine
+# 🧠 Daily Civic Intelligence Refinement Engine
 
-## Overview
-VishwaGuru's Civic Intelligence Engine is a self-improving AI system that runs daily at midnight to analyze civic issues, detect trends, and optimize the system's severity scoring logic based on real-world patterns.
+The Civic Intelligence Engine is a self-improving AI infrastructure that runs daily at midnight (UTC) to analyze civic issues, detect trends, and optimize system parameters automatically.
 
-## Architecture
+## 🚀 Overview
 
-The engine is composed of the following modules:
-1.  **TrendAnalyzer (`backend/trend_analyzer.py`):** Extracts top keywords and identifies geographic clusters using DBSCAN.
-2.  **AdaptiveWeights (`backend/adaptive_weights.py`):** Manages dynamic severity scoring weights stored in `backend/data/modelWeights.json`.
-3.  **CivicIntelligenceEngine (`backend/civic_intelligence.py`):** The orchestrator that runs the daily cycle.
+Every day at 00:00, the system:
+1.  **Analyzes** all civic issues submitted in the last 24 hours.
+2.  **Detects** new patterns, trending topics, and geographic clusters.
+3.  **Refines** severity scoring weights based on manual overrides (adaptive learning).
+4.  **Optimizes** duplicate detection thresholds based on clustering density.
+5.  **Generates** a "Civic Intelligence Index" score.
+6.  **Archives** a daily snapshot for transparency and auditability.
 
-## Daily Cycle Algorithm
+---
 
-Every day at 00:00 UTC, the system performs the following steps:
+## ⚙️ Core Components
 
-### 1. Trend Detection
-*   Analyzes all issues submitted in the last 24 hours.
-*   **Keyword Extraction:** Identifies top 5 most common keywords (excluding stop words).
-*   **Category Spikes:** Compares current category volume with the previous day's snapshot. A category is flagged as a "spike" if:
-    *   Volume > 5
-    *   Increase > 50% compared to yesterday.
-*   **Geographic Clustering:** Uses DBSCAN (Density-Based Spatial Clustering of Applications with Noise) to find clusters of issues (e.g., multiple reports of the same pothole).
+### 1. Trend Detection (`backend/trend_analyzer.py`)
+*   **Keyword Extraction**: Identifies top 5 most common keywords (excluding stop words) from issue descriptions.
+*   **Category Spikes**: Detects categories with a >50% increase in volume compared to the previous day.
+*   **Geographic Clustering**: Uses DBSCAN (Density-Based Spatial Clustering of Applications with Noise) to identify hotspots where multiple issues are reported in close proximity.
 
-### 2. Adaptive Weight Optimization
-The system learns from manual interventions:
-*   **Input:** Queries `EscalationAudit` logs for "Severity Upgrades" (manual overrides where an admin increased the severity).
-*   **Logic:** If a category receives ≥ 3 manual upgrades in 24 hours, its severity multiplier is increased by 10% (x1.1).
-*   **Goal:** To automatically classify similar future issues as higher severity, reducing the need for manual intervention.
+### 2. Adaptive Weight Optimization (`backend/adaptive_weights.py`)
+The system learns from human actions to improve its automated severity scoring.
+
+*   **Logic**: If administrators manually upgrade the severity of issues in a specific category (e.g., changing "pothole" from Low to Critical) more than 3 times in a day, the system infers that its default weight for that category is too low.
+*   **Action**: The category multiplier in `modelWeights.json` is automatically increased by 10%.
+*   **Constraint**: Weights are clamped between 0.5x and 3.0x to prevent runaway values.
 
 ### 3. Duplicate Pattern Learning
-*   **Input:** Geographic clustering density.
-*   **Logic:**
-    *   If many clusters (>5) are found: Increase duplicate search radius (x1.05) to better group reports.
-    *   If volume is high (>50) but no clusters: Increase radius (x1.05) as the current radius might be too strict.
-    *   If volume is low (<10) and radius is large: Decay radius (x0.95) to improve precision.
+The system adjusts the radius used for spatial deduplication based on the density of issues.
 
-### 4. Civic Intelligence Index
-A daily score (0-100) reflecting the city's civic health.
-*   **Base Score:** 70
-*   **Bonus:** +2.0 per resolved issue.
-*   **Penalty:** -0.5 per new issue.
-*   **Output:** Includes "Top Emerging Concern" and "Highest Severity Region".
+*   **Logic**:
+    *   **High Density** (> 5 clusters): Increases search radius by 5% to better group related issues.
+    *   **High Volume, No Clusters**: Increases search radius to catch potential duplicates that are slightly further apart.
+    *   **Low Volume**: Decays radius slightly (by 5%) to improve precision.
+*   **Implementation**: Updates `duplicate_search_radius` in `modelWeights.json`. This value is consumed by the `create_issue` endpoint for real-time deduplication.
 
-## Data Storage & Auditability
+### 4. Civic Intelligence Index (`backend/civic_intelligence.py`)
+A daily score (0-100) reflecting the civic health and system responsiveness.
 
-### Model Weights
-*   Dynamic weights are stored in `backend/data/modelWeights.json`.
-*   This file is hot-reloaded by the application without restart.
+*   **Formula**: `Base (70) + (Resolved Issues * 2) - (New Issues * 0.5)`
+*   **Insights**:
+    *   **Top Emerging Concern**: The category with the highest volume.
+    *   **Highest Severity Region**: The geographic center of the largest issue cluster.
+
+---
+
+## 📁 Data & Transparency
 
 ### Daily Snapshots
-*   Stored in `backend/data/dailySnapshots/YYYY-MM-DD.json`.
-*   Contains:
-    *   `civic_index`: The calculated score and metrics.
-    *   `trends`: Keywords, distribution, clusters, and detected spikes.
-    *   `weight_changes`: A detailed audit log of what weights were changed, the old value, the new value, and the reason.
-    *   `model_weights`: A copy of the full weight configuration at the time of the snapshot for full reproducibility.
+Snapshots are stored in `backend/data/dailySnapshots/YYYY-MM-DD.json`.
+They contain:
+*   `trends`: Top keywords, category distribution, clusters.
+*   `civic_index`: The daily score and insights.
+*   `weight_changes`: Audit log of any automatic weight adjustments.
+*   `model_weights`: The state of weights at that time.
 
-## Evolution Logic
-The system evolves by:
-1.  **Self-Correction:** If admins constantly upgrade "Pothole" severity, the system learns that "Pothole" is more critical than initially configured.
-2.  **Dynamic Sensitivity:** The duplicate detection radius "breathes" (expands/contracts) based on the density of reports, adapting to urban density changes or event-driven spikes.
+### Model Weights
+Dynamic configuration is stored in `backend/data/modelWeights.json`.
+*   `category_multipliers`: Dynamic severity weights.
+*   `duplicate_search_radius`: Dynamic search radius in meters.
+
+---
+
+## 🛠️ Architecture
+
+*   **Scheduler**: A lightweight `asyncio` loop in `backend/scheduler.py` triggers the job.
+*   **Execution**: `CivicIntelligenceEngine.run_daily_cycle` runs in a separate thread to avoid blocking the main event loop.
+*   **Persistence**: All state changes are persisted to JSON files, ensuring "Local First" architecture with no external API dependencies for core logic.
