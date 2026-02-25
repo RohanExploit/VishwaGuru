@@ -9,8 +9,10 @@ import uuid
 import os
 import logging
 import hashlib
+import json
 from datetime import datetime, timezone
 
+from fastapi import Response
 from backend.database import get_db
 from backend.models import Issue, PushSubscription
 from backend.schemas import (
@@ -297,10 +299,11 @@ def get_nearby_issues(
     """
     try:
         # Check cache first
-        cache_key = f"{latitude:.5f}_{longitude:.5f}_{radius}_{limit}"
-        cached_data = nearby_issues_cache.get(cache_key)
-        if cached_data:
-            return cached_data
+        # v2: cache JSON string to avoid conflicts with v1 list data and ensure safe typing
+        cache_key = f"v2_nearby_{latitude:.5f}_{longitude:.5f}_{radius}_{limit}"
+        cached_json = nearby_issues_cache.get(cache_key)
+        if cached_json:
+            return Response(content=cached_json, media_type="application/json")
 
         # Query open issues with coordinates
         # Optimization: Use bounding box to filter candidates in SQL
@@ -345,9 +348,12 @@ def get_nearby_issues(
         ]
 
         # Update cache
-        nearby_issues_cache.set(nearby_responses, cache_key)
+        # Optimize: Cache serialized JSON string to avoid serialization overhead on subsequent requests
+        data_dicts = [m.model_dump(mode='json') for m in nearby_responses]
+        json_content = json.dumps(data_dicts, default=str)
+        nearby_issues_cache.set(json_content, cache_key)
 
-        return nearby_responses
+        return Response(content=json_content, media_type="application/json")
 
     except Exception as e:
         logger.error(f"Error getting nearby issues: {e}", exc_info=True)
@@ -659,10 +665,11 @@ def get_recent_issues(
     offset: int = Query(0, ge=0, description="Number of issues to skip"),
     db: Session = Depends(get_db)
 ):
-    cache_key = f"recent_issues_{limit}_{offset}"
-    cached_data = recent_issues_cache.get(cache_key)
-    if cached_data:
-        return JSONResponse(content=cached_data)
+    # v2: cache JSON string to avoid conflicts with v1 list data and ensure safe typing
+    cache_key = f"v2_recent_issues_{limit}_{offset}"
+    cached_json = recent_issues_cache.get(cache_key)
+    if cached_json:
+        return Response(content=cached_json, media_type="application/json")
 
     # Fetch issues with pagination
     # Optimized: Use column projection to fetch only needed fields
@@ -700,5 +707,7 @@ def get_recent_issues(
         })
 
     # Thread-safe cache update
-    recent_issues_cache.set(data, cache_key)
-    return data
+    # Optimize: Cache serialized JSON string to avoid serialization overhead on subsequent requests
+    json_content = json.dumps(data, default=str)
+    recent_issues_cache.set(json_content, cache_key)
+    return Response(content=json_content, media_type="application/json")
