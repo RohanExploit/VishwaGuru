@@ -138,7 +138,7 @@ def test_create_issues_and_blockchain_chaining(client):
     assert verify_data["computed_hash"] == verify_data["current_hash"]
     assert "Integrity verified" in verify_data["message"]
 
-def test_update_issue_status_async(client):
+def test_update_issue_status(client):
     # Create an issue first
     data = {
         "description": "Status update test issue",

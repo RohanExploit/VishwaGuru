@@ -471,18 +471,13 @@ async def verify_issue_endpoint(
         )
 
 @router.put("/api/issues/status", response_model=IssueStatusUpdateResponse)
-async def update_issue_status(
+def update_issue_status(
     request: IssueStatusUpdateRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
-    """
-    Update issue status via secure reference ID (for government portals)
-    Optimized: Runs DB operations in threadpool to prevent blocking the event loop.
-    """
-    issue = await run_in_threadpool(
-        lambda: db.query(Issue).filter(Issue.reference_id == request.reference_id).first()
-    )
+    """Update issue status via secure reference ID (for government portals)"""
+    issue = db.query(Issue).filter(Issue.reference_id == request.reference_id).first()
     if not issue:
         raise HTTPException(status_code=404, detail="Issue not found")
 
@@ -516,8 +511,8 @@ async def update_issue_status(
     elif request.status.value == "resolved":
         issue.resolved_at = now
 
-    await run_in_threadpool(db.commit)
-    await run_in_threadpool(lambda: db.refresh(issue))
+    db.commit()
+    db.refresh(issue)
 
     # Send notification to citizen
     background_tasks.add_task(send_status_notification, issue.id, old_status, request.status.value, request.notes)
