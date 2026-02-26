@@ -21,6 +21,7 @@ Every day at 00:00 UTC, the system performs the following steps:
     *   Volume > 5
     *   Increase > 50% compared to yesterday.
 *   **Geographic Clustering:** Uses DBSCAN (Density-Based Spatial Clustering of Applications with Noise) to find clusters of issues (e.g., multiple reports of the same pothole).
+*   **Top Emerging Concern:** The system prioritizes the category with the highest percentage increase (spike) over raw volume. If no spikes are detected, the category with the highest volume is selected.
 
 ### 2. Adaptive Weight Optimization
 The system learns from manual interventions:
@@ -40,7 +41,8 @@ A daily score (0-100) reflecting the city's civic health.
 *   **Base Score:** 70
 *   **Bonus:** +2.0 per resolved issue.
 *   **Penalty:** -0.5 per new issue.
-*   **Output:** Includes "Top Emerging Concern" and "Highest Severity Region".
+*   **Delta Calculation:** Compares the current score with the previous day's score to show improvement or decline (e.g., `+3.1`).
+*   **Output:** Includes "Top Emerging Concern", "Highest Severity Region", and the daily score change.
 
 ## Data Storage & Auditability
 
@@ -51,7 +53,7 @@ A daily score (0-100) reflecting the city's civic health.
 ### Daily Snapshots
 *   Stored in `backend/data/dailySnapshots/YYYY-MM-DD.json`.
 *   Contains:
-    *   `civic_index`: The calculated score and metrics.
+    *   `civic_index`: The calculated score, score delta, and metrics.
     *   `trends`: Keywords, distribution, clusters, and detected spikes.
     *   `weight_changes`: A detailed audit log of what weights were changed, the old value, the new value, and the reason.
     *   `model_weights`: A copy of the full weight configuration at the time of the snapshot for full reproducibility.
