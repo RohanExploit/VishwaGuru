@@ -1,18 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Mic, MicOff } from 'lucide-react';
 
 const VoiceInput = ({ onTranscript, language = 'en' }) => {
   const [isListening, setIsListening] = useState(false);
-  const [recognition, setRecognition] = useState(null);
+  const recognitionRef = useRef(null);
   const [error, setError] = useState(null);
-  const [isSupported, setIsSupported] = useState(true);
-
-  // Check support once on mount
-  useEffect(() => {
-     if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
-        setIsSupported(false);
-     }
-  }, []);
+  // Initialize state based on window availability to avoid useEffect setState
+  const [isSupported] = useState(() => {
+      if (typeof window !== 'undefined') {
+          return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+      }
+      return false;
+  });
 
   const getLanguageCode = (lang) => {
     const langMap = {
@@ -55,7 +54,7 @@ const VoiceInput = ({ onTranscript, language = 'en' }) => {
       setIsListening(false);
     };
 
-    setRecognition(recognitionInstance);
+    recognitionRef.current = recognitionInstance;
 
     return () => {
       if (recognitionInstance) {
@@ -65,12 +64,12 @@ const VoiceInput = ({ onTranscript, language = 'en' }) => {
   }, [language, onTranscript, isSupported]);
 
   const toggleListening = () => {
-    if (!recognition) return;
+    if (!recognitionRef.current) return;
 
     if (isListening) {
-      recognition.stop();
+      recognitionRef.current.stop();
     } else {
-      recognition.start();
+      recognitionRef.current.start();
     }
   };
 

@@ -78,6 +78,23 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
     }
   };
 
+  const mapSmartScanToCategory = (label) => {
+    const map = {
+      'pothole': 'road',
+      'garbage': 'garbage',
+      'flooded street': 'water',
+      'fire accident': 'road',
+      'fallen tree': 'road',
+      'stray animal': 'road',
+      'blocked road': 'road',
+      'broken streetlight': 'streetlight',
+      'illegal parking': 'road',
+      'graffiti vandalism': 'college_infra',
+      'normal street': 'road'
+    };
+    return map[label] || 'road';
+  };
+
   const analyzeTextCategory = async () => {
     if (!formData.description || formData.description.length < 5) return;
     setAnalyzingTextCategory(true);
@@ -171,23 +188,6 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
     } finally {
       setAnalyzingDepth(false);
     }
-  };
-
-  const mapSmartScanToCategory = (label) => {
-    const map = {
-      'pothole': 'road',
-      'garbage': 'garbage',
-      'flooded street': 'water',
-      'fire accident': 'road',
-      'fallen tree': 'road',
-      'stray animal': 'road',
-      'blocked road': 'road',
-      'broken streetlight': 'streetlight',
-      'illegal parking': 'road',
-      'graffiti vandalism': 'college_infra',
-      'normal street': 'road'
-    };
-    return map[label] || 'road';
   };
 
   const analyzeSmartScan = async (file) => {
