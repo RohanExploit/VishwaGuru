@@ -7,7 +7,8 @@ import {
   AlertTriangle, MapPin, Search, Activity, Camera, Trash2, ThumbsUp, Brush,
   Droplets, Zap, Truck, Flame, Dog, XCircle, Lightbulb, TreeDeciduous, Bug,
   Scan, ChevronRight, LayoutGrid, Shield, Leaf, Building, CheckCircle, Trophy, Monitor,
-  Volume2, Users, Waves, Accessibility, Siren, Recycle, Eye, ChevronUp, Signpost, Car
+  Volume2, Users, Waves, Accessibility, Siren, Recycle, Eye, ChevronUp, Signpost, Car, HardHat,
+  Construction
 } from 'lucide-react';
 
 const CameraCheckModal = ({ onClose }) => {
@@ -100,6 +101,14 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loa
         { id: 'report', label: t('home.issues.crowd'), icon: <Users size={24} />, color: 'text-red-500', bg: 'bg-red-50' },
         { id: 'report', label: t('home.issues.waterLeak'), icon: <Waves size={24} />, color: 'text-blue-500', bg: 'bg-blue-50' },
         { id: 'report', label: t('home.issues.waste'), icon: <Recycle size={24} />, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+      ]
+    },
+    {
+      title: t('Public Safety'),
+      icon: <Construction size={20} className="text-orange-600" />,
+      items: [
+        { id: 'construction-safety', label: "Construction Safety", icon: <HardHat size={24} />, color: 'text-orange-600', bg: 'bg-orange-50' },
+        { id: 'playground-damage', label: "Playground Damage", icon: <Trophy size={24} />, color: 'text-green-600', bg: 'bg-green-50' },
       ]
     },
     {
@@ -438,6 +447,9 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loa
                 <span className="text-[10px] font-black uppercase tracking-widest opacity-80 mt-1 block">Diagnostics Hub</span>
               </div>
             </motion.button>
+
+            {/* Camera Diagnostics Modal */}
+             {showCameraCheck && <CameraCheckModal onClose={() => setShowCameraCheck(false)} />}
           </div>
         </div>
       </div>
