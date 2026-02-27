@@ -28,8 +28,7 @@ passlib[bcrypt]
 # Voice and Language Support (Issue #291)
 SpeechRecognition
 pydub
-# Using deep-translator to avoid googletrans version conflicts with httpx/httpcore
-deep-translator
+googletrans==4.0.2
 langdetect
 indic-nlp-library
 async_lru

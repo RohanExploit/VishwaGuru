@@ -11,7 +11,7 @@ import asyncio
 from typing import Dict, Optional, Tuple
 from pathlib import Path
 import speech_recognition as sr
-from deep_translator import GoogleTranslator
+from googletrans import Translator
 from langdetect import detect, LangDetectException
 from pydub import AudioSegment
 
@@ -222,24 +222,28 @@ class VoiceService:
                     'error': 'Empty text provided'
                 }
             
-            # Use deep-translator (synchronous, robust)
-            # Handle 'auto' source
-            src_lang = source_language if source_language != 'auto' else 'auto'
+            # Perform translation (create new Translator instance for thread-safety)
+            # googletrans 4.0.2 is async-only, so use asyncio.run() for synchronous context
+            translator = Translator()
             
-            translated = GoogleTranslator(source=src_lang, target=target_language).translate(text)
+            # Wrap async translate call in asyncio.run for synchronous execution
+            async def _do_translation():
+                return await translator.translate(
+                    text,
+                    src=source_language,
+                    dest=target_language
+                )
             
-            # deep-translator doesn't return source language detection in the same way,
-            # so we trust the input or what we detected earlier
-            detected_src = source_language
+            translation = asyncio.run(_do_translation())
             
-            logger.info(f"Successfully translated text: {src_lang} -> {target_language}")
+            logger.info(f"Successfully translated text: {translation.src} -> {translation.dest}")
             
             return {
-                'translated_text': translated,
-                'source_language': detected_src,
-                'source_language_name': SUPPORTED_LANGUAGES.get(detected_src, 'Unknown'),
-                'target_language': target_language,
-                'target_language_name': SUPPORTED_LANGUAGES.get(target_language, 'Unknown'),
+                'translated_text': translation.text,
+                'source_language': translation.src,
+                'source_language_name': SUPPORTED_LANGUAGES.get(translation.src, 'Unknown'),
+                'target_language': translation.dest,
+                'target_language_name': SUPPORTED_LANGUAGES.get(translation.dest, 'Unknown'),
                 'original_text': text,
                 'error': None
             }

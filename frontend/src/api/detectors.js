@@ -56,6 +56,4 @@ export const detectorsApi = {
   transcribe: async (formData) => {
       return await apiClient.postForm('/api/transcribe-audio', formData);
   },
-  constructionSafety: createDetectorApi('/api/detect-construction-safety'),
-  playgroundDamage: createDetectorApi('/api/detect-playground-damage'),
 };

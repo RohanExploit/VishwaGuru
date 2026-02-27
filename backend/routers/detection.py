@@ -35,9 +35,7 @@ from backend.hf_api_service import (
     detect_civic_eye_clip,
     detect_graffiti_art_clip,
     detect_traffic_sign_clip,
-    detect_abandoned_vehicle_clip,
-    detect_construction_safety_clip,
-    detect_playground_damage_clip
+    detect_abandoned_vehicle_clip
 )
 from backend.dependencies import get_http_client
 import backend.dependencies
@@ -110,14 +108,6 @@ async def _cached_detect_traffic_sign(image_bytes: bytes):
 async def _cached_detect_abandoned_vehicle(image_bytes: bytes):
     key = f"abandoned_vehicle_{hash(image_bytes)}"
     return await _get_cached_result(key, detect_abandoned_vehicle_clip, image_bytes)
-
-async def _cached_detect_construction_safety(image_bytes: bytes):
-    key = f"construction_safety_{hash(image_bytes)}"
-    return await _get_cached_result(key, detect_construction_safety_clip, image_bytes)
-
-async def _cached_detect_playground_damage(image_bytes: bytes):
-    key = f"playground_damage_{hash(image_bytes)}"
-    return await _get_cached_result(key, detect_playground_damage_clip, image_bytes)
 
 # Endpoints
 
@@ -474,26 +464,4 @@ async def detect_abandoned_vehicle_endpoint(image: UploadFile = File(...)):
         return {"detections": await _cached_detect_abandoned_vehicle(image_bytes)}
     except Exception as e:
         logger.error(f"Abandoned vehicle detection error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-@router.post("/api/detect-construction-safety")
-async def detect_construction_safety_endpoint(image: UploadFile = File(...)):
-    # Optimized Image Processing: Validation + Optimization
-    _, image_bytes = await process_uploaded_image(image)
-
-    try:
-        return {"detections": await _cached_detect_construction_safety(image_bytes)}
-    except Exception as e:
-        logger.error(f"Construction safety detection error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-@router.post("/api/detect-playground-damage")
-async def detect_playground_damage_endpoint(image: UploadFile = File(...)):
-    # Optimized Image Processing: Validation + Optimization
-    _, image_bytes = await process_uploaded_image(image)
-
-    try:
-        return {"detections": await _cached_detect_playground_damage(image_bytes)}
-    except Exception as e:
-        logger.error(f"Playground damage detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
