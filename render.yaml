@@ -3,7 +3,7 @@ services:
   - type: web
     name: vishwaguru-backend
     runtime: python
-    buildCommand: "./render-build.sh"
+    buildCommand: "chmod +x ./render-build.sh && ./render-build.sh"
     startCommand: "python start-backend.py"
     envVars:
       - key: PYTHON_VERSION
