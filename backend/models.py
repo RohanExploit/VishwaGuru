@@ -148,8 +148,8 @@ class Issue(Base):
     longitude = Column(Float, nullable=True, index=True)
     location = Column(String, nullable=True)
     action_plan = Column(JSON, nullable=True)
-    integrity_hash = Column(String, nullable=True)  # Blockchain integrity seal
-    previous_integrity_hash = Column(String, nullable=True)  # Link to previous block
+    integrity_hash = Column(String(255), index=True, nullable=True)  # Blockchain integrity seal
+    previous_integrity_hash = Column(String(255), index=True, nullable=True)  # Link to previous block
     
     # Voice and Language Support (Issue #291)
     submission_type = Column(String, default="text")  # 'text', 'voice'
