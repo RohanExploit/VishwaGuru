@@ -289,6 +289,11 @@ async def upvote_issue(issue_id: int, db: Session = Depends(get_db)):
 
     await run_in_threadpool(db.commit)
 
+    # Invalidate caches to prevent stale data
+    recent_issues_cache.clear()
+    user_issues_cache.clear()
+    nearby_issues_cache.clear()
+
     # Fetch only the updated upvote count using column projection
     new_upvotes = await run_in_threadpool(
         lambda: db.query(Issue.upvotes).filter(Issue.id == issue_id).scalar()
@@ -438,6 +443,9 @@ async def verify_issue_endpoint(
                         }, synchronize_session=False)
                     )
                     await run_in_threadpool(db.commit)
+                    # Invalidate caches
+                    recent_issues_cache.clear()
+                    user_issues_cache.clear()
 
             return {
                 "is_resolved": is_resolved,
@@ -481,6 +489,10 @@ async def verify_issue_endpoint(
 
         # Final commit for all changes in the transaction
         await run_in_threadpool(db.commit)
+
+        # Invalidate caches
+        recent_issues_cache.clear()
+        user_issues_cache.clear()
 
         return VoteResponse(
             id=issue_id,
@@ -531,6 +543,10 @@ def update_issue_status(
 
     db.commit()
     db.refresh(issue)
+
+    # Invalidate caches
+    recent_issues_cache.clear()
+    user_issues_cache.clear()
 
     # Send notification to citizen
     background_tasks.add_task(send_status_notification, issue.id, old_status, request.status.value, request.notes)
