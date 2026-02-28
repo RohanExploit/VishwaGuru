@@ -14,10 +14,10 @@ firebase-admin
 a2wsgi
 python-jose[cryptography]
 passlib[bcrypt]
-bcrypt
+bcrypt<4.0.0
 SpeechRecognition
 pydub
-googletrans==4.0.0-rc1
+googletrans==4.0.2
 langdetect
 numpy
 scikit-learn
