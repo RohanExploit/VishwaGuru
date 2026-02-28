@@ -45,3 +45,7 @@
 ## 2026-02-10 - Group-By for Multi-Count Statistics
 **Learning:** Executing multiple `count()` queries with different filters (e.g., for different statuses) causes redundant database scans and network round-trips.
 **Action:** Use a single SQL `GROUP BY` query to fetch counts for all categories/statuses at once, then process the results in Python.
+
+## 2026-02-11 - File I/O in Hot Paths
+**Learning:** Checking file modification time (`os.path.getmtime`) in a property getter seems harmless ("just a stat call"), but when accessed multiple times per request (e.g., fetching 4 different config values sequentially), the redundant disk I/O compounds and introduces measurable synchronous latency.
+**Action:** Throttle filesystem checks in hot-reloading configurations. Even a small interval (e.g., 5 seconds) effectively eliminates redundant I/O during a single request's lifecycle without sacrificing the ability to hot-reload.
