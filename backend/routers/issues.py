@@ -30,7 +30,10 @@ from backend.tasks import (
     send_status_notification
 )
 from backend.spatial_utils import get_bounding_box, find_nearby_issues
-from backend.cache import recent_issues_cache, nearby_issues_cache
+from backend.cache import (
+    recent_issues_cache, nearby_issues_cache, blockchain_last_hash_cache,
+    user_issues_cache
+)
 from backend.hf_api_service import verify_resolution_vqa
 from backend.dependencies import get_http_client
 from backend.rag_service import rag_service
@@ -172,15 +175,23 @@ async def create_issue(
         # Save to DB only if no nearby issues found or deduplication failed
         if deduplication_info is None or not deduplication_info.has_nearby_issues:
             # Blockchain feature: calculate integrity hash for the report
-            # Optimization: Fetch only the last hash to maintain the chain with minimal overhead
-            prev_issue = await run_in_threadpool(
-                lambda: db.query(Issue.integrity_hash).order_by(Issue.id.desc()).first()
-            )
-            prev_hash = prev_issue[0] if prev_issue and prev_issue[0] else ""
+            # Performance Boost: Check cache for the last hash before querying the DB
+            prev_hash = blockchain_last_hash_cache.get("last_hash")
 
-# Simple but effective SHA-256 chaining
+            if prev_hash is None:
+                # Cache miss: Fetch from DB
+                prev_issue = await run_in_threadpool(
+                    lambda: db.query(Issue.integrity_hash).order_by(Issue.id.desc()).first()
+                )
+                prev_hash = prev_issue[0] if prev_issue and prev_issue[0] else ""
+                blockchain_last_hash_cache.set(prev_hash, "last_hash")
+
+            # Simple but effective SHA-256 chaining
             hash_content = f"{description}|{category}|{prev_hash}"
             integrity_hash = hashlib.sha256(hash_content.encode()).hexdigest()
+
+            # Update cache with the new hash for the next record
+            blockchain_last_hash_cache.set(integrity_hash, "last_hash")
 
             # RAG Retrieval (New)
             relevant_rule = rag_service.retrieve(description)
@@ -199,7 +210,8 @@ async def create_issue(
                 longitude=longitude,
                 location=location,
                 action_plan=initial_action_plan,
-                integrity_hash=integrity_hash
+                integrity_hash=integrity_hash,
+                previous_integrity_hash=prev_hash
             )
 
             # Offload blocking DB operations to threadpool
@@ -228,6 +240,8 @@ async def create_issue(
         # Invalidate cache so new issue appears
         try:
             recent_issues_cache.clear()
+            if user_email:
+                user_issues_cache.clear()
         except Exception as e:
             logger.error(f"Error clearing cache: {e}")
 
@@ -578,8 +592,14 @@ def get_user_issues(
 ):
     """
     Get issues reported by a specific user (identified by email).
-    Optimized: Uses column projection to avoid loading full model instances and large fields.
+    Optimized: Uses column projection and serialization caching to bypass Pydantic overhead.
     """
+    # Performance Boost: Use serialization caching
+    cache_key = f"v2_user_issues_{user_email}_{limit}_{offset}"
+    cached_json = user_issues_cache.get(cache_key)
+    if cached_json:
+        return Response(content=cached_json, media_type="application/json")
+
     results = db.query(
         Issue.id,
         Issue.category,
@@ -605,7 +625,7 @@ def get_user_issues(
             "id": row.id,
             "category": row.category,
             "description": short_desc,
-            "created_at": row.created_at,
+            "created_at": row.created_at.isoformat() if row.created_at else None,
             "image_path": row.image_path,
             "status": row.status,
             "upvotes": row.upvotes if row.upvotes is not None else 0,
@@ -614,46 +634,55 @@ def get_user_issues(
             "longitude": row.longitude
         })
 
-    return data
+    # Performance Boost: Cache serialized JSON to bypass redundant Pydantic validation
+    json_data = json.dumps(data)
+    user_issues_cache.set(json_data, cache_key)
+    return Response(content=json_data, media_type="application/json")
 
 @router.get("/api/issues/{issue_id}/blockchain-verify", response_model=BlockchainVerificationResponse)
 async def verify_blockchain_integrity(issue_id: int, db: Session = Depends(get_db)):
     """
     Verify the cryptographic integrity of a report using the blockchain-style chaining.
-    Optimized: Uses column projection to fetch only needed data.
+    Optimized: Uses column projection and stored previous_integrity_hash for verification.
     """
-    # Fetch current issue data
+    # Fetch current issue data including the stored previous hash
     current_issue = await run_in_threadpool(
         lambda: db.query(
-            Issue.id, Issue.description, Issue.category, Issue.integrity_hash
+            Issue.id, Issue.description, Issue.category, Issue.integrity_hash, Issue.previous_integrity_hash
         ).filter(Issue.id == issue_id).first()
     )
 
     if not current_issue:
         raise HTTPException(status_code=404, detail="Issue not found")
 
-    # Fetch previous issue's integrity hash to verify the chain
-    prev_issue_hash = await run_in_threadpool(
-        lambda: db.query(Issue.integrity_hash).filter(Issue.id < issue_id).order_by(Issue.id.desc()).first()
-    )
-
-    prev_hash = prev_issue_hash[0] if prev_issue_hash and prev_issue_hash[0] else ""
-
-    # Recompute hash based on current data and previous hash
-    # Chaining logic: hash(description|category|prev_hash)
+    # Recompute hash based on current data and the link to previous hash
+    # Chaining logic: hash(description|category|previous_integrity_hash)
+    prev_hash = current_issue.previous_integrity_hash or ""
     hash_content = f"{current_issue.description}|{current_issue.category}|{prev_hash}"
     computed_hash = hashlib.sha256(hash_content.encode()).hexdigest()
 
     is_valid = (computed_hash == current_issue.integrity_hash)
 
-    if is_valid:
-        message = "Integrity verified. This report is cryptographically sealed and has not been tampered with."
+    # Verify that the stored previous hash actually matches the hash of the preceding issue
+    if is_valid and issue_id > 1:
+        actual_prev_hash_row = await run_in_threadpool(
+            lambda: db.query(Issue.integrity_hash).filter(Issue.id < issue_id).order_by(Issue.id.desc()).first()
+        )
+        actual_prev_hash = actual_prev_hash_row[0] if actual_prev_hash_row and actual_prev_hash_row[0] else ""
+        if actual_prev_hash != prev_hash:
+            is_valid = False
+            message = "Integrity check failed! The blockchain sequence is broken (previous hash mismatch)."
+        else:
+            message = "Integrity verified. This report is cryptographically sealed and correctly linked to the chain."
+    elif is_valid:
+        message = "Integrity verified. This report is cryptographically sealed (genesis block)."
     else:
         message = "Integrity check failed! The report data does not match its cryptographic seal."
 
     return BlockchainVerificationResponse(
         is_valid=is_valid,
         current_hash=current_issue.integrity_hash,
+        previous_hash=prev_hash,
         computed_hash=computed_hash,
         message=message
     )
