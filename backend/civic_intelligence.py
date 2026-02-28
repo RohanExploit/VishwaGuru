@@ -63,6 +63,7 @@ class CivicIntelligenceEngine:
             current_dist = trends.get('category_distribution', {})
 
             spikes = []
+            category_growth = {}
             for category, count in current_dist.items():
                 prev_count = previous_dist.get(category, 0)
                 # Spike definition: > 50% increase AND significant volume (> 5)
@@ -70,10 +71,19 @@ class CivicIntelligenceEngine:
                     increase = (count - prev_count) / prev_count
                     if increase > 0.5:
                         spikes.append(category)
+                        category_growth[category] = increase
                 elif prev_count == 0 and count > 5:
                      spikes.append(category) # New surge
+                     # Represent "infinite" growth for new surges by assigning a high placeholder
+                     # or based on pure volume, for ranking emerging concerns
+                     category_growth[category] = float(count)
 
             trends['spikes'] = spikes
+            # Find the top emerging concern based on highest percentage growth
+            top_emerging = "None"
+            if category_growth:
+                top_emerging = max(category_growth, key=category_growth.get)
+            trends['top_emerging_concern'] = top_emerging
 
             # 3. Adaptive Weight Optimization (Severity)
             # Find manual severity upgrades in the last 24h
@@ -149,7 +159,7 @@ class CivicIntelligenceEngine:
                 })
 
             # 5. Civic Intelligence Index
-            index_data = self._calculate_index(db, issues_24h, trends)
+            index_data = self._calculate_index(db, issues_24h, trends, previous_snapshot)
 
             # 6. Snapshot
             snapshot = {
@@ -176,7 +186,7 @@ class CivicIntelligenceEngine:
         finally:
             db.close()
 
-    def _calculate_index(self, db: Session, issues_24h: List[Issue], trends: Dict[str, Any]) -> Dict[str, Any]:
+    def _calculate_index(self, db: Session, issues_24h: List[Issue], trends: Dict[str, Any], previous_snapshot: Dict[str, Any] = None) -> Dict[str, Any]:
         """
         Generates a daily 'Civic Intelligence Index' score.
         """
@@ -201,11 +211,19 @@ class CivicIntelligenceEngine:
         # Clamp 0-100
         score = max(0.0, min(100.0, score))
 
-        # Top emerging concern
-        top_cat = "None"
-        category_dist = trends.get('category_distribution', {})
-        if category_dist:
-            top_cat = max(category_dist, key=category_dist.get)
+        # Calculate delta from previous day
+        delta = None
+        if previous_snapshot and 'civic_index' in previous_snapshot:
+            prev_score = previous_snapshot['civic_index'].get('score')
+            if prev_score is not None:
+                delta = round(score - prev_score, 1)
+
+        # Top emerging concern (prioritize highest % growth over raw volume)
+        top_cat = trends.get('top_emerging_concern', "None")
+        if top_cat == "None":
+            category_dist = trends.get('category_distribution', {})
+            if category_dist:
+                top_cat = max(category_dist, key=category_dist.get)
 
         # Highest severity region (from clusters)
         highest_severity_region = "None"
@@ -217,12 +235,20 @@ class CivicIntelligenceEngine:
             top_cluster = clusters[0]
             highest_severity_region = f"Lat {top_cluster['latitude']:.4f}, Lon {top_cluster['longitude']:.4f}"
 
-        return {
+        result = {
             "score": round(score, 1),
             "new_issues_count": total_new,
             "resolved_issues_count": resolved_count,
             "top_emerging_concern": top_cat,
             "highest_severity_region": highest_severity_region
         }
+
+        if delta is not None:
+            result["delta"] = delta
+            # Format string delta like "+3.1 from yesterday"
+            sign = "+" if delta >= 0 else ""
+            result["delta_str"] = f"{sign}{delta} from yesterday"
+
+        return result
 
 civic_intelligence_engine = CivicIntelligenceEngine()
