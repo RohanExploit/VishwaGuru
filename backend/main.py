@@ -128,22 +128,23 @@ for exception_type, handler in EXCEPTION_HANDLERS.items():
 frontend_url = os.environ.get("FRONTEND_URL")
 is_production = os.environ.get("ENVIRONMENT", "").lower() == "production"
 
+allowed_origins = []
+
 if not frontend_url:
     if is_production:
-        raise ValueError(
-            "FRONTEND_URL environment variable is required for security in production. "
-            "Set it to your frontend URL (e.g., https://your-app.netlify.app)."
+        logger.critical(
+            "FRONTEND_URL environment variable is MISSING in production. "
+            "CORS requests will be rejected until this is set in the Render Dashboard."
         )
     else:
         logger.warning("FRONTEND_URL not set. Defaulting to http://localhost:5173 for development.")
         frontend_url = "http://localhost:5173"
-
-if not (frontend_url.startswith("http://") or frontend_url.startswith("https://")):
-    raise ValueError(
-        f"FRONTEND_URL must be a valid HTTP/HTTPS URL. Got: {frontend_url}"
-    )
-
-allowed_origins = [frontend_url]
+        allowed_origins.append(frontend_url)
+else:
+    if not (frontend_url.startswith("http://") or frontend_url.startswith("https://")):
+        logger.error(f"FRONTEND_URL must be a valid HTTP/HTTPS URL. Got: {frontend_url}")
+    else:
+        allowed_origins.append(frontend_url)
 
 if not is_production:
     dev_origins = [
