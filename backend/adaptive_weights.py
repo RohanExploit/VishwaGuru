@@ -12,6 +12,7 @@ class AdaptiveWeights:
     _instance = None
     _weights = None
     _last_loaded = 0
+    _last_check = 0  # Time of last file system check
 
     def __new__(cls):
         if cls._instance is None:
@@ -40,7 +41,13 @@ class AdaptiveWeights:
                 self._weights = {}
 
     def _check_reload(self):
-        # Optimization: Checking mtime is fast (stat call).
+        # Performance Boost: Throttle file system checks to reduce I/O overhead.
+        # stat() calls compound to introduce latency in hot paths.
+        current_time = time.time()
+        if current_time - self._last_check < 5.0:
+            return
+
+        self._last_check = current_time
         self._load_weights()
 
     def _save_weights(self):
