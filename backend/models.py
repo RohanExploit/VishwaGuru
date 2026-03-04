@@ -149,6 +149,7 @@ class Issue(Base):
     location = Column(String, nullable=True)
     action_plan = Column(JSON, nullable=True)
     integrity_hash = Column(String, nullable=True)  # Blockchain integrity seal
+    previous_integrity_hash = Column(String, nullable=True, index=True)  # Link to previous block for faster verification
     
     # Voice and Language Support (Issue #291)
     submission_type = Column(String, default="text")  # 'text', 'voice'
