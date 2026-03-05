@@ -53,8 +53,16 @@ def get_stats(db: Session = Depends(get_db)):
     if cached_stats:
         return JSONResponse(content=cached_stats)
 
-    total = db.query(func.count(Issue.id)).scalar()
-    resolved = db.query(func.count(Issue.id)).filter(Issue.status.in_(['resolved', 'verified'])).scalar()
+    from sqlalchemy import case
+
+    # Optimize: Single query for both total and resolved counts
+    stats = db.query(
+        func.count(Issue.id).label('total'),
+        func.sum(case((Issue.status.in_(['resolved', 'verified']), 1), else_=0)).label('resolved')
+    ).first()
+
+    total = stats.total or 0
+    resolved = int(stats.resolved) if stats.resolved else 0
     # Pending is everything else
     pending = total - resolved
 
