@@ -56,13 +56,13 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loa
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [showCameraCheck, setShowCameraCheck] = React.useState(false);
-  const [showScrollTop, setShowScrollTop] = React.useState(false);
+  const [, setShowScrollTop] = React.useState(false);
   const totalImpact = stats?.resolved_issues || 0;
 
-  // Scroll to top function
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  // Scroll to top function (kept for reference but removed from explicit call tree to satisfy linter)
+  // const scrollToTop = () => {
+  //   window.scrollTo({ top: 0, behavior: 'smooth' });
+  // };
 
   // Show/hide scroll to top button based on scroll position
   React.useEffect(() => {

@@ -45,7 +45,7 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
   const [showWebcam, setShowWebcam] = useState(false);
   const webcamRef = useRef(null);
 
-  const captureWebcam = useCallback(() => {
+  const captureWebcam = () => {
     const imageSrc = webcamRef.current.getScreenshot();
     if (imageSrc) {
       // Convert base64 to File
@@ -57,7 +57,7 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
           setShowWebcam(false);
         });
     }
-  }, [webcamRef]);
+  };
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
