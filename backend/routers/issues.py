@@ -177,7 +177,10 @@ async def create_issue(
 
             if prev_hash is None:
                 prev_issue = await run_in_threadpool(
-                    lambda: db.query(Issue.integrity_hash).order_by(Issue.id.desc()).first()
+                    lambda: db.query(Issue.integrity_hash)
+                    .filter(Issue.integrity_hash.isnot(None), Issue.integrity_hash != "")
+                    .order_by(Issue.id.desc())
+                    .first()
                 )
                 prev_hash = prev_issue[0] if prev_issue and prev_issue[0] else ""
                 # Populate cache for subsequent reports
@@ -644,9 +647,12 @@ async def verify_blockchain_integrity(issue_id: int, db: Session = Depends(get_d
     # Determine previous hash: prefer stored link, fallback to DB lookup for legacy records
     prev_hash = current_issue.previous_integrity_hash
     if prev_hash is None:
-        # Legacy support: Fetch previous issue's integrity hash to verify the chain
+        # Legacy support: Fetch the most recent previous issue's non-NULL integrity hash to verify the chain
         prev_issue_hash = await run_in_threadpool(
-            lambda: db.query(Issue.integrity_hash).filter(Issue.id < issue_id).order_by(Issue.id.desc()).first()
+            lambda: db.query(Issue.integrity_hash)
+            .filter(Issue.id < issue_id, Issue.integrity_hash.isnot(None), Issue.integrity_hash != "")
+            .order_by(Issue.id.desc())
+            .first()
         )
         prev_hash = prev_issue_hash[0] if prev_issue_hash and prev_issue_hash[0] else ""
 
