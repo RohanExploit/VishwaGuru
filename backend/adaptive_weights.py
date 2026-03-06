@@ -75,6 +75,7 @@ class AdaptiveWeights:
     @property
     def last_loaded_time(self) -> float:
         """Returns the timestamp of the last weights file reload."""
+        self._check_reload()
         return self._last_loaded
 
     def update_category_weight(self, category: str, factor: float):

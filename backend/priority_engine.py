@@ -127,7 +127,8 @@ class PriorityEngine:
         if not self._compiled_urgency_patterns or self._last_weights_update_time < current_weights_time:
             urgency_patterns = adaptive_weights.get_urgency_patterns()
             self._compiled_urgency_patterns = [(re.compile(pattern), weight) for pattern, weight in urgency_patterns]
-            self._last_weights_update_time = current_weights_time
+            # Capture the exact time *after* reloading to prevent race conditions or off-by-one tick updates
+            self._last_weights_update_time = adaptive_weights.last_loaded_time
 
         # Apply regex modifiers
         for compiled_pattern, weight in self._compiled_urgency_patterns:
