@@ -62,6 +62,29 @@ def test_blockchain_verification_success(client, db_session):
     assert data["is_valid"] == True
     assert data["current_hash"] == hash2
 
+def test_blockchain_optimized_verification(client, db_session):
+    # Create an issue with previous_integrity_hash set
+    prev_hash = "previoushash"
+    hash_content = f"New issue|Road|{prev_hash}"
+    current_hash = hashlib.sha256(hash_content.encode()).hexdigest()
+
+    issue = Issue(
+        description="New issue",
+        category="Road",
+        integrity_hash=current_hash,
+        previous_integrity_hash=prev_hash
+    )
+    db_session.add(issue)
+    db_session.commit()
+    db_session.refresh(issue)
+
+    # Verify using the optimized path (uses previous_integrity_hash)
+    response = client.get(f"/api/issues/{issue.id}/blockchain-verify")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["is_valid"] == True
+    assert data["current_hash"] == current_hash
+
 def test_blockchain_verification_failure(client, db_session):
     # Create issue with tampered hash
     issue = Issue(
