@@ -72,6 +72,11 @@ class AdaptiveWeights:
         self._check_reload()
         return self._weights.get('duplicate_search_radius', 50.0)
 
+    @property
+    def last_loaded_time(self) -> float:
+        """Returns the timestamp of the last weights file reload."""
+        return self._last_loaded
+
     def update_category_weight(self, category: str, factor: float):
         """
         Updates the multiplier for a category.
