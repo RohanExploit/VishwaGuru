@@ -30,8 +30,17 @@ class ActionPlan(BaseModel):
     x_post: Optional[str] = Field(None, description="X (Twitter) post content")
     relevant_government_rule: Optional[str] = Field(None, description="Relevant government policy or rule")
 
+from pydantic import field_validator
+
 class ChatRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=1000, description="Chat query text")
+
+    @field_validator('query')
+    @classmethod
+    def prevent_whitespace(cls, v):
+        if not v.strip():
+            raise ValueError('query cannot be only whitespace')
+        return v
 
 class ChatResponse(BaseModel):
     response: str

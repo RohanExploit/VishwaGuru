@@ -24,7 +24,12 @@ def test_detect_graffiti(mock_detect_graffiti, mock_validate_file):
     ]
 
     # Simple dummy bytes
-    files = {"image": ("test.jpg", b"fake_image_bytes", "image/jpeg")}
+    import io
+    from PIL import Image
+    img = Image.new('RGB', (10, 10), color='red')
+    img_byte_arr = io.BytesIO()
+    img.save(img_byte_arr, format='JPEG')
+    files = {"image": ("test.jpg", img_byte_arr.getvalue(), "image/jpeg")}
 
     response = client.post("/api/detect-graffiti", files=files)
 

@@ -14,9 +14,6 @@ _model_lock: threading.Lock = threading.Lock()
 _model_loading_error: Optional[Exception] = None
 _model_initialized: bool = False
 
-_model = None
-_model_lock = threading.Lock()
-
 def load_model():
     """
     Loads the YOLO model lazily.
@@ -71,7 +68,7 @@ def get_model():
     global _model, _model_initialized, _model_loading_error
     
     # First check (without lock) - fast path for already initialized model
-    if _model_initialized:
+    if getattr(get_model, "_initialized", False) or _model_initialized:
         if _model_loading_error is not None:
             raise _model_loading_error
         return _model
@@ -89,6 +86,7 @@ def get_model():
             logger.info("Initializing model (thread-safe singleton)...")
             _model = load_model()
             _model_initialized = True
+            get_model._initialized = True
             logger.info("Model initialization complete.")
             return _model
         except Exception as e:
@@ -127,16 +125,9 @@ def reset_model():
         _model = None
         _model_initialized = False
         _model_loading_error = None
+        if hasattr(get_model, "_initialized"):
+            delattr(get_model, "_initialized")
         logger.info("Model singleton state has been reset.")
-
-    if _model is None:
-        with _model_lock:
-            if _model is None:  # Double check inside lock
-                try:
-                    _model = load_model()
-                except Exception:
-                    pass
-    return _model
 
 def detect_potholes(image_source):
     """

@@ -11,7 +11,12 @@ async def test_generate_description_endpoint():
 
         with TestClient(app) as client:
             # Create a dummy image
-            file_content = b"fake image content"
+            import io
+            from PIL import Image
+            img = Image.new('RGB', (10, 10), color='red')
+            img_byte_arr = io.BytesIO()
+            img.save(img_byte_arr, format='JPEG')
+            file_content = img_byte_arr.getvalue()
             files = {"image": ("test.jpg", file_content, "image/jpeg")}
 
             response = client.post("/api/generate-description", files=files)

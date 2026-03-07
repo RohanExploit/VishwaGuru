@@ -9,7 +9,12 @@ def test_smart_scan_endpoint():
         with patch("backend.routers.detection.detect_smart_scan_clip", new_callable=AsyncMock) as mock_detect:
             mock_detect.return_value = {"category": "pothole", "confidence": 0.95}
 
-            file_content = b"fakeimagebytes"
+            import io
+            from PIL import Image
+            img = Image.new('RGB', (10, 10), color='red')
+            img_byte_arr = io.BytesIO()
+            img.save(img_byte_arr, format='JPEG')
+            file_content = img_byte_arr.getvalue()
 
             response = client.post(
                 "/api/detect-smart-scan",

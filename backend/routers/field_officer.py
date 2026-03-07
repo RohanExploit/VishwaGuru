@@ -409,25 +409,22 @@ def get_visit_statistics(db: Session = Depends(get_db)):
     """
     try:
         # Use SQL aggregates instead of loading all visits into memory
-        total_visits = db.query(func.count(FieldOfficerVisit.id)).scalar() or 0
+        result = db.query(
+            func.count(FieldOfficerVisit.id).label('total_visits'),
+            func.sum(case((FieldOfficerVisit.verified_at.isnot(None), 1), else_=0)).label('verified_visits'),
+            func.sum(case((FieldOfficerVisit.within_geofence == True, 1), else_=0)).label('within_geofence_count'),
+            func.sum(case((FieldOfficerVisit.within_geofence == False, 1), else_=0)).label('outside_geofence_count'),
+            func.count(func.distinct(FieldOfficerVisit.officer_email)).label('unique_officers'),
+            func.avg(FieldOfficerVisit.distance_from_site).label('average_distance')
+        ).first()
+
+        total_visits = result.total_visits or 0
+        verified_visits = result.verified_visits or 0
+        within_geofence_count = result.within_geofence_count or 0
+        outside_geofence_count = result.outside_geofence_count or 0
+        unique_officers = result.unique_officers or 0
         
-        verified_visits = db.query(func.count(FieldOfficerVisit.id)).filter(
-            FieldOfficerVisit.verified_at.isnot(None)
-        ).scalar() or 0
-        
-        within_geofence_count = db.query(func.count(FieldOfficerVisit.id)).filter(
-            FieldOfficerVisit.within_geofence == True
-        ).scalar() or 0
-        
-        outside_geofence_count = db.query(func.count(FieldOfficerVisit.id)).filter(
-            FieldOfficerVisit.within_geofence == False
-        ).scalar() or 0
-        
-        unique_officers = db.query(func.count(func.distinct(FieldOfficerVisit.officer_email))).scalar() or 0
-        
-        average_distance = db.query(func.avg(FieldOfficerVisit.distance_from_site)).filter(
-            FieldOfficerVisit.distance_from_site.isnot(None)
-        ).scalar()
+        average_distance = result.average_distance
         
         # Round to 2 decimals if not None
         if average_distance is not None:
