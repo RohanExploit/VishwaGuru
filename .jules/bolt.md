@@ -45,11 +45,3 @@
 ## 2026-02-10 - Group-By for Multi-Count Statistics
 **Learning:** Executing multiple `count()` queries with different filters (e.g., for different statuses) causes redundant database scans and network round-trips.
 **Action:** Use a single SQL `GROUP BY` query to fetch counts for all categories/statuses at once, then process the results in Python.
-
-## 2026-02-11 - O(1) Blockchain Verification
-**Learning:** Verifying the integrity of a blockchain-style chain by querying the database for the previous record's hash on every check is inefficient and adds unnecessary latency.
-**Action:** Store the `previous_integrity_hash` directly in the record during creation. This enables O(1) single-record integrity checks without additional database lookups. Use a thread-safe cache to keep the most recent hash in memory to further optimize the creation path.
-
-## 2026-02-11 - Multi-Metric Aggregate Queries
-**Learning:** Executing multiple separate `count()` queries to gather system statistics results in multiple database round-trips and redundant table scans.
-**Action:** Use a single SQLAlchemy query with `func.count()` and `func.sum(case(...))` to calculate all metrics in one go. This reduces network overhead and allows the database to perform calculations in a single pass.
