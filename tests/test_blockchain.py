@@ -79,6 +79,41 @@ def test_blockchain_verification_failure(client, db_session):
     assert data["is_valid"] == False
     assert data["message"].startswith("Integrity check failed")
 
+def test_blockchain_verification_tampered_previous_hash(client, db_session):
+    # Create a genuine predecessor issue
+    hash1_content = "Real predecessor|Road|"
+    hash1 = hashlib.sha256(hash1_content.encode()).hexdigest()
+    issue1 = Issue(
+        description="Real predecessor",
+        category="Road",
+        integrity_hash=hash1
+    )
+    db_session.add(issue1)
+    db_session.commit()
+    db_session.refresh(issue1)
+
+    # Create a second issue whose previous_integrity_hash is forged (doesn't match issue1's hash)
+    forged_prev = "forgedprevioushashvalue"
+    hash2_content = f"Second issue|Garbage|{forged_prev}"
+    hash2 = hashlib.sha256(hash2_content.encode()).hexdigest()
+    issue2 = Issue(
+        description="Second issue",
+        category="Garbage",
+        integrity_hash=hash2,
+        previous_integrity_hash=forged_prev,
+    )
+    db_session.add(issue2)
+    db_session.commit()
+    db_session.refresh(issue2)
+
+    # Verification must fail: stored previous_integrity_hash doesn't match the DB predecessor
+    response = client.get(f"/api/issues/{issue2.id}/blockchain-verify")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["is_valid"] == False
+    assert data["message"].startswith("Integrity check failed")
+
+
 def test_upvote_optimization(client, db_session):
     issue = Issue(
         description="Test issue for upvote",

@@ -647,6 +647,7 @@ async def verify_blockchain_integrity(issue_id: int, db: Session = Depends(get_d
 
     # Determine previous hash (use stored link or fallback for legacy records)
     prev_hash = current_issue.previous_integrity_hash
+    chain_link_valid = True
 
     if prev_hash is None:
         # Fallback for legacy records created before O(1) optimization
@@ -654,13 +655,22 @@ async def verify_blockchain_integrity(issue_id: int, db: Session = Depends(get_d
             lambda: db.query(Issue.integrity_hash).filter(Issue.id < issue_id).order_by(Issue.id.desc()).first()
         )
         prev_hash = prev_issue_hash[0] if prev_issue_hash and prev_issue_hash[0] else ""
+    else:
+        # Cross-check: verify stored previous_integrity_hash matches the actual predecessor in DB.
+        # This guards against concurrent creation/cache races or tampered previous_integrity_hash values.
+        actual_prev = await run_in_threadpool(
+            lambda: db.query(Issue.integrity_hash).filter(Issue.id < issue_id).order_by(Issue.id.desc()).first()
+        )
+        actual_prev_hash = actual_prev[0] if actual_prev and actual_prev[0] else ""
+        if prev_hash != actual_prev_hash:
+            chain_link_valid = False
 
     # Recompute hash based on current data and previous hash
     # Chaining logic: hash(description|category|prev_hash)
     hash_content = f"{current_issue.description}|{current_issue.category}|{prev_hash}"
     computed_hash = hashlib.sha256(hash_content.encode()).hexdigest()
 
-    is_valid = (computed_hash == current_issue.integrity_hash)
+    is_valid = chain_link_valid and (computed_hash == current_issue.integrity_hash)
 
     if is_valid:
         message = "Integrity verified. This report is cryptographically sealed and has not been tampered with."
