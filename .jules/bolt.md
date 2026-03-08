@@ -53,3 +53,6 @@
 ## 2026-02-11 - Multi-Metric Aggregate Queries
 **Learning:** Executing multiple separate `count()` queries to gather system statistics results in multiple database round-trips and redundant table scans.
 **Action:** Use a single SQLAlchemy query with `func.count()` and `func.sum(case(...))` to calculate all metrics in one go. This reduces network overhead and allows the database to perform calculations in a single pass.
+## 2026-03-08 - N+1 Query Optimization in Analytics Endpoint
+**Learning:** Analytics and statistics endpoints frequently suffer from the N+1 query problem, making sequential `count()` or `sum()` queries. This triggers multiple network roundtrips to the database.
+**Action:** Consolidate multiple aggregate computations using SQLAlchemy's `func` (e.g. `func.count`, `func.sum(case(...))`) inside a single `db.query()` call to eliminate N+1 latency.
