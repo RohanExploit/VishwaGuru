@@ -403,43 +403,28 @@ def get_issue_visit_history(
 @router.get("/api/field-officer/visit-stats", response_model=VisitStatsResponse)
 def get_visit_statistics(db: Session = Depends(get_db)):
     """
-    Get aggregate statistics for all field officer visits using optimized SQL queries
-    
-    Returns metrics like total visits, verification status, geo-fence compliance, etc.
+    Get aggregate statistics for all field officer visits using optimized SQL queries.
+    Optimized: Consolidates 6 individual queries into a single aggregate query to reduce
+    database round-trips and scan overhead.
     """
     try:
-        # Use SQL aggregates instead of loading all visits into memory
-        total_visits = db.query(func.count(FieldOfficerVisit.id)).scalar() or 0
-        
-        verified_visits = db.query(func.count(FieldOfficerVisit.id)).filter(
-            FieldOfficerVisit.verified_at.isnot(None)
-        ).scalar() or 0
-        
-        within_geofence_count = db.query(func.count(FieldOfficerVisit.id)).filter(
-            FieldOfficerVisit.within_geofence == True
-        ).scalar() or 0
-        
-        outside_geofence_count = db.query(func.count(FieldOfficerVisit.id)).filter(
-            FieldOfficerVisit.within_geofence == False
-        ).scalar() or 0
-        
-        unique_officers = db.query(func.count(func.distinct(FieldOfficerVisit.officer_email))).scalar() or 0
-        
-        average_distance = db.query(func.avg(FieldOfficerVisit.distance_from_site)).filter(
-            FieldOfficerVisit.distance_from_site.isnot(None)
-        ).scalar()
-        
-        # Round to 2 decimals if not None
-        if average_distance is not None:
-            average_distance = round(float(average_distance), 2)
+        # Performance Boost: Single aggregate query for all metrics
+        stats = db.query(
+            func.count(FieldOfficerVisit.id).label("total"),
+            func.sum(case((FieldOfficerVisit.verified_at.isnot(None), 1), else_=0)).label("verified"),
+            func.sum(case((FieldOfficerVisit.within_geofence == True, 1), else_=0)).label("within"),
+            func.sum(case((FieldOfficerVisit.within_geofence == False, 1), else_=0)).label("outside"),
+            func.count(func.distinct(FieldOfficerVisit.officer_email)).label("unique_officers"),
+            func.avg(FieldOfficerVisit.distance_from_site).label("avg_dist")
+        ).first()
         
         return VisitStatsResponse(
-            total_visits=total_visits,
-            verified_visits=verified_visits,
-            within_geofence_count=within_geofence_count,
-            outside_geofence_count=outside_geofence_count,
-            unique_officers=unique_officers,
-            average_distance_from_site=average_distance
+            total_visits=stats.total or 0,
+            verified_visits=int(stats.verified or 0),
+            within_geofence_count=int(stats.within or 0),
+            outside_geofence_count=int(stats.outside or 0),
+            unique_officers=stats.unique_officers or 0,
+            average_distance_from_site=round(float(stats.avg_dist), 2) if stats.avg_dist is not None else None
         )
         
     except Exception as e:

@@ -52,4 +52,8 @@
 
 ## 2026-02-11 - Multi-Metric Aggregate Queries
 **Learning:** Executing multiple separate `count()` queries to gather system statistics results in multiple database round-trips and redundant table scans.
-**Action:** Use a single SQLAlchemy query with `func.count()` and `func.sum(case(...))` to calculate all metrics in one go. This reduces network overhead and allows the database to perform calculations in a single pass.
+**Action:** Use a single SQLAlchemy query with `func.count()`, `func.sum(case(...))`, and `func.avg()` to calculate all metrics in one go. This reduces network overhead and allows the database to perform calculations in a single pass.
+
+## 2026-02-28 - Label Mismatch in Aggregate Queries
+**Learning:** When using `func.label()` in SQLAlchemy aggregate queries, any mismatch between the SQL label and the Python attribute accessed in the response dictionary will cause an `AttributeError`.
+**Action:** Ensure SQL labels in aggregate queries exactly match the keys expected by the API response schema or dictionary mapping.

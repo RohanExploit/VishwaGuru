@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, case
 from datetime import datetime, timezone
 import logging
 
@@ -49,16 +49,26 @@ def health():
 
 @router.get("/api/stats", response_model=StatsResponse)
 def get_stats(db: Session = Depends(get_db)):
+    """
+    Get general issue statistics.
+    Optimized: Uses a single aggregate query for total and resolved counts to reduce
+    database round-trips.
+    """
     cached_stats = recent_issues_cache.get("stats")
     if cached_stats:
         return JSONResponse(content=cached_stats)
 
-    total = db.query(func.count(Issue.id)).scalar()
-    resolved = db.query(func.count(Issue.id)).filter(Issue.status.in_(['resolved', 'verified'])).scalar()
-    # Pending is everything else
+    # Performance Boost: Combined total and resolved count in one query
+    counts = db.query(
+        func.count(Issue.id).label("total"),
+        func.sum(case((Issue.status.in_(['resolved', 'verified']), 1), else_=0)).label("resolved")
+    ).first()
+
+    total = counts.total or 0
+    resolved = int(counts.resolved or 0)
     pending = total - resolved
 
-    # By category
+    # By category (separate group-by query is necessary here)
     cat_counts = db.query(Issue.category, func.count(Issue.id)).group_by(Issue.category).all()
     issues_by_category = {cat: count for cat, count in cat_counts}
 
