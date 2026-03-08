@@ -29,7 +29,7 @@ def get_system_stats(db: Session = Depends(get_db)):
     stats = db.query(
         func.count(User.id).label("total"),
         func.sum(case((User.role == UserRole.ADMIN, 1), else_=0)).label("admins"),
-        func.sum(case((User.is_active.is_(True), 1), else_=0)).label("active")
+        func.sum(case((User.is_active == True, 1), else_=0)).label("active")
     ).first()
     
     return {
