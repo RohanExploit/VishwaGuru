@@ -159,11 +159,16 @@ def test_stats_requires_authentication(db_engine):
     """Endpoint returns 401/403 without admin credentials."""
     TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=db_engine)
 
+    def _get_db_override():
+        db = TestingSessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
+
     unauthenticated_app = FastAPI()
     unauthenticated_app.include_router(router)
-    unauthenticated_app.dependency_overrides[get_db] = (
-        lambda: TestingSessionLocal()
-    )
+    unauthenticated_app.dependency_overrides[get_db] = _get_db_override
     # get_current_admin_user is NOT overridden – real auth guard raises 403/422.
 
     with TestClient(unauthenticated_app, raise_server_exceptions=False) as c:
