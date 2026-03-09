@@ -1,6 +1,13 @@
-INFO:     Will watch for changes in these directories: ['E:\\projects\\VishwaGuru\\VishwaGuru']
-INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
-INFO:     Started reloader process [42100] using StatReload
-2026-03-09 02:00:56,311 - backend.adaptive_weights - INFO - Adaptive weights loaded/reloaded.
-WARNING:  StatReload detected changes in 'backend\main.py'. Reloading...
- 
+2026-03-09 14:34:15,761 - backend.adaptive_weights - INFO - Adaptive weights loaded/reloaded.
+2026-03-09 14:34:15,793 - backend.rag_service - INFO - Loaded 5 civic policies for RAG.
+/home/jules/.pyenv/versions/3.12.12/lib/python3.12/site-packages/pydub/utils.py:170: RuntimeWarning: Couldn't find ffmpeg or avconv - defaulting to ffmpeg, but may not work
+  warn("Couldn't find ffmpeg or avconv - defaulting to ffmpeg, but may not work", RuntimeWarning)
+2026-03-09 14:34:16,031 - backend.main - WARNING - FRONTEND_URL not set. Defaulting to http://localhost:5173 for development.
+INFO:     Started server process [7905]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:10000 (Press CTRL+C to quit)
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [7905]

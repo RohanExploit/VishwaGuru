@@ -15,9 +15,12 @@ a2wsgi
 python-jose[cryptography]
 passlib[bcrypt]
 bcrypt<4.0.0
+python-dotenv
 SpeechRecognition
 pydub
 googletrans==4.0.2
 langdetect
+async_lru
+indic-nlp-library
 numpy
 scikit-learn
