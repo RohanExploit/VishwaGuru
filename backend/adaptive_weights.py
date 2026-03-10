@@ -12,6 +12,8 @@ class AdaptiveWeights:
     _instance = None
     _weights = None
     _last_loaded = 0
+    _last_check_time = 0
+    _THROTTLE_SECONDS = 5
 
     def __new__(cls):
         if cls._instance is None:
@@ -19,14 +21,15 @@ class AdaptiveWeights:
             cls._instance._load_weights()
         return cls._instance
 
-    def _load_weights(self):
+    def _load_weights(self) -> bool:
+        """Loads weights from disk. Returns True if a reload occurred."""
         try:
             if not os.path.exists(DATA_FILE):
                 logger.error(f"Weights file not found at {DATA_FILE}")
                 # Initialize with empty dict to prevent AttributeError, though file should exist
                 if self._weights is None:
                     self._weights = {}
-                return
+                return False
 
             mtime = os.path.getmtime(DATA_FILE)
             if self._weights is None or mtime > self._last_loaded:
@@ -34,14 +37,25 @@ class AdaptiveWeights:
                     self._weights = json.load(f)
                 self._last_loaded = mtime
                 logger.info("Adaptive weights loaded/reloaded.")
+                return True
+            return False
         except Exception as e:
             logger.error(f"Error loading adaptive weights: {e}")
             if self._weights is None:
                 self._weights = {}
+            return False
 
-    def _check_reload(self):
-        # Optimization: Checking mtime is fast (stat call).
-        self._load_weights()
+    def _check_reload(self) -> bool:
+        """
+        Check if weights need reloading, with a 5-second throttle to avoid
+        excessive stat() calls in hot paths. Returns True if reloaded.
+        """
+        current_time = time.time()
+        if current_time - self._last_check_time < self._THROTTLE_SECONDS:
+            return False
+
+        self._last_check_time = current_time
+        return self._load_weights()
 
     def _save_weights(self):
         try:

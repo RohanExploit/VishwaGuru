@@ -53,3 +53,7 @@
 ## 2026-02-11 - Multi-Metric Aggregate Queries
 **Learning:** Executing multiple separate `count()` queries to gather system statistics results in multiple database round-trips and redundant table scans.
 **Action:** Use a single SQLAlchemy query with `func.count()` and `func.sum(case(...))` to calculate all metrics in one go. This reduces network overhead and allows the database to perform calculations in a single pass.
+
+## 2026-02-12 - Throttled Configuration I/O and Regex Consolidation
+**Learning:** Unthrottled `os.path.getmtime` calls in hot paths (like `PriorityEngine.analyze`) compound to introduce measurable latency. Additionally, iterative substring matching (`word in text`) over large keyword lists is significantly slower than consolidated regex alternation. However, word boundaries (`\b`) must be avoided if parity with substring matching is required (e.g., 'spark' should match 'sparks').
+**Action:** Throttle hot-reloading configuration checks (e.g., 5 seconds). Pre-compile and consolidate keyword lists into single regex patterns for O(M) matching.
