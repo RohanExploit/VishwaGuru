@@ -131,6 +131,6 @@ if (require.main === module) {
 
   // For testing/manual trigger, we can also pass a flag or just run immediately if needed
   if (process.argv.includes("--run-now")) {
-    job.runRefinement();
+    job.runRefinement().then(() => process.exit(0));
   }
 }
