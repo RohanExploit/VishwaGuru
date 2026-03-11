@@ -53,3 +53,7 @@
 ## 2026-02-11 - Multi-Metric Aggregate Queries
 **Learning:** Executing multiple separate `count()` queries to gather system statistics results in multiple database round-trips and redundant table scans.
 **Action:** Use a single SQLAlchemy query with `func.count()` and `func.sum(case(...))` to calculate all metrics in one go. This reduces network overhead and allows the database to perform calculations in a single pass.
+
+## 2026-02-12 - Regex vs Substring Search for Keywords
+**Learning:** For a fixed set of keyword literals (not patterns), Python's `in` operator (substring search) is significantly faster than `re.findall()` or `re.search()`, even with pre-compiled regexes. Consolidating 100+ keywords into a single "mega-regex" for category detection caused a 4.4x performance regression in `PriorityEngine` because the regex engine overhead outweighed the benefits of single-pass scanning for short text inputs.
+**Action:** Use `in` for simple keyword presence checks in hot loops. Reserve `re.compile()` for complex patterns where its features are actually needed (like the urgency assessment context).

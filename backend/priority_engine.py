@@ -1,7 +1,10 @@
 import re
 import math
+import logging
 from typing import List, Dict, Any, Optional
 from backend.adaptive_weights import adaptive_weights
+
+logger = logging.getLogger(__name__)
 
 class PriorityEngine:
     """
@@ -11,9 +14,40 @@ class PriorityEngine:
     """
 
     def __init__(self):
-        # We no longer hardcode values here.
-        # They are fetched dynamically from AdaptiveWeights on each analysis.
-        pass
+        # Cache for compiled regexes to avoid redundant compilation
+        self._regex_cache = {
+            "urgency": [],
+            "categories": {},
+            "last_loaded": 0
+        }
+
+    def _get_compiled_regexes(self):
+        """
+        Retrieves or compiles regex patterns, synchronizing with AdaptiveWeights.
+        """
+        # Trigger reload check in adaptive_weights
+        adaptive_weights._check_reload()
+
+        # If weights were reloaded, we need to recompile our regex cache
+        if adaptive_weights._last_loaded > self._regex_cache["last_loaded"]:
+            logger.info("Recompiling PriorityEngine regex cache due to weights update.")
+
+            # 1. Compile Urgency Patterns
+            urgency_patterns = adaptive_weights.get_urgency_patterns()
+            compiled_urgency = []
+            for pattern, weight in urgency_patterns:
+                try:
+                    compiled_urgency.append((re.compile(pattern, re.IGNORECASE), weight))
+                except re.error as e:
+                    logger.error(f"Error compiling urgency pattern '{pattern}': {e}")
+
+            # 2. Categories still use substring matching for semantic correctness
+            # (Counting unique keyword matches, not total occurrences)
+
+            self._regex_cache["urgency"] = compiled_urgency
+            self._regex_cache["last_loaded"] = adaptive_weights._last_loaded
+
+        return self._regex_cache
 
     def analyze(self, text: str, image_labels: Optional[List[str]] = None) -> Dict[str, Any]:
         """
@@ -26,9 +60,12 @@ class PriorityEngine:
         if image_labels:
             combined_text += " " + " ".join([l.lower() for l in image_labels])
 
+        # Get compiled regexes once for the whole analysis
+        regex_cache = self._get_compiled_regexes()
+
         severity_score, severity_label, severity_reasons = self._calculate_severity(combined_text)
-        urgency_score, urgency_reasons = self._calculate_urgency(combined_text, severity_score)
-        categories = self._detect_categories(combined_text)
+        urgency_score, urgency_reasons = self._calculate_urgency(combined_text, severity_score, regex_cache)
+        categories = self._detect_categories(combined_text, regex_cache)
 
         # Apply Adaptive Category Weights
         multipliers = adaptive_weights.get_category_multipliers()
@@ -111,29 +148,29 @@ class PriorityEngine:
 
         return score, label, reasons
 
-    def _calculate_urgency(self, text: str, severity_score: int):
+    def _calculate_urgency(self, text: str, severity_score: int, regex_cache: Dict[str, Any]):
         # Base urgency follows severity
         urgency = severity_score
         reasons = []
 
-        urgency_patterns = adaptive_weights.get_urgency_patterns()
-
-        # Apply regex modifiers
-        for pattern, weight in urgency_patterns:
-            if re.search(pattern, text):
+        # Apply pre-compiled regex modifiers
+        for regex, weight in regex_cache["urgency"]:
+            if regex.search(text):
                 urgency += weight
-                reasons.append(f"Urgency increased by context matching pattern: '{pattern}'")
+                reasons.append(f"Urgency increased by context matching pattern: '{regex.pattern}'")
 
         # Cap at 100
         urgency = min(100, urgency)
 
         return urgency, reasons
 
-    def _detect_categories(self, text: str) -> List[str]:
-        categories_map = adaptive_weights.get_category_keywords()
-
+    def _detect_categories(self, text: str, regex_cache: Dict[str, Any]) -> List[str]:
         scored_categories = []
-        for category, keywords in categories_map.items():
+        # Reverting to original logic for correctness and performance on short strings
+        # Counting unique keywords per category as in original implementation
+        category_keywords = adaptive_weights.get_category_keywords()
+
+        for category, keywords in category_keywords.items():
             count = 0
             for k in keywords:
                 if k in text:
