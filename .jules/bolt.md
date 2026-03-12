@@ -53,3 +53,7 @@
 ## 2026-02-11 - Multi-Metric Aggregate Queries
 **Learning:** Executing multiple separate `count()` queries to gather system statistics results in multiple database round-trips and redundant table scans.
 **Action:** Use a single SQLAlchemy query with `func.count()` and `func.sum(case(...))` to calculate all metrics in one go. This reduces network overhead and allows the database to perform calculations in a single pass.
+
+## 2026-02-12 - Throttled Configuration Reloading and Regex Caching
+**Learning:** Calling `os.path.getmtime` and re-reading JSON configuration on every analysis request in a hot path like `PriorityEngine` introduces unnecessary I/O overhead. Additionally, repeated regex compilation within the same request cycle is wasteful.
+**Action:** Implement a time-based throttle (e.g., 5 seconds) for file system checks in configuration services (`AdaptiveWeights`). Cache pre-compiled regex patterns in the consumer (`PriorityEngine`) and only refresh them when the configuration service signals a reload (via a monotonic counter). Ensure the configuration check is still triggered by the consumer to maintain reactivity.
