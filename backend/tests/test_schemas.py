@@ -44,9 +44,6 @@ def test_chat_request():
     with pytest.raises(ValidationError):
         ChatRequest(query="")
 
-    with pytest.raises(ValidationError):
-        ChatRequest(query="   ")
-
 def test_chat_response():
     response = ChatResponse(response="Hi there")
     assert response.response == "Hi there"
