@@ -64,6 +64,43 @@ export class IntelligenceIndex {
   public saveSnapshot(snapshot: DailySnapshot): void {
     const filePath = path.join(this.snapshotsDir, `${snapshot.date}.json`);
     fs.writeFileSync(filePath, JSON.stringify(snapshot, null, 2), "utf-8");
+
+    // Also save a human-readable markdown report
+    this.saveMarkdownReport(snapshot);
+  }
+
+  private saveMarkdownReport(snapshot: DailySnapshot): void {
+    const filePath = path.join(this.snapshotsDir, `REPORT_${snapshot.date}.md`);
+    let markdown = `# Daily Civic Intelligence Report: ${snapshot.date}\n\n`;
+    markdown += `**Civic Intelligence Index**: ${snapshot.indexScore} (${snapshot.delta >= 0 ? '+' : ''}${snapshot.delta} from yesterday)\n\n`;
+
+    markdown += `## Top 5 Emerging Keywords\n`;
+    if (snapshot.topKeywords.length > 0) {
+      snapshot.topKeywords.forEach((kw, i) => {
+        markdown += `${i + 1}. ${kw}\n`;
+      });
+    } else {
+      markdown += `*No significant keywords detected.*\n`;
+    }
+
+    markdown += `\n## Emerging Concerns (Spikes)\n`;
+    if (snapshot.emergingConcerns.length > 0) {
+      snapshot.emergingConcerns.forEach(concern => {
+        markdown += `- **${concern.category}**: +${concern.increasePercentage}%\n`;
+      });
+    } else {
+      markdown += `*No significant category spikes detected.*\n`;
+    }
+
+    markdown += `\n## Highest Severity Region\n`;
+    if (snapshot.highestSeverityRegion) {
+      markdown += `- Location: [${snapshot.highestSeverityRegion.latitude}, ${snapshot.highestSeverityRegion.longitude}]\n`;
+      markdown += `- Issue Count: ${snapshot.highestSeverityRegion.count}\n`;
+    } else {
+      markdown += `*No significant regional clustering detected.*\n`;
+    }
+
+    fs.writeFileSync(filePath, markdown, "utf-8");
   }
 
   private getPreviousIndexScore(todayDate: string): number {

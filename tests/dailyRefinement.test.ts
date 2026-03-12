@@ -162,7 +162,7 @@ describe("Daily Civic Intelligence Refinement Engine Tests", () => {
       }
     });
 
-    test("should generate and save daily snapshot score", () => {
+    test("should generate and save daily snapshot score and markdown report", () => {
       const snapshot = intelligenceIndex.generateIndex(
         dummyIssues,
         ["pothole", "water"],
@@ -176,8 +176,20 @@ describe("Daily Civic Intelligence Refinement Engine Tests", () => {
       intelligenceIndex.saveSnapshot(snapshot);
 
       const files = fs.readdirSync(testSnapshotsDir);
-      expect(files.length).toBe(1);
-      expect(files[0]).toContain(snapshot.date);
+      expect(files.length).toBe(2); // Should have the JSON and the MD file
+
+      const jsonFile = files.find(f => f.endsWith('.json'));
+      const mdFile = files.find(f => f.endsWith('.md'));
+
+      expect(jsonFile).toBeDefined();
+      expect(jsonFile).toContain(snapshot.date);
+
+      expect(mdFile).toBeDefined();
+      expect(mdFile).toContain(`REPORT_${snapshot.date}`);
+
+      const mdContent = fs.readFileSync(path.join(testSnapshotsDir, mdFile!), 'utf-8');
+      expect(mdContent).toContain(`Civic Intelligence Index`);
+      expect(mdContent).toContain(`Garbage`);
     });
   });
 
