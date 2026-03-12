@@ -33,6 +33,13 @@ class ActionPlan(BaseModel):
 class ChatRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=1000, description="Chat query text")
 
+    @field_validator('query')
+    @classmethod
+    def validate_query(cls, v):
+        if not v.strip():
+            raise ValueError('Query cannot be empty or whitespace only')
+        return v.strip()
+
 class ChatResponse(BaseModel):
     response: str
 

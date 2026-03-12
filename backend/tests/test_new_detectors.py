@@ -42,11 +42,14 @@ with patch("backend.main.create_all_ai_services") as mock_create_ai:
 @pytest.fixture
 def client():
     mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
     # Patch get_http_client in detection router to return our mock
     with patch("backend.routers.detection.get_http_client", return_value=mock_client):
-         with TestClient(app) as c:
-            c.app.state.http_client = mock_client
-            yield c
+        # We need to also patch the httpx.AsyncClient call in lifespan
+        with patch("httpx.AsyncClient", return_value=mock_client):
+            with TestClient(app) as c:
+                c.app.state.http_client = mock_client
+                yield c
 
 def create_test_image():
     img = Image.new('RGB', (100, 100), color='red')
@@ -71,9 +74,11 @@ async def test_detect_traffic_sign_damaged(client):
 
     img_bytes = create_test_image()
 
-    with patch('backend.utils.validate_uploaded_file'):
+    with patch('backend.utils.validate_uploaded_file'), \
+         patch('backend.routers.detection.process_uploaded_image', new_callable=AsyncMock) as mock_process:
+        mock_process.return_value = (None, img_bytes)
         response = client.post(
-            "/api/detect-traffic-sign",
+                "/detect-traffic-sign",
             files={"image": ("sign.jpg", img_bytes, "image/jpeg")}
         )
 
@@ -99,7 +104,7 @@ async def test_detect_traffic_sign_clear(client):
 
     with patch('backend.utils.validate_uploaded_file'):
         response = client.post(
-            "/api/detect-traffic-sign",
+                "/detect-traffic-sign",
             files={"image": ("sign.jpg", img_bytes, "image/jpeg")}
         )
 
@@ -121,9 +126,11 @@ async def test_detect_abandoned_vehicle_found(client):
 
     img_bytes = create_test_image()
 
-    with patch('backend.utils.validate_uploaded_file'):
+    with patch('backend.utils.validate_uploaded_file'), \
+         patch('backend.routers.detection.process_uploaded_image', new_callable=AsyncMock) as mock_process:
+        mock_process.return_value = (None, img_bytes)
         response = client.post(
-            "/api/detect-abandoned-vehicle",
+                "/detect-abandoned-vehicle",
             files={"image": ("car.jpg", img_bytes, "image/jpeg")}
         )
 
