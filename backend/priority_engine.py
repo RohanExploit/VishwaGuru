@@ -13,7 +13,9 @@ class PriorityEngine:
     def __init__(self):
         # We no longer hardcode values here.
         # They are fetched dynamically from AdaptiveWeights on each analysis.
-        pass
+        # ⚡ Bolt Optimization: Cache compiled urgency regexes to avoid re-compiling every analysis
+        self._compiled_urgency_patterns = []
+        self._last_urgency_patterns = None
 
     def analyze(self, text: str, image_labels: Optional[List[str]] = None) -> Dict[str, Any]:
         """
@@ -118,11 +120,20 @@ class PriorityEngine:
 
         urgency_patterns = adaptive_weights.get_urgency_patterns()
 
+        # ⚡ Bolt Optimization: Cache compiled regular expressions
+        # Use object identity or direct equality check to see if AdaptiveWeights updated patterns
+        if self._last_urgency_patterns is None or self._last_urgency_patterns != urgency_patterns:
+            self._compiled_urgency_patterns = [
+                (re.compile(pattern), weight, pattern)
+                for pattern, weight in urgency_patterns
+            ]
+            self._last_urgency_patterns = urgency_patterns
+
         # Apply regex modifiers
-        for pattern, weight in urgency_patterns:
-            if re.search(pattern, text):
+        for compiled_pattern, weight, pattern_str in self._compiled_urgency_patterns:
+            if compiled_pattern.search(text):
                 urgency += weight
-                reasons.append(f"Urgency increased by context matching pattern: '{pattern}'")
+                reasons.append(f"Urgency increased by context matching pattern: '{pattern_str}'")
 
         # Cap at 100
         urgency = min(100, urgency)
