@@ -32,3 +32,4 @@ googletrans==4.0.2
 langdetect
 indic-nlp-library
 async_lru
+python-dotenv>=1.0.0

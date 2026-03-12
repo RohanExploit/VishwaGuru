@@ -21,3 +21,4 @@ googletrans==4.0.2
 langdetect
 numpy
 scikit-learn
+python-dotenv>=1.0.0
