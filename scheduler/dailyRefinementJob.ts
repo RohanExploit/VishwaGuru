@@ -1,3 +1,5 @@
+// DailyRefinementJob operates at midnight to run the Civic Intelligence Refinement Engine,
+// analyzing recent reports, updating weights, and generating index snapshots automatically.
 import * as cron from "node-cron";
 import * as sqlite3 from "sqlite3";
 import * as path from "path";

@@ -1,3 +1,5 @@
+// AdaptiveWeights dynamically adjusts the severity model weights and duplicate detection thresholds
+// based on historical and real-time civic issue reporting and resolution patterns.
 import { Issue, ModelWeights } from "./types";
 import * as fs from "fs";
 import * as path from "path";

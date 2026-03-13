@@ -1,4 +1,5 @@
 # TypeScript Daily Civic Intelligence Refinement Engine
+<!-- Documentation for the architecture and algorithms underpinning the Daily Civic Intelligence Engine -->
 
 ## Overview
 VishwaGuru's Civic Intelligence Engine is a self-improving AI system that runs daily at midnight. It operates entirely locally using Node.js and SQLite, analyzing civic issues, detecting trends, and optimizing the system's severity scoring logic based on real-world patterns.

@@ -1,3 +1,5 @@
+// PriorityEngine is responsible for evaluating the severity and urgency of a civic issue.
+// It leverages dynamic weights managed by the AdaptiveWeights service.
 import { AdaptiveWeights } from "./adaptiveWeights";
 import { ModelWeights } from "./types";
 

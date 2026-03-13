@@ -1,3 +1,5 @@
+// TrendAnalyzer processes civic issues to identify emerging patterns, top keywords,
+// category spikes, and geographic clustering to understand systemic problems.
 import { Issue } from "./types";
 
 export class TrendAnalyzer {

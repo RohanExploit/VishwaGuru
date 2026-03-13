@@ -1,3 +1,5 @@
+// TypeScript definitions for models and datasets used within the Civic Intelligence Engine.
+
 export interface Issue {
   id: number;
   reference_id?: string;

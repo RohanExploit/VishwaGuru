@@ -1,3 +1,5 @@
+// IntelligenceIndex computes a daily score summarizing civic activity and problem resolution,
+// storing the result in a daily JSON snapshot to build a transparent track record.
 import { Issue, DailySnapshot } from "./types";
 import * as fs from "fs";
 import * as path from "path";
