@@ -53,3 +53,7 @@
 ## 2026-02-11 - Multi-Metric Aggregate Queries
 **Learning:** Executing multiple separate `count()` queries to gather system statistics results in multiple database round-trips and redundant table scans.
 **Action:** Use a single SQLAlchemy query with `func.count()` and `func.sum(case(...))` to calculate all metrics in one go. This reduces network overhead and allows the database to perform calculations in a single pass.
+
+## 2025-03-13 - O(N) Aggregate Query Optimization in Field Officer Route
+**Learning:** `get_visit_statistics` in `backend/routers/field_officer.py` issued six separate database queries using `.scalar()` to collect sum and count metrics. This N+1 style inefficiency causes O(N) database round-trips over the network and redundant table scans.
+**Action:** Consolidate multiple aggregate metrics (count, sum of cases, average) into a single SQL query using `db.query(func.count(), func.sum(case(...)), ...).first()`. Handling `None` states from `sum()` is essential to prevent serialization errors.
