@@ -8,7 +8,7 @@ import { Issue } from "../services/types";
 
 // Load environmental or fallback to test.db or production db
 const dbPath =
-  process.env.DB_PATH || path.join(__dirname, "../../backend/app.db");
+  process.env.DB_PATH || path.join(__dirname, "../data/issues.db");
 
 export class DailyRefinementJob {
   private db: sqlite3.Database;
