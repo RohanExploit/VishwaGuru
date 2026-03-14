@@ -53,3 +53,7 @@
 ## 2026-02-11 - Multi-Metric Aggregate Queries
 **Learning:** Executing multiple separate `count()` queries to gather system statistics results in multiple database round-trips and redundant table scans.
 **Action:** Use a single SQLAlchemy query with `func.count()` and `func.sum(case(...))` to calculate all metrics in one go. This reduces network overhead and allows the database to perform calculations in a single pass.
+
+## 2024-05-28 - Multiple Subqueries vs Single Case Summation
+**Learning:** Using multiple `.scalar()` calls with `func.count` sequentially for fetching multiple statistical counts (e.g. `total_visits`, `verified_visits`, `within_geofence`) results in numerous network roundtrips to the DB and redundant table scans.
+**Action:** Consolidate these queries into a single SQL transaction using `db.query` projecting a mix of `func.count()` and `func.sum(case(...))` wrapped in `.label()` to perform calculation at the DB engine layer with only one trip.

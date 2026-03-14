@@ -408,30 +408,26 @@ def get_visit_statistics(db: Session = Depends(get_db)):
     Returns metrics like total visits, verification status, geo-fence compliance, etc.
     """
     try:
-        # Use SQL aggregates instead of loading all visits into memory
-        total_visits = db.query(func.count(FieldOfficerVisit.id)).scalar() or 0
+        # Use single SQL aggregate query instead of 6 separate queries
+        # This reduces network roundtrips and table scans by ~83%
+        metrics = db.query(
+            func.count(FieldOfficerVisit.id).label('total'),
+            func.sum(case((FieldOfficerVisit.verified_at.isnot(None), 1), else_=0)).label('verified'),
+            func.sum(case((FieldOfficerVisit.within_geofence == True, 1), else_=0)).label('within'),
+            func.sum(case((FieldOfficerVisit.within_geofence == False, 1), else_=0)).label('outside'),
+            func.count(func.distinct(FieldOfficerVisit.officer_email)).label('unique_officers'),
+            func.avg(FieldOfficerVisit.distance_from_site).label('avg_dist')
+        ).first()
+
+        total_visits = metrics.total or 0
+        verified_visits = int(metrics.verified or 0) if metrics and metrics.verified is not None else 0
+        within_geofence_count = int(metrics.within or 0) if metrics and metrics.within is not None else 0
+        outside_geofence_count = int(metrics.outside or 0) if metrics and metrics.outside is not None else 0
+        unique_officers = metrics.unique_officers or 0
         
-        verified_visits = db.query(func.count(FieldOfficerVisit.id)).filter(
-            FieldOfficerVisit.verified_at.isnot(None)
-        ).scalar() or 0
-        
-        within_geofence_count = db.query(func.count(FieldOfficerVisit.id)).filter(
-            FieldOfficerVisit.within_geofence == True
-        ).scalar() or 0
-        
-        outside_geofence_count = db.query(func.count(FieldOfficerVisit.id)).filter(
-            FieldOfficerVisit.within_geofence == False
-        ).scalar() or 0
-        
-        unique_officers = db.query(func.count(func.distinct(FieldOfficerVisit.officer_email))).scalar() or 0
-        
-        average_distance = db.query(func.avg(FieldOfficerVisit.distance_from_site)).filter(
-            FieldOfficerVisit.distance_from_site.isnot(None)
-        ).scalar()
-        
-        # Round to 2 decimals if not None
-        if average_distance is not None:
-            average_distance = round(float(average_distance), 2)
+        average_distance = None
+        if metrics and metrics.avg_dist is not None:
+            average_distance = round(float(metrics.avg_dist), 2)
         
         return VisitStatsResponse(
             total_visits=total_visits,
