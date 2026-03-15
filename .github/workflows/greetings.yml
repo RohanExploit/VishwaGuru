@@ -20,9 +20,20 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           retries: 3
           script: |
+            const supportedEvents = ['issues', 'pull_request_target'];
+            if (!supportedEvents.includes(context.eventName)) {
+              core.info(`Skipping unsupported event: ${context.eventName}`);
+              return;
+            }
+
             const isPullRequest = !!context.payload.pull_request;
             const author = context.actor;
-            const issue_number = isPullRequest ? context.payload.pull_request.number : context.payload.issue.number;
+            const issue_number = isPullRequest ? context.payload.pull_request?.number : context.payload.issue?.number;
+
+            if (!issue_number) {
+              core.info('No issue or pull request context found; skipping greeting.');
+              return;
+            }
             
             // Check if this is the user's first contribution to the repo
             const response = await github.rest.issues.listForRepo({
