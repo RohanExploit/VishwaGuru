@@ -12,6 +12,7 @@ permissions:
 
 jobs:
   greeting:
+    if: github.event_name == 'issues' || github.event_name == 'pull_request_target'
     runs-on: ubuntu-latest
     steps:
       - name: Greet New Contributors
