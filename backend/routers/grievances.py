@@ -402,15 +402,19 @@ def get_closure_status(
             GrievanceFollower.grievance_id == grievance_id
         ).scalar()
         
-        confirmations_count = db.query(func.count(ClosureConfirmation.id)).filter(
-            ClosureConfirmation.grievance_id == grievance_id,
-            ClosureConfirmation.confirmation_type == "confirmed"
-        ).scalar()
+        # Optimized: Consolidate multiple aggregate queries into a single database roundtrip
+        stats = db.query(
+            ClosureConfirmation.confirmation_type,
+            func.count(ClosureConfirmation.id)
+        ).filter(ClosureConfirmation.grievance_id == grievance_id).group_by(ClosureConfirmation.confirmation_type).all()
         
-        disputes_count = db.query(func.count(ClosureConfirmation.id)).filter(
-            ClosureConfirmation.grievance_id == grievance_id,
-            ClosureConfirmation.confirmation_type == "disputed"
-        ).scalar()
+        confirmations_count = 0
+        disputes_count = 0
+        for t, c in stats:
+            if t == "confirmed":
+                confirmations_count = c
+            elif t == "disputed":
+                disputes_count = c
         
         required_confirmations = max(1, int(total_followers * ClosureService.CONFIRMATION_THRESHOLD))
         
