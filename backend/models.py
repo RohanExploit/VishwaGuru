@@ -92,6 +92,8 @@ class Grievance(Base):
     pending_closure = Column(Boolean, default=False, index=True)
     
     issue_id = Column(Integer, ForeignKey("issues.id"), nullable=True, index=True)
+    integrity_hash = Column(String, nullable=True)  # Blockchain integrity seal
+    previous_integrity_hash = Column(String, nullable=True, index=True) # Linked hash for O(1) verification
 
     # Relationships
     jurisdiction = relationship("Jurisdiction", back_populates="grievances")

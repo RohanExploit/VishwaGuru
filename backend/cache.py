@@ -15,7 +15,8 @@ class ThreadSafeCache:
     
     def __init__(self, ttl: int = 300, max_size: int = 100):
         self._data = collections.OrderedDict()
-        self._timestamps = {}
+        # Use OrderedDict for timestamps to enable O(K) expiration cleanup
+        self._timestamps = collections.OrderedDict()
         self._ttl = ttl  # Time to live in seconds
         self._max_size = max_size  # Maximum number of cache entries
         self._lock = threading.RLock()  # Reentrant lock for thread safety
@@ -60,7 +61,10 @@ class ThreadSafeCache:
             # Set new data atomically (adds to end, updating if exists)
             self._data[key] = data
             self._data.move_to_end(key)
+
+            # Update timestamp and move to end to maintain O(K) cleanup order
             self._timestamps[key] = current_time
+            self._timestamps.move_to_end(key)
             
             logger.debug(f"Cache set: key={key}, size={len(self._data)}")
     
@@ -113,12 +117,19 @@ class ThreadSafeCache:
         """
         Internal method to clean up expired entries.
         Must be called within lock context.
+        Optimized to O(K) by breaking at the first non-expired entry.
         """
         current_time = time.time()
-        expired_keys = [
-            key for key, timestamp in self._timestamps.items()
-            if current_time - timestamp >= self._ttl
-        ]
+        expired_keys = []
+
+        # Iterating through OrderedDict yields items in insertion order (oldest first)
+        for key, timestamp in self._timestamps.items():
+            if current_time - timestamp >= self._ttl:
+                expired_keys.append(key)
+            else:
+                # Since we iterate in order of insertion/update, once we find a
+                # non-expired entry, all subsequent entries are also non-expired.
+                break
         
         for key in expired_keys:
             self._remove_key(key)
@@ -163,4 +174,6 @@ class SimpleCache:
 recent_issues_cache = ThreadSafeCache(ttl=300, max_size=20)  # 5 minutes TTL, max 20 entries
 nearby_issues_cache = ThreadSafeCache(ttl=60, max_size=100)  # 1 minute TTL, max 100 entries
 user_upload_cache = ThreadSafeCache(ttl=3600, max_size=1000)  # 1 hour TTL for upload limits
+user_issues_cache = ThreadSafeCache(ttl=300, max_size=100)  # 5 minutes TTL for user history
 blockchain_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=1)
+grievance_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=1)
