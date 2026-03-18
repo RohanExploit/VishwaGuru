@@ -85,9 +85,9 @@ async def lifespan(app: FastAPI):
         logger.info("Starting database initialization...")
         await run_in_threadpool(Base.metadata.create_all, bind=engine)
         logger.info("Base.metadata.create_all completed.")
-        # Temporarily disabled - comment out to debug startup issues
-        # await run_in_threadpool(migrate_db)
-        logger.info("Database initialized successfully (migrations skipped for local dev).")
+        # Enabled database migrations for production deployment
+        await run_in_threadpool(migrate_db)
+        logger.info("Database initialized successfully with migrations.")
     except Exception as e:
         logger.error(f"Database initialization failed: {e}", exc_info=True)
         # We continue to allow health checks even if DB has issues (for debugging)
@@ -95,10 +95,10 @@ async def lifespan(app: FastAPI):
     # Startup: Initialize Grievance Service (needed for escalation engine)
     try:
         logger.info("Initializing grievance service...")
-        # Temporarily disabled for local dev
-        # grievance_service = GrievanceService()
-        # app.state.grievance_service = grievance_service
-        logger.info("Grievance service initialization skipped for local dev.")
+        # Enabled grievance service for escalation logic
+        grievance_service = GrievanceService()
+        app.state.grievance_service = grievance_service
+        logger.info("Grievance service initialized successfully.")
     except Exception as e:
         logger.error(f"Error initializing grievance service: {e}", exc_info=True)
 
@@ -126,9 +126,9 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="VishwaGuru Backend",
     description="AI-powered civic issue reporting and resolution platform",
-    version="1.0.0"
-    # Temporarily disable lifespan for local dev debugging
-    # lifespan=lifespan
+    version="1.0.0",
+    # Enable lifespan context manager for resource management and startup tasks
+    lifespan=lifespan
 )
 
 # Add centralized exception handlers

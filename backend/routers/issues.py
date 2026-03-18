@@ -441,6 +441,12 @@ async def verify_issue_endpoint(
                     )
                     await run_in_threadpool(db.commit)
 
+            # Invalidate user history cache
+            try:
+                user_issues_cache.clear()
+            except Exception:
+                pass
+
             return {
                 "is_resolved": is_resolved,
                 "ai_answer": answer,
