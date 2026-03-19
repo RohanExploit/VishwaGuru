@@ -1,3 +1,4 @@
+import httpx
 from fastapi import APIRouter, UploadFile, File, Request, HTTPException
 from fastapi.concurrency import run_in_threadpool
 from PIL import Image
@@ -6,6 +7,7 @@ import time
 
 from backend.utils import process_and_detect, validate_uploaded_file, process_uploaded_image
 from backend.schemas import DetectionResponse, UrgencyAnalysisRequest, UrgencyAnalysisResponse
+from backend.cache import ThreadSafeCache
 from backend.pothole_detection import detect_potholes, validate_image_for_processing
 from backend.unified_detection_service import (
     detect_vandalism as detect_vandalism_unified,
@@ -35,7 +37,9 @@ from backend.hf_api_service import (
     detect_civic_eye_clip,
     detect_graffiti_art_clip,
     detect_traffic_sign_clip,
-    detect_abandoned_vehicle_clip
+    detect_abandoned_vehicle_clip,
+    detect_facial_emotion,
+
 )
 from backend.dependencies import get_http_client
 import backend.dependencies
@@ -46,27 +50,14 @@ router = APIRouter()
 
 # Cached Functions
 
-# Simple Cache Implementation to avoid async-lru dependency issues on Render
-_cache_store = {}
-CACHE_TTL = 3600  # 1 hour
-MAX_CACHE_SIZE = 500
+# Use ThreadSafeCache for better performance and proper TTL/LRU management
+detection_cache = ThreadSafeCache(ttl=3600, max_size=500)
 
 async def _get_cached_result(key: str, func, *args, **kwargs):
-    current_time = time.time()
-
     # Check cache
-    if key in _cache_store:
-        result, timestamp = _cache_store[key]
-        if current_time - timestamp < CACHE_TTL:
-            return result
-        else:
-            del _cache_store[key]
-
-    # Prune cache if too large
-    if len(_cache_store) > MAX_CACHE_SIZE:
-        keys_to_remove = list(_cache_store.keys())[:int(MAX_CACHE_SIZE * 0.2)]
-        for k in keys_to_remove:
-            del _cache_store[k]
+    cached_result = detection_cache.get(key)
+    if cached_result is not None:
+        return cached_result
 
     # Execute function
     if 'client' not in kwargs:
@@ -74,7 +65,7 @@ async def _get_cached_result(key: str, func, *args, **kwargs):
         kwargs['client'] = backend.dependencies.SHARED_HTTP_CLIENT
 
     result = await func(*args, **kwargs)
-    _cache_store[key] = (result, current_time)
+    detection_cache.set(data=result, key=key)
     return result
 
 async def _cached_detect_severity(image_bytes: bytes):
@@ -465,3 +456,23 @@ async def detect_abandoned_vehicle_endpoint(image: UploadFile = File(...)):
     except Exception as e:
         logger.error(f"Abandoned vehicle detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.post("/api/detect-emotion")
+async def detect_emotion_endpoint(
+    image: UploadFile = File(...),
+    client: httpx.AsyncClient = backend.dependencies.Depends(get_http_client)
+):
+    """
+    Analyze facial emotions in the image using Hugging Face inference.
+    """
+    img_data = await validate_uploaded_file(image)
+    if "error" in img_data:
+        raise HTTPException(status_code=400, detail=img_data["error"])
+
+    processed_bytes = await run_in_threadpool(process_uploaded_image, img_data["bytes"])
+    result = await detect_facial_emotion(processed_bytes, client)
+
+    if "error" in result:
+        raise HTTPException(status_code=500, detail=result["error"])
+
+    return result

@@ -1,12 +1,17 @@
+import sys
 import time
-from datetime import datetime, timedelta
+import os
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from backend.database import Base
-from backend.models import Grievance, GrievanceFollower, ClosureConfirmation, Jurisdiction, JurisdictionLevel, SeverityLevel
+sys.path.insert(0, os.path.abspath('.'))
+
+from backend.database import Base, get_db
+from backend.models import Grievance, GrievanceFollower, ClosureConfirmation
 from backend.routers.grievances import get_closure_status
+from backend.closure_service import ClosureService
+from unittest.mock import patch, MagicMock
 
 # In-memory SQLite for testing
 engine = create_engine('sqlite:///:memory:', connect_args={"check_same_thread": False})
@@ -15,27 +20,15 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 Base.metadata.create_all(bind=engine)
 
 def seed_data(db):
-    jurisdiction = Jurisdiction(
-        level=JurisdictionLevel.LOCAL,
-        geographic_coverage={"states": ["Maharashtra"]},
-        responsible_authority="Municipal Corporation",
-        default_sla_hours=72,
-    )
-    db.add(jurisdiction)
-    db.commit()
-    db.refresh(jurisdiction)
-
     grievance = Grievance(
         unique_id="G123",
         category="pothole",
-        severity=SeverityLevel.MEDIUM,
-        current_jurisdiction_id=jurisdiction.id,
-        assigned_authority="Municipal Corporation",
-        sla_deadline=datetime.utcnow() + timedelta(hours=72),
+        status="open",
+        description="test",
         pincode="123456",
         city="city",
         district="district",
-        state="state",
+        state="state"
     )
     db.add(grievance)
     db.commit()
