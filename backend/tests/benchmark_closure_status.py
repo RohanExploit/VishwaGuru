@@ -1,17 +1,12 @@
-import sys
 import time
-import os
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-sys.path.insert(0, os.path.abspath('.'))
-
-from backend.database import Base, get_db
-from backend.models import Grievance, GrievanceFollower, ClosureConfirmation
+from backend.database import Base
+from backend.models import Grievance, GrievanceFollower, ClosureConfirmation, SeverityLevel, GrievanceStatus
 from backend.routers.grievances import get_closure_status
-from backend.closure_service import ClosureService
-from unittest.mock import patch, MagicMock
 
 # In-memory SQLite for testing
 engine = create_engine('sqlite:///:memory:', connect_args={"check_same_thread": False})
@@ -23,12 +18,15 @@ def seed_data(db):
     grievance = Grievance(
         unique_id="G123",
         category="pothole",
-        status="open",
-        description="test",
+        severity=SeverityLevel.LOW,
+        status=GrievanceStatus.OPEN,
         pincode="123456",
         city="city",
         district="district",
-        state="state"
+        state="state",
+        current_jurisdiction_id=1,
+        assigned_authority="test_authority",
+        sla_deadline=datetime.now(timezone.utc) + timedelta(days=7),
     )
     db.add(grievance)
     db.commit()

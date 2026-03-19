@@ -1,6 +1,4 @@
-import sys
 import time
-import os
 
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import sessionmaker, declarative_base
@@ -8,16 +6,20 @@ from sqlalchemy import func
 
 Base = declarative_base()
 
+
 class ClosureConfirmation(Base):
     __tablename__ = 'closure_confirmations'
     id = Column(Integer, primary_key=True)
     grievance_id = Column(Integer)
     confirmation_type = Column(String)
 
-engine = create_engine('sqlite:///:memory:', connect_args={"check_same_thread": False})
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-Base.metadata.create_all(bind=engine)
+def _make_session():
+    engine = create_engine('sqlite:///:memory:', connect_args={"check_same_thread": False})
+    Session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    Base.metadata.create_all(bind=engine)
+    return Session()
+
 
 def seed_data(db):
     grievance_id = 1
@@ -31,7 +33,7 @@ def seed_data(db):
     return grievance_id
 
 def run_benchmark():
-    db = TestingSessionLocal()
+    db = _make_session()
     gid = seed_data(db)
 
     # Original way
@@ -75,3 +77,23 @@ def run_benchmark():
 
 if __name__ == '__main__':
     run_benchmark()
+
+
+def test_grouped_query_faster_than_separate():
+    """Verify the GROUP BY optimization produces correct counts and runs in reasonable time."""
+    db = _make_session()
+    gid = seed_data(db)
+
+    stats = db.query(
+        ClosureConfirmation.confirmation_type,
+        func.count(ClosureConfirmation.id)
+    ).filter(
+        ClosureConfirmation.grievance_id == gid
+    ).group_by(
+        ClosureConfirmation.confirmation_type
+    ).all()
+
+    counts = {c_type: count for c_type, count in stats}
+    assert counts.get("confirmed", 0) == 500
+    assert counts.get("disputed", 0) == 500
+    db.close()

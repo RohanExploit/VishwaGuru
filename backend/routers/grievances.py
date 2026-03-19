@@ -402,17 +402,13 @@ def get_closure_status(
             GrievanceFollower.grievance_id == grievance_id
         ).scalar()
         
-        # Optimized: Use a single GROUP BY query instead of separate count queries
-        confirmation_stats = db.query(
+        # Get all confirmation counts in a single query instead of multiple round-trips
+        counts = db.query(
             ClosureConfirmation.confirmation_type,
             func.count(ClosureConfirmation.id)
-        ).filter(
-            ClosureConfirmation.grievance_id == grievance_id
-        ).group_by(
-            ClosureConfirmation.confirmation_type
-        ).all()
+        ).filter(ClosureConfirmation.grievance_id == grievance_id).group_by(ClosureConfirmation.confirmation_type).all()
         
-        counts_dict = {c_type: count for c_type, count in confirmation_stats}
+        counts_dict = {ctype: count for ctype, count in counts}
         confirmations_count = counts_dict.get("confirmed", 0)
         disputes_count = counts_dict.get("disputed", 0)
         
