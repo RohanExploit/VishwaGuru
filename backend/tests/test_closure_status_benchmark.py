@@ -1,23 +1,16 @@
-import sys
 import time
-import os
 
-from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy import create_engine, Column, Integer, String, func
 from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy import func
 
 Base = declarative_base()
+
 
 class ClosureConfirmation(Base):
     __tablename__ = 'closure_confirmations'
     id = Column(Integer, primary_key=True)
     grievance_id = Column(Integer)
     confirmation_type = Column(String)
-
-engine = create_engine('sqlite:///:memory:', connect_args={"check_same_thread": False})
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-Base.metadata.create_all(bind=engine)
 
 def seed_data(db):
     grievance_id = 1
@@ -31,6 +24,10 @@ def seed_data(db):
     return grievance_id
 
 def run_benchmark():
+    engine = create_engine('sqlite:///:memory:', connect_args={"check_same_thread": False})
+    Base.metadata.create_all(bind=engine)
+    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
     db = TestingSessionLocal()
     gid = seed_data(db)
 
