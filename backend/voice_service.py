@@ -10,11 +10,6 @@ import tempfile
 import asyncio
 from typing import Dict, Optional, Tuple
 from pathlib import Path
-import httpcore
-# Fix for googletrans compatibility with newer httpcore (Issue #290)
-if not hasattr(httpcore, "SyncHTTPTransport"):
-    httpcore.SyncHTTPTransport = object
-
 import speech_recognition as sr
 from googletrans import Translator
 from langdetect import detect, LangDetectException
