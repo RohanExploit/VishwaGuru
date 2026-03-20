@@ -306,6 +306,12 @@ class BlockchainVerificationResponse(BaseModel):
     computed_hash: str = Field(..., description="Hash computed from current issue data and previous issue's hash")
     message: str = Field(..., description="Verification result message")
 
+class GrievanceBlockchainVerificationResponse(BaseModel):
+    is_valid: bool = Field(..., description="Whether the grievance integrity is intact")
+    current_hash: Optional[str] = Field(None, description="Current integrity hash stored in DB")
+    computed_hash: str = Field(..., description="Hash computed from current grievance data and previous grievance's hash")
+    message: str = Field(..., description="Verification result message")
+
 
 # Resolution Proof Schemas (Issue #292)
 

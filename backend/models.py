@@ -84,7 +84,9 @@ class Grievance(Base):
     created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc), index=True)
     updated_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc), onupdate=lambda: datetime.datetime.now(datetime.timezone.utc))
     resolved_at = Column(DateTime, nullable=True)
-    
+    integrity_hash = Column(String, nullable=True)  # Blockchain integrity seal
+    previous_integrity_hash = Column(String, nullable=True, index=True) # Linked hash for O(1) verification
+
     # Closure confirmation fields
     closure_requested_at = Column(DateTime, nullable=True)
     closure_confirmation_deadline = Column(DateTime, nullable=True)
