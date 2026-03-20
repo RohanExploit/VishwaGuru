@@ -57,7 +57,3 @@
 ## 2025-02-13 - [Substring pre-filtering for regex optimization]
 **Learning:** In hot paths (like `PriorityEngine._calculate_urgency`), executing pre-compiled regular expressions (`re.search`) for simple keyword extraction or grouping (e.g., `\b(word1|word2)\b`) is significantly slower than simple Python substring checks (`in text`). The regex engine execution overhead in Python adds up in high-iteration loops like priority scoring.
 **Action:** Always consider pre-extracting literal keywords from simple regex patterns and executing a quick `any(k in text for k in keywords)` pre-filter. Only invoke `regex.search` if the pre-filter passes, avoiding the expensive regex operation on texts that obviously do not match.
-
-## 2025-03-20 - [Field Officer Visit History Projection]
-**Learning:** Returning a large list of SQLAlchemy models through an endpoint causes overhead because of the memory and time spent on object instantiation and subsequent Pydantic model validation. In `get_issue_visit_history`, fetching hundreds of models was noticeably slow.
-**Action:** Used column projection in the SQLAlchemy query (e.g., `db.query(FieldOfficerVisit.id, FieldOfficerVisit.issue_id, ...)`) and converted the result rows into a list of dictionaries before passing it to the Pydantic schema or FastAPI response. This bypassed full model instantiation and resulted in a ~30% speedup on the DB query overhead.

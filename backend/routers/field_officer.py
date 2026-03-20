@@ -356,59 +356,36 @@ def get_issue_visit_history(
     Returns chronological list of all officer visits to the site
     """
     try:
-        # Optimized: Use column projection to avoid loading full model instances and reduce memory usage
-        query = db.query(
-            FieldOfficerVisit.id,
-            FieldOfficerVisit.issue_id,
-            FieldOfficerVisit.grievance_id,
-            FieldOfficerVisit.officer_name,
-            FieldOfficerVisit.officer_department,
-            FieldOfficerVisit.officer_designation,
-            FieldOfficerVisit.check_in_latitude,
-            FieldOfficerVisit.check_in_longitude,
-            FieldOfficerVisit.check_in_time,
-            FieldOfficerVisit.check_out_time,
-            FieldOfficerVisit.distance_from_site,
-            FieldOfficerVisit.within_geofence,
-            FieldOfficerVisit.visit_notes,
-            FieldOfficerVisit.visit_images,
-            FieldOfficerVisit.visit_duration_minutes,
-            FieldOfficerVisit.status,
-            FieldOfficerVisit.verified_by,
-            FieldOfficerVisit.verified_at,
-            FieldOfficerVisit.is_public,
-            FieldOfficerVisit.created_at
-        ).filter(FieldOfficerVisit.issue_id == issue_id)
+        query = db.query(FieldOfficerVisit).filter(FieldOfficerVisit.issue_id == issue_id)
         
         if public_only:
             query = query.filter(FieldOfficerVisit.is_public == True)
         
         visits = query.order_by(FieldOfficerVisit.check_in_time.desc()).all()
         
-        # Convert to list of dictionaries to bypass Pydantic full model parsing overhead and match schema
         visit_responses = [
-            {
-                "id": v.id,
-                "issue_id": v.issue_id,
-                "grievance_id": v.grievance_id,
-                "officer_name": v.officer_name,
-                "officer_department": v.officer_department,
-                "officer_designation": v.officer_designation,
-                "check_in_latitude": v.check_in_latitude,
-                "check_in_longitude": v.check_in_longitude,
-                "check_in_time": v.check_in_time,
-                "check_out_time": v.check_out_time,
-                "distance_from_site": v.distance_from_site,
-                "within_geofence": v.within_geofence,
-                "visit_notes": v.visit_notes,
-                "visit_images": v.visit_images,
-                "visit_duration_minutes": v.visit_duration_minutes,
-                "status": v.status,
-                "verified_by": v.verified_by,
-                "verified_at": v.verified_at,
-                "is_public": v.is_public,
-                "created_at": v.created_at
-            }
+            PublicFieldOfficerVisitResponse(
+                id=v.id,
+                issue_id=v.issue_id,
+                grievance_id=v.grievance_id,
+                officer_name=v.officer_name,
+                officer_department=v.officer_department,
+                officer_designation=v.officer_designation,
+                check_in_latitude=v.check_in_latitude,
+                check_in_longitude=v.check_in_longitude,
+                check_in_time=v.check_in_time,
+                check_out_time=v.check_out_time,
+                distance_from_site=v.distance_from_site,
+                within_geofence=v.within_geofence,
+                visit_notes=v.visit_notes,
+                visit_images=v.visit_images,
+                visit_duration_minutes=v.visit_duration_minutes,
+                status=v.status,
+                verified_by=v.verified_by,
+                verified_at=v.verified_at,
+                is_public=v.is_public,
+                created_at=v.created_at
+            )
             for v in visits
         ]
         
