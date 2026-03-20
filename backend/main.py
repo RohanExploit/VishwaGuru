@@ -3,6 +3,15 @@ import sys
 from pathlib import Path
 from dotenv import load_dotenv
 
+# Fix for googletrans compatibility with newer httpcore (Issue #290)
+# This monkeypatch must happen before any imports of googletrans or httpx
+try:
+    import httpcore
+    if not hasattr(httpcore, "SyncHTTPTransport"):
+        httpcore.SyncHTTPTransport = object
+except ImportError:
+    pass
+
 load_dotenv()
 
 # Add project root to sys.path to ensure 'backend.*' imports work
@@ -127,9 +136,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="VishwaGuru Backend",
     description="AI-powered civic issue reporting and resolution platform",
-    version="1.0.0"
-    # Temporarily disable lifespan for local dev debugging
-    # lifespan=lifespan
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # Add centralized exception handlers
