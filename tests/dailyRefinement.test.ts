@@ -162,6 +162,14 @@ describe("Daily Civic Intelligence Refinement Engine Tests", () => {
       }
     });
 
+    test("should handle empty issue lists gracefully", () => {
+      const snapshot = intelligenceIndex.generateIndex([], [], []);
+      expect(snapshot.indexScore).toBe(50.0);
+      expect(snapshot.delta).toBe(0.0);
+      expect(snapshot.emergingConcerns).toHaveLength(0);
+      expect(snapshot.topKeywords).toHaveLength(0);
+    });
+
     test("should generate and save daily snapshot score", () => {
       const snapshot = intelligenceIndex.generateIndex(
         dummyIssues,

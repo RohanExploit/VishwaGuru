@@ -85,4 +85,14 @@ describe('PriorityEngine Tests', () => {
     const result = priorityEngine.calculateSeverityAndUrgency('Huge pothole on the road', 'Pothole');
     expect(result.suggestedCategories).toContain('Pothole');
   });
+
+  test('should handle empty descriptions or descriptions with no keywords gracefully', () => {
+    const result = priorityEngine.calculateSeverityAndUrgency('Normal everyday thing', 'Other');
+
+    // No matching severity keyword implies default score of 10
+    expect(result.severityScore).toBe(10);
+    expect(result.severity).toBe('Low');
+    expect(result.urgencyScore).toBe(10);
+    expect(result.reasoning).toContain('Classified as Low Severity (maintenance/cosmetic issue)');
+  });
 });
