@@ -15,7 +15,7 @@ import * as path from "path";
  * It also intelligently manipulates the Duplicate Pattern detection threshold:
  * Tightening (+0.01 to 0.95 max) when platform usage > 100, and relaxing (-0.01 to 0.70 min)
  * on slower days to adaptively manage noise filtering.
- * Saves an explicit snapshot history within modelWeights.json for complete AI model audibility.
+ * Saves recent snapshot history (up to the last 30 days) within modelWeights.json for auditability.
  */
 export class AdaptiveWeights {
   private configPath: string;
