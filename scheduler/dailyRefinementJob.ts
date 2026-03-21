@@ -18,8 +18,8 @@ const dbPath =
  * 1. Executes every 24 hours via node-cron.
  * 2. Fetches all civic issues reported in the past 24 hours.
  * 3. Uses TrendAnalyzer to find the top 5 emerging keywords and category spikes (>50% increase).
- * 4. Uses AdaptiveWeights to increase severity multipliers for critical issue patterns
- *    and dynamically tighten/relax the global duplicate threshold based on volume.
+ * 4. Uses AdaptiveWeights to rebalance pattern weights based on recent assignment/resolution behavior
+ *    and to dynamically tighten/relax the global duplicate threshold based on issue volume and throughput.
  * 5. Calculates a Daily Civic Intelligence Index using IntelligenceIndex, heavily weighting resolutions.
  * 6. Stores these insights locally for auditability without external APIs.
  */
