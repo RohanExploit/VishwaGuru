@@ -4,12 +4,14 @@ import * as path from "path";
 
 /**
  * AdaptiveWeights: Dynamically tunes category priorities based on historical
- * critical assignments, storing previous states for full auditability.
+ * signals of importance (e.g., how often issues are resolved or assigned),
+ * storing previous states for full auditability.
  *
  * Algorithm and Evolution Logic:
- * If a particular category (like "Pothole" or "Flooding") is frequently marked Critical manually
- * or resolved (> 5 times), this engine increases the internal category weight by +0.5,
- * capping at 10 to auto-prioritize it going forward.
+ * If a particular category (like "Pothole" or "Flooding") accumulates many
+ * issues that are resolved or explicitly assigned (> 5 times), this engine
+ * increases the internal category weight by +0.5, capping at 10 to
+ * auto-prioritize it going forward.
  * It also intelligently manipulates the Duplicate Pattern detection threshold:
  * Tightening (+0.01 to 0.95 max) when platform usage > 100, and relaxing (-0.01 to 0.70 min)
  * on slower days to adaptively manage noise filtering.
