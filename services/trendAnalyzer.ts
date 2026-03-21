@@ -9,7 +9,7 @@ import { Issue } from "./types";
  * 2. It compares the last 24h category distribution with the previous 24h.
  *    If an issue spikes > 50% and exceeds a baseline of 5, it's flagged as an "Emerging Concern".
  * 3. Uses rounded coordinate boundaries (approx. 1.1km) to locate geographical clusters
- *    and determine the highest severity region.
+ *    and determine the region with the highest concentration of issues.
  */
 export class TrendAnalyzer {
   public getTopKeywords(issues: Issue[], limit: number = 5): string[] {
