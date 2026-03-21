@@ -5,14 +5,11 @@ import { Issue } from "./types";
  * significant category volume spikes, and geographical clustering of issues.
  *
  * Algorithm and Evolution Logic:
- * 1. Trend detection extracts the most common keywords (>= 3 chars) after filtering stop-words,
- *    returning up to a configurable limit of keywords (default: 5).
- * 2. It compares the last 24h category distribution with the previous 24h and flags categories
- *    as "Emerging Concerns" when their volume increases by at least 50% over the previous window.
- *    When the previous count is zero, only categories whose new count exceeds 5 are considered;
- *    when the previous count is nonzero, any >= 50% increase is considered, even for small counts.
+ * 1. Trend detection extracts the top 5 most common keywords (>= 3 chars) after filtering stop-words.
+ * 2. It compares the last 24h category distribution with the previous 24h.
+ *    If an issue spikes > 50% and exceeds a baseline of 5, it's flagged as an "Emerging Concern".
  * 3. Uses rounded coordinate boundaries (approx. 1.1km) to locate geographical clusters
- *    and determine the region with the highest concentration of issues.
+ *    and determine the highest severity region.
  */
 export class TrendAnalyzer {
   public getTopKeywords(issues: Issue[], limit: number = 5): string[] {

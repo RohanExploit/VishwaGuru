@@ -9,8 +9,8 @@ import * as path from "path";
  * Algorithm and Evolution Logic:
  * Starts at a 50.0 Index Baseline.
  * Increases (+): Base score raises by ratio of resolved civic issues (high resolutions = better performance).
- * Minor Bonus (+): Adds a small bump (+0.5 per top keyword).
- * Penalizes (-): Immediate penalty per category spike (-1.5 per concern) to represent unmet issues.
+ * Minor Bonus (+): If top keywords contain rich descriptions, minor bump (+0.5 per keyword).
+ * Penalizes (-): Immediate penalty per significant Category Spikes (-1.5 per concern) to represent unmet issues.
  * Stores a JSON snapshot daily (e.g. data/dailySnapshots/YYYY-MM-DD.json) comparing delta changes.
  */
 export class IntelligenceIndex {
