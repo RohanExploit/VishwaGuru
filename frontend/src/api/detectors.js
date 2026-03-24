@@ -59,6 +59,10 @@ export const detectorsApi = {
 
     // Emotion Detection (HF integration)
     emotion: async (formData) => {
-        return await apiClient.postForm('/detect-emotion', formData);
+        return apiClient.post('/api/detect-emotion', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
     },
 };

@@ -482,13 +482,9 @@ async def detect_facial_emotion(image: Union[Image.Image, bytes], client: httpx.
                 return {"emotions": data[:3]} # Return top 3 emotions
             return {"emotions": []}
         else:
-            # Log detailed upstream error, but do not expose it to the client.
-            logger.error(
-                f"Emotion API Error: {response.status_code} - {response.text}"
-            )
-            return {"error": "Failed to analyze emotions"}
+            logger.error(f"Emotion API Error: {response.status_code} - {response.text}")
+            return {"error": "Failed to analyze emotions", "details": response.text}
 
     except Exception as e:
-        # Log full exception details for debugging, but return a generic error message.
-        logger.error(f"Emotion Estimation Error: {e}", exc_info=True)
-        return {"error": "Failed to analyze emotions"}
+        logger.error(f"Emotion Estimation Error: {e}")
+        return {"error": str(e)}

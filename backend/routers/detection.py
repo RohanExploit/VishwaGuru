@@ -473,7 +473,6 @@ async def detect_emotion_endpoint(
     result = await detect_facial_emotion(processed_bytes, client)
 
     if "error" in result:
-        # Do not expose internal error details or upstream messages to the client.
-        raise HTTPException(status_code=500, detail="Failed to analyze emotions")
+        raise HTTPException(status_code=500, detail=result["error"])
 
     return result
