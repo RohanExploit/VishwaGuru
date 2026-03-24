@@ -5,9 +5,18 @@ from backend.main import app
 from backend.database import get_db, Base, engine
 from backend.models import Grievance, Jurisdiction, JurisdictionLevel
 from backend.grievance_service import GrievanceService
+from backend.cache import grievance_last_hash_cache
 
 @pytest.fixture
 def db_session():
+    # Drop then recreate to ensure a clean DB state regardless of what
+    # other test modules may have left behind.
+    Base.metadata.drop_all(bind=engine)
+    # Clear the module-level cache after the drop so it mirrors the now-empty
+    # DB state.  Without this a prior test (e.g. test_grievance_sync.py) can
+    # leave a stale last_hash in the cache, causing the first grievance here
+    # to incorrectly receive a non-empty previous_integrity_hash.
+    grievance_last_hash_cache.clear()
     Base.metadata.create_all(bind=engine)
     session = Session(bind=engine)
 
@@ -24,6 +33,7 @@ def db_session():
     yield session
     session.close()
     Base.metadata.drop_all(bind=engine)
+    grievance_last_hash_cache.clear()
 
 @pytest.fixture
 def client(db_session):
