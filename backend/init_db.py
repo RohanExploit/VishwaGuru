@@ -144,14 +144,6 @@ def migrate_db():
                     conn.execute(text("ALTER TABLE grievances ADD COLUMN issue_id INTEGER"))
                     logger.info("Added issue_id column to grievances")
 
-                if not column_exists("grievances", "integrity_hash"):
-                    conn.execute(text("ALTER TABLE grievances ADD COLUMN integrity_hash VARCHAR"))
-                    logger.info("Added integrity_hash column to grievances")
-
-                if not column_exists("grievances", "previous_integrity_hash"):
-                    conn.execute(text("ALTER TABLE grievances ADD COLUMN previous_integrity_hash VARCHAR"))
-                    logger.info("Added previous_integrity_hash column to grievances")
-
                 # Indexes
                 if not index_exists("grievances", "ix_grievances_latitude"):
                     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_grievances_latitude ON grievances (latitude)"))
@@ -167,9 +159,6 @@ def migrate_db():
 
                 if not index_exists("grievances", "ix_grievances_issue_id"):
                     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_grievances_issue_id ON grievances (issue_id)"))
-
-                if not index_exists("grievances", "ix_grievances_previous_integrity_hash"):
-                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_grievances_previous_integrity_hash ON grievances (previous_integrity_hash)"))
 
                 if not index_exists("grievances", "ix_grievances_assigned_authority"):
                     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_grievances_assigned_authority ON grievances (assigned_authority)"))

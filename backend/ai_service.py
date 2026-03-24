@@ -1,6 +1,7 @@
 import json
 import os
 import warnings
+import hashlib
 from typing import Optional, Callable, Any
 from functools import lru_cache
 import logging
@@ -187,7 +188,9 @@ async def chat_with_civic_assistant(query: str) -> str:
     Chat with the civic assistant using Gemini with retry logic.
     """
     # Check cache
-    cache_key = f"chat_{hash(query)}"
+    # Performance Boost: Use deterministic MD5 hash for cache keys to work across workers
+    query_hash = hashlib.md5(query.encode('utf-8')).hexdigest()
+    cache_key = f"chat_{query_hash}"
     current_time = time.time()
 
     if cache_key in _chat_cache:

@@ -44,7 +44,7 @@ MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10 MB per image
 ALLOWED_IMAGE_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
 
 
-@router.post("/field-officer/check-in", response_model=FieldOfficerVisitResponse)
+@router.post("/api/field-officer/check-in", response_model=FieldOfficerVisitResponse)
 def officer_check_in(request: OfficerCheckInRequest, db: Session = Depends(get_db)):
     """
     Field officer check-in at a grievance site with GPS verification
@@ -166,7 +166,7 @@ def officer_check_in(request: OfficerCheckInRequest, db: Session = Depends(get_d
         raise HTTPException(status_code=500, detail="Check-in failed. Please try again.")
 
 
-@router.post("/field-officer/check-out", response_model=FieldOfficerVisitResponse)
+@router.post("/api/field-officer/check-out", response_model=FieldOfficerVisitResponse)
 def officer_check_out(request: OfficerCheckOutRequest, db: Session = Depends(get_db)):
     """
     Field officer check-out from a visit
@@ -241,7 +241,7 @@ def officer_check_out(request: OfficerCheckOutRequest, db: Session = Depends(get
         raise HTTPException(status_code=500, detail="Check-out failed. Please try again.")
 
 
-@router.post("/field-officer/visit/{visit_id}/upload-images", response_model=VisitImageUploadResponse)
+@router.post("/api/field-officer/visit/{visit_id}/upload-images", response_model=VisitImageUploadResponse)
 async def upload_visit_images(
     visit_id: int,
     images: List[UploadFile] = File(..., description="Visit images"),
@@ -341,7 +341,7 @@ async def upload_visit_images(
         raise HTTPException(status_code=500, detail="Image upload failed. Please try again.")
 
 
-@router.get("/field-officer/issue/{issue_id}/visit-history", response_model=VisitHistoryResponse)
+@router.get("/api/field-officer/issue/{issue_id}/visit-history", response_model=VisitHistoryResponse)
 def get_issue_visit_history(
     issue_id: int,
     public_only: bool = True,
@@ -400,7 +400,7 @@ def get_issue_visit_history(
         raise HTTPException(status_code=500, detail="Failed to retrieve visit history")
 
 
-@router.get("/field-officer/visit-stats", response_model=VisitStatsResponse)
+@router.get("/api/field-officer/visit-stats", response_model=VisitStatsResponse)
 def get_visit_statistics(db: Session = Depends(get_db)):
     """
     Get aggregate statistics for all field officer visits using optimized SQL queries
@@ -445,7 +445,7 @@ def get_visit_statistics(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail="Failed to calculate statistics")
 
 
-@router.post("/field-officer/visit/{visit_id}/verify")
+@router.post("/api/field-officer/visit/{visit_id}/verify")
 def verify_visit(
     visit_id: int,
     verifier_email: str = Form(..., description="Email of verifying admin/supervisor"),

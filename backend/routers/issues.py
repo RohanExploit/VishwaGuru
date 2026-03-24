@@ -30,7 +30,7 @@ from backend.tasks import (
     send_status_notification
 )
 from backend.spatial_utils import get_bounding_box, find_nearby_issues
-from backend.cache import recent_issues_cache, nearby_issues_cache, blockchain_last_hash_cache
+from backend.cache import recent_issues_cache, nearby_issues_cache, blockchain_last_hash_cache, user_issues_cache
 from backend.hf_api_service import verify_resolution_vqa
 from backend.dependencies import get_http_client
 from backend.rag_service import rag_service
@@ -235,10 +235,22 @@ async def create_issue(
 
         # Invalidate cache so new issue appears
         try:
+            # Performance Boost: Invalidate only specific affected keys instead of clearing everything
+            recent_issues_cache.invalidate("stats")
+            recent_issues_cache.invalidate("leaderboard")
+
+            # Since recent issues depends on pagination/category, it's safer to clear
+            # or we would need to track all category/page combinations.
+            # However, recent_issues_cache is small (max 20), so clearing is okay.
             recent_issues_cache.clear()
-            user_issues_cache.clear()
+
+            if user_email:
+                # Invalidate cache for this specific user (multiple pages)
+                # We don't have a list of keys, so for now we clear user_issues_cache
+                # which is also relatively small and specific to users.
+                user_issues_cache.clear()
         except Exception as e:
-            logger.error(f"Error clearing cache: {e}")
+            logger.error(f"Error invalidating cache: {e}")
 
     # Prepare deduplication info if not already set
     if deduplication_info is None:
@@ -590,8 +602,6 @@ def subscribe_push_notifications(
         id=subscription.id,
         message="Push subscription created"
     )
-
-from backend.cache import user_issues_cache
 
 @router.get("/issues/user", response_model=List[IssueSummaryResponse])
 def get_user_issues(

@@ -93,10 +93,6 @@ class Grievance(Base):
     
     issue_id = Column(Integer, ForeignKey("issues.id"), nullable=True, index=True)
 
-    # Blockchain integrity fields
-    integrity_hash = Column(String, nullable=True)
-    previous_integrity_hash = Column(String, nullable=True, index=True)
-
     # Relationships
     jurisdiction = relationship("Jurisdiction", back_populates="grievances")
     audit_logs = relationship("EscalationAudit", back_populates="grievance")

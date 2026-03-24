@@ -474,15 +474,20 @@ async def detect_emotion_endpoint(
     """
     Analyze facial emotions in the image using Hugging Face inference.
     """
-    img_data = await validate_uploaded_file(image)
-    if "error" in img_data:
-        raise HTTPException(status_code=400, detail=img_data["error"])
+    # Fix: validate_uploaded_file returns PIL image or raises HTTPException
+    # Unified approach used across this file:
+    _, image_bytes = await process_uploaded_image(image)
 
-    processed_bytes = await run_in_threadpool(process_uploaded_image, img_data["bytes"])
-    client = get_http_client(request)
-    result = await detect_facial_emotion(processed_bytes, client)
+    try:
+        client = get_http_client(request)
+        result = await detect_facial_emotion(image_bytes, client)
 
-    if "error" in result:
-        raise HTTPException(status_code=500, detail=result["error"])
+        if isinstance(result, dict) and "error" in result:
+            raise HTTPException(status_code=500, detail=result["error"])
 
-    return result
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Emotion detection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
