@@ -1,10 +1,12 @@
 import pytest
+import hashlib
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 from backend.main import app
 from backend.database import get_db, Base, engine
-from backend.models import Grievance, Jurisdiction, JurisdictionLevel
+from backend.models import Grievance, Jurisdiction, JurisdictionLevel, SeverityLevel
 from backend.grievance_service import GrievanceService
+from datetime import datetime, timezone, timedelta
 
 @pytest.fixture
 def db_session():

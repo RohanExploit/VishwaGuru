@@ -470,19 +470,11 @@ def verify_grievance_blockchain(
         hash_content = f"{grievance.unique_id}|{grievance.category}|{severity_value}|{prev_hash}"
         computed_hash = hashlib.sha256(hash_content.encode()).hexdigest()
 
-        if grievance.integrity_hash is None:
-            # Legacy or unsealed grievance: no integrity hash stored, so we cannot verify tampering.
-            is_valid = False
-            message = (
-                "No integrity hash present for this grievance; cryptographic integrity cannot be verified."
-            )
-        else:
-            is_valid = (computed_hash == grievance.integrity_hash)
-            message = (
-                "Integrity verified. This grievance record is cryptographically sealed."
-                if is_valid
-                else "Integrity check failed! The grievance data does not match its cryptographic seal."
-            )
+        is_valid = (computed_hash == grievance.integrity_hash)
+
+        message = "Integrity verified. This grievance record is cryptographically sealed." if is_valid \
+            else "Integrity check failed! The grievance data does not match its cryptographic seal."
+
         return BlockchainVerificationResponse(
             is_valid=is_valid,
             current_hash=grievance.integrity_hash,
