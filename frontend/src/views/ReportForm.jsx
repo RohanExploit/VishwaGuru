@@ -45,7 +45,7 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
   const webcamRef = React.useRef(null);
 
   const captureWebcam = React.useCallback(() => {
-    const imageSrc = webcamRef.current.getScreenshot();
+    const imageSrc = webcamRef.current?.getScreenshot();
     if (imageSrc) {
       // Convert base64 to File object
       fetch(imageSrc)
