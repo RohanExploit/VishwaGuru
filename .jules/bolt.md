@@ -61,3 +61,7 @@
 ## 2025-02-13 - API Route Prefix Consistency
 **Learning:** Inconsistent application of `/api` prefixes between `main.py` router mounting and test suite request paths can lead to 404 errors during testing, even if the logic is correct. This is especially prevalent when multiple agents work on the same codebase with different assumptions about global prefixes.
 **Action:** Always verify that `app.include_router` in `backend/main.py` uses `prefix="/api"` if the test suite (e.g., `tests/test_blockchain.py`) expects it. If a router is mounted without a prefix, ensure tests are updated or the prefix is added to `main.py` to maintain repository-wide consistency.
+
+## 2025-03-25 - Combining Multiple Aggregate Queries with Group By
+**Learning:** Executing a `count` or `sum` query for total stats, and then executing a separate `group_by` query for category breakdowns causes redundant table scans and multiple database round-trips.
+**Action:** Consolidate aggregate calculations (like total counts and conditional sums) directly into the same query that groups by categories (e.g., `db.query(category, count, sum(case...)).group_by(category)`), then aggregate the final totals in Python. This reduces database workload and network latency significantly.
