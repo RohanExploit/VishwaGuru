@@ -9,6 +9,7 @@
   },
   "scripts": {
     "test": "jest",
+    "build": "echo 'No Node build required; bypassing Render default.'",
     "start": "ts-node scheduler/dailyRefinementJob.ts"
   },
   "repository": {
