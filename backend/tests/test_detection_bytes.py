@@ -65,8 +65,7 @@ def client():
             backend.dependencies.SHARED_HTTP_CLIENT = mock_client
             yield c
 
-@pytest.mark.asyncio
-async def test_detect_vandalism_with_bytes(client):
+def test_detect_vandalism_with_bytes(client):
     # We need to control the response for specific tests
     # Since client is fixture, the http_client is already initialized in app.state
     # We can access it via app.state.http_client (which is the mock_client from fixture)
@@ -92,7 +91,7 @@ async def test_detect_vandalism_with_bytes(client):
          patch('backend.pothole_detection.validate_image_for_processing'), \
          patch('backend.routers.detection.detect_vandalism_unified', AsyncMock(return_value=[{"label": "graffiti", "score": 0.95}])):
         response = client.post(
-            "/detect-vandalism",
+                "/api/detect-vandalism",
             files={"image": ("test.jpg", img_bytes, "image/jpeg")}
         )
 
@@ -104,8 +103,7 @@ async def test_detect_vandalism_with_bytes(client):
 
     # Client not invoked because detection is mocked above
 
-@pytest.mark.asyncio
-async def test_detect_infrastructure_with_bytes(client):
+def test_detect_infrastructure_with_bytes(client):
     mock_client = app.state.http_client
     mock_client.post.reset_mock()
 
@@ -130,7 +128,7 @@ async def test_detect_infrastructure_with_bytes(client):
          patch('backend.pothole_detection.validate_image_for_processing'), \
          patch('backend.routers.detection.detect_infrastructure_unified', AsyncMock(return_value=[{"label": "fallen tree", "score": 0.8}])):
         response = client.post(
-            "/detect-infrastructure",
+                "/api/detect-infrastructure",
             files={"image": ("test.jpg", img_bytes, "image/jpeg")}
         )
 
