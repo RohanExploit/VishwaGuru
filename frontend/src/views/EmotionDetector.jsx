@@ -150,7 +150,7 @@ const EmotionDetector = ({ onBack }) => {
             ) : (
               <div className="space-y-4">
                 <div className="relative rounded-3xl overflow-hidden shadow-xl border-4 border-white dark:border-gray-800 aspect-square md:aspect-auto md:h-80 bg-gray-100">
-                  <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                  {previewUrl && <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />}
                   <button
                     onClick={resetDetector}
                     className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full backdrop-blur-sm transition-all"
