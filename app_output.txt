@@ -1,38 +1,30 @@
 /home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/apscheduler/__init__.py:1: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
   from pkg_resources import get_distribution, DistributionNotFound
-2026-03-26 14:40:56,010 - backend.adaptive_weights - INFO - Adaptive weights loaded/reloaded.
-2026-03-26 14:40:56,052 - backend.rag_service - INFO - Loaded 5 civic policies for RAG.
+2026-03-26 15:05:34,094 - backend.adaptive_weights - INFO - Adaptive weights loaded/reloaded.
+2026-03-26 15:05:34,140 - backend.rag_service - INFO - Loaded 5 civic policies for RAG.
 /home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/pydub/utils.py:170: RuntimeWarning: Couldn't find ffmpeg or avconv - defaulting to ffmpeg, but may not work
   warn("Couldn't find ffmpeg or avconv - defaulting to ffmpeg, but may not work", RuntimeWarning)
-2026-03-26 14:40:56,358 - backend.main - WARNING - FRONTEND_URL not set. Defaulting to http://localhost:5173 for development.
-INFO:     Started server process [12291]
+INFO:     Started server process [13996]
 INFO:     Waiting for application startup.
-2026-03-26 14:40:56,779 - backend.main - INFO - Shared HTTP Client initialized.
-2026-03-26 14:40:56,779 - backend.main - INFO - Starting database initialization...
-2026-03-26 14:40:56,795 - backend.main - INFO - Base.metadata.create_all completed.
-2026-03-26 14:40:56,795 - backend.main - INFO - Database initialized successfully (migrations skipped for local dev).
-2026-03-26 14:40:56,795 - backend.main - INFO - Initializing grievance service...
-2026-03-26 14:40:56,795 - backend.main - INFO - Grievance service initialization skipped for local dev.
-2026-03-26 14:40:56,795 - backend.main - INFO - Scheduler skipped for local development
+2026-03-26 15:05:34,825 - backend.main - INFO - Shared HTTP Client initialized.
+2026-03-26 15:05:34,826 - backend.main - INFO - Starting database initialization...
+2026-03-26 15:05:34,845 - backend.main - INFO - Base.metadata.create_all completed.
+2026-03-26 15:05:34,845 - backend.main - INFO - Database initialized successfully (migrations skipped for local dev).
+2026-03-26 15:05:34,845 - backend.main - INFO - Initializing grievance service...
+2026-03-26 15:05:34,845 - backend.main - INFO - Grievance service initialization skipped for local dev.
+2026-03-26 15:05:34,845 - backend.main - INFO - Scheduler skipped for local development
 INFO:     Application startup complete.
-ERROR:    [Errno 98] error while attempting to bind on address ('0.0.0.0', 8000): address already in use
-INFO:     Waiting for application shutdown.
-2026-03-26 14:40:56,797 - backend.main - INFO - Shared HTTP Client closed.
-2026-03-26 14:40:56,798 - backend.main - INFO - AI services initialized successfully.
-2026-03-26 14:40:56,798 - root - INFO - Bot thread is not initialized
-2026-03-26 14:40:56,799 - backend.main - INFO - Telegram bot thread stopped.
-INFO:     Application shutdown complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+2026-03-26 15:05:34,849 - backend.main - INFO - AI services initialized successfully.
+2026-03-26 15:05:34,850 - backend.main - INFO - Maharashtra data pre-loaded successfully.
+2026-03-26 15:05:34,850 - backend.main - INFO - Telegram bot initialization skipped for local testing.
 Starting server on port 8000
-⚠️ No AI API keys found. Defaulting to MOCK services.
-🤖 AI Service Type: MOCK
-Starting server on port 8000
-⚠️ No AI API keys found. Defaulting to MOCK services.
-🤖 AI Service Type: MOCK
-INFO:     127.0.0.1:39758 - "GET /health HTTP/1.1" 200 OK
+🤖 AI Service Type: GEMINI
+INFO:     127.0.0.1:41790 - "GET /health HTTP/1.1" 200 OK
 INFO:     Shutting down
 INFO:     Waiting for application shutdown.
-2026-03-26 14:41:04,950 - backend.main - INFO - Shared HTTP Client closed.
-2026-03-26 14:41:04,951 - root - INFO - Bot thread is not initialized
-2026-03-26 14:41:04,951 - backend.main - INFO - Telegram bot thread stopped.
+2026-03-26 15:05:49,314 - backend.main - INFO - Shared HTTP Client closed.
+2026-03-26 15:05:49,315 - root - INFO - Bot thread is not initialized
+2026-03-26 15:05:49,315 - backend.main - INFO - Telegram bot thread stopped.
 INFO:     Application shutdown complete.
-INFO:     Finished server process [11967]
+INFO:     Finished server process [13996]
