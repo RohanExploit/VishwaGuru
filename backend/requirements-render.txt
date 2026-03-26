@@ -2,7 +2,7 @@ fastapi
 uvicorn
 python-dotenv
 sqlalchemy
-python-telegram-bot
+python-telegram-bot>=20.0
 google-generativeai
 python-multipart
 psycopg2-binary
@@ -22,3 +22,7 @@ googletrans==4.0.2
 langdetect
 numpy
 scikit-learn
+python-magic
+joblib
+pytest
+urllib3<2.0.0
