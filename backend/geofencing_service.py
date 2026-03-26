@@ -104,14 +104,30 @@ def generate_visit_hash(visit_data: dict) -> str:
         HMAC-SHA256 hash of visit data
     """
     try:
-        # Normalize check_in_time to ISO format string for determinism
+        # Normalize check_in_time for determinism
         check_in_time = visit_data.get('check_in_time')
         if isinstance(check_in_time, datetime):
-            check_in_time_str = check_in_time.isoformat()
+            # Normalize to UTC and format consistently without timezone string
+            # This ensures consistency even if DB strips timezone info
+            if check_in_time.tzinfo:
+                check_in_time = check_in_time.astimezone(timezone.utc).replace(tzinfo=None)
+            check_in_time_str = check_in_time.strftime('%Y-%m-%dT%H:%M:%S')
+        elif isinstance(check_in_time, str):
+            # Try to parse and re-format for normalization
+            try:
+                # Handle ISO format with Z or +00:00
+                ts = check_in_time.replace('Z', '+00:00')
+                dt = datetime.fromisoformat(ts)
+                if dt.tzinfo:
+                    dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+                check_in_time_str = dt.strftime('%Y-%m-%dT%H:%M:%S')
+            except Exception:
+                check_in_time_str = check_in_time
         else:
             check_in_time_str = str(check_in_time) if check_in_time else ""
         
         # Create a deterministic string from visit data
+        # Chaining: include previous_visit_hash in the data string
         data_string = (
             f"{visit_data.get('issue_id')}"
             f"{visit_data.get('officer_email')}"
@@ -119,6 +135,7 @@ def generate_visit_hash(visit_data: dict) -> str:
             f"{visit_data.get('check_in_longitude')}"
             f"{check_in_time_str}"
             f"{visit_data.get('visit_notes', '')}"
+            f"{visit_data.get('previous_visit_hash', '')}"
         )
         
         # Generate HMAC-SHA256 hash for tamper-resistance
