@@ -203,7 +203,7 @@ const EmotionDetector = ({ onBack }) => {
                   animate={{ opacity: 1, scale: 1 }}
                   className="bg-red-50 text-red-700 p-4 rounded-2xl border border-red-200"
                 >
-                  <p className="font-bold">{error}</p>
+                  <p className="font-bold">{String(error)}</p>
                 </motion.div>
               ) : result ? (
                 <motion.div
