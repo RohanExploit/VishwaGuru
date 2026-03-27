@@ -105,11 +105,14 @@ def generate_visit_hash(visit_data: dict) -> str:
     """
     try:
         # Normalize check_in_time to ISO format string for determinism
+        # Ensure it matches how SQLite stores/retrieves it (often without TZ)
         check_in_time = visit_data.get('check_in_time')
         if isinstance(check_in_time, datetime):
-            check_in_time_str = check_in_time.isoformat()
+            check_in_time_str = check_in_time.strftime('%Y-%m-%dT%H:%M:%S')
         else:
             check_in_time_str = str(check_in_time) if check_in_time else ""
+            if '+' in check_in_time_str:
+                check_in_time_str = check_in_time_str.split('+')[0]
         
         # Create a deterministic string from visit data
         data_string = (
@@ -119,6 +122,7 @@ def generate_visit_hash(visit_data: dict) -> str:
             f"{visit_data.get('check_in_longitude')}"
             f"{check_in_time_str}"
             f"{visit_data.get('visit_notes', '')}"
+            f"{visit_data.get('previous_visit_hash', '')}"
         )
         
         # Generate HMAC-SHA256 hash for tamper-resistance
