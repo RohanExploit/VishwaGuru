@@ -513,6 +513,8 @@ class FieldOfficerVisitResponse(BaseModel):
     visit_images: Optional[List[str]] = Field(None, description="Visit image paths")
     visit_duration_minutes: Optional[int] = Field(None, description="Visit duration")
     status: str = Field(..., description="Visit status")
+    visit_hash: Optional[str] = Field(None, description="Cryptographic hash of the visit record")
+    previous_visit_hash: Optional[str] = Field(None, description="Hash of the previous visit record")
     verified_by: Optional[str] = Field(None, description="Verified by")
     verified_at: Optional[datetime] = Field(None, description="Verification timestamp")
     is_public: bool = Field(..., description="Public visibility")
