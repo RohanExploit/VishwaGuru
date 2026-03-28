@@ -5,8 +5,10 @@ set -o errexit
 echo "Installing Python dependencies..."
 if [ -f "backend/requirements-render.txt" ]; then
     echo "Using requirements-render.txt for lightweight deployment..."
+    pip install --upgrade pip
     pip install --no-cache-dir -r backend/requirements-render.txt
 else
+    pip install --upgrade pip
     pip install --no-cache-dir -r backend/requirements.txt
 fi
 
