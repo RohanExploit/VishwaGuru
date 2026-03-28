@@ -107,7 +107,10 @@ def generate_visit_hash(visit_data: dict) -> str:
         # Normalize check_in_time to ISO format string for determinism
         check_in_time = visit_data.get('check_in_time')
         if isinstance(check_in_time, datetime):
-            check_in_time_str = check_in_time.isoformat()
+            # Normalize timestamp to UTC and remove microseconds for consistent hashing across databases
+            if check_in_time.tzinfo is None:
+                check_in_time = check_in_time.replace(tzinfo=timezone.utc)
+            check_in_time_str = check_in_time.astimezone(timezone.utc).replace(microsecond=0).strftime('%Y-%m-%dT%H:%M:%S')
         else:
             check_in_time_str = str(check_in_time) if check_in_time else ""
         
