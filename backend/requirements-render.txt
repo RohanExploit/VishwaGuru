@@ -5,7 +5,6 @@ sqlalchemy
 python-telegram-bot
 google-generativeai
 python-multipart
-psycopg2-binary
 huggingface-hub
 httpx
 pywebpush
@@ -20,5 +19,6 @@ SpeechRecognition
 pydub
 googletrans==4.0.2
 langdetect
+psycopg2-binary
 numpy
 scikit-learn
