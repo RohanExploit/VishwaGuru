@@ -312,7 +312,7 @@ async def upvote_issue(issue_id: int, db: Session = Depends(get_db)):
         message="Issue upvoted successfully"
     )
 
-@router.get("/issues/nearby", response_model=List[NearbyIssueResponse])
+@router.get("/issues/nearby")
 def get_nearby_issues(
     latitude: float = Query(..., ge=-90, le=90, description="Latitude of the location"),
     longitude: float = Query(..., ge=-180, le=180, description="Longitude of the location"),
