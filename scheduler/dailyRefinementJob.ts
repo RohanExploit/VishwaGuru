@@ -6,9 +6,10 @@ import { AdaptiveWeights } from "../services/adaptiveWeights";
 import { IntelligenceIndex } from "../services/intelligenceIndex";
 import { Issue } from "../services/types";
 
-// Load environmental or fallback to test.db or production db
-const dbPath =
-  process.env.DB_PATH || path.join(__dirname, "../data/issues.db");
+// Exported so the path logic can be unit-tested in isolation.
+export function resolveDbPath(env: NodeJS.ProcessEnv = process.env): string {
+  return env.DB_PATH || path.join(__dirname, "../data/issues.db");
+}
 
 export class DailyRefinementJob {
   private db: sqlite3.Database;
@@ -16,7 +17,7 @@ export class DailyRefinementJob {
   private adaptiveWeights: AdaptiveWeights;
   private intelligenceIndex: IntelligenceIndex;
 
-  constructor() {
+  constructor(dbPath: string = resolveDbPath()) {
     this.db = new sqlite3.Database(dbPath, (err) => {
       if (err) {
         console.error("Error connecting to local database:", err.message);

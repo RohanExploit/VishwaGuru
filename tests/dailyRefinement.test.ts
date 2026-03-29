@@ -2,11 +2,24 @@ import { TrendAnalyzer } from "../services/trendAnalyzer";
 import { AdaptiveWeights } from "../services/adaptiveWeights";
 import { IntelligenceIndex } from "../services/intelligenceIndex";
 import { Issue } from "../services/types";
+import { resolveDbPath } from "../scheduler/dailyRefinementJob";
 import * as fs from "fs";
 import * as path from "path";
 import * as sqlite3 from "sqlite3";
 
 const TEST_DB_PATH = path.join(__dirname, "test_app.db");
+
+describe("resolveDbPath", () => {
+  test("returns data/issues.db relative path when DB_PATH is unset", () => {
+    const result = resolveDbPath({});
+    expect(result).toMatch(/data[/\\]issues\.db$/);
+  });
+
+  test("returns DB_PATH env value when set", () => {
+    const result = resolveDbPath({ DB_PATH: "/custom/path/db.sqlite" });
+    expect(result).toBe("/custom/path/db.sqlite");
+  });
+});
 
 describe("Daily Civic Intelligence Refinement Engine Tests", () => {
   const dummyIssues: Issue[] = [
