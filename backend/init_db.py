@@ -222,11 +222,11 @@ def migrate_db():
             # Resolution Proof Tokens Table Migrations
             if inspector.has_table("resolution_proof_tokens"):
                 if not column_exists("resolution_proof_tokens", "valid_from"):
-                    conn.execute(text("ALTER TABLE resolution_proof_tokens ADD COLUMN valid_from DATETIME"))
+                    conn.execute(text("ALTER TABLE resolution_proof_tokens ADD COLUMN valid_from TIMESTAMP"))
                     logger.info("Added valid_from column to resolution_proof_tokens")
 
                 if not column_exists("resolution_proof_tokens", "valid_until"):
-                    conn.execute(text("ALTER TABLE resolution_proof_tokens ADD COLUMN valid_until DATETIME"))
+                    conn.execute(text("ALTER TABLE resolution_proof_tokens ADD COLUMN valid_until TIMESTAMP"))
                     logger.info("Added valid_until column to resolution_proof_tokens")
 
                 if not column_exists("resolution_proof_tokens", "nonce"):

@@ -171,10 +171,16 @@ class ResolutionProofService:
         # Generate token fields
         token_uuid = str(uuid.uuid4())
         nonce = uuid.uuid4().hex
-        now = datetime.now(timezone.utc)
+
+        # Normalize timestamps (strip microseconds) for deterministic hashing/signing across databases
+        now = datetime.now(timezone.utc).replace(microsecond=0)
         valid_until = now + timedelta(minutes=TOKEN_VALIDITY_MINUTES)
 
-        # Build signing payload
+        # Build signing payload using standardized ISO format without timezone offset or microseconds
+        # This prevents mismatches when reading back from databases like SQLite that may strip TZ
+        now_str = now.strftime('%Y-%m-%dT%H:%M:%S')
+        until_str = valid_until.strftime('%Y-%m-%dT%H:%M:%S')
+
         payload = json.dumps({
             "token_id": token_uuid,
             "grievance_id": grievance_id,
@@ -182,8 +188,8 @@ class ResolutionProofService:
             "geofence_lat": grievance.latitude,
             "geofence_lon": grievance.longitude,
             "geofence_radius": geofence_radius,
-            "valid_from": now.isoformat(),
-            "valid_until": valid_until.isoformat(),
+            "valid_from": now_str,
+            "valid_until": until_str,
             "nonce": nonce
         }, sort_keys=True)
 
@@ -259,10 +265,14 @@ class ResolutionProofService:
                 f"Valid until: {valid_until.isoformat()}, current: {now.isoformat()}"
             )
 
-        # Verify signature
-        valid_from = token.valid_from
+        # Verify signature using normalized string formatting
+        # Ensure we handle possible None values for legacy tokens
+        valid_from = token.valid_from or token.generated_at
         if valid_from.tzinfo is None:
             valid_from = valid_from.replace(tzinfo=timezone.utc)
+
+        now_str = valid_from.strftime('%Y-%m-%dT%H:%M:%S')
+        until_str = valid_until.strftime('%Y-%m-%dT%H:%M:%S')
 
         payload = json.dumps({
             "token_id": token.token_id,
@@ -271,9 +281,9 @@ class ResolutionProofService:
             "geofence_lat": token.geofence_latitude,
             "geofence_lon": token.geofence_longitude,
             "geofence_radius": token.geofence_radius_meters,
-            "valid_from": valid_from.isoformat(),
-            "valid_until": valid_until.isoformat(),
-            "nonce": token.nonce
+            "valid_from": now_str,
+            "valid_until": until_str,
+            "nonce": token.nonce or ""
         }, sort_keys=True)
 
         if not ResolutionProofService._verify_signature(payload, token.token_signature):

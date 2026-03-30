@@ -10,7 +10,6 @@ Provides endpoints for:
 """
 
 import logging
-import json
 import hashlib
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
