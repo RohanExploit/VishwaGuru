@@ -141,13 +141,10 @@ is_production = os.environ.get("ENVIRONMENT", "").lower() == "production"
 
 if not frontend_url:
     if is_production:
-        raise ValueError(
-            "FRONTEND_URL environment variable is required for security in production. "
-            "Set it to your frontend URL (e.g., https://your-app.netlify.app)."
-        )
+        logger.warning("FRONTEND_URL environment variable not set in production!")
     else:
         logger.warning("FRONTEND_URL not set. Defaulting to http://localhost:5173 for development.")
-        frontend_url = "http://localhost:5173"
+    frontend_url = "http://localhost:5173"
 
 if not (frontend_url.startswith("http://") or frontend_url.startswith("https://")):
     raise ValueError(
