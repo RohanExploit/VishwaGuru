@@ -471,7 +471,7 @@ class ResolutionProofService:
         # Performance Boost: Fetch only the latest record directly instead of loading all
         evidence = db.query(ResolutionEvidence).filter(
             ResolutionEvidence.grievance_id == grievance_id
-        ).order_by(ResolutionEvidence.uploaded_at.desc()).first()
+        ).order_by(ResolutionEvidence.created_at.desc()).first()
 
         if not evidence:
             return {

@@ -28,7 +28,7 @@ from backend.schemas import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
-    prefix="/api/resolution-proof",
+    prefix="/resolution-proof",
     tags=["Resolution Proof"]
 )
 
