@@ -85,9 +85,10 @@ async def lifespan(app: FastAPI):
         logger.info("Starting database initialization...")
         await run_in_threadpool(Base.metadata.create_all, bind=engine)
         logger.info("Base.metadata.create_all completed.")
-        # Temporarily disabled - comment out to debug startup issues
-        # await run_in_threadpool(migrate_db)
-        logger.info("Database initialized successfully (migrations skipped for local dev).")
+
+        # Ensure migrations run to add new blockchain columns
+        await run_in_threadpool(migrate_db)
+        logger.info("Database initialized and migrations applied successfully.")
     except Exception as e:
         logger.error(f"Database initialization failed: {e}", exc_info=True)
         # We continue to allow health checks even if DB has issues (for debugging)

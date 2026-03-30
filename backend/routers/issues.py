@@ -162,6 +162,12 @@ async def create_issue(
                 # Commit the upvote
                 await run_in_threadpool(db.commit)
 
+                # Invalidate cache after successful commit
+                try:
+                    user_issues_cache.clear()
+                except Exception as e:
+                    logger.error(f"Error clearing cache during deduplication: {e}")
+
                 logger.info(f"Spatial deduplication: Linked new report to existing issue {linked_issue_id}")
 
         except Exception as e:
