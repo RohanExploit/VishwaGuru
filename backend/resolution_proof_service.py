@@ -18,6 +18,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, Optional, List, Tuple
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from backend.models import (
@@ -25,6 +26,7 @@ from backend.models import (
     EvidenceAuditLog, VerificationStatus, GrievanceStatus
 )
 from backend.config import get_config
+from backend.cache import resolution_last_hash_cache
 
 logger = logging.getLogger(__name__)
 
@@ -197,6 +199,7 @@ class ResolutionProofService:
             geofence_radius_meters=geofence_radius,
             valid_from=now,
             valid_until=valid_until,
+            expires_at=valid_until, # Maintain legacy column
             nonce=nonce,
             token_signature=signature,
             is_used=False,
@@ -352,7 +355,20 @@ class ResolutionProofService:
                 f"for grievance(s): {dup_ids}. Possible fraud."
             )
 
-        # 5. Create server-side signed metadata bundle
+        # 5. Blockchain integrity logic
+        # Performance Boost: Cache-First, DB-Fallback to minimize database round-trips
+        prev_hash = resolution_last_hash_cache.get("last_hash")
+        if prev_hash is None:
+            # Cache miss: Fetch only the last hash from DB
+            prev_evidence = db.query(ResolutionEvidence.integrity_hash).order_by(ResolutionEvidence.id.desc()).first()
+            prev_hash = prev_evidence[0] if prev_evidence and prev_evidence[0] else ""
+            resolution_last_hash_cache.set(data=prev_hash, key="last_hash")
+
+        # Chaining: hash(evidence_hash|token_id|prev_hash)
+        chain_content = f"{evidence_hash}|{token.token_id}|{prev_hash}"
+        integrity_hash = hashlib.sha256(chain_content.encode()).hexdigest()
+
+        # 6. Create server-side signed metadata bundle
         metadata_bundle = {
             "token_id": token.token_id,
             "grievance_id": token.grievance_id,
@@ -363,12 +379,14 @@ class ResolutionProofService:
             "capture_timestamp": cap_ts.isoformat(),
             "device_fingerprint_hash": device_fingerprint_hash,
             "geofence_distance_meters": distance,
+            "integrity_hash": integrity_hash,
+            "previous_integrity_hash": prev_hash
         }
 
         bundle_str = json.dumps(metadata_bundle, sort_keys=True)
         server_signature = ResolutionProofService._sign_payload(bundle_str)
 
-        # 6. Create evidence record
+        # 7. Create evidence record
         evidence = ResolutionEvidence(
             grievance_id=token.grievance_id,
             token_id=token.id,
@@ -380,18 +398,23 @@ class ResolutionProofService:
             metadata_bundle=metadata_bundle,
             server_signature=server_signature,
             verification_status=VerificationStatus.VERIFIED,
+            integrity_hash=integrity_hash,
+            previous_integrity_hash=prev_hash
         )
 
         db.add(evidence)
 
-        # 7. Mark token as used
+        # 8. Mark token as used
         token.is_used = True
         token.used_at = datetime.now(timezone.utc)
 
         db.commit()
         db.refresh(evidence)
 
-        # 8. Create audit log
+        # Update cache for next evidence AFTER successful commit to prevent cache poisoning
+        resolution_last_hash_cache.set(data=integrity_hash, key="last_hash")
+
+        # 9. Create audit log
         ResolutionProofService._create_audit_log(
             evidence_id=evidence.id,
             action="created",
@@ -435,11 +458,12 @@ class ResolutionProofService:
         Returns:
             Verification result dictionary
         """
-        evidence_records = db.query(ResolutionEvidence).filter(
+        # Performance Boost: Fetch only the latest record directly instead of loading all
+        evidence = db.query(ResolutionEvidence).filter(
             ResolutionEvidence.grievance_id == grievance_id
-        ).all()
+        ).order_by(ResolutionEvidence.created_at.desc()).first()
 
-        if not evidence_records:
+        if not evidence:
             return {
                 "grievance_id": grievance_id,
                 "is_verified": False,
@@ -451,9 +475,6 @@ class ResolutionProofService:
                 "evidence_count": 0,
                 "message": "No resolution evidence found for this grievance"
             }
-
-        # Use the most recent evidence
-        evidence = evidence_records[-1]
 
         # Re-verify the server signature
         bundle_str = json.dumps(evidence.metadata_bundle, sort_keys=True)
@@ -483,8 +504,13 @@ class ResolutionProofService:
 
         status_str = evidence.verification_status.value if evidence.verification_status else "pending"
 
-        grievance = db.query(Grievance).filter(Grievance.id == grievance_id).first()
+        grievance = db.query(Grievance.resolved_at).filter(Grievance.id == grievance_id).first()
         resolution_ts = grievance.resolved_at if grievance else None
+
+        # Get count separately to maintain response schema
+        evidence_count = db.query(func.count(ResolutionEvidence.id)).filter(
+            ResolutionEvidence.grievance_id == grievance_id
+        ).scalar()
 
         return {
             "grievance_id": grievance_id,
@@ -494,7 +520,7 @@ class ResolutionProofService:
             "location_match": location_match,
             "evidence_integrity": signature_valid,
             "evidence_hash": evidence.evidence_hash,
-            "evidence_count": len(evidence_records),
+            "evidence_count": evidence_count,
             "message": (
                 "Resolution verified with cryptographic proof"
                 if is_verified

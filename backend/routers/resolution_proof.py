@@ -10,16 +10,20 @@ Provides endpoints for:
 """
 
 import logging
+import json
+import hashlib
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
+from backend.models import ResolutionEvidence
 from backend.resolution_proof_service import ResolutionProofService
 from backend.schemas import (
     GenerateRPTRequest, RPTResponse,
     SubmitEvidenceRequest, EvidenceResponse,
     VerificationResponse, AuditTrailResponse,
     DuplicateCheckResponse,
+    BlockchainVerificationResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -195,6 +199,66 @@ def get_audit_log(
     except Exception as e:
         logger.error(f"Error fetching audit log for grievance {grievance_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to fetch audit log")
+
+
+# ============================================================================
+# BLOCKCHAIN INTEGRITY VERIFICATION
+# ============================================================================
+
+@router.get("/blockchain-verify/{evidence_id}", response_model=BlockchainVerificationResponse)
+def verify_evidence_blockchain(evidence_id: int, db: Session = Depends(get_db)):
+    """
+    Verify the cryptographic integrity of resolution evidence using blockchain-style chaining.
+    Optimized: Uses previous_integrity_hash column for O(1) verification.
+    """
+    try:
+        # Fetch evidence data including the link to previous hash
+        # Performance Boost: Use projected previous_integrity_hash to avoid N+1 or secondary lookups
+        evidence = db.query(
+            ResolutionEvidence.integrity_hash,
+            ResolutionEvidence.previous_integrity_hash,
+            ResolutionEvidence.evidence_hash,
+            ResolutionEvidence.token_id,
+            ResolutionEvidence.metadata_bundle
+        ).filter(ResolutionEvidence.id == evidence_id).first()
+
+        if not evidence:
+            raise HTTPException(status_code=404, detail="Evidence not found")
+
+        # Determine previous hash (O(1) from stored column)
+        prev_hash = evidence.previous_integrity_hash or ""
+
+        # Recompute hash based on current data and previous hash
+        # Chaining logic: hash(evidence_hash|token_id|prev_hash)
+        # We need the token_id from metadata_bundle if token_id column is a primary key integer
+        token_uuid = evidence.metadata_bundle.get("token_id")
+        chain_content = f"{evidence.evidence_hash}|{token_uuid}|{prev_hash}"
+        computed_hash = hashlib.sha256(chain_content.encode()).hexdigest()
+
+        if evidence.integrity_hash is None:
+            # Legacy or unsealed evidence
+            is_valid = False
+            message = "No integrity hash present for this evidence; cryptographic integrity cannot be verified."
+        else:
+            is_valid = (computed_hash == evidence.integrity_hash)
+            message = (
+                "Integrity verified. This evidence record is cryptographically sealed and part of a secure chain."
+                if is_valid
+                else "Integrity check failed! The evidence data does not match its cryptographic seal."
+            )
+
+        return BlockchainVerificationResponse(
+            is_valid=is_valid,
+            current_hash=evidence.integrity_hash,
+            computed_hash=computed_hash,
+            message=message
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error verifying evidence blockchain for {evidence_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to verify evidence integrity")
 
 
 # ============================================================================
