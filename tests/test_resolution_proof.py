@@ -26,6 +26,11 @@ backend_path = os.path.join(os.path.dirname(__file__), '..', 'backend')
 sys.path.insert(0, backend_path)
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
+from backend.models import (
+    Grievance, ResolutionProofToken, ResolutionEvidence,
+    EvidenceAuditLog, VerificationStatus, GrievanceStatus
+)
+from backend.resolution_proof_service import ResolutionProofService
 
 # ──────────────────────────────────────────────
 # Schema Tests
@@ -231,7 +236,7 @@ class TestCryptoSigning:
         from backend.resolution_proof_service import ResolutionProofService
         mock_key.return_value = "test-secret-key-12345"
 
-        payload = json.dumps({"test": "data", "nonce": "abc123"})
+        payload = json.dumps({"test": "data", "nonce": "abc123"}, sort_keys=True)
         signature = ResolutionProofService._sign_payload(payload)
 
         assert isinstance(signature, str)
@@ -245,10 +250,10 @@ class TestCryptoSigning:
         from backend.resolution_proof_service import ResolutionProofService
         mock_key.return_value = "test-secret-key-12345"
 
-        payload = json.dumps({"test": "data"})
+        payload = json.dumps({"test": "data"}, sort_keys=True)
         signature = ResolutionProofService._sign_payload(payload)
 
-        tampered = json.dumps({"test": "tampered_data"})
+        tampered = json.dumps({"test": "tampered_data"}, sort_keys=True)
         assert ResolutionProofService._verify_signature(tampered, signature) is False
 
     @patch('backend.resolution_proof_service.ResolutionProofService._get_signing_key')
@@ -256,7 +261,7 @@ class TestCryptoSigning:
         from backend.resolution_proof_service import ResolutionProofService
         mock_key.return_value = "test-secret-key-12345"
 
-        payload = json.dumps({"test": "data"})
+        payload = json.dumps({"test": "data"}, sort_keys=True)
         wrong_sig = "0" * 64
 
         assert ResolutionProofService._verify_signature(payload, wrong_sig) is False
@@ -265,7 +270,7 @@ class TestCryptoSigning:
     def test_different_keys_produce_different_sigs(self, mock_key):
         from backend.resolution_proof_service import ResolutionProofService
 
-        payload = json.dumps({"test": "data"})
+        payload = json.dumps({"test": "data"}, sort_keys=True)
 
         mock_key.return_value = "key-1"
         sig1 = ResolutionProofService._sign_payload(payload)
@@ -425,6 +430,8 @@ class TestModels:
         assert hasattr(ResolutionEvidence, 'metadata_bundle')
         assert hasattr(ResolutionEvidence, 'server_signature')
         assert hasattr(ResolutionEvidence, 'verification_status')
+        assert hasattr(ResolutionEvidence, 'integrity_hash')
+        assert hasattr(ResolutionEvidence, 'previous_integrity_hash')
 
     def test_evidence_audit_log_model(self):
         from backend.models import EvidenceAuditLog
@@ -465,6 +472,105 @@ class TestHashUtilities:
         # Count differing characters
         diff = sum(1 for a, b in zip(h1, h2) if a != b)
         assert diff > 10  # Should be substantially different
+
+
+# ──────────────────────────────────────────────
+# Blockchain Chaining Tests
+# ──────────────────────────────────────────────
+
+class TestResolutionBlockchain:
+    """Test cryptographic chaining of resolution evidence."""
+
+    @patch('backend.resolution_proof_service.ResolutionProofService._get_signing_key')
+    @patch('backend.resolution_proof_service.resolution_last_hash_cache')
+    @patch('backend.resolution_proof_service.ResolutionProofService._check_duplicate_hash', return_value=[])
+    def test_submit_evidence_chaining(self, mock_dup, mock_cache, mock_key):
+        from backend.resolution_proof_service import ResolutionProofService
+        from backend.models import ResolutionEvidence, ResolutionProofToken
+
+        mock_key.return_value = "test-key"
+
+        # Setup mocks
+        db = MagicMock()
+
+        # Mock token validation
+        mock_token = MagicMock(spec=ResolutionProofToken)
+        mock_token.id = 1
+        mock_token.token = "token-123"
+        mock_token.token_id = "token-123"
+        mock_token.grievance_id = 1
+        mock_token.authority_email = "officer@gov.in"
+        mock_token.geofence_latitude = 19.0760
+        mock_token.geofence_longitude = 72.8777
+        mock_token.geofence_radius_meters = 200.0
+        mock_token.valid_from = datetime.now(timezone.utc) - timedelta(minutes=5)
+        mock_token.valid_until = datetime.now(timezone.utc) + timedelta(minutes=10)
+
+        with patch('backend.resolution_proof_service.ResolutionProofService.validate_token', return_value=mock_token):
+            # 1. First record in chain
+            mock_cache.get.return_value = None
+            db.query.return_value.order_by.return_value.first.return_value = None # No prev hash in DB
+
+            evidence_hash = "a" * 64
+            ts = datetime.now(timezone.utc)
+
+            ev1 = ResolutionProofService.submit_evidence(
+                token_id="token-123",
+                evidence_hash=evidence_hash,
+                gps_latitude=19.0760,
+                gps_longitude=72.8777,
+                capture_timestamp=ts,
+                db=db
+            )
+
+            assert ev1.previous_integrity_hash == ""
+            assert ev1.integrity_hash is not None
+
+            # 2. Second record in chain
+            mock_cache.get.return_value = ev1.integrity_hash
+
+            ev2 = ResolutionProofService.submit_evidence(
+                token_id="token-456",
+                evidence_hash="b" * 64,
+                gps_latitude=19.0760,
+                gps_longitude=72.8777,
+                capture_timestamp=ts,
+                db=db
+            )
+
+            assert ev2.previous_integrity_hash == ev1.integrity_hash
+            assert ev2.integrity_hash != ev1.integrity_hash
+
+    def test_verify_integrity_tampered(self):
+        from backend.resolution_proof_service import ResolutionProofService
+        from backend.models import ResolutionEvidence
+
+        db = MagicMock()
+
+        # Create a "tampered" evidence record
+        evidence = MagicMock(spec=ResolutionEvidence)
+        evidence.id = 1
+        evidence.previous_integrity_hash = "prev-hash"
+        evidence.integrity_hash = "original-hash"
+        evidence.evidence_hash = "media-hash"
+        evidence.gps_latitude = 19.0
+        evidence.gps_longitude = 72.0
+        evidence.capture_timestamp = datetime.now(timezone.utc)
+        evidence.token_id = 1
+        evidence.metadata_bundle = {"test": "data"}
+        evidence.server_signature = "sig"
+
+        # Configure DB mock to return evidence for the first query and token row for the second
+        mock_query = db.query.return_value.filter.return_value
+        mock_query.first.side_effect = [evidence, ("token-id",)]
+
+        # Mock signature verification
+        with patch('backend.resolution_proof_service.ResolutionProofService._verify_signature', return_value=True):
+            result = ResolutionProofService.verify_evidence_integrity(1, db)
+
+            # Since we didn't mock the hash computation to match "original-hash", it should fail
+            assert result["is_valid"] is False
+            assert "Integrity check failed" in result["message"]
 
 
 if __name__ == "__main__":

@@ -19,7 +19,7 @@ from backend.schemas import (
     GenerateRPTRequest, RPTResponse,
     SubmitEvidenceRequest, EvidenceResponse,
     VerificationResponse, AuditTrailResponse,
-    DuplicateCheckResponse,
+    DuplicateCheckResponse, ResolutionBlockchainVerificationResponse
 )
 
 logger = logging.getLogger(__name__)
@@ -143,6 +143,25 @@ def verify_resolution(
     except Exception as e:
         logger.error(f"Error verifying grievance {grievance_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to verify resolution")
+
+
+@router.get("/{evidence_id}/blockchain-verify", response_model=ResolutionBlockchainVerificationResponse)
+def verify_evidence_blockchain(
+    evidence_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Verify the cryptographic integrity of a single resolution evidence record using blockchain-style chaining.
+    Optimized: Uses previous_integrity_hash column for O(1) verification.
+    """
+    try:
+        result = ResolutionProofService.verify_evidence_integrity(evidence_id, db)
+        return ResolutionBlockchainVerificationResponse(**result)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error verifying evidence blockchain for {evidence_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to verify resolution integrity")
 
 
 # ============================================================================

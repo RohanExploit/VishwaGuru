@@ -269,6 +269,9 @@ class VerificationStatus(enum.Enum):
 
 class ResolutionEvidence(Base):
     __tablename__ = "resolution_evidence"
+    __table_args__ = (
+        Index("ix_resolution_evidence_grievance_id", "grievance_id"),
+    )
     id = Column(Integer, primary_key=True, index=True)
     grievance_id = Column(Integer, ForeignKey("grievances.id"), nullable=False)
     token_id = Column(Integer, ForeignKey("resolution_proof_tokens.id"), nullable=True)
@@ -286,6 +289,9 @@ class ResolutionEvidence(Base):
     metadata_bundle = Column(JSON, nullable=True)
     server_signature = Column(String, nullable=True)
     verification_status = Column(Enum(VerificationStatus), default=VerificationStatus.PENDING)
+    # Blockchain integrity fields
+    integrity_hash = Column(String, nullable=True)
+    previous_integrity_hash = Column(String, nullable=True, index=True)
 
     # Relationships
     grievance = relationship("Grievance", back_populates="resolution_evidence")
@@ -294,6 +300,9 @@ class ResolutionEvidence(Base):
 
 class ResolutionProofToken(Base):
     __tablename__ = "resolution_proof_tokens"
+    __table_args__ = (
+        Index("ix_resolution_proof_tokens_grievance_id", "grievance_id"),
+    )
     id = Column(Integer, primary_key=True, index=True)
     grievance_id = Column(Integer, ForeignKey("grievances.id"), nullable=False)
     token = Column(String, unique=True, index=True, nullable=True)
@@ -301,6 +310,10 @@ class ResolutionProofToken(Base):
     authority_email = Column(String, nullable=True)
     generated_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     expires_at = Column(DateTime, nullable=False)
+    # Validity fields (Issue #292)
+    nonce = Column(String, nullable=True)
+    valid_from = Column(DateTime, nullable=True)
+    valid_until = Column(DateTime, nullable=True)
     is_used = Column(Boolean, default=False)
     used_at = Column(DateTime, nullable=True)
     geofence_latitude = Column(Float, nullable=True)
