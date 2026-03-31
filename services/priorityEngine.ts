@@ -1,3 +1,9 @@
+/**
+ * PriorityEngine calculates the severity and urgency of a given issue description
+ * and categorizes it using predefined keywords. It applies dynamic multipliers
+ * based on AdaptiveWeights to evolve the scoring logic automatically.
+ */
+
 import { AdaptiveWeights } from "./adaptiveWeights";
 import { ModelWeights } from "./types";
 
