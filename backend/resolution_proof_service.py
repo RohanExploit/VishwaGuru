@@ -435,11 +435,13 @@ class ResolutionProofService:
         Returns:
             Verification result dictionary
         """
-        evidence_records = db.query(ResolutionEvidence).filter(
+        # Performance Boost: Optimized to fetch only the latest record using .first()
+        # instead of .all() to minimize database data transfer and memory overhead.
+        evidence_count = db.query(ResolutionEvidence).filter(
             ResolutionEvidence.grievance_id == grievance_id
-        ).all()
+        ).count()
 
-        if not evidence_records:
+        if evidence_count == 0:
             return {
                 "grievance_id": grievance_id,
                 "is_verified": False,
@@ -453,7 +455,9 @@ class ResolutionProofService:
             }
 
         # Use the most recent evidence
-        evidence = evidence_records[-1]
+        evidence = db.query(ResolutionEvidence).filter(
+            ResolutionEvidence.grievance_id == grievance_id
+        ).order_by(ResolutionEvidence.id.desc()).first()
 
         # Re-verify the server signature
         bundle_str = json.dumps(evidence.metadata_bundle, sort_keys=True)
@@ -494,7 +498,7 @@ class ResolutionProofService:
             "location_match": location_match,
             "evidence_integrity": signature_valid,
             "evidence_hash": evidence.evidence_hash,
-            "evidence_count": len(evidence_records),
+            "evidence_count": evidence_count,
             "message": (
                 "Resolution verified with cryptographic proof"
                 if is_verified
