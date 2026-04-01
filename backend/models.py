@@ -287,6 +287,10 @@ class ResolutionEvidence(Base):
     server_signature = Column(String, nullable=True)
     verification_status = Column(Enum(VerificationStatus), default=VerificationStatus.PENDING)
 
+    # Blockchain integrity fields
+    integrity_hash = Column(String, nullable=True)
+    previous_integrity_hash = Column(String, nullable=True, index=True)
+
     # Relationships
     grievance = relationship("Grievance", back_populates="resolution_evidence")
     audit_logs = relationship("EvidenceAuditLog", back_populates="evidence")
@@ -307,6 +311,9 @@ class ResolutionProofToken(Base):
     geofence_longitude = Column(Float, nullable=True)
     geofence_radius_meters = Column(Float, default=200.0)
     token_signature = Column(String, nullable=True)
+    nonce = Column(String, nullable=True)
+    valid_from = Column(DateTime, nullable=True)
+    valid_until = Column(DateTime, nullable=True)
 
     # Relationship
     grievance = relationship("Grievance", back_populates="resolution_tokens")
