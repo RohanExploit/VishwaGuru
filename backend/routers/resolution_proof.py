@@ -20,6 +20,7 @@ from backend.schemas import (
     SubmitEvidenceRequest, EvidenceResponse,
     VerificationResponse, AuditTrailResponse,
     DuplicateCheckResponse,
+    BlockchainVerificationResponse
 )
 
 logger = logging.getLogger(__name__)
@@ -217,3 +218,62 @@ def flag_duplicate_evidence(
     except Exception as e:
         logger.error(f"Error checking duplicates: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to check for duplicates")
+
+
+# ============================================================================
+# BLOCKCHAIN VERIFICATION (O(1))
+# ============================================================================
+
+@router.get("/{evidence_id}/blockchain-verify", response_model=BlockchainVerificationResponse)
+def verify_evidence_blockchain(
+    evidence_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Verify the cryptographic integrity of an individual resolution evidence record.
+    Optimized: Uses previous_integrity_hash column for O(1) verification.
+    """
+    try:
+        from backend.models import ResolutionEvidence
+        evidence = db.query(
+            ResolutionEvidence.evidence_hash,
+            ResolutionEvidence.gps_latitude,
+            ResolutionEvidence.gps_longitude,
+            ResolutionEvidence.integrity_hash,
+            ResolutionEvidence.previous_integrity_hash
+        ).filter(ResolutionEvidence.id == evidence_id).first()
+
+        if not evidence:
+            raise HTTPException(status_code=404, detail="Evidence not found")
+
+        # Determine previous hash (O(1) from stored column)
+        prev_hash = evidence.previous_integrity_hash or ""
+
+        # Recompute hash based on current data and previous hash
+        # Chaining logic: HMAC-SHA256(evidence_hash|gps_lat|gps_lon|prev_hash)
+        hash_content = f"{evidence.evidence_hash}|{evidence.gps_latitude}|{evidence.gps_longitude}|{prev_hash}"
+        computed_hash = ResolutionProofService._sign_payload(hash_content)
+
+        if evidence.integrity_hash is None:
+            # Legacy or unsealed record
+            is_valid = False
+            message = "No integrity hash present; cryptographic integrity cannot be verified."
+        else:
+            is_valid = (computed_hash == evidence.integrity_hash)
+            message = (
+                "Integrity verified. This evidence record is cryptographically sealed."
+                if is_valid
+                else "Integrity check failed! The evidence data does not match its cryptographic seal."
+            )
+        return BlockchainVerificationResponse(
+            is_valid=is_valid,
+            current_hash=evidence.integrity_hash,
+            computed_hash=computed_hash,
+            message=message
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error verifying evidence blockchain for {evidence_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to verify evidence integrity")
