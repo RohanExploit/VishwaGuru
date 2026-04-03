@@ -61,3 +61,11 @@
 ## 2025-02-13 - API Route Prefix Consistency
 **Learning:** Inconsistent application of `/api` prefixes between `main.py` router mounting and test suite request paths can lead to 404 errors during testing, even if the logic is correct. This is especially prevalent when multiple agents work on the same codebase with different assumptions about global prefixes.
 **Action:** Always verify that `app.include_router` in `backend/main.py` uses `prefix="/api"` if the test suite (e.g., `tests/test_blockchain.py`) expects it. If a router is mounted without a prefix, ensure tests are updated or the prefix is added to `main.py` to maintain repository-wide consistency.
+
+## 2026-02-14 - Cache Consistency in Blockchain Chaining
+**Learning:** When using in-memory caches (like `ThreadSafeCache`) to store the "last hash" for blockchain chaining, updating the cache *before* a successful database commit can lead to cache poisoning if the transaction fails. Subsequent records would then chain to a hash that doesn't exist in the database.
+**Action:** Always update the "last hash" cache ONLY after a successful `db.commit()`. Additionally, when retrieving the previous hash, perform a quick check against the database to ensure the cached hash matches the actual last record, providing a fail-safe against cache inconsistency in multi-worker environments.
+
+## 2026-02-14 - Optimized Evidence Verification
+**Learning:** Materializing all evidence records for a grievance using `.all()` just to get the count or the latest record is inefficient, especially as the system scales.
+**Action:** Use `.count()` for existence checks and `.order_by(Model.id.desc()).first()` to fetch only the latest record. This reduces memory pressure and database transfer overhead.

@@ -14,12 +14,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
+from backend.models import ResolutionEvidence
 from backend.resolution_proof_service import ResolutionProofService
 from backend.schemas import (
     GenerateRPTRequest, RPTResponse,
     SubmitEvidenceRequest, EvidenceResponse,
     VerificationResponse, AuditTrailResponse,
-    DuplicateCheckResponse,
+    DuplicateCheckResponse, BlockchainVerificationResponse
 )
 
 logger = logging.getLogger(__name__)
@@ -217,3 +218,60 @@ def flag_duplicate_evidence(
     except Exception as e:
         logger.error(f"Error checking duplicates: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to check for duplicates")
+
+
+@router.get("/{evidence_id}/blockchain-verify", response_model=BlockchainVerificationResponse)
+def verify_evidence_blockchain(
+    evidence_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Verify the cryptographic integrity of a resolution evidence record using blockchain-style chaining.
+    Optimized: Uses previous_integrity_hash column for O(1) verification.
+    """
+    try:
+        evidence = db.query(
+            ResolutionEvidence.evidence_hash,
+            ResolutionEvidence.token_id,
+            ResolutionEvidence.integrity_hash,
+            ResolutionEvidence.previous_integrity_hash
+        ).filter(ResolutionEvidence.id == evidence_id).first()
+
+        if not evidence:
+            raise HTTPException(status_code=404, detail="Evidence not found")
+
+        # Determine previous hash (O(1) from stored column)
+        prev_hash = evidence.previous_integrity_hash or ""
+
+        # Fetch token_id string for chaining logic consistency
+        from backend.models import ResolutionProofToken
+        token = db.query(ResolutionProofToken.token_id).filter(ResolutionProofToken.id == evidence.token_id).first()
+        token_id_str = token[0] if token else ""
+
+        # Chaining logic: hash(evidence_hash|token_id|prev_hash)
+        chain_payload = f"{evidence.evidence_hash}|{token_id_str}|{prev_hash}"
+        computed_hash = ResolutionProofService._sign_payload(chain_payload)
+
+        if evidence.integrity_hash is None:
+            is_valid = False
+            message = "No integrity hash present for this record; cryptographic integrity cannot be verified."
+        else:
+            is_valid = (computed_hash == evidence.integrity_hash)
+            message = (
+                "Integrity verified. This resolution evidence record is cryptographically sealed."
+                if is_valid
+                else "Integrity check failed! The evidence data does not match its cryptographic seal."
+            )
+
+        return BlockchainVerificationResponse(
+            is_valid=is_valid,
+            current_hash=evidence.integrity_hash,
+            computed_hash=computed_hash,
+            message=message
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error verifying evidence blockchain for {evidence_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to verify evidence integrity")
