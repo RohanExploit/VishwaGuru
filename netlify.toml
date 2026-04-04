@@ -2,7 +2,3 @@
   command = "npm install && npm run build"
   publish = "dist"
   base = "frontend"
-
-[build.environment]
-  NODE_VERSION = "20"
-  CI = "false"
