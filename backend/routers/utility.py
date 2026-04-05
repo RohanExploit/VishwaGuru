@@ -142,12 +142,12 @@ def get_leaderboard(db: Session = Depends(get_db)):
         except Exception:
             masked_email = "User***"
 
-        leaderboard_data.append(LeaderboardEntry(
-            user_email=masked_email,
-            reports_count=count,
-            total_upvotes=upvotes or 0,
-            rank=idx + 1
-        ).model_dump(mode='json'))
+        leaderboard_data.append({
+            "user_email": masked_email,
+            "reports_count": count,
+            "total_upvotes": upvotes or 0,
+            "rank": idx + 1
+        })
 
     response_data = {"leaderboard": leaderboard_data}
     json_data = json.dumps(response_data)
