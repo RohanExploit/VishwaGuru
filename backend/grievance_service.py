@@ -86,30 +86,26 @@ class GrievanceService:
             # Generate unique ID
             unique_id = str(uuid.uuid4())[:8].upper()
 
-            # Blockchain integrity logic
-            # We cache both the last grievance ID and its integrity hash, and validate
-            # the cache against the current DB state to avoid chaining to stale hashes
+            # Blockchain integrity logic (Optimized O(1) creation path with safety checks)
+            # Prioritize cache but validate against DB state to prevent distributed inconsistencies
             cached_prev_hash = grievance_last_hash_cache.get("last_hash")
             cached_last_id = grievance_last_hash_cache.get("last_id")
 
-            # Always check the actual last grievance in the DB
+            # Rapid check of the actual last grievance in the DB using column projection
             last_grievance = db.query(Grievance.id, Grievance.integrity_hash).order_by(Grievance.id.desc()).first()
-            if last_grievance:
-                db_last_id, db_last_hash = last_grievance
-            else:
-                db_last_id, db_last_hash = None, ""
+            db_last_id, db_last_hash = last_grievance if last_grievance else (None, "")
 
-            # If cache is missing or inconsistent with DB, refresh from DB
             if (
                 cached_prev_hash is None
                 or cached_last_id != db_last_id
                 or cached_prev_hash != db_last_hash
             ):
+                # Cache miss or inconsistency: Refresh from DB
                 prev_hash = db_last_hash or ""
                 grievance_last_hash_cache.set(data=prev_hash, key="last_hash")
                 grievance_last_hash_cache.set(data=db_last_id, key="last_id")
             else:
-                prev_hash = cached_prev_hash or ""
+                prev_hash = cached_prev_hash
 
             # Chaining: hash(unique_id|category|severity|prev_hash)
             hash_content = f"{unique_id}|{grievance_data.get('category', 'general')}|{severity.value}|{prev_hash}"
@@ -146,8 +142,14 @@ class GrievanceService:
             db.commit()
             db.refresh(grievance)
 
-            # Update cache after successful commit
+            # Update cache after successful commit to enable O(1) chaining for next record
             grievance_last_hash_cache.set(data=integrity_hash, key="last_hash")
+            grievance_last_hash_cache.set(data=grievance.id, key="last_id")
+
+            # Invalidate read caches
+            from backend.cache import user_issues_cache, recent_issues_cache
+            user_issues_cache.clear()
+            recent_issues_cache.invalidate("escalation_stats")
 
             return grievance
 
@@ -208,6 +210,7 @@ class GrievanceService:
             if not grievance:
                 return False
 
+            old_status = grievance.status
             grievance.status = status
             grievance.updated_at = datetime.now(timezone.utc)
 
@@ -238,6 +241,13 @@ class GrievanceService:
                                 issue.assigned_to = grievance.assigned_authority
 
             db.commit()
+
+            # Invalidate caches on status change
+            if old_status != status:
+                from backend.cache import user_issues_cache, recent_issues_cache
+                user_issues_cache.clear()
+                recent_issues_cache.invalidate("escalation_stats")
+
             return True
 
         except Exception as e:

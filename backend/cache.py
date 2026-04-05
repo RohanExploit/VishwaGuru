@@ -182,3 +182,4 @@ grievance_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=1)
 resolution_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=1)
 visit_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=2)
 user_issues_cache = ThreadSafeCache(ttl=300, max_size=50) # 5 minutes TTL
+audit_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=1)

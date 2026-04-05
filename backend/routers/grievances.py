@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from sqlalchemy.orm import Session, joinedload
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import func, case
 from typing import List, Optional
 import os
@@ -35,9 +35,16 @@ def get_grievances(
     db: Session = Depends(get_db)
 ):
     """Get list of grievances with escalation history"""
+    from backend.cache import user_issues_cache
+    cache_key = f"grievances_{status}_{category}_{limit}_{offset}"
+    cached_data = user_issues_cache.get(cache_key)
+    if cached_data:
+        return Response(content=cached_data, media_type="application/json")
+
     try:
+        # Optimized: Use selectinload for 1:N audit_logs relationship
         query = db.query(Grievance).options(
-            joinedload(Grievance.audit_logs),
+            selectinload(Grievance.audit_logs),
             joinedload(Grievance.jurisdiction)
         )
 
@@ -52,37 +59,40 @@ def get_grievances(
         result = []
         for grievance in grievances:
             escalation_history = [
-                EscalationAuditResponse(
-                    id=audit.id,
-                    grievance_id=audit.grievance_id,
-                    previous_authority=audit.previous_authority,
-                    new_authority=audit.new_authority,
-                    timestamp=audit.timestamp,
-                    reason=audit.reason.value
-                )
+                {
+                    "id": audit.id,
+                    "grievance_id": audit.grievance_id,
+                    "previous_authority": audit.previous_authority,
+                    "new_authority": audit.new_authority,
+                    "timestamp": audit.timestamp.isoformat(),
+                    "reason": audit.reason.value
+                }
                 for audit in grievance.audit_logs
             ]
 
-            result.append(GrievanceSummaryResponse(
-                id=grievance.id,
-                unique_id=grievance.unique_id,
-                category=grievance.category,
-                severity=grievance.severity.value,
-                pincode=grievance.pincode,
-                city=grievance.city,
-                district=grievance.district,
-                state=grievance.state,
-                current_jurisdiction_id=grievance.current_jurisdiction_id,
-                assigned_authority=grievance.assigned_authority,
-                sla_deadline=grievance.sla_deadline,
-                status=grievance.status.value,
-                created_at=grievance.created_at,
-                updated_at=grievance.updated_at,
-                resolved_at=grievance.resolved_at,
-                escalation_history=escalation_history
-            ))
+            result.append({
+                "id": grievance.id,
+                "unique_id": grievance.unique_id,
+                "category": grievance.category,
+                "severity": grievance.severity.value,
+                "pincode": grievance.pincode,
+                "city": grievance.city,
+                "district": grievance.district,
+                "state": grievance.state,
+                "current_jurisdiction_id": grievance.current_jurisdiction_id,
+                "assigned_authority": grievance.assigned_authority,
+                "sla_deadline": grievance.sla_deadline.isoformat(),
+                "status": grievance.status.value,
+                "created_at": grievance.created_at.isoformat(),
+                "updated_at": grievance.updated_at.isoformat(),
+                "resolved_at": grievance.resolved_at.isoformat() if grievance.resolved_at else None,
+                "escalation_history": escalation_history
+            })
 
-        return result
+        # Performance Boost: Serialization Caching
+        json_data = json.dumps(result)
+        user_issues_cache.set(json_data, cache_key)
+        return Response(content=json_data, media_type="application/json")
 
     except Exception as e:
         logger.error(f"Error getting grievances: {e}", exc_info=True)
@@ -141,8 +151,14 @@ def get_grievance(grievance_id: int, db: Session = Depends(get_db)):
 def get_escalation_stats(db: Session = Depends(get_db)):
     """
     Get escalation statistics.
-    Optimized: Uses a single GROUP BY query instead of 4 separate count queries.
+    Optimized: Uses a single GROUP BY query and Serialization Caching.
     """
+    from backend.cache import recent_issues_cache
+    cache_key = "escalation_stats"
+    cached_data = recent_issues_cache.get(cache_key)
+    if cached_data:
+        return Response(content=cached_data, media_type="application/json")
+
     try:
         # Perform aggregation in a single query for performance
         status_counts = db.query(
@@ -160,13 +176,18 @@ def get_escalation_stats(db: Session = Depends(get_db)):
 
         escalation_rate = (escalated_grievances / total_grievances * 100) if total_grievances > 0 else 0
 
-        return EscalationStatsResponse(
-            total_grievances=total_grievances,
-            escalated_grievances=escalated_grievances,
-            active_grievances=active_grievances,
-            resolved_grievances=resolved_grievances,
-            escalation_rate=escalation_rate
-        )
+        result = {
+            "total_grievances": total_grievances,
+            "escalated_grievances": escalated_grievances,
+            "active_grievances": active_grievances,
+            "resolved_grievances": resolved_grievances,
+            "escalation_rate": escalation_rate
+        }
+
+        # Performance Boost: Serialization Caching
+        json_data = json.dumps(result)
+        recent_issues_cache.set(json_data, cache_key)
+        return Response(content=json_data, media_type="application/json")
 
     except Exception as e:
         logger.error(f"Error getting escalation stats: {e}", exc_info=True)
@@ -366,6 +387,11 @@ def confirm_grievance_closure(
             db=db
         )
         
+        # Invalidate caches on any confirmation that might change status
+        from backend.cache import user_issues_cache, recent_issues_cache
+        user_issues_cache.clear()
+        recent_issues_cache.invalidate("escalation_stats")
+
         message = "Confirmation recorded"
         if result.get("closure_finalized"):
             if result.get("approved"):
@@ -496,3 +522,58 @@ def verify_grievance_blockchain(
     except Exception as e:
         logger.error(f"Error verifying grievance blockchain for {grievance_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to verify grievance integrity")
+
+@router.get("/audit/{audit_id}/blockchain-verify", response_model=BlockchainVerificationResponse)
+def verify_audit_blockchain(
+    audit_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Verify the cryptographic integrity of an escalation audit log using blockchain-style chaining.
+    Optimized: Uses previous_integrity_hash column for O(1) verification.
+    """
+    try:
+        audit = db.query(
+            EscalationAudit.grievance_id,
+            EscalationAudit.previous_authority,
+            EscalationAudit.new_authority,
+            EscalationAudit.reason,
+            EscalationAudit.integrity_hash,
+            EscalationAudit.previous_integrity_hash
+        ).filter(EscalationAudit.id == audit_id).first()
+
+        if not audit:
+            raise HTTPException(status_code=404, detail="Audit log not found")
+
+        # Determine previous hash (O(1) from stored column)
+        prev_hash = audit.previous_integrity_hash or ""
+
+        # Recompute hash based on current data and previous hash
+        # Chaining: hash(grievance_id|prev_auth|new_auth|reason|prev_hash)
+        reason_value = audit.reason.value if hasattr(audit.reason, 'value') else audit.reason
+        hash_content = f"{audit.grievance_id}|{audit.previous_authority}|{audit.new_authority}|{reason_value}|{prev_hash}"
+        computed_hash = hashlib.sha256(hash_content.encode()).hexdigest()
+
+        if audit.integrity_hash is None:
+            is_valid = False
+            message = "No integrity hash present for this audit record; cryptographic integrity cannot be verified."
+        else:
+            is_valid = (computed_hash == audit.integrity_hash)
+            message = (
+                "Integrity verified. This escalation audit record is cryptographically sealed."
+                if is_valid
+                else "Integrity check failed! The audit data does not match its cryptographic seal."
+            )
+
+        return BlockchainVerificationResponse(
+            is_valid=is_valid,
+            current_hash=audit.integrity_hash,
+            computed_hash=computed_hash,
+            message=message
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error verifying audit blockchain for {audit_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to verify audit integrity")

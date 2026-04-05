@@ -4,12 +4,13 @@ API endpoints for field officer location verification and visit tracking
 Issue #288: Field Officer Check-In System With Location Verification
 """
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case
 from typing import List, Optional
 import logging
 import os
+import json
 from datetime import datetime, timezone
 
 from backend.database import get_db
@@ -148,6 +149,10 @@ def officer_check_in(request: OfficerCheckInRequest, db: Session = Depends(get_d
         # Update cache for next visit AFTER successful DB commit
         visit_last_hash_cache.set(data=visit_hash, key="last_hash")
 
+        # Invalidate stats cache
+        from backend.cache import recent_issues_cache
+        recent_issues_cache.invalidate("visit_stats")
+
         logger.info(
             f"Officer {request.officer_name} checked in at issue {request.issue_id}. "
             f"Distance: {distance:.2f}m, Within fence: {within_fence}"
@@ -225,6 +230,10 @@ def officer_check_out(request: OfficerCheckOutRequest, db: Session = Depends(get
         
         db.commit()
         db.refresh(visit)
+
+        # Invalidate stats cache
+        from backend.cache import recent_issues_cache
+        recent_issues_cache.invalidate("visit_stats")
         
         logger.info(f"Officer checked out from visit {request.visit_id}")
         
@@ -343,6 +352,10 @@ async def upload_visit_images(
         visit.updated_at = datetime.now(timezone.utc)
         
         db.commit()
+
+        # Invalidate stats cache
+        from backend.cache import recent_issues_cache
+        recent_issues_cache.invalidate("visit_stats")
         
         logger.info(f"Uploaded {len(images)} images for visit {visit_id}")
         
@@ -425,6 +438,12 @@ def get_visit_statistics(db: Session = Depends(get_db)):
     
     Returns metrics like total visits, verification status, geo-fence compliance, etc.
     """
+    from backend.cache import recent_issues_cache
+    cache_key = "visit_stats"
+    cached_data = recent_issues_cache.get(cache_key)
+    if cached_data:
+        return Response(content=cached_data, media_type="application/json")
+
     try:
         # Optimized: Use a single aggregate query to fetch multiple statistics in one database roundtrip
         stats = db.query(
@@ -449,14 +468,19 @@ def get_visit_statistics(db: Session = Depends(get_db)):
         else:
             average_distance = 0.0
         
-        return VisitStatsResponse(
-            total_visits=total_visits,
-            verified_visits=verified_visits,
-            within_geofence_count=within_geofence_count,
-            outside_geofence_count=outside_geofence_count,
-            unique_officers=unique_officers,
-            average_distance_from_site=average_distance
-        )
+        result = {
+            "total_visits": total_visits,
+            "verified_visits": verified_visits,
+            "within_geofence_count": within_geofence_count,
+            "outside_geofence_count": outside_geofence_count,
+            "unique_officers": unique_officers,
+            "average_distance_from_site": average_distance
+        }
+
+        # Performance Boost: Serialization Caching
+        json_data = json.dumps(result)
+        recent_issues_cache.set(json_data, cache_key)
+        return Response(content=json_data, media_type="application/json")
         
     except Exception as e:
         logger.error(f"Error calculating visit statistics: {e}", exc_info=True)
