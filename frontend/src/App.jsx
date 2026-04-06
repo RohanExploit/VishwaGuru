@@ -25,6 +25,7 @@ const NotFound = React.lazy(() => import('./views/NotFound'));
 // Lazy Load Detectors
 const PotholeDetector = React.lazy(() => import('./PotholeDetector'));
 const EmotionDetector = React.lazy(() => import('./EmotionDetector'));
+const CivicAccessibilityScanner = React.lazy(() => import('./CivicAccessibilityScanner'));
 const GarbageDetector = React.lazy(() => import('./GarbageDetector'));
 const VandalismDetector = React.lazy(() => import('./VandalismDetector'));
 const FloodDetector = React.lazy(() => import('./FloodDetector'));
@@ -70,7 +71,7 @@ function AppContent() {
 
   // Safe navigation helper
   const navigateToView = useCallback((view) => {
-    const validViews = ['home', 'map', 'report', 'action', 'mh-rep', 'pothole', 'garbage', 'vandalism', 'flood', 'infrastructure', 'parking', 'streetlight', 'fire', 'animal', 'blocked', 'tree', 'pest', 'smart-scan', 'grievance-analysis', 'noise', 'safety-check', 'insight', 'my-reports', 'grievance', 'login', 'signup'];
+    const validViews = ['home', 'map', 'report', 'action', 'mh-rep', 'pothole', 'garbage', 'vandalism', 'flood', 'infrastructure', 'parking', 'streetlight', 'fire', 'animal', 'blocked', 'tree', 'pest', 'smart-scan', 'grievance-analysis', 'noise', 'safety-check', 'insight', 'my-reports', 'grievance', 'login', 'signup', 'accessibility-scanner'];
     if (validViews.includes(view)) {
       navigate(view === 'home' ? '/' : `/${view}`);
     } else {
@@ -299,6 +300,7 @@ function AppContent() {
               <Route path="/verify/:id" element={<VerifyView />} />
               <Route path="/pothole" element={<PotholeDetector onBack={() => navigate('/')} />} />
               <Route path="/emotion" element={<EmotionDetector onBack={() => navigate('/')} />} />
+              <Route path="/accessibility-scanner" element={<CivicAccessibilityScanner onBack={() => navigate('/')} />} />
               <Route path="/garbage" element={<GarbageDetector onBack={() => navigate('/')} />} />
               <Route
                 path="/vandalism"
