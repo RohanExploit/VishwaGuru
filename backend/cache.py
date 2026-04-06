@@ -180,5 +180,6 @@ user_upload_cache = ThreadSafeCache(ttl=3600, max_size=1000)  # 1 hour TTL for u
 blockchain_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=1)
 grievance_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=1)
 resolution_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=1)
+audit_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=2)
 visit_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=2)
 user_issues_cache = ThreadSafeCache(ttl=300, max_size=50) # 5 minutes TTL

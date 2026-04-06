@@ -6,6 +6,7 @@ import os
 import json
 import logging
 import hashlib
+import hmac
 from datetime import datetime, timezone
 
 from backend.database import get_db
@@ -21,6 +22,7 @@ from backend.schemas import (
 )
 from backend.grievance_service import GrievanceService
 from backend.closure_service import ClosureService
+from backend.config import get_config
 
 logger = logging.getLogger(__name__)
 
@@ -192,9 +194,8 @@ def manual_escalate_grievance(
             raise HTTPException(status_code=404, detail="Grievance not found")
 
         # Perform manual escalation
-        success = grievance_service.escalation_engine.escalate_grievance_severity(
+        success = grievance_service.escalation_engine.manual_escalate(
             grievance_id=grievance_id,
-            new_severity=grievance.severity,  # Keep same severity, just escalate jurisdiction
             reason=reason,
             db=db
         )
@@ -496,3 +497,59 @@ def verify_grievance_blockchain(
     except Exception as e:
         logger.error(f"Error verifying grievance blockchain for {grievance_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to verify grievance integrity")
+
+
+@router.get("/audit/{audit_id}/blockchain-verify", response_model=BlockchainVerificationResponse)
+def verify_audit_blockchain(
+    audit_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Verify the cryptographic integrity of an escalation audit record using HMAC-SHA256 chaining.
+    Optimized: Uses previous_integrity_hash column for O(1) verification.
+    """
+    try:
+        audit = db.query(EscalationAudit).filter(EscalationAudit.id == audit_id).first()
+
+        if not audit:
+            raise HTTPException(status_code=404, detail="Audit record not found")
+
+        # Determine previous hash (O(1) from stored column)
+        prev_hash = audit.previous_integrity_hash or ""
+
+        # HMAC-SHA256 chaining: hash(grievance_id|prev_auth|new_auth|reason|prev_hash)
+        # Using centralized config for secret key to ensure security compliance
+        app_config = get_config()
+        secret_key = app_config.secret_key.encode('utf-8')
+        reason_val = audit.reason.value if hasattr(audit.reason, 'value') else audit.reason
+        hash_content = f"{audit.grievance_id}|{audit.previous_authority}|{audit.new_authority}|{reason_val}|{prev_hash}"
+
+        computed_hash = hmac.new(
+            secret_key,
+            hash_content.encode('utf-8'),
+            hashlib.sha256
+        ).hexdigest()
+
+        if audit.integrity_hash is None:
+            is_valid = False
+            message = "No integrity hash present for this audit record; cryptographic integrity cannot be verified."
+        else:
+            is_valid = hmac.compare_digest(computed_hash, audit.integrity_hash)
+            message = (
+                "Integrity verified. This escalation audit record is cryptographically sealed."
+                if is_valid
+                else "Integrity check failed! The audit data does not match its cryptographic seal."
+            )
+
+        return BlockchainVerificationResponse(
+            is_valid=is_valid,
+            current_hash=audit.integrity_hash,
+            computed_hash=computed_hash,
+            message=message
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error verifying audit blockchain for {audit_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to verify audit integrity")
