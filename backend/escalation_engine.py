@@ -4,6 +4,9 @@ Core engine for evaluating and performing grievance escalations based on SLA and
 """
 
 import datetime
+import hashlib
+import hmac
+import os
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
@@ -11,6 +14,7 @@ from backend.models import Grievance, Jurisdiction, EscalationAudit, GrievanceSt
 from backend.database import SessionLocal
 from backend.routing_service import RoutingService
 from backend.sla_config_service import SLAConfigService
+from backend.cache import audit_last_hash_cache
 
 class EscalationEngine:
     """
@@ -248,17 +252,37 @@ class EscalationEngine:
             # Recalculate SLA
             self._recalculate_sla(grievance, db)
 
+            # Blockchain integrity logic (O(1) lookup via cache)
+            prev_hash = audit_last_hash_cache.get("last_hash")
+            if prev_hash is None:
+                # Cache miss: fetch only the last hash from DB
+                last_audit = db.query(EscalationAudit.integrity_hash).order_by(EscalationAudit.id.desc()).first()
+                prev_hash = last_audit[0] if last_audit and last_audit[0] else ""
+                audit_last_hash_cache.set(data=prev_hash, key="last_hash")
+
+            # Chaining logic: HMAC-SHA256(grievance_id|prev_authority|new_authority|reason|prev_hash)
+            from backend.config import get_auth_config
+            auth_config = get_auth_config()
+            secret_key = auth_config.secret_key.encode()
+            chain_content = f"{grievance.id}|{previous_authority}|{grievance.assigned_authority}|{reason.value}|{prev_hash}"
+            integrity_hash = hmac.new(secret_key, chain_content.encode(), hashlib.sha256).hexdigest()
+
             # Create audit log
             audit_log = EscalationAudit(
                 grievance_id=grievance.id,
                 previous_authority=previous_authority,
                 new_authority=grievance.assigned_authority,
                 reason=reason,
-                notes=notes
+                notes=notes,
+                integrity_hash=integrity_hash,
+                previous_integrity_hash=prev_hash
             )
 
             db.add(audit_log)
             db.commit()
+
+            # Update cache after successful commit
+            audit_last_hash_cache.set(data=integrity_hash, key="last_hash")
 
             return True
 
