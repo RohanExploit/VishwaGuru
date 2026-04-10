@@ -61,3 +61,6 @@
 ## 2025-02-13 - API Route Prefix Consistency
 **Learning:** Inconsistent application of `/api` prefixes between `main.py` router mounting and test suite request paths can lead to 404 errors during testing, even if the logic is correct. This is especially prevalent when multiple agents work on the same codebase with different assumptions about global prefixes.
 **Action:** Always verify that `app.include_router` in `backend/main.py` uses `prefix="/api"` if the test suite (e.g., `tests/test_blockchain.py`) expects it. If a router is mounted without a prefix, ensure tests are updated or the prefix is added to `main.py` to maintain repository-wide consistency.
+## 2026-04-10 - Aggregation queries optimization
+**Learning:** In SQLAlchemy, using `group_by` to aggregate items into dictionary requires looping and processing data on the Python level. Furthermore, doing multiple `.query().count()` operations adds network latency.
+**Action:** Use a single database query utilizing `func.sum(case(...))` where possible. It executes aggregation at the database level which is much faster than running Python code.
