@@ -100,7 +100,7 @@ class ClosureService:
             closure_last_hash_cache.set(data=prev_hash, key="last_hash")
 
         # Chaining logic: hash(grievance_id|user_email|confirmation_type|prev_hash)
-        hash_content = f"{grievance_id}|{user_email}|{confirmation_type}|{prev_hash}"
+        hash_content = f"{grievance_id}|{user_email}|{confirmation_type}|{reason or ''}|{prev_hash}"
 
         secret_key = get_auth_config().secret_key
         integrity_hash = hmac.new(
