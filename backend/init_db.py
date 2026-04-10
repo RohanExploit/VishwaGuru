@@ -232,6 +232,19 @@ def migrate_db():
                 if not index_exists("escalation_audits", "ix_escalation_audits_previous_integrity_hash"):
                     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_escalation_audits_previous_integrity_hash ON escalation_audits (previous_integrity_hash)"))
 
+            # Closure Confirmations Table Migrations
+            if inspector.has_table("closure_confirmations"):
+                if not column_exists("closure_confirmations", "integrity_hash"):
+                    conn.execute(text("ALTER TABLE closure_confirmations ADD COLUMN integrity_hash VARCHAR"))
+                    logger.info("Added integrity_hash column to closure_confirmations")
+
+                if not column_exists("closure_confirmations", "previous_integrity_hash"):
+                    conn.execute(text("ALTER TABLE closure_confirmations ADD COLUMN previous_integrity_hash VARCHAR"))
+                    logger.info("Added previous_integrity_hash column to closure_confirmations")
+
+                if not index_exists("closure_confirmations", "ix_closure_confirmations_previous_integrity_hash"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_closure_confirmations_previous_integrity_hash ON closure_confirmations (previous_integrity_hash)"))
+
             # Resolution Proof Tokens Table Migrations
             if inspector.has_table("resolution_proof_tokens"):
                 if not column_exists("resolution_proof_tokens", "nonce"):

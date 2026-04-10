@@ -203,6 +203,10 @@ class ClosureConfirmation(Base):
     reason = Column(Text, nullable=True)  # Optional reason for dispute
     created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     
+    # Blockchain integrity fields
+    integrity_hash = Column(String, nullable=True)
+    previous_integrity_hash = Column(String, nullable=True, index=True)
+
     # Relationship
     grievance = relationship("Grievance", back_populates="closure_confirmations")
 
