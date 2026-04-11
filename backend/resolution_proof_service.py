@@ -25,7 +25,7 @@ from backend.models import (
     EvidenceAuditLog, VerificationStatus, GrievanceStatus
 )
 from backend.config import get_config
-from backend.cache import resolution_last_hash_cache
+from backend.cache import resolution_last_hash_cache, evidence_audit_last_hash_cache
 
 logger = logging.getLogger(__name__)
 
@@ -604,16 +604,37 @@ class ResolutionProofService:
         actor_email: str,
         db: Session
     ) -> EvidenceAuditLog:
-        """Create an append-only audit log entry."""
+        """
+        Create an append-only audit log entry with blockchain integrity.
+        Optimized: Uses evidence_audit_last_hash_cache for O(1) chaining.
+        """
+        # Blockchain feature: calculate integrity hash for the audit log
+        prev_hash = evidence_audit_last_hash_cache.get("last_hash")
+        if prev_hash is None:
+            # Cache miss: Fetch only the last hash from DB
+            last_audit = db.query(EvidenceAuditLog.integrity_hash).order_by(EvidenceAuditLog.id.desc()).first()
+            prev_hash = last_audit[0] if last_audit and last_audit[0] else ""
+            evidence_audit_last_hash_cache.set(data=prev_hash, key="last_hash")
+
+        # Chaining logic: hash(evidence_id|action|actor_email|prev_hash)
+        hash_content = f"{evidence_id}|{action}|{actor_email}|{prev_hash}"
+        integrity_hash = hashlib.sha256(hash_content.encode()).hexdigest()
+
         log = EvidenceAuditLog(
             evidence_id=evidence_id,
             action=action,
             details=details,
             actor_email=actor_email,
+            integrity_hash=integrity_hash,
+            previous_integrity_hash=prev_hash
         )
         db.add(log)
         db.commit()
         db.refresh(log)
+
+        # Update cache after successful commit
+        evidence_audit_last_hash_cache.set(data=integrity_hash, key="last_hash")
+
         return log
 
     @staticmethod

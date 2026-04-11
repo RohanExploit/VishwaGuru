@@ -4,12 +4,13 @@ API endpoints for field officer location verification and visit tracking
 Issue #288: Field Officer Check-In System With Location Verification
 """
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case
 from typing import List, Optional
 import logging
 import os
+import json
 from datetime import datetime, timezone
 
 from backend.database import get_db
@@ -31,7 +32,7 @@ from backend.geofencing_service import (
     calculate_visit_metrics,
     get_geofencing_service
 )
-from backend.cache import visit_last_hash_cache
+from backend.cache import visit_last_hash_cache, visit_stats_cache
 from backend.schemas import BlockchainVerificationResponse
 
 logger = logging.getLogger(__name__)
@@ -424,8 +425,14 @@ def get_visit_statistics(db: Session = Depends(get_db)):
     Get aggregate statistics for all field officer visits using optimized SQL queries
     
     Returns metrics like total visits, verification status, geo-fence compliance, etc.
+    Optimized: Uses serialization caching and a single aggregate SQL query.
     """
     try:
+        # Check cache
+        cached_json = visit_stats_cache.get("default")
+        if cached_json:
+            return Response(content=cached_json, media_type="application/json")
+
         # Optimized: Use a single aggregate query to fetch multiple statistics in one database roundtrip
         stats = db.query(
             func.count(FieldOfficerVisit.id).label('total'),
@@ -449,14 +456,20 @@ def get_visit_statistics(db: Session = Depends(get_db)):
         else:
             average_distance = 0.0
         
-        return VisitStatsResponse(
-            total_visits=total_visits,
-            verified_visits=verified_visits,
-            within_geofence_count=within_geofence_count,
-            outside_geofence_count=outside_geofence_count,
-            unique_officers=unique_officers,
-            average_distance_from_site=average_distance
-        )
+        stats_data = {
+            "total_visits": total_visits,
+            "verified_visits": verified_visits,
+            "within_geofence_count": within_geofence_count,
+            "outside_geofence_count": outside_geofence_count,
+            "unique_officers": unique_officers,
+            "average_distance_from_site": average_distance
+        }
+
+        # Cache serialized JSON to bypass Pydantic overhead on hits
+        json_data = json.dumps(stats_data)
+        visit_stats_cache.set(json_data, "default")
+
+        return Response(content=json_data, media_type="application/json")
         
     except Exception as e:
         logger.error(f"Error calculating visit statistics: {e}", exc_info=True)

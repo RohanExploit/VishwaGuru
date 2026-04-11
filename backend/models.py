@@ -336,5 +336,9 @@ class EvidenceAuditLog(Base):
     actor_email = Column(String, nullable=True)
     timestamp = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc), index=True)
 
+    # Blockchain integrity fields
+    integrity_hash = Column(String, nullable=True)
+    previous_integrity_hash = Column(String, nullable=True, index=True)
+
     # Relationship
     evidence = relationship("ResolutionEvidence", back_populates="audit_logs")
