@@ -65,3 +65,7 @@
 ## 2026-03-05 - Scratchpad File Cleanup
 **Learning:** Leaving scratchpad files like Python test scripts or benchmarking shell scripts pollutes the repository and will cause code reviews to fail. Even if the optimization works, the PR must be clean and only contain relevant application changes.
 **Action:** Always clean up generated development files, scripts, and temporary databases using `rm` before requesting a code review or submitting a PR.
+
+## 2026-03-05 - Avoid Sequential .count() and .first()
+**Learning:** Checking for the existence of records using `.count()` and then fetching the record with `.first()` results in two database round-trips. Furthermore, `.count()` requires the database to tally all matching rows, whereas `.first()` uses `LIMIT 1` and returns immediately upon finding a match.
+**Action:** Use `.first()` initially. If it returns `None`, you can return early (saving the count query). Only execute `.count()` if the record exists AND the exact total count is strictly required for the response.

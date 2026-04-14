@@ -455,13 +455,14 @@ class ResolutionProofService:
         Returns:
             Verification result dictionary
         """
-        # Optimized: Use .count() and .first() to avoid loading all historical evidence
-        # records into memory, reducing O(N) database transfer and memory overhead.
-        evidence_count = db.query(ResolutionEvidence).filter(
+        # Optimized: Use .first() to fetch the most recent evidence first.
+        # This acts as an early exit and avoids executing .count() entirely for the
+        # majority of grievances that have no evidence yet, reducing DB round-trips.
+        evidence = db.query(ResolutionEvidence).filter(
             ResolutionEvidence.grievance_id == grievance_id
-        ).count()
+        ).order_by(ResolutionEvidence.id.desc()).first()
 
-        if evidence_count == 0:
+        if not evidence:
             return {
                 "grievance_id": grievance_id,
                 "is_verified": False,
@@ -474,10 +475,10 @@ class ResolutionProofService:
                 "message": "No resolution evidence found for this grievance"
             }
 
-        # Use the most recent evidence
-        evidence = db.query(ResolutionEvidence).filter(
+        # Query total count only if evidence actually exists
+        evidence_count = db.query(ResolutionEvidence).filter(
             ResolutionEvidence.grievance_id == grievance_id
-        ).order_by(ResolutionEvidence.id.desc()).first()
+        ).count()
 
         # Re-verify the server signature
         bundle_str = json.dumps(evidence.metadata_bundle, sort_keys=True)
