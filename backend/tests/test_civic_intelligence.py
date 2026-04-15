@@ -152,11 +152,16 @@ def test_civic_intelligence_run(mock_listdir, mock_json_dump, mock_file_open, mo
 
     # Define query side effects
     def query_side_effect(model):
-        if model == Issue:
+        # Handle func.count mock
+        if hasattr(model, 'name') and model.name == 'count':
+            mock_count = MagicMock()
+            mock_count.filter.return_value.scalar.return_value = 1
+            return mock_count
+        elif model is Issue:
             return mock_query_issues
-        elif model == EscalationAudit:
+        elif model is EscalationAudit:
             return mock_query_upgrades
-        elif model == Grievance:
+        elif model is Grievance:
             return mock_query_grievance
         return MagicMock()
 
@@ -168,12 +173,12 @@ def test_civic_intelligence_run(mock_listdir, mock_json_dump, mock_file_open, mo
     # Issue Query Chain
     # First call is for fetching issues_24h, second for resolved_count?
     # Actually code calls: db.query(Issue).filter(Issue.created_at >= last_24h).all()
-    # And: db.query(Issue).filter(Issue.resolved_at >= last_24h).count()
+    # And: db.query(func.count(Issue.id)).filter(Issue.resolved_at >= last_24h).scalar()
 
     # To differentiate, we can check the filter call or just return appropriate mocks
     # Let's just make sure it returns something valid for both
     mock_query_issues.filter.return_value.all.return_value = issues_result # issues_24h
-    mock_query_issues.filter.return_value.count.return_value = 1 # resolved_count
+    # count query handled directly in query_side_effect now
 
     # Upgrade Query Chain
     # We want to test weight update, so let's simulate upgrades

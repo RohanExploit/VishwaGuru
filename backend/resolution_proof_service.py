@@ -19,6 +19,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, Optional, List, Tuple
 
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from backend.models import (
     Grievance, ResolutionProofToken, ResolutionEvidence,
@@ -464,13 +465,16 @@ class ResolutionProofService:
         Returns:
             Verification result dictionary
         """
-        # Optimized: Use .count() and .first() to avoid loading all historical evidence
-        # records into memory, reducing O(N) database transfer and memory overhead.
-        evidence_count = db.query(ResolutionEvidence).filter(
-            ResolutionEvidence.grievance_id == grievance_id
-        ).count()
+        # Optimized: Use .first() to check existence and fetch the latest record BEFORE
+        # executing the expensive .count() query. This acts as an early exit and avoids
+        # the count query entirely when no evidence exists, saving a database roundtrip.
 
-        if evidence_count == 0:
+        # Use the most recent evidence
+        evidence = db.query(ResolutionEvidence).filter(
+            ResolutionEvidence.grievance_id == grievance_id
+        ).order_by(ResolutionEvidence.id.desc()).first()
+
+        if not evidence:
             return {
                 "grievance_id": grievance_id,
                 "is_verified": False,
@@ -483,10 +487,11 @@ class ResolutionProofService:
                 "message": "No resolution evidence found for this grievance"
             }
 
-        # Use the most recent evidence
-        evidence = db.query(ResolutionEvidence).filter(
+        # Only execute the count query if evidence actually exists.
+        # Optimized: Use func.count(Model.id) to prevent SQLAlchemy ORM overhead.
+        evidence_count = db.query(func.count(ResolutionEvidence.id)).filter(
             ResolutionEvidence.grievance_id == grievance_id
-        ).order_by(ResolutionEvidence.id.desc()).first()
+        ).scalar() or 0
 
         # Re-verify the server signature
         bundle_str = json.dumps(evidence.metadata_bundle, sort_keys=True)
