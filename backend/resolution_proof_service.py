@@ -1,3 +1,4 @@
+from sqlalchemy import func
 """
 Resolution Proof Service - Cryptographic Verification for OnGround Resolution (Issue #292)
 
@@ -466,9 +467,9 @@ class ResolutionProofService:
         """
         # Optimized: Use .count() and .first() to avoid loading all historical evidence
         # records into memory, reducing O(N) database transfer and memory overhead.
-        evidence_count = db.query(ResolutionEvidence).filter(
+        evidence_count = db.query(func.count(ResolutionEvidence.id)).filter(
             ResolutionEvidence.grievance_id == grievance_id
-        ).count()
+        ).scalar() or 0
 
         if evidence_count == 0:
             return {

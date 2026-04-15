@@ -152,7 +152,7 @@ def test_civic_intelligence_run(mock_listdir, mock_json_dump, mock_file_open, mo
 
     # Define query side effects
     def query_side_effect(model):
-        if model == Issue:
+        if model is Issue or (hasattr(model, "name") and model.name == "count"):
             return mock_query_issues
         elif model == EscalationAudit:
             return mock_query_upgrades
@@ -173,7 +173,7 @@ def test_civic_intelligence_run(mock_listdir, mock_json_dump, mock_file_open, mo
     # To differentiate, we can check the filter call or just return appropriate mocks
     # Let's just make sure it returns something valid for both
     mock_query_issues.filter.return_value.all.return_value = issues_result # issues_24h
-    mock_query_issues.filter.return_value.count.return_value = 1 # resolved_count
+    mock_query_issues.filter.return_value.scalar.return_value = 1 # resolved_count
 
     # Upgrade Query Chain
     # We want to test weight update, so let's simulate upgrades
