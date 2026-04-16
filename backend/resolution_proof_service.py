@@ -19,6 +19,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, Optional, List, Tuple
 
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from backend.models import (
     Grievance, ResolutionProofToken, ResolutionEvidence,
@@ -464,11 +465,11 @@ class ResolutionProofService:
         Returns:
             Verification result dictionary
         """
-        # Optimized: Use .count() and .first() to avoid loading all historical evidence
+        # Optimized: Use func.count() and .first() to avoid loading all historical evidence
         # records into memory, reducing O(N) database transfer and memory overhead.
-        evidence_count = db.query(ResolutionEvidence).filter(
+        evidence_count = db.query(func.count(ResolutionEvidence.id)).filter(
             ResolutionEvidence.grievance_id == grievance_id
-        ).count()
+        ).scalar() or 0
 
         if evidence_count == 0:
             return {
