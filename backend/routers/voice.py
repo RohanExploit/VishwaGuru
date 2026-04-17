@@ -11,6 +11,7 @@ from typing import Optional
 import logging
 import os
 import uuid
+import hashlib
 from datetime import datetime, timezone
 
 from backend.database import get_db
@@ -26,6 +27,7 @@ from backend.schemas import (
 )
 from backend.voice_service import get_voice_service
 from backend.utils import generate_reference_id
+from backend.cache import blockchain_last_hash_cache
 
 logger = logging.getLogger(__name__)
 
@@ -257,6 +259,19 @@ async def submit_voice_issue(
         # Create issue in database
         reference_id = generate_reference_id()
         
+        # Blockchain feature: calculate integrity hash for the report
+        # Performance Boost: Use thread-safe cache to eliminate DB query for last hash
+        prev_hash = blockchain_last_hash_cache.get("last_hash")
+        if prev_hash is None:
+            # Cache miss: Fetch only the last hash from DB
+            prev_issue = db.query(Issue.integrity_hash).order_by(Issue.id.desc()).first()
+            prev_hash = prev_issue[0] if prev_issue and prev_issue[0] else ""
+            blockchain_last_hash_cache.set(data=prev_hash, key="last_hash")
+
+        # Simple but effective SHA-256 chaining
+        hash_content = f"{final_description}|{issue_category.value}|{prev_hash}"
+        integrity_hash = hashlib.sha256(hash_content.encode()).hexdigest()
+
         new_issue = Issue(
             reference_id=reference_id,
             description=final_description,
@@ -267,6 +282,9 @@ async def submit_voice_issue(
             location=location,
             source='voice',
             status='open',
+            # Blockchain integrity fields
+            integrity_hash=integrity_hash,
+            previous_integrity_hash=prev_hash,
             # Voice-specific fields
             submission_type='voice',
             original_language=voice_result.get('source_language'),
@@ -280,6 +298,9 @@ async def submit_voice_issue(
         db.commit()
         db.refresh(new_issue)
         
+        # Update cache for next report AFTER successful DB commit
+        blockchain_last_hash_cache.set(data=integrity_hash, key="last_hash")
+
         logger.info(f"Voice issue created: ID={new_issue.id}, Language={voice_result.get('source_language')}, Confidence={voice_result.get('confidence')}")
         
         return IssueCreateResponse(
