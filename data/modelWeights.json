@@ -6,8 +6,8 @@
     "Streetlight": 2,
     "Flooding": 8
   },
-  "duplicateThreshold": 0.7999999999999999,
-  "lastUpdated": "2026-04-17T18:47:08.928Z",
+  "duplicateThreshold": 0.7899999999999999,
+  "lastUpdated": "2026-04-18T18:40:59.981Z",
   "history": [
     {
       "date": "2026-03-27",
@@ -52,6 +52,17 @@
         "Flooding": 8
       },
       "duplicateThreshold": 0.8099999999999999
+    },
+    {
+      "date": "2026-04-18",
+      "categoryWeights": {
+        "Pothole": 5,
+        "Garbage": 3,
+        "Water Supply": 4,
+        "Streetlight": 2,
+        "Flooding": 8
+      },
+      "duplicateThreshold": 0.7999999999999999
     }
   ]
 }
