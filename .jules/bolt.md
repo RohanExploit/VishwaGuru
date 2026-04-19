@@ -73,3 +73,7 @@
 ## 2026-04-17 - ORM Counting vs func.count().scalar()
 **Learning:** Using `db.query(Model).filter(...).count()` can be slower and have more ORM overhead than `db.query(func.count(Model.id)).filter(...).scalar() or 0` or doing an early `.first()` exit.
 **Action:** When counting records or verifying existence, prefer early `.first()` exits combined with `func.count().scalar()` for performance in high-traffic APIs.
+
+## 2026-05-18 - Single Query Aggregation instead of Group By and Python Dicts
+**Learning:** For performance optimization in database queries, using a `group_by` query and then manually processing the results into a Python dictionary introduces unnecessary application-level computation. It's more efficient to let the database do the aggregation directly.
+**Action:** Prefer using SQLAlchemy's `func.sum(case(...))` within a single query to aggregate multiple metrics (like status counts) instead of using `group_by` with Python-level dictionary processing.

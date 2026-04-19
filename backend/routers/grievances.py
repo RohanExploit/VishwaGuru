@@ -149,22 +149,24 @@ def get_grievance(grievance_id: int, db: Session = Depends(get_db)):
 def get_escalation_stats(db: Session = Depends(get_db)):
     """
     Get escalation statistics.
-    Optimized: Uses a single GROUP BY query instead of 4 separate count queries.
+    Optimized: Uses func.sum(case(...)) within a single query to aggregate multiple metrics,
+    avoiding group_by and Python-level dictionary processing.
     """
     try:
+        from backend.models import GrievanceStatus
+
         # Perform aggregation in a single query for performance
-        status_counts = db.query(
-            Grievance.status,
-            func.count(Grievance.id)
-        ).group_by(Grievance.status).all()
+        stats = db.query(
+            func.count(Grievance.id).label('total'),
+            func.sum(case((Grievance.status == GrievanceStatus.ESCALATED, 1), else_=0)).label('escalated'),
+            func.sum(case((Grievance.status.in_([GrievanceStatus.OPEN, GrievanceStatus.IN_PROGRESS]), 1), else_=0)).label('active'),
+            func.sum(case((Grievance.status == GrievanceStatus.RESOLVED, 1), else_=0)).label('resolved')
+        ).first()
 
-        # Process results into a dictionary for easy lookup
-        counts_dict = {status.value if hasattr(status, 'value') else status: count for status, count in status_counts}
-
-        total_grievances = sum(counts_dict.values())
-        escalated_grievances = counts_dict.get("escalated", 0)
-        active_grievances = counts_dict.get("open", 0) + counts_dict.get("in_progress", 0)
-        resolved_grievances = counts_dict.get("resolved", 0)
+        total_grievances = stats.total or 0
+        escalated_grievances = int(stats.escalated or 0)
+        active_grievances = int(stats.active or 0)
+        resolved_grievances = int(stats.resolved or 0)
 
         escalation_rate = (escalated_grievances / total_grievances * 100) if total_grievances > 0 else 0
 
