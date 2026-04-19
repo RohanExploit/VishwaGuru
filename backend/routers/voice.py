@@ -9,6 +9,7 @@ from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 from typing import Optional
 import logging
+import hashlib
 import os
 import uuid
 from datetime import datetime, timezone
@@ -26,6 +27,7 @@ from backend.schemas import (
 )
 from backend.voice_service import get_voice_service
 from backend.utils import generate_reference_id
+from backend.cache import blockchain_last_hash_cache
 
 logger = logging.getLogger(__name__)
 
@@ -248,8 +250,12 @@ async def submit_voice_issue(
         audio_filename = f"{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex}{file_extension}"
         audio_file_path = os.path.join(AUDIO_STORAGE_DIR, audio_filename)
         
-        with open(audio_file_path, 'wb') as f:
-            f.write(audio_content)
+        # Wrapped blocking File I/O in threadpool
+        def save_audio():
+            with open(audio_file_path, 'wb') as f:
+                f.write(audio_content)
+
+        await run_in_threadpool(save_audio)
         
         # Store relative path for portability
         relative_audio_path = os.path.join("data", "audio_recordings", audio_filename)
@@ -257,6 +263,22 @@ async def submit_voice_issue(
         # Create issue in database
         reference_id = generate_reference_id()
         
+        # Blockchain feature: calculate integrity hash for the report
+        # Performance Boost: Use thread-safe cache to eliminate DB query for last hash
+        prev_hash = blockchain_last_hash_cache.get("last_hash")
+        if prev_hash is None:
+            # Cache miss: Fetch only the last hash from DB
+            # Wrapped in run_in_threadpool because it's an async endpoint
+            prev_issue_hash = await run_in_threadpool(
+                lambda: db.query(Issue.integrity_hash).order_by(Issue.id.desc()).first()
+            )
+            prev_hash = prev_issue_hash[0] if prev_issue_hash and prev_issue_hash[0] else ""
+            blockchain_last_hash_cache.set(data=prev_hash, key="last_hash")
+
+        # Simple but effective SHA-256 chaining (parity with standard issue reports)
+        hash_content = f"{final_description}|{issue_category.value}|{prev_hash}"
+        integrity_hash = hashlib.sha256(hash_content.encode()).hexdigest()
+
         new_issue = Issue(
             reference_id=reference_id,
             description=final_description,
@@ -273,13 +295,22 @@ async def submit_voice_issue(
             original_text=original_text,
             transcription_confidence=voice_result.get('confidence', 0.0),
             manual_correction_applied=manual_correction_applied,
-            audio_file_path=relative_audio_path  # Store relative path
+            audio_file_path=relative_audio_path,  # Store relative path
+            integrity_hash=integrity_hash,
+            previous_integrity_hash=prev_hash
         )
         
-        db.add(new_issue)
-        db.commit()
-        db.refresh(new_issue)
+        # Wrapped blocking DB operations in run_in_threadpool to keep event loop responsive
+        def save_issue():
+            db.add(new_issue)
+            db.commit()
+            db.refresh(new_issue)
+
+        await run_in_threadpool(save_issue)
         
+        # Update cache for next report AFTER successful DB commit
+        blockchain_last_hash_cache.set(data=integrity_hash, key="last_hash")
+
         logger.info(f"Voice issue created: ID={new_issue.id}, Language={voice_result.get('source_language')}, Confidence={voice_result.get('confidence')}")
         
         return IssueCreateResponse(

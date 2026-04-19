@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import func, case
 from typing import List, Optional
@@ -12,6 +12,7 @@ from backend.database import get_db
 import hmac
 from backend.config import get_auth_config
 from backend.models import Grievance, EscalationAudit, GrievanceFollower, ClosureConfirmation
+from backend.cache import grievance_list_cache, escalation_stats_cache
 from backend.schemas import (
     GrievanceSummaryResponse, EscalationAuditResponse, EscalationStatsResponse,
     ResponsibilityMapResponse,
@@ -39,8 +40,15 @@ def get_grievances(
     """
     Get list of grievances with escalation history.
     Optimized: Uses selectinload for audit_logs to avoid Cartesian product and improve O(N) fetching.
+    Performance Boost: Uses serialization caching to bypass Pydantic overhead on cache hits.
     """
     try:
+        # Check cache first
+        cache_key = f"grievances_{status}_{category}_{limit}_{offset}"
+        cached_json = grievance_list_cache.get(cache_key)
+        if cached_json:
+            return Response(content=cached_json, media_type="application/json")
+
         query = db.query(Grievance).options(
             selectinload(Grievance.audit_logs),
             joinedload(Grievance.jurisdiction)
@@ -53,41 +61,45 @@ def get_grievances(
 
         grievances = query.offset(offset).limit(limit).all()
 
-        # Convert to response format
+        # Convert to response format (dictionaries for faster JSON serialization)
         result = []
         for grievance in grievances:
             escalation_history = [
-                EscalationAuditResponse(
-                    id=audit.id,
-                    grievance_id=audit.grievance_id,
-                    previous_authority=audit.previous_authority,
-                    new_authority=audit.new_authority,
-                    timestamp=audit.timestamp,
-                    reason=audit.reason.value
-                )
+                {
+                    "id": audit.id,
+                    "grievance_id": audit.grievance_id,
+                    "previous_authority": audit.previous_authority,
+                    "new_authority": audit.new_authority,
+                    "timestamp": audit.timestamp.isoformat() if audit.timestamp else None,
+                    "reason": audit.reason.value if hasattr(audit.reason, 'value') else str(audit.reason)
+                }
                 for audit in grievance.audit_logs
             ]
 
-            result.append(GrievanceSummaryResponse(
-                id=grievance.id,
-                unique_id=grievance.unique_id,
-                category=grievance.category,
-                severity=grievance.severity.value,
-                pincode=grievance.pincode,
-                city=grievance.city,
-                district=grievance.district,
-                state=grievance.state,
-                current_jurisdiction_id=grievance.current_jurisdiction_id,
-                assigned_authority=grievance.assigned_authority,
-                sla_deadline=grievance.sla_deadline,
-                status=grievance.status.value,
-                created_at=grievance.created_at,
-                updated_at=grievance.updated_at,
-                resolved_at=grievance.resolved_at,
-                escalation_history=escalation_history
-            ))
+            result.append({
+                "id": grievance.id,
+                "unique_id": grievance.unique_id,
+                "category": grievance.category,
+                "severity": grievance.severity.value if hasattr(grievance.severity, 'value') else str(grievance.severity),
+                "pincode": grievance.pincode,
+                "city": grievance.city,
+                "district": grievance.district,
+                "state": grievance.state,
+                "current_jurisdiction_id": grievance.current_jurisdiction_id,
+                "assigned_authority": grievance.assigned_authority,
+                "sla_deadline": grievance.sla_deadline.isoformat() if grievance.sla_deadline else None,
+                "status": grievance.status.value if hasattr(grievance.status, 'value') else str(grievance.status),
+                "created_at": grievance.created_at.isoformat() if grievance.created_at else None,
+                "updated_at": grievance.updated_at.isoformat() if grievance.updated_at else None,
+                "resolved_at": grievance.resolved_at.isoformat() if grievance.resolved_at else None,
+                "escalation_history": escalation_history
+            })
 
-        return result
+        # Cache serialized JSON
+        json_data = json.dumps(result)
+        grievance_list_cache.set(data=json_data, key=cache_key)
+
+        return Response(content=json_data, media_type="application/json")
 
     except Exception as e:
         logger.error(f"Error getting grievances: {e}", exc_info=True)
@@ -150,8 +162,14 @@ def get_escalation_stats(db: Session = Depends(get_db)):
     """
     Get escalation statistics.
     Optimized: Uses a single GROUP BY query instead of 4 separate count queries.
+    Performance Boost: Uses serialization caching to bypass Pydantic overhead on cache hits.
     """
     try:
+        # Check cache
+        cached_json = escalation_stats_cache.get("default")
+        if cached_json:
+            return Response(content=cached_json, media_type="application/json")
+
         # Perform aggregation in a single query for performance
         status_counts = db.query(
             Grievance.status,
@@ -168,13 +186,19 @@ def get_escalation_stats(db: Session = Depends(get_db)):
 
         escalation_rate = (escalated_grievances / total_grievances * 100) if total_grievances > 0 else 0
 
-        return EscalationStatsResponse(
-            total_grievances=total_grievances,
-            escalated_grievances=escalated_grievances,
-            active_grievances=active_grievances,
-            resolved_grievances=resolved_grievances,
-            escalation_rate=escalation_rate
-        )
+        data = {
+            "total_grievances": total_grievances,
+            "escalated_grievances": escalated_grievances,
+            "active_grievances": active_grievances,
+            "resolved_grievances": resolved_grievances,
+            "escalation_rate": escalation_rate
+        }
+
+        # Cache serialized JSON
+        json_data = json.dumps(data)
+        escalation_stats_cache.set(data=json_data, key="default")
+
+        return Response(content=json_data, media_type="application/json")
 
     except Exception as e:
         logger.error(f"Error getting escalation stats: {e}", exc_info=True)
@@ -208,6 +232,9 @@ def manual_escalate_grievance(
         )
 
         if success:
+            # Invalidate cache
+            grievance_list_cache.clear()
+            escalation_stats_cache.clear()
             return {"message": "Grievance escalated successfully"}
         else:
             raise HTTPException(status_code=400, detail="Failed to escalate grievance")
@@ -277,6 +304,9 @@ def follow_grievance(
         db.add(follower)
         db.commit()
         
+        # Invalidate cache
+        grievance_list_cache.clear()
+
         # Count total followers
         total_followers = db.query(func.count(GrievanceFollower.id)).filter(
             GrievanceFollower.grievance_id == grievance_id
@@ -315,6 +345,9 @@ def unfollow_grievance(
         db.delete(follower)
         db.commit()
         
+        # Invalidate cache
+        grievance_list_cache.clear()
+
         return {"message": "Successfully unfollowed grievance"}
     
     except HTTPException:
@@ -334,6 +367,10 @@ def request_grievance_closure(
     try:
         result = ClosureService.request_closure(grievance_id, db)
         
+        # Invalidate cache
+        grievance_list_cache.clear()
+        escalation_stats_cache.clear()
+
         if result.get("skip_confirmation"):
             return RequestClosureResponse(
                 grievance_id=grievance_id,
@@ -381,6 +418,10 @@ def confirm_grievance_closure(
             else:
                 message = "Confirmation recorded - grievance remains open"
         
+        # Invalidate cache
+        grievance_list_cache.clear()
+        escalation_stats_cache.clear()
+
         return ConfirmClosureResponse(
             grievance_id=grievance_id,
             message=message,

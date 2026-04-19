@@ -4,11 +4,12 @@ API endpoints for field officer location verification and visit tracking
 Issue #288: Field Officer Check-In System With Location Verification
 """
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case
 from typing import List, Optional
 import logging
+import json
 import os
 from datetime import datetime, timezone
 
@@ -31,7 +32,7 @@ from backend.geofencing_service import (
     calculate_visit_metrics,
     get_geofencing_service
 )
-from backend.cache import visit_last_hash_cache
+from backend.cache import visit_last_hash_cache, visit_stats_cache
 from backend.schemas import BlockchainVerificationResponse
 
 logger = logging.getLogger(__name__)
@@ -145,6 +146,9 @@ def officer_check_in(request: OfficerCheckInRequest, db: Session = Depends(get_d
         db.commit()
         db.refresh(new_visit)
         
+        # Invalidate stats cache
+        visit_stats_cache.clear()
+
         # Update cache for next visit AFTER successful DB commit
         visit_last_hash_cache.set(data=visit_hash, key="last_hash")
 
@@ -226,6 +230,9 @@ def officer_check_out(request: OfficerCheckOutRequest, db: Session = Depends(get
         db.commit()
         db.refresh(visit)
         
+        # Invalidate stats cache
+        visit_stats_cache.clear()
+
         logger.info(f"Officer checked out from visit {request.visit_id}")
         
         return FieldOfficerVisitResponse(
@@ -424,8 +431,14 @@ def get_visit_statistics(db: Session = Depends(get_db)):
     Get aggregate statistics for all field officer visits using optimized SQL queries
     
     Returns metrics like total visits, verification status, geo-fence compliance, etc.
+    Performance Boost: Uses serialization caching to bypass Pydantic overhead on cache hits.
     """
     try:
+        # Check cache
+        cached_json = visit_stats_cache.get("default")
+        if cached_json:
+            return Response(content=cached_json, media_type="application/json")
+
         # Optimized: Use a single aggregate query to fetch multiple statistics in one database roundtrip
         stats = db.query(
             func.count(FieldOfficerVisit.id).label('total'),
@@ -449,14 +462,20 @@ def get_visit_statistics(db: Session = Depends(get_db)):
         else:
             average_distance = 0.0
         
-        return VisitStatsResponse(
-            total_visits=total_visits,
-            verified_visits=verified_visits,
-            within_geofence_count=within_geofence_count,
-            outside_geofence_count=outside_geofence_count,
-            unique_officers=unique_officers,
-            average_distance_from_site=average_distance
-        )
+        data = {
+            "total_visits": total_visits,
+            "verified_visits": verified_visits,
+            "within_geofence_count": within_geofence_count,
+            "outside_geofence_count": outside_geofence_count,
+            "unique_officers": unique_officers,
+            "average_distance_from_site": average_distance
+        }
+
+        # Cache serialized JSON
+        json_data = json.dumps(data)
+        visit_stats_cache.set(data=json_data, key="default")
+
+        return Response(content=json_data, media_type="application/json")
         
     except Exception as e:
         logger.error(f"Error calculating visit statistics: {e}", exc_info=True)
@@ -493,6 +512,9 @@ def verify_visit(
         
         db.commit()
         
+        # Invalidate stats cache
+        visit_stats_cache.clear()
+
         logger.info(f"Visit {visit_id} verified by {verifier_email}")
         
         return {"message": "Visit verified successfully", "visit_id": visit_id}
