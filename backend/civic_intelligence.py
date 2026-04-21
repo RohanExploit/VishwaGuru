@@ -3,7 +3,7 @@ import os
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, load_only
 from sqlalchemy import func
 
 from backend.models import Issue, EscalationAudit, EscalationReason, Grievance
@@ -88,7 +88,8 @@ class CivicIntelligenceEngine:
             # Optimization: Fetch all related grievances in one query to avoid N+1
             grievance_ids = [audit.grievance_id for audit in upgrades]
             if grievance_ids:
-                grievances = db.query(Grievance).filter(Grievance.id.in_(grievance_ids)).all()
+                # Optimized: Use load_only to avoid fetching unnecessary columns while preserving ORM objects
+                grievances = db.query(Grievance).options(load_only(Grievance.id, Grievance.category)).filter(Grievance.id.in_(grievance_ids)).all()
                 grievance_map = {g.id: g for g in grievances}
             else:
                 grievance_map = {}
