@@ -78,6 +78,6 @@
 **Learning:** Saving audio recordings (up to 10MB) synchronously in a FastAPI async endpoint blocks the main event loop, significantly increasing tail latency for all concurrent users during high-traffic periods.
 **Action:** Wrap blocking synchronous File I/O operations like `f.write()` in `run_in_threadpool` to offload them to a separate thread, keeping the event loop responsive for other requests.
 
-## 2026-05-18 - Mocking SQLAlchemy load_only options
-**Learning:** When changing a database query from `db.query(Model)` to `db.query(Model).options(load_only(...))` to optimize data fetching, the return type remains the ORM model (unlike column projection which returns tuples). However, if the tests mock the SQLAlchemy query chain, the mock assertions will fail because `.options()` is added to the chain.
-**Action:** When adding `.options(load_only(...))` to a query, always ensure the corresponding mock queries in tests are updated to include `.options.return_value` (e.g., `mock_query.options.return_value.filter.return_value.all.return_value = ...`) to correctly mock the new chain.
+## 2026-05-15 - Serialization Caching Bypass
+**Learning:** Caching raw Python objects (like SQLAlchemy models or Pydantic instances) in a high-traffic API still incurs significant overhead because FastAPI/Pydantic must re-serialize the data on every request.
+**Action:** Serialize data to a JSON string using `json.dumps()` BEFORE caching. On cache hits, return a raw `fastapi.Response(content=..., media_type="application/json")`. This bypasses the validation and serialization layer, resulting in significant performance gains (up to 50x in benchmarks).

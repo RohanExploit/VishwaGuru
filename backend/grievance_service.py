@@ -15,7 +15,7 @@ from backend.database import SessionLocal
 from backend.routing_service import RoutingService
 from backend.sla_config_service import SLAConfigService
 from backend.escalation_engine import EscalationEngine
-from backend.cache import grievance_last_hash_cache
+from backend.cache import grievance_last_hash_cache, grievance_list_cache, escalation_stats_cache
 
 class GrievanceService:
     """
@@ -133,6 +133,10 @@ class GrievanceService:
             # Update cache after successful commit
             grievance_last_hash_cache.set(data=integrity_hash, key="last_hash")
 
+            # Invalidate grievance caches
+            grievance_list_cache.clear()
+            escalation_stats_cache.clear()
+
             return grievance
 
         except Exception as e:
@@ -222,6 +226,11 @@ class GrievanceService:
                                 issue.assigned_to = grievance.assigned_authority
 
             db.commit()
+
+            # Invalidate grievance caches
+            grievance_list_cache.clear()
+            escalation_stats_cache.clear()
+
             return True
 
         except Exception as e:

@@ -12,7 +12,7 @@ from sqlalchemy import and_, or_
 from backend.models import Grievance, Jurisdiction, EscalationAudit, GrievanceStatus, JurisdictionLevel, EscalationReason, SeverityLevel
 from backend.database import SessionLocal
 from backend.config import get_auth_config
-from backend.cache import audit_last_hash_cache
+from backend.cache import audit_last_hash_cache, grievance_list_cache, escalation_stats_cache
 from backend.routing_service import RoutingService
 from backend.sla_config_service import SLAConfigService
 
@@ -288,6 +288,10 @@ class EscalationEngine:
 
             # Update cache for next audit AFTER successful DB commit
             audit_last_hash_cache.set(data=integrity_hash, key="last_hash")
+
+            # Invalidate grievance caches
+            grievance_list_cache.clear()
+            escalation_stats_cache.clear()
 
             return True
 
