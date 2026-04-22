@@ -5,6 +5,7 @@ Issue #288: Field Officer Check-In System With Location Verification
 """
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Response
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case
 from typing import List, Optional
@@ -281,7 +282,10 @@ async def upload_visit_images(
     Maximum 10 images per visit
     """
     try:
-        visit = db.query(FieldOfficerVisit).filter(FieldOfficerVisit.id == visit_id).first()
+        # Performance Optimization: Wrap blocking DB query in threadpool
+        visit = await run_in_threadpool(
+            lambda: db.query(FieldOfficerVisit).filter(FieldOfficerVisit.id == visit_id).first()
+        )
         
         if not visit:
             raise HTTPException(status_code=404, detail=f"Visit {visit_id} not found")
@@ -337,8 +341,12 @@ async def upload_visit_images(
             file_path = os.path.join(VISIT_IMAGES_DIR, safe_filename)
             
             # Save file
-            with open(file_path, 'wb') as f:
-                f.write(content)
+            # Performance Optimization: Wrap blocking File I/O in threadpool
+            def _save_image(p, c):
+                with open(p, 'wb') as f:
+                    f.write(c)
+
+            await run_in_threadpool(_save_image, file_path, content)
             
             # Store relative path
             relative_path = os.path.join("data", "visit_images", safe_filename)
@@ -349,7 +357,8 @@ async def upload_visit_images(
         visit.visit_images = existing_images
         visit.updated_at = datetime.now(timezone.utc)
         
-        db.commit()
+        # Performance Optimization: Wrap blocking DB commit in threadpool
+        await run_in_threadpool(db.commit)
         
         logger.info(f"Uploaded {len(images)} images for visit {visit_id}")
         

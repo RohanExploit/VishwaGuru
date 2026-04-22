@@ -265,8 +265,10 @@ async def submit_voice_issue(
         prev_hash = blockchain_last_hash_cache.get("last_hash")
         if prev_hash is None:
             # Cache miss: Fetch only the last hash from DB
-            # Use await run_in_threadpool for DB query if needed, or just do it in-thread
-            prev_issue = db.query(Issue.integrity_hash).order_by(Issue.id.desc()).first()
+            # Performance Optimization: Wrap blocking DB query in threadpool
+            prev_issue = await run_in_threadpool(
+                lambda: db.query(Issue.integrity_hash).order_by(Issue.id.desc()).first()
+            )
             prev_hash = prev_issue[0] if prev_issue and prev_issue[0] else ""
             blockchain_last_hash_cache.set(data=prev_hash, key="last_hash")
 
@@ -300,10 +302,8 @@ async def submit_voice_issue(
             audio_file_path=relative_audio_path  # Store relative path
         )
         
-        # Standard synchronous DB operations for simplicity and thread-safety
-        db.add(new_issue)
-        db.commit()
-        db.refresh(new_issue)
+        # Performance Optimization: Wrap blocking DB operations in threadpool to keep event loop responsive
+        await run_in_threadpool(save_issue_db, db, new_issue)
 
         # Update cache for next report AFTER successful DB commit
         blockchain_last_hash_cache.set(data=integrity_hash, key="last_hash")
