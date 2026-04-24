@@ -81,3 +81,7 @@
 ## 2026-05-15 - Serialization Caching Bypass
 **Learning:** Caching raw Python objects (like SQLAlchemy models or Pydantic instances) in a high-traffic API still incurs significant overhead because FastAPI/Pydantic must re-serialize the data on every request.
 **Action:** Serialize data to a JSON string using `json.dumps()` BEFORE caching. On cache hits, return a raw `fastapi.Response(content=..., media_type="application/json")`. This bypasses the validation and serialization layer, resulting in significant performance gains (up to 50x in benchmarks).
+
+## 2026-05-16 - RAG Pre-tokenization Bottleneck
+**Learning:** Performing regex-based tokenization on the entire document corpus within the `retrieve` loop of a RAG system causes redundant CPU cycles that scale with $O(M \times N)$ where $M$ is the number of queries and $N$ is the number of documents.
+**Action:** Pre-tokenize the corpus and pre-compile regex patterns during initialization. This reduces retrieval to simple set intersections per document, providing significant latency reduction (e.g., ~5x even in small corpuses).
