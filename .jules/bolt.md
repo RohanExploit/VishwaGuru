@@ -85,3 +85,7 @@
 ## 2026-05-16 - Pre-processing for RAG Retrieval
 **Learning:** In RAG (Retrieval-Augmented Generation) systems with static or semi-static policy datasets, performing tokenization, regex substitution, and string formatting inside the retrieval loop is a significant bottleneck that scales with the number of policies.
 **Action:** Move all deterministic operations (tokenization, formatting, regex matching prep) to a one-time initialization step to ensure the retrieval hot-path only performs necessary set intersections and similarity calculations.
+
+## 2026-05-17 - Redundant Configuration I/O in Service Initialization
+**Learning:** Instantiating services that read static configuration files from disk on every `__init__` call is a significant performance bottleneck, especially in high-traffic or frequent background task scenarios. This adds unnecessary latency and disk I/O on every request or task execution.
+**Action:** Implement class-level or module-level caching for static configuration files to ensure they are only read and parsed once per process lifetime, significantly reducing initialization overhead.
