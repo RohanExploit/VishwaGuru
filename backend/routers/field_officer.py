@@ -5,6 +5,7 @@ Issue #288: Field Officer Check-In System With Location Verification
 """
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Response
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case
 from typing import List, Optional
@@ -34,6 +35,7 @@ from backend.geofencing_service import (
 )
 from backend.cache import visit_last_hash_cache, visit_stats_cache
 from backend.schemas import BlockchainVerificationResponse
+from backend.utils import process_uploaded_image, save_processed_image
 
 logger = logging.getLogger(__name__)
 
@@ -301,55 +303,49 @@ async def upload_visit_images(
             )
         
         image_paths = []
-        
+
         for idx, image in enumerate(images):
-            # Validate content_type is present
-            if not image.content_type:
-                raise HTTPException(status_code=400, detail="File must have a content type")
-            
-            # Validate file type
-            if not image.content_type.startswith('image/'):
-                raise HTTPException(status_code=400, detail=f"File must be an image, got {image.content_type}")
-            
-            # Validate filename is present
-            if not image.filename:
-                raise HTTPException(status_code=400, detail="File must have a filename")
-            
-            # Validate extension
-            extension = image.filename.split('.')[-1].lower() if '.' in image.filename else ''
+            # Validate extension (Strict check to maintain original behavior)
+            if not image.filename or '.' not in image.filename:
+                raise HTTPException(status_code=400, detail="Invalid filename")
+
+            extension = image.filename.split('.')[-1].lower()
             if extension not in ALLOWED_IMAGE_EXTENSIONS:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"File extension '{extension}' not allowed. Allowed: {', '.join(ALLOWED_IMAGE_EXTENSIONS)}"
+                    detail=f"File extension '{extension}' not allowed."
                 )
-            
-            # Read and validate file size
-            content = await image.read()
-            if len(content) > MAX_UPLOAD_SIZE:
+
+            # Optimization: Unified validation, resizing, and EXIF stripping in one pass.
+            # This avoids multiple redundant decode/encode cycles and ensures optimal storage.
+            _, image_bytes = await process_uploaded_image(image)
+
+            # Enforce stricter 10MB limit for this specific endpoint (original constraint)
+            if len(image_bytes) > MAX_UPLOAD_SIZE:
                 raise HTTPException(
-                    status_code=400,
-                    detail=f"File {image.filename} exceeds maximum size of {MAX_UPLOAD_SIZE / 1024 / 1024:.1f} MB"
+                    status_code=413,
+                    detail=f"Processed image exceeds {MAX_UPLOAD_SIZE / (1024*1024):.0f}MB limit"
                 )
-            
+
             # Generate secure filename
             timestamp = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')
             safe_filename = f"visit_{visit_id}_{timestamp}_{idx}.{extension}"
             file_path = os.path.join(VISIT_IMAGES_DIR, safe_filename)
-            
-            # Save file
-            with open(file_path, 'wb') as f:
-                f.write(content)
-            
+
+            # Performance Boost: Offload blocking File I/O to threadpool
+            await run_in_threadpool(save_processed_image, image_bytes, file_path)
+
             # Store relative path
             relative_path = os.path.join("data", "visit_images", safe_filename)
             image_paths.append(relative_path)
-        
+
         # Update visit with image paths
         existing_images.extend(image_paths)
         visit.visit_images = existing_images
         visit.updated_at = datetime.now(timezone.utc)
-        
-        db.commit()
+
+        # Performance Boost: Offload blocking DB commit to threadpool
+        await run_in_threadpool(db.commit)
         
         logger.info(f"Uploaded {len(images)} images for visit {visit_id}")
         
