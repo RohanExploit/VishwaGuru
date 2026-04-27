@@ -85,3 +85,7 @@
 ## 2026-05-16 - Pre-processing for RAG Retrieval
 **Learning:** In RAG (Retrieval-Augmented Generation) systems with static or semi-static policy datasets, performing tokenization, regex substitution, and string formatting inside the retrieval loop is a significant bottleneck that scales with the number of policies.
 **Action:** Move all deterministic operations (tokenization, formatting, regex matching prep) to a one-time initialization step to ensure the retrieval hot-path only performs necessary set intersections and similarity calculations.
+
+## 2026-05-18 - Mathematical Optimization for Set Operations
+**Learning:** In hot RAG retrieval loops, calculating Jaccard similarity via `query_tokens.union(policy_tokens)` allocates a completely new set object in memory on every iteration, leading to significant overhead. Also, checking if any overlap exists by asserting `len(query_tokens.intersection(title_tokens)) > 0` builds the full intersection set before calculating length.
+**Action:** Use mathematical deduction for union length `len(A) + len(B) - len(A & B)` to skip allocation. Use `.isdisjoint()` for fast short-circuit overlap checking. This halves retrieval latency in high-volume scoring loops.
