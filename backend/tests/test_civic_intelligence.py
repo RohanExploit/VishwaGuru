@@ -1,15 +1,12 @@
 import pytest
 import json
-import os
-import time
 from unittest.mock import MagicMock, patch, mock_open
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
-from backend.models import Issue, EscalationAudit, EscalationReason, Grievance
+from backend.models import Issue, Grievance
 from backend.adaptive_weights import AdaptiveWeights
 from backend.trend_analyzer import TrendAnalyzer
 from backend.civic_intelligence import CivicIntelligenceEngine
-from backend.spatial_utils import get_cluster_representative
 
 # Mock data
 MOCK_WEIGHTS = {
