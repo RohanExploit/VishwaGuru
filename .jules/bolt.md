@@ -85,3 +85,7 @@
 ## 2026-05-16 - Pre-processing for RAG Retrieval
 **Learning:** In RAG (Retrieval-Augmented Generation) systems with static or semi-static policy datasets, performing tokenization, regex substitution, and string formatting inside the retrieval loop is a significant bottleneck that scales with the number of policies.
 **Action:** Move all deterministic operations (tokenization, formatting, regex matching prep) to a one-time initialization step to ensure the retrieval hot-path only performs necessary set intersections and similarity calculations.
+
+## 2026-05-18 - Mathematical Set Operations for Jaccard Similarity
+**Learning:** Calculating Jaccard similarity (|A ∩ B| / |A ∪ B|) using `set.union()` inside a retrieval loop incurs significant O(N) memory allocation and population overhead. Since |A ∪ B| = |A| + |B| - |A ∩ B|, the union size can be calculated via O(1) arithmetic if set sizes are pre-calculated.
+**Action:** Pre-calculate set lengths for static data. In retrieval loops, use `isdisjoint()` for early exits and the inclusion-exclusion formula to avoid explicit set union operations.
