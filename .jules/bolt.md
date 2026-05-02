@@ -43,7 +43,7 @@
 **Action:** Serialize data to a JSON string BEFORE caching. On cache hits, return a raw `fastapi.Response` with `media_type="application/json"`. This bypasses the validation layer and is measurably faster (2-3x).
 
 ## 2026-02-10 - Group-By for Multi-Count Statistics
-**Learning:** Executing multiple `count()` queries with different filters (e.g., for different statuses) causes redundant database scans and network round-trips.
+**Learning:** Executing multiple `count()` queries with different filters (e.g., for different statuses) causes redundant database scans and network round-triPS.
 **Action:** Use a single SQL `GROUP BY` query to fetch counts for all categories/statuses at once, then process the results in Python.
 
 ## 2026-02-11 - O(1) Blockchain Verification
@@ -79,12 +79,13 @@
 **Action:** Wrap blocking synchronous File I/O operations like `f.write()` in `run_in_threadpool` to offload them to a separate thread, keeping the event loop responsive for other requests.
 
 ## 2026-05-15 - Serialization Caching Bypass
-**Learning:** Caching raw Python objects (like SQLAlchemy models or Pydantic instances) in a high-traffic API still incurs significant overhead because FastAPI/Pydantic must re-serialize the data on every request.
+**Learning:** Caching raw Python objects (like SQLAlchemy models or Pydantic instances) in a high-traffic API still incurs significant overhead because FastAPI/Pydantic must re-validate and re-serialize the data on every request.
 **Action:** Serialize data to a JSON string using `json.dumps()` BEFORE caching. On cache hits, return a raw `fastapi.Response(content=..., media_type="application/json")`. This bypasses the validation and serialization layer, resulting in significant performance gains (up to 50x in benchmarks).
 
 ## 2026-05-16 - Pre-processing for RAG Retrieval
 **Learning:** In RAG (Retrieval-Augmented Generation) systems with static or semi-static policy datasets, performing tokenization, regex substitution, and string formatting inside the retrieval loop is a significant bottleneck that scales with the number of policies.
 **Action:** Move all deterministic operations (tokenization, formatting, regex matching prep) to a one-time initialization step to ensure the retrieval hot-path only performs necessary set intersections and similarity calculations.
-## 2026-05-18 - Column Projection for Analytical Queries
-**Learning:** For analytical and trend-processing functions (like `CivicIntelligenceEngine.run_daily_cycle` which passes data to `trend_analyzer`), fetching full ORM objects via `db.query(Issue).all()` is a significant bottleneck. SQLAlchemy's column projection (`db.query(Issue.id, Issue.description, ...)`) creates lightweight `Row` objects that support identical attribute access (`row.description`) as full models.
-**Action:** Replace full model queries with column projections for read-heavy analytical paths. When mocking these projections in tests, remember that `query()` receives `InstrumentedAttribute` objects, so use `getattr(model, 'class_', model).__name__` to map the query to the correct mock.
+
+## 2026-05-18 - Jaccard Similarity Optimization via Set Arithmetic
+**Learning:** In retrieval loops calculating Jaccard similarity (e.g. RAG), explicitly building a union set `A.union(B)` is expensive due to memory allocation and population.
+**Action:** Use the inclusion-exclusion principle $|A \cup B| = |A| + |B| - |A \cap B|$ to calculate union size in O(1) arithmetic time after calculating the intersection. Pre-calculate $|B|$ (token count) to further reduce overhead. Use `isdisjoint()` for fast early-exit.
