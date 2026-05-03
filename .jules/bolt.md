@@ -89,3 +89,7 @@
 ## 2026-05-18 - Jaccard Similarity Optimization via Set Arithmetic
 **Learning:** In retrieval loops calculating Jaccard similarity (e.g. RAG), explicitly building a union set `A.union(B)` is expensive due to memory allocation and population.
 **Action:** Use the inclusion-exclusion principle $|A \cup B| = |A| + |B| - |A \cap B|$ to calculate union size in O(1) arithmetic time after calculating the intersection. Pre-calculate $|B|$ (token count) to further reduce overhead. Use `isdisjoint()` for fast early-exit.
+
+## 2026-05-18 - Aggregation Query Optimization
+**Learning:** In SQLite/Postgres workloads, when aggregating counts over categorical columns (like `confirmation_type`), a standard `GROUP BY` query is measurably faster than selecting multiple `func.sum(case(...))` statements. The `case` statements require evaluating the condition for every row across all requested columns, whereas `GROUP BY` utilizes the database's grouping engine more efficiently. Additionally, placing inline imports inside frequently called functions (like `from sqlalchemy import case`) adds recurring overhead on every request.
+**Action:** Prefer `GROUP BY` for simple categorical aggregations instead of building complex `sum(case())` constructs. Always move inline imports to the top of the file to avoid execution overhead during hot paths.
