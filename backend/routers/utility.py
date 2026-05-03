@@ -85,7 +85,7 @@ def get_stats(db: Session = Depends(get_db)):
 
     data = response.model_dump(mode='json')
     json_data = json.dumps(data)
-    recent_issues_cache.set(json_data, "stats")
+    recent_issues_cache.set(data=json_data, key="stats")
 
     return Response(content=json_data, media_type="application/json")
 
@@ -153,7 +153,7 @@ def get_leaderboard(db: Session = Depends(get_db)):
     response_data = {"leaderboard": leaderboard_data}
     json_data = json.dumps(response_data)
     # Cache for 5 minutes to reduce DB load on frequent hits
-    recent_issues_cache.set(json_data, cache_key)
+    recent_issues_cache.set(data=json_data, key=cache_key)
 
     return Response(content=json_data, media_type="application/json")
 
