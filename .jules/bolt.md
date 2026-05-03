@@ -89,3 +89,7 @@
 ## 2026-05-18 - Jaccard Similarity Optimization via Set Arithmetic
 **Learning:** In retrieval loops calculating Jaccard similarity (e.g. RAG), explicitly building a union set `A.union(B)` is expensive due to memory allocation and population.
 **Action:** Use the inclusion-exclusion principle $|A \cup B| = |A| + |B| - |A \cap B|$ to calculate union size in O(1) arithmetic time after calculating the intersection. Pre-calculate $|B|$ (token count) to further reduce overhead. Use `isdisjoint()` for fast early-exit.
+
+## 2026-05-18 - Async Event Loop Blocking in Image Uploads
+**Learning:** Performing synchronous image processing (PIL resize) and file I/O (write) directly in FastAPI async handlers blocks the event loop, causing severe latency spikes under load. Unified processing pipelines (resizing/EXIF stripping) should be offloaded to thread pools to maintain responsiveness.
+**Action:** Use `run_in_threadpool` for all image processing and file write operations in async endpoints. Ensure specific domain limits (like 10MB vs 20MB) are checked before calling generic utilities.

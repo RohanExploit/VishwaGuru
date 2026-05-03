@@ -5,6 +5,7 @@ Issue #288: Field Officer Check-In System With Location Verification
 """
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Response
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case
 from typing import List, Optional
@@ -34,6 +35,7 @@ from backend.geofencing_service import (
 )
 from backend.cache import visit_last_hash_cache, visit_stats_cache
 from backend.schemas import BlockchainVerificationResponse
+from backend.utils import process_uploaded_image, save_processed_image
 
 logger = logging.getLogger(__name__)
 
@@ -278,7 +280,8 @@ async def upload_visit_images(
     - **visit_id**: ID of the visit
     - **images**: List of image files
     
-    Maximum 10 images per visit
+    Maximum 10 images per visit.
+    Optimized: Uses single-pass image processing (resize/strip EXIF) and non-blocking I/O.
     """
     try:
         visit = db.query(FieldOfficerVisit).filter(FieldOfficerVisit.id == visit_id).first()
@@ -303,42 +306,41 @@ async def upload_visit_images(
         image_paths = []
         
         for idx, image in enumerate(images):
-            # Validate content_type is present
-            if not image.content_type:
-                raise HTTPException(status_code=400, detail="File must have a content type")
+            # Performance optimization: Use unified image processing pipeline
+            # This handles validation, resizing (1024px), and EXIF stripping in one pass.
             
-            # Validate file type
-            if not image.content_type.startswith('image/'):
-                raise HTTPException(status_code=400, detail=f"File must be an image, got {image.content_type}")
-            
-            # Validate filename is present
+            # 1. Fast-fail: Validate filename and extension
             if not image.filename:
                 raise HTTPException(status_code=400, detail="File must have a filename")
-            
-            # Validate extension
-            extension = image.filename.split('.')[-1].lower() if '.' in image.filename else ''
+
+            extension = image.filename.split('.')[-1].lower() if '.' in image.filename else 'jpg'
             if extension not in ALLOWED_IMAGE_EXTENSIONS:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"File extension '{extension}' not allowed. Allowed: {', '.join(ALLOWED_IMAGE_EXTENSIONS)}"
+                    detail=f"File extension '{extension}' not allowed."
                 )
-            
-            # Read and validate file size
-            content = await image.read()
-            if len(content) > MAX_UPLOAD_SIZE:
-                raise HTTPException(
+
+            # 2. Fast-fail: Validate file size (10MB limit for field officer visits)
+            # Must check explicitly because process_uploaded_image uses a 20MB default.
+            image.file.seek(0, 2)
+            size = image.file.tell()
+            image.file.seek(0)
+            if size > MAX_UPLOAD_SIZE:
+                 raise HTTPException(
                     status_code=400,
-                    detail=f"File {image.filename} exceeds maximum size of {MAX_UPLOAD_SIZE / 1024 / 1024:.1f} MB"
+                    detail=f"File exceeds maximum size of {MAX_UPLOAD_SIZE / 1024 / 1024:.1f} MB"
                 )
-            
+
+            # 3. Process image (decode, resize, strip, encode)
+            _, image_bytes = await process_uploaded_image(image)
+
             # Generate secure filename
             timestamp = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')
             safe_filename = f"visit_{visit_id}_{timestamp}_{idx}.{extension}"
             file_path = os.path.join(VISIT_IMAGES_DIR, safe_filename)
             
-            # Save file
-            with open(file_path, 'wb') as f:
-                f.write(content)
+            # Save file using threadpool to avoid blocking the main event loop
+            await run_in_threadpool(save_processed_image, image_bytes, file_path)
             
             # Store relative path
             relative_path = os.path.join("data", "visit_images", safe_filename)
