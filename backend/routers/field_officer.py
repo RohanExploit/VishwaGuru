@@ -5,6 +5,7 @@ Issue #288: Field Officer Check-In System With Location Verification
 """
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Response
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case
 from typing import List, Optional
@@ -14,6 +15,7 @@ import json
 from datetime import datetime, timezone
 
 from backend.database import get_db
+from backend.utils import process_uploaded_image, save_processed_image
 from backend.models import FieldOfficerVisit, Issue, Grievance, User
 from backend.dependencies import get_current_active_user
 from backend.schemas import (
@@ -323,22 +325,27 @@ async def upload_visit_images(
                     detail=f"File extension '{extension}' not allowed. Allowed: {', '.join(ALLOWED_IMAGE_EXTENSIONS)}"
                 )
             
-            # Read and validate file size
-            content = await image.read()
-            if len(content) > MAX_UPLOAD_SIZE:
+            # Check file size (before processing to avoid heavy work on large invalid files)
+            image.file.seek(0, 2)
+            actual_size = image.file.tell()
+            image.file.seek(0)
+            if actual_size > MAX_UPLOAD_SIZE:
                 raise HTTPException(
                     status_code=400,
                     detail=f"File {image.filename} exceeds maximum size of {MAX_UPLOAD_SIZE / 1024 / 1024:.1f} MB"
                 )
             
+            # Process image (resize, strip EXIF, etc.) using optimized pipeline
+            # This offloads decoding/processing to the threadpool
+            _, image_bytes = await process_uploaded_image(image)
+
             # Generate secure filename
             timestamp = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')
             safe_filename = f"visit_{visit_id}_{timestamp}_{idx}.{extension}"
             file_path = os.path.join(VISIT_IMAGES_DIR, safe_filename)
             
-            # Save file
-            with open(file_path, 'wb') as f:
-                f.write(content)
+            # Save processed image to disk (offload blocking I/O)
+            await run_in_threadpool(save_processed_image, image_bytes, file_path)
             
             # Store relative path
             relative_path = os.path.join("data", "visit_images", safe_filename)
