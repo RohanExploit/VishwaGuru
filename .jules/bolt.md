@@ -89,3 +89,7 @@
 ## 2026-05-18 - Jaccard Similarity Optimization via Set Arithmetic
 **Learning:** In retrieval loops calculating Jaccard similarity (e.g. RAG), explicitly building a union set `A.union(B)` is expensive due to memory allocation and population.
 **Action:** Use the inclusion-exclusion principle $|A \cup B| = |A| + |B| - |A \cap B|$ to calculate union size in O(1) arithmetic time after calculating the intersection. Pre-calculate $|B|$ (token count) to further reduce overhead. Use `isdisjoint()` for fast early-exit.
+
+## 2026-05-19 - Memory-Efficient Upload Size Validation
+**Learning:** In FastAPI async endpoints, reading the entire uploaded file into memory (`await image.read()`) just to validate its size is highly inefficient and risks OOM errors on high-traffic servers with large files.
+**Action:** Use file seeking (`image.file.seek(0, 2)` and `image.file.tell()`) to check the file size in O(1) time and memory before proceeding with processing or saving.
