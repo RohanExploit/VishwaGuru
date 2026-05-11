@@ -5,6 +5,7 @@ Issue #288: Field Officer Check-In System With Location Verification
 """
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Response
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case
 from typing import List, Optional
@@ -368,22 +369,35 @@ async def upload_visit_images(
                     detail=f"File extension '{extension}' not allowed. Allowed: {', '.join(ALLOWED_IMAGE_EXTENSIONS)}",
                 )
 
-            # Read and validate file size
-            content = await image.read()
-            if len(content) > MAX_UPLOAD_SIZE:
+            # Read and validate file size without loading into memory
+            image.file.seek(0, 2)
+            file_size = image.file.tell()
+            image.file.seek(0)
+
+            if file_size > MAX_UPLOAD_SIZE:
                 raise HTTPException(
                     status_code=400,
                     detail=f"File {image.filename} exceeds maximum size of {MAX_UPLOAD_SIZE / 1024 / 1024:.1f} MB",
                 )
 
-            # Generate secure filename
-            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-            safe_filename = f"visit_{visit_id}_{timestamp}_{idx}.{extension}"
-            file_path = os.path.join(VISIT_IMAGES_DIR, safe_filename)
+            # Use process_uploaded_image for resizing and EXIF stripping
+            _, image_bytes = await process_uploaded_image(image)
 
-            # Save file
-            with open(file_path, "wb") as f:
-                f.write(content)
+            # Generate secure filename
+            import os.path
+
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            # Ensure extension is safe by forcing it to alphanumeric, though we already validated it
+            safe_ext = "".join(c for c in extension if c.isalnum())
+            safe_filename = f"visit_{visit_id}_{timestamp}_{idx}.{safe_ext}"
+            file_path = os.path.join(VISIT_IMAGES_DIR, os.path.basename(safe_filename))
+
+            # Save file using threadpool to prevent event loop blocking
+            def _save_file(path, data):
+                with open(path, "wb") as f:
+                    f.write(data)
+
+            await run_in_threadpool(_save_file, file_path, image_bytes)
 
             # Store relative path
             relative_path = os.path.join("data", "visit_images", safe_filename)
