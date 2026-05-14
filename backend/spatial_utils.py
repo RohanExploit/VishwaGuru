@@ -123,38 +123,37 @@ def find_nearby_issues(
             if distance <= radius_meters:
                 nearby_issues.append((issue, distance))
     else:
-        # Optimized path for common case (small radius)
+        # Optimized path for common case (small radius < 10km)
+        # Uses Equirectangular approximation with pre-calculated degree-to-meter conversion factors.
+        # This is significantly faster as it avoids repeated math.radians and math.cos calls in the hot-path.
         R = 6371000.0
         radius_sq = radius_meters * radius_meters
 
-        target_lat_rad = math.radians(target_lat)
-        target_lon_rad = math.radians(target_lon)
-        # Cosine term is constant for the target latitude in equirectangular projection
-        cos_lat = math.cos(target_lat_rad)
+        # Pre-calculate conversion factors from degrees to meters at target latitude
+        deg_to_rad = math.pi / 180.0
+        meters_per_lat_deg = deg_to_rad * R
+        meters_per_lon_deg = meters_per_lat_deg * math.cos(target_lat * deg_to_rad)
 
         for issue in issues:
-            if issue.latitude is None or issue.longitude is None:
+            lat = issue.latitude
+            lon = issue.longitude
+            if lat is None or lon is None:
                 continue
 
-            # Inline conversion to radians
-            lat_rad = math.radians(issue.latitude)
-            lon_rad = math.radians(issue.longitude)
-
-            dlat = lat_rad - target_lat_rad
-            dlon = lon_rad - target_lon_rad
+            dlat = lat - target_lat
+            dlon = lon - target_lon
 
             # Handle longitude wrapping (dateline crossing)
-            if dlon > math.pi:
-                dlon -= 2 * math.pi
-            elif dlon < -math.pi:
-                dlon += 2 * math.pi
+            if dlon > 180.0:
+                dlon -= 360.0
+            elif dlon < -180.0:
+                dlon += 360.0
 
-            x = dlon * cos_lat
-            y = dlat
+            dx = dlon * meters_per_lon_deg
+            dy = dlat * meters_per_lat_deg
 
-            # Squared distance check avoids expensive sqrt()
-            # (x*R)^2 + (y*R)^2 = R^2 * (x^2 + y^2)
-            dist_sq = (x*x + y*y) * R * R
+            # Squared distance check avoids expensive sqrt() call for non-matches
+            dist_sq = dx*dx + dy*dy
 
             if dist_sq <= radius_sq:
                 nearby_issues.append((issue, math.sqrt(dist_sq)))
