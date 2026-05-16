@@ -70,7 +70,8 @@ class ThreadSafeCache:
             self._timestamps[key] = current_time
             self._timestamps.move_to_end(key)
 
-            logger.debug(f"Cache set: key={key}, size={len(self._data)}")
+            # Avoid logging sensitive keys
+            # logger.debug(f"Cache set: key={key}, size={len(self._data)}")
 
     def invalidate(self, key: str = "default") -> None:
         """

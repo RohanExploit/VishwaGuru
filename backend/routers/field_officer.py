@@ -379,6 +379,9 @@ async def upload_visit_images(
             # Generate secure filename
             timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
             safe_filename = f"visit_{visit_id}_{timestamp}_{idx}.{extension}"
+
+            # Ensure safe_filename doesn't contain path traversal characters
+            safe_filename = os.path.basename(safe_filename)
             file_path = os.path.join(VISIT_IMAGES_DIR, safe_filename)
 
             # Save file

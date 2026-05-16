@@ -55,9 +55,10 @@ def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
 
         distance = EARTH_RADIUS_METERS * c
 
-        logger.debug(
-            f"Calculated distance: {distance:.2f}m between ({lat1}, {lon1}) and ({lat2}, {lon2})"
-        )
+        # Avoid logging sensitive location data
+        # logger.debug(
+        #     f"Calculated distance: {distance:.2f}m between ({lat1}, {lon1}) and ({lat2}, {lon2})"
+        # )
 
         return distance
 
