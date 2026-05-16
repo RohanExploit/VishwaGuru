@@ -21,6 +21,7 @@ from backend.pothole_detection import validate_image_for_processing
 HAS_MAGIC = False
 try:
     import magic
+
     HAS_MAGIC = True
 except ImportError:
     HAS_MAGIC = False
@@ -30,17 +31,18 @@ logger = logging.getLogger(__name__)
 # File upload validation constants
 MAX_FILE_SIZE = 20 * 1024 * 1024  # 20MB
 ALLOWED_MIME_TYPES = {
-    'image/jpeg',
-    'image/png',
-    'image/gif',
-    'image/webp',
-    'image/bmp',
-    'image/tiff'
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+    "image/bmp",
+    "image/tiff",
 }
 
 # User upload limits
 UPLOAD_LIMIT_PER_USER = 5
 UPLOAD_LIMIT_PER_IP = 10
+
 
 def check_upload_limits(identifier: str, limit: int) -> None:
     """
@@ -56,12 +58,13 @@ def check_upload_limits(identifier: str, limit: int) -> None:
     if len(recent_uploads) >= limit:
         raise HTTPException(
             status_code=429,
-            detail=f"Upload limit exceeded. Maximum {limit} uploads per hour allowed."
+            detail=f"Upload limit exceeded. Maximum {limit} uploads per hour allowed.",
         )
 
     # Add current timestamp and update cache atomically
     recent_uploads.append(now)
     user_upload_cache.set(recent_uploads, identifier)
+
 
 def _validate_uploaded_file_sync(file: UploadFile) -> Optional[Image.Image]:
     """
@@ -76,7 +79,7 @@ def _validate_uploaded_file_sync(file: UploadFile) -> Optional[Image.Image]:
     if file_size > MAX_FILE_SIZE:
         raise HTTPException(
             status_code=413,
-            detail=f"File too large. Maximum size allowed is {MAX_FILE_SIZE // (1024*1024)}MB"
+            detail=f"File too large. Maximum size allowed is {MAX_FILE_SIZE // (1024*1024)}MB",
         )
 
     # Check MIME type from content using python-magic if available
@@ -91,7 +94,7 @@ def _validate_uploaded_file_sync(file: UploadFile) -> Optional[Image.Image]:
             if detected_mime not in ALLOWED_MIME_TYPES:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Invalid file type. Only image files are allowed. Detected: {detected_mime}"
+                    detail=f"Invalid file type. Only image files are allowed. Detected: {detected_mime}",
                 )
         except Exception as e:
             logger.error(f"Magic validation failed: {e}")
@@ -107,11 +110,10 @@ def _validate_uploaded_file_sync(file: UploadFile) -> Optional[Image.Image]:
         # Check format if magic wasn't available
         if not HAS_MAGIC:
             fmt = img.format.lower() if img.format else ""
-            valid_formats = ['jpeg', 'jpg', 'png', 'gif', 'webp', 'bmp', 'tiff']
+            valid_formats = ["jpeg", "jpg", "png", "gif", "webp", "bmp", "tiff"]
             if fmt not in valid_formats:
-                 raise HTTPException(
-                    status_code=400,
-                    detail=f"Invalid image format: {fmt}"
+                raise HTTPException(
+                    status_code=400, detail=f"Invalid image format: {fmt}"
                 )
 
         # Resize large images for better performance
@@ -126,7 +128,7 @@ def _validate_uploaded_file_sync(file: UploadFile) -> Optional[Image.Image]:
 
             # Save resized image back to file
             output = io.BytesIO()
-            img.save(output, format=img.format or 'JPEG', quality=85)
+            img.save(output, format=img.format or "JPEG", quality=85)
             output.seek(0)
 
             # Replace file content
@@ -144,8 +146,9 @@ def _validate_uploaded_file_sync(file: UploadFile) -> Optional[Image.Image]:
         logger.error(f"PIL validation failed for {file.filename}: {pil_error}")
         raise HTTPException(
             status_code=400,
-            detail="Invalid image file. The file appears to be corrupted or not a valid image."
+            detail="Invalid image file. The file appears to be corrupted or not a valid image.",
         )
+
 
 async def validate_uploaded_file(file: UploadFile) -> Optional[Image.Image]:
     """
@@ -153,6 +156,7 @@ async def validate_uploaded_file(file: UploadFile) -> Optional[Image.Image]:
     Returns the PIL Image if it was opened/processed, or None.
     """
     return await run_in_threadpool(_validate_uploaded_file_sync, file)
+
 
 def process_uploaded_image_sync(file: UploadFile) -> tuple[Image.Image, bytes]:
     """
@@ -167,7 +171,7 @@ def process_uploaded_image_sync(file: UploadFile) -> tuple[Image.Image, bytes]:
     if file_size > MAX_FILE_SIZE:
         raise HTTPException(
             status_code=413,
-            detail=f"File too large. Maximum size allowed is {MAX_FILE_SIZE // (1024*1024)}MB"
+            detail=f"File too large. Maximum size allowed is {MAX_FILE_SIZE // (1024*1024)}MB",
         )
 
     # Check MIME type if magic is available
@@ -180,7 +184,7 @@ def process_uploaded_image_sync(file: UploadFile) -> tuple[Image.Image, bytes]:
             if detected_mime not in ALLOWED_MIME_TYPES:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Invalid file type. Only image files are allowed. Detected: {detected_mime}"
+                    detail=f"Invalid file type. Only image files are allowed. Detected: {detected_mime}",
                 )
         except Exception as e:
             logger.error(f"Magic check failed: {e}")
@@ -208,7 +212,7 @@ def process_uploaded_image_sync(file: UploadFile) -> tuple[Image.Image, bytes]:
         if original_format:
             fmt = original_format
         else:
-            fmt = 'PNG' if img.mode == 'RGBA' else 'JPEG'
+            fmt = "PNG" if img.mode == "RGBA" else "JPEG"
 
         img_no_exif.save(output, format=fmt, quality=85)
         img_bytes = output.getvalue()
@@ -217,13 +221,12 @@ def process_uploaded_image_sync(file: UploadFile) -> tuple[Image.Image, bytes]:
 
     except Exception as pil_error:
         logger.error(f"PIL processing failed: {pil_error}")
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid image file."
-        )
+        raise HTTPException(status_code=400, detail="Invalid image file.")
+
 
 async def process_uploaded_image(file: UploadFile) -> tuple[Image.Image, bytes]:
     return await run_in_threadpool(process_uploaded_image_sync, file)
+
 
 def save_processed_image(image_bytes: bytes, path: str):
     """
@@ -232,6 +235,7 @@ def save_processed_image(image_bytes: bytes, path: str):
     """
     with open(path, "wb") as f:
         f.write(image_bytes)
+
 
 async def process_and_detect(image: UploadFile, detection_func) -> DetectionResponse:
     """
@@ -260,7 +264,10 @@ async def process_and_detect(image: UploadFile, detection_func) -> DetectionResp
         return DetectionResponse(detections=detections)
     except Exception as e:
         logger.error(f"Detection error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Detection service temporarily unavailable")
+        raise HTTPException(
+            status_code=500, detail="Detection service temporarily unavailable"
+        )
+
 
 def save_file_blocking(file_obj, path, image: Optional[Image.Image] = None):
     """
@@ -269,9 +276,9 @@ def save_file_blocking(file_obj, path, image: Optional[Image.Image] = None):
     try:
         # Try to open as image with PIL
         if image:
-             img = image
+            img = image
         else:
-             img = Image.open(file_obj)
+            img = Image.open(file_obj)
 
         # Strip EXIF data by creating a new image without metadata
         # Use paste() instead of getdata() for O(1) performance (vs O(N) list creation)
@@ -279,7 +286,7 @@ def save_file_blocking(file_obj, path, image: Optional[Image.Image] = None):
         img_no_exif.paste(img)
         # Save without EXIF
         # Use original format if available, otherwise default to JPEG if mode is RGB, PNG if RGBA
-        fmt = img.format or ('PNG' if img.mode == 'RGBA' else 'JPEG')
+        fmt = img.format or ("PNG" if img.mode == "RGBA" else "JPEG")
         img_no_exif.save(path, format=fmt)
         logger.info(f"Saved image {path} with EXIF metadata stripped")
     except Exception:
@@ -289,28 +296,27 @@ def save_file_blocking(file_obj, path, image: Optional[Image.Image] = None):
             shutil.copyfileobj(file_obj, buffer)
         logger.info(f"Saved file {path} as binary (not an image or PIL failed)")
 
+
 def save_issue_db(db: Session, issue: Issue):
     db.add(issue)
     db.commit()
     db.refresh(issue)
     return issue
 
+
 # --- Password Hashing Utils ---
 
 import bcrypt as _bcrypt
 
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return _bcrypt.checkpw(
-        plain_password.encode("utf-8"),
-        hashed_password.encode("utf-8")
+        plain_password.encode("utf-8"), hashed_password.encode("utf-8")
     )
 
-def get_password_hash(password: str) -> str:
-    return _bcrypt.hashpw(
-        password.encode("utf-8"),
-        _bcrypt.gensalt()
-    ).decode("utf-8")
 
+def get_password_hash(password: str) -> str:
+    return _bcrypt.hashpw(password.encode("utf-8"), _bcrypt.gensalt()).decode("utf-8")
 
 
 def generate_reference_id() -> str:
@@ -321,7 +327,7 @@ def generate_reference_id() -> str:
     import random
     import string
     from datetime import datetime
-    
-    timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
-    random_suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    random_suffix = "".join(random.choices(string.ascii_uppercase + string.digits, k=4))
     return f"VOICE-{timestamp}-{random_suffix}"

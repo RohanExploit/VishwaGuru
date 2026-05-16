@@ -1,5 +1,6 @@
 try:
     import joblib
+
     HAS_JOBLIB = True
 except ImportError:
     HAS_JOBLIB = False
@@ -9,7 +10,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-MODEL_PATH = os.path.join(os.path.dirname(__file__), 'ml/grievance_model.joblib')
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "ml/grievance_model.joblib")
+
 
 class GrievanceClassifier:
     def __init__(self):
@@ -49,8 +51,10 @@ class GrievanceClassifier:
             logger.error(f"Prediction error: {e}")
             return "Error"
 
+
 # Global instance
 _classifier = None
+
 
 def get_grievance_classifier():
     global _classifier

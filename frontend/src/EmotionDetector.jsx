@@ -22,8 +22,21 @@ const EmotionDetector = ({ onBack }) => {
                 videoRef.current.srcObject = stream;
             }
         } catch (err) {
-            setError("Could not access camera: " + err.message);
-            setIsDetecting(false);
+            console.warn("Front camera failed, trying any available camera...", err);
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    }
+                });
+                if (videoRef.current) {
+                    videoRef.current.srcObject = stream;
+                }
+            } catch (fallbackErr) {
+                setError("Could not access any camera: " + fallbackErr.message);
+                setIsDetecting(false);
+            }
         }
     };
 

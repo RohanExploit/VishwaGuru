@@ -24,11 +24,14 @@ if not api_key:
     # Allow dummy key for testing/building if not strictly required at startup
     api_key = "dummy"
     if os.environ.get("ENVIRONMENT") == "production":
-         logger.warning("GEMINI_API_KEY not set in production environment!")
+        logger.warning("GEMINI_API_KEY not set in production environment!")
 
 genai.configure(api_key=api_key)
 
-RESPONSIBILITY_MAP_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "responsibility_map.json")
+RESPONSIBILITY_MAP_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)), "data", "responsibility_map.json"
+)
+
 
 async def retry_with_exponential_backoff(
     func: Callable,
@@ -37,7 +40,7 @@ async def retry_with_exponential_backoff(
     max_delay: float = 60.0,
     backoff_factor: float = 2.0,
     *args,
-    **kwargs
+    **kwargs,
 ) -> Any:
     """
     Retry an async function with exponential backoff.
@@ -66,17 +69,21 @@ async def retry_with_exponential_backoff(
 
             if attempt == max_retries:
                 # Last attempt failed, re-raise the exception
-                logger.error(f"Function {func.__name__} failed after {max_retries + 1} attempts: {e}")
+                logger.error(
+                    f"Function {func.__name__} failed after {max_retries + 1} attempts: {e}"
+                )
                 raise AIServiceException(
                     f"AI service operation failed after {max_retries + 1} attempts",
                     service="Gemini",
-                    details={"function": func.__name__, "error": str(e)}
+                    details={"function": func.__name__, "error": str(e)},
                 ) from e
 
             # Calculate delay with exponential backoff
-            delay = min(base_delay * (backoff_factor ** attempt), max_delay)
+            delay = min(base_delay * (backoff_factor**attempt), max_delay)
 
-            logger.warning(f"Function {func.__name__} failed (attempt {attempt + 1}/{max_retries + 1}): {e}. Retrying in {delay:.1f}s")
+            logger.warning(
+                f"Function {func.__name__} failed (attempt {attempt + 1}/{max_retries + 1}): {e}. Retrying in {delay:.1f}s"
+            )
             await asyncio.sleep(delay)
 
     # This should never be reached, but just in case
@@ -108,7 +115,12 @@ def build_x_post(issue_description: str, category: str) -> str:
     return f"{base_message} #CivicIssue #VishwaGuru"
 
 
-async def generate_action_plan(issue_description: str, category: str, language: str = 'en', image_path: Optional[str] = None) -> dict:
+async def generate_action_plan(
+    issue_description: str,
+    category: str,
+    language: str = "en",
+    image_path: Optional[str] = None,
+) -> dict:
     """
     Generates an action plan (WhatsApp message, Email draft) using Gemini with retry logic.
     """
@@ -120,12 +132,12 @@ async def generate_action_plan(issue_description: str, category: str, language: 
         "whatsapp": f"Hello, I would like to report a {category} issue: {issue_description}",
         "email_subject": f"Complaint regarding {category}",
         "email_body": f"Respected Authority,\n\nI am writing to bring to your attention a {category} issue: {issue_description}.\n\nPlease take necessary action.\n\nSincerely,\nCitizen",
-        "x_post": x_post_text
+        "x_post": x_post_text,
     }
 
     async def _generate_with_gemini() -> dict:
         """Inner function to generate action plan with Gemini"""
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel("gemini-1.5-flash")
 
         prompt = f"""
         You are a civic action assistant. A user has reported a civic issue.
@@ -147,9 +159,9 @@ async def generate_action_plan(issue_description: str, category: str, language: 
 
         # Cleanup if markdown code blocks are returned
         if "```json" in text_response:
-             text_response = text_response.split("```json")[1].split("```")[0]
+            text_response = text_response.split("```json")[1].split("```")[0]
         elif "```" in text_response:
-             text_response = text_response.split("```")[1].split("```")[0]
+            text_response = text_response.split("```")[1].split("```")[0]
 
         text_response = text_response.strip()
 
@@ -165,7 +177,9 @@ async def generate_action_plan(issue_description: str, category: str, language: 
         return plan
 
     try:
-        return await retry_with_exponential_backoff(_generate_with_gemini, max_retries=3)
+        return await retry_with_exponential_backoff(
+            _generate_with_gemini, max_retries=3
+        )
     except AIServiceException:
         # Already properly wrapped, re-raise
         raise
@@ -174,13 +188,15 @@ async def generate_action_plan(issue_description: str, category: str, language: 
         raise AIServiceException(
             "Failed to generate action plan",
             service="Gemini",
-            details={"error": str(e)}
+            details={"error": str(e)},
         ) from e
+
 
 # Manual cache for chat
 _chat_cache = {}
-CHAT_CACHE_TTL = 3600 # 1 hour
+CHAT_CACHE_TTL = 3600  # 1 hour
 MAX_CHAT_CACHE_SIZE = 100
+
 
 async def chat_with_civic_assistant(query: str) -> str:
     """
@@ -199,7 +215,7 @@ async def chat_with_civic_assistant(query: str) -> str:
 
     async def _chat_with_gemini() -> str:
         """Inner function to chat with Gemini"""
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel("gemini-1.5-flash")
 
         prompt = f"""
         You are VishwaGuru, a helpful civic assistant for Indian citizens.
@@ -219,7 +235,7 @@ async def chat_with_civic_assistant(query: str) -> str:
         # Update cache
         if len(_chat_cache) > MAX_CHAT_CACHE_SIZE:
             # Prune oldest 20%
-            keys_to_remove = list(_chat_cache.keys())[:int(MAX_CHAT_CACHE_SIZE * 0.2)]
+            keys_to_remove = list(_chat_cache.keys())[: int(MAX_CHAT_CACHE_SIZE * 0.2)]
             for k in keys_to_remove:
                 del _chat_cache[k]
 
@@ -234,5 +250,5 @@ async def chat_with_civic_assistant(query: str) -> str:
         raise AIServiceException(
             "Failed to process chat request",
             service="Gemini",
-            details={"error": str(e)}
+            details={"error": str(e)},
         ) from e
