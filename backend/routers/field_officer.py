@@ -368,6 +368,9 @@ async def upload_visit_images(
                     detail=f"File extension '{extension}' not allowed. Allowed: {', '.join(ALLOWED_IMAGE_EXTENSIONS)}",
                 )
 
+            # Sanitize extension completely to prevent any path traversal via extension injection
+            safe_extension = "".join([c for c in extension if c.isalnum()])
+
             # Read and validate file size
             content = await image.read()
             if len(content) > MAX_UPLOAD_SIZE:
