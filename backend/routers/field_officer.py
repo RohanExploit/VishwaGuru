@@ -5,6 +5,7 @@ Issue #288: Field Officer Check-In System With Location Verification
 """
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Response
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case
 from typing import List, Optional
@@ -376,14 +377,22 @@ async def upload_visit_images(
                     detail=f"File {image.filename} exceeds maximum size of {MAX_UPLOAD_SIZE / 1024 / 1024:.1f} MB",
                 )
 
+            # Secure extension strictly against allowed list to avoid CodeQL taint
+            safe_extension = next(ext for ext in ALLOWED_IMAGE_EXTENSIONS if ext == extension)
+
             # Generate secure filename
             timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-            safe_filename = f"visit_{visit_id}_{timestamp}_{idx}.{extension}"
+            # Since safe_extension is checked against a static list, and visit_id, timestamp, idx are safe, this filename is free from path traversal vulnerabilities.
+            safe_filename = f"visit_{visit_id}_{timestamp}_{idx}.{safe_extension}"
+
             file_path = os.path.join(VISIT_IMAGES_DIR, safe_filename)
 
-            # Save file
-            with open(file_path, "wb") as f:
-                f.write(content)
+            # Save file asynchronously to prevent blocking the event loop
+            def _write_file(path, data):
+                with open(path, "wb") as f:
+                    f.write(data)
+
+            await run_in_threadpool(_write_file, file_path, content)
 
             # Store relative path
             relative_path = os.path.join("data", "visit_images", safe_filename)
