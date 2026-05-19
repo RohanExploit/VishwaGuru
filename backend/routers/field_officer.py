@@ -437,52 +437,30 @@ def get_visit_statistics(db: Session = Depends(get_db)):
         if cached_json:
             return Response(content=cached_json, media_type="application/json")
 
-        # Optimized: Use a single aggregate query to fetch multiple statistics in one database roundtrip
-        agg_stats = db.query(
+        # Optimized: Consolidating multiple database aggregate queries into a single query using func.sum(case(...))
+        res = db.query(
+            func.count(FieldOfficerVisit.id).label('total_visits'),
             func.count(func.distinct(FieldOfficerVisit.officer_email)).label('unique_officers'),
-            func.avg(FieldOfficerVisit.distance_from_site).label('avg_distance')
+            func.avg(FieldOfficerVisit.distance_from_site).label('avg_distance'),
+            func.sum(case((FieldOfficerVisit.verified_at.isnot(None), 1), else_=0)).label('verified_visits'),
+            func.sum(case((FieldOfficerVisit.within_geofence == True, 1), else_=0)).label('within_geofence'),
+            func.sum(case((FieldOfficerVisit.within_geofence == False, 1), else_=0)).label('outside_geofence')
         ).first()
 
-        counts = db.query(
-            FieldOfficerVisit.verified_at.isnot(None).label("is_verified"),
-            FieldOfficerVisit.within_geofence,
-            func.count(FieldOfficerVisit.id)
-        ).group_by(
-            FieldOfficerVisit.verified_at.isnot(None),
-            FieldOfficerVisit.within_geofence
-        ).all()
+        total_visits = int(res.total_visits or 0) if res else 0
+        unique_officers = int(res.unique_officers or 0) if res else 0
+        average_distance = float(res.avg_distance or 0.0) if res else 0.0
+        verified_visits = int(res.verified_visits or 0) if res else 0
+        within_geofence_count = int(res.within_geofence or 0) if res else 0
+        outside_geofence_count = int(res.outside_geofence or 0) if res else 0
 
-        total_visits = 0
-        verified_visits = 0
-        within_geofence_count = 0
-        outside_geofence_count = 0
-
-        for is_verified, within_geofence, count in counts:
-            c = count or 0
-            total_visits += c
-            if is_verified:
-                verified_visits += c
-            if within_geofence is True:
-                within_geofence_count += c
-            elif within_geofence is False:
-                outside_geofence_count += c
-
-        unique_officers = agg_stats.unique_officers or 0
-        average_distance = agg_stats.avg_distance
-        
-        # Round to 2 decimals if not None
-        if average_distance is not None:
-            average_distance = round(float(average_distance), 2)
-        else:
-            average_distance = 0.0
-        
         result_data = {
             "total_visits": total_visits,
             "verified_visits": verified_visits,
             "within_geofence_count": within_geofence_count,
             "outside_geofence_count": outside_geofence_count,
             "unique_officers": unique_officers,
-            "average_distance_from_site": average_distance
+            "average_distance_from_site": round(average_distance, 2)
         }
 
         # Cache serialized JSON
