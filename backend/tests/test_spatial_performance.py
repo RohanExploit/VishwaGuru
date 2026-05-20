@@ -67,7 +67,7 @@ def test_find_nearby_issues_correctness_and_performance():
     result_ref = reference_find_nearby_issues(issues, target_lat, target_lon, radius)
 
     # Get results from current/optimized implementation (one run)
-    result_curr = find_nearby_issues(issues, target_lat, target_lon, radius)
+    result_curr = find_nearby_issues(issues, target_lat, target_lon, radius, pre_filtered=False)
 
     # Assert number of results match
     print(f"Count Current: {len(result_curr)}")
@@ -109,7 +109,7 @@ def test_find_nearby_issues_correctness_and_performance():
 
     start_curr = time.time()
     for _ in range(iterations):
-        find_nearby_issues(issues, target_lat, target_lon, radius)
+        find_nearby_issues(issues, target_lat, target_lon, radius, pre_filtered=False)
     time_curr = time.time() - start_curr
 
     print(f"\n[Performance] Reference: {time_ref:.4f}s")

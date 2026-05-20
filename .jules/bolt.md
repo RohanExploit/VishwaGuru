@@ -93,3 +93,7 @@
 ## 2026-05-20 - Joined Queries for Integrity Verification
 **Learning:** Performing multiple sequential database queries to verify cryptographically chained records (e.g., fetching a record and then its associated token/metadata from another table) introduces unnecessary latency and increases database load.
 **Action:** Consolidate associated data retrieval into a single SQL `JOIN` query within the verification hot-path. This reduces database round-trips and improves end-to-end latency for blockchain-style integrity checks.
+
+## 2026-05-21 - Spatial Deduplication Optimization
+**Learning:** Calculating distance values with inline math components inside of loops causes slowdowns for datasets due to redundant execution. Adding pre-filtering parameters from the DB level bounding box allows bounding box logic to be bypassed on the Python side.
+**Action:** Hoist consistent math calculations outside of loops for bulk distance evaluations. Also introduce pre-filtered booleans on search functions to skip duplicate box filtering on data already passed through DB filters.
