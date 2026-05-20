@@ -1,5 +1,5 @@
 [build]
-  command = "npm install --prefix frontend && npm run build --prefix frontend"
+  command = "cd frontend && npm install && npm run build"
   publish = "frontend/dist"
 
 [[redirects]]
@@ -16,4 +16,5 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
 
 [build.environment]
+  NODE_VERSION = "20"
   CI = ""
