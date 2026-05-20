@@ -69,7 +69,7 @@ class ThreadSafeCache:
             self._timestamps[key] = current_time
             self._timestamps.move_to_end(key)
             
-            logger.debug(f"Cache set: key={key}, size={len(self._data)}")
+            logger.debug(f"Cache entry set, current size={len(self._data)}")
     
     def invalidate(self, key: str = "default") -> None:
         """
@@ -77,7 +77,7 @@ class ThreadSafeCache:
         """
         with self._lock:
             self._remove_key(key)
-            logger.debug(f"Cache invalidated: key={key}")
+            logger.debug("Cache entry invalidated")
     
     def clear(self) -> None:
         """
@@ -152,7 +152,7 @@ class ThreadSafeCache:
         try:
             lru_key, _ = self._data.popitem(last=False)
             self._timestamps.pop(lru_key, None)
-            logger.debug(f"Evicted LRU cache entry: {lru_key}")
+            logger.debug("Evicted LRU cache entry")
         except KeyError:
             pass
 
