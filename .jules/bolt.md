@@ -93,3 +93,7 @@
 ## 2026-05-20 - Joined Queries for Integrity Verification
 **Learning:** Performing multiple sequential database queries to verify cryptographically chained records (e.g., fetching a record and then its associated token/metadata from another table) introduces unnecessary latency and increases database load.
 **Action:** Consolidate associated data retrieval into a single SQL `JOIN` query within the verification hot-path. This reduces database round-trips and improves end-to-end latency for blockchain-style integrity checks.
+
+## 2025-05-22 - Regex vs Substring Search for Keywords
+**Learning:** For literal keyword matching in typical short texts (civic issue descriptions), Python's `in` operator (substring search) is significantly faster than pre-compiling multiple keywords into a single large regular expression using `re.finditer` or `re.search`. The overhead of the regex engine exceeds the cost of multiple substring scans in this scenario.
+**Action:** Prefer multiple `word in text` checks or a manual loop for literal keyword detection unless complex patterns (wildcards, lookaheads) are actually required.

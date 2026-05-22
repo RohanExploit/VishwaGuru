@@ -96,7 +96,8 @@ def find_nearby_issues(
     issues: List[Issue],
     target_lat: float,
     target_lon: float,
-    radius_meters: float = 50.0
+    radius_meters: float = 50.0,
+    pre_filtered: bool = False
 ) -> List[Tuple[Issue, float]]:
     """
     Find issues within a specified radius of a target location.
@@ -106,6 +107,7 @@ def find_nearby_issues(
         target_lat: Target latitude
         target_lon: Target longitude
         radius_meters: Search radius in meters (default 50m)
+        pre_filtered: If True, skips the bounding box pre-filter (useful if input is already filtered)
 
     Returns:
         List of tuples (issue, distance_meters) for issues within radius
@@ -113,7 +115,8 @@ def find_nearby_issues(
     nearby_issues = []
 
     # Optimization: pre-filter using a bounding box to avoid math on distant points
-    min_lat, max_lat, min_lon, max_lon = get_bounding_box(target_lat, target_lon, radius_meters)
+    if not pre_filtered:
+        min_lat, max_lat, min_lon, max_lon = get_bounding_box(target_lat, target_lon, radius_meters)
 
     # Optimization: Use inline Equirectangular approximation for short distances (< 10km)
     # This avoids function call overhead and repeated radian conversions.
@@ -123,10 +126,11 @@ def find_nearby_issues(
             if issue.latitude is None or issue.longitude is None:
                 continue
 
-            # Apply bounding box pre-filter
-            if issue.latitude < min_lat or issue.latitude > max_lat or \
-               issue.longitude < min_lon or issue.longitude > max_lon:
-                continue
+            # Apply bounding box pre-filter if not already filtered
+            if not pre_filtered:
+                if issue.latitude < min_lat or issue.latitude > max_lat or \
+                   issue.longitude < min_lon or issue.longitude > max_lon:
+                    continue
 
             distance = haversine_distance(target_lat, target_lon, issue.latitude, issue.longitude)
             if distance <= radius_meters:
@@ -145,10 +149,11 @@ def find_nearby_issues(
             if issue.latitude is None or issue.longitude is None:
                 continue
 
-            # Apply bounding box pre-filter
-            if issue.latitude < min_lat or issue.latitude > max_lat or \
-               issue.longitude < min_lon or issue.longitude > max_lon:
-                continue
+            # Apply bounding box pre-filter if not already filtered
+            if not pre_filtered:
+                if issue.latitude < min_lat or issue.latitude > max_lat or \
+                   issue.longitude < min_lon or issue.longitude > max_lon:
+                    continue
 
             # Inline conversion to radians
             lat_rad = math.radians(issue.latitude)
