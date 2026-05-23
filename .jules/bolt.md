@@ -93,3 +93,7 @@
 ## 2026-05-20 - Joined Queries for Integrity Verification
 **Learning:** Performing multiple sequential database queries to verify cryptographically chained records (e.g., fetching a record and then its associated token/metadata from another table) introduces unnecessary latency and increases database load.
 **Action:** Consolidate associated data retrieval into a single SQL `JOIN` query within the verification hot-path. This reduces database round-trips and improves end-to-end latency for blockchain-style integrity checks.
+
+## 2025-05-15 - Column Projection in Blockchain Verification
+**Learning:** Loading full SQLAlchemy model instances for cryptographic verification endpoints adds unnecessary overhead, especially when tables contain large fields like JSON metadata or Text notes. Projected `Row` objects support attribute access and are significantly faster for read-only checks.
+**Action:** Use `db.query(Model.col1, Model.col2)` instead of `db.query(Model)` in blockchain verification hot-paths to reduce DB I/O and memory pressure.
