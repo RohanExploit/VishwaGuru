@@ -141,6 +141,9 @@ def find_nearby_issues(
         # Cosine term is constant for the target latitude in equirectangular projection
         cos_lat = math.cos(target_lat_rad)
 
+        # Optimization: Pre-calculate scaling factor
+        DEG_TO_RAD = math.pi / 180.0
+
         for issue in issues:
             if issue.latitude is None or issue.longitude is None:
                 continue
@@ -150,9 +153,9 @@ def find_nearby_issues(
                issue.longitude < min_lon or issue.longitude > max_lon:
                 continue
 
-            # Inline conversion to radians
-            lat_rad = math.radians(issue.latitude)
-            lon_rad = math.radians(issue.longitude)
+            # Inline conversion to radians using pre-calculated factor
+            lat_rad = issue.latitude * DEG_TO_RAD
+            lon_rad = issue.longitude * DEG_TO_RAD
 
             dlat = lat_rad - target_lat_rad
             dlon = lon_rad - target_lon_rad
