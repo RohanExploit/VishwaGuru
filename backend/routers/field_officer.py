@@ -5,6 +5,7 @@ Issue #288: Field Officer Check-In System With Location Verification
 """
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Response
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case
 from typing import List, Optional
@@ -337,8 +338,11 @@ async def upload_visit_images(
             file_path = os.path.join(VISIT_IMAGES_DIR, safe_filename)
             
             # Save file
-            with open(file_path, 'wb') as f:
-                f.write(content)
+            def _save_file():
+                with open(file_path, 'wb') as f:
+                    f.write(content)
+
+            await run_in_threadpool(_save_file)
             
             # Store relative path
             relative_path = os.path.join("data", "visit_images", safe_filename)
