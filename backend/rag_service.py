@@ -48,8 +48,6 @@ class CivicRAG:
             content = f"{title} {text}"
             content_tokens = self._tokenize(content)
 
-            content_tokens = self._tokenize(content)
-
             self._prepared_policies.append({
                 'title_tokens': self._tokenize(title),
                 'content_tokens': content_tokens,
@@ -92,10 +90,7 @@ class CivicRAG:
             policy_tokens = prepared['content_tokens']
 
             # Optimization 1: Fast early-exit for zero overlap
-            if query_tokens.isdisjoint(policy_tokens):
-                continue
-
-            # Optimized: Early exit using isdisjoint which is faster than computing intersection
+            # isdisjoint() is O(K) where K is min(len(query), len(policy))
             if query_tokens.isdisjoint(policy_tokens):
                 continue
 
