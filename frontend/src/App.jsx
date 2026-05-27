@@ -25,6 +25,7 @@ const NotFound = React.lazy(() => import('./views/NotFound'));
 // Lazy Load Detectors
 const PotholeDetector = React.lazy(() => import('./PotholeDetector'));
 const EmotionDetector = React.lazy(() => import('./EmotionDetector'));
+const ZeroShotDetector = React.lazy(() => import('./ZeroShotDetector'));
 const GarbageDetector = React.lazy(() => import('./GarbageDetector'));
 const VandalismDetector = React.lazy(() => import('./VandalismDetector'));
 const FloodDetector = React.lazy(() => import('./FloodDetector'));
