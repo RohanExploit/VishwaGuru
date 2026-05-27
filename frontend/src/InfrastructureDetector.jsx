@@ -65,8 +65,11 @@ const InfrastructureDetector = ({ onBack }) => {
               ref={webcamRef}
               screenshotFormat="image/jpeg"
               className="w-full h-full object-cover"
-              videoConstraints={{ facingMode: "environment" }}
-              onUserMediaError={() => setCameraError(true)}
+               videoConstraints={{ facingMode: "environment" }}
+               onUserMediaError={(e) => {
+                 console.warn("Primary camera access failed:", e);
+                 setCameraError(true);
+               }}
             />
           ) : (
             <div className="text-white text-center p-4">

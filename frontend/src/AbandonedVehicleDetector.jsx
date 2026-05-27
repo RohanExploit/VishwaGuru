@@ -11,13 +11,17 @@ const AbandonedVehicleDetector = ({ onBack }) => {
     const startCamera = async () => {
         setError(null);
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: {
+            let stream;
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: {
                     facingMode: 'environment',
                     width: { ideal: 640 },
                     height: { ideal: 480 }
-                }
-            });
+                } });
+            } catch (fallbackErr) {
+                console.warn("Primary camera access failed, trying fallback:", fallbackErr);
+                stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            }
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
             }

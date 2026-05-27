@@ -59,7 +59,7 @@ const FloodDetector = () => {
             ref={webcamRef}
             screenshotFormat="image/jpeg"
             className="w-full h-full object-cover"
-            videoConstraints={{ facingMode: "environment" }}
+            videoConstraints={{ facingMode: "environment" }} onUserMediaError={(e) => { console.warn("Primary camera access failed:", e); }}
           />
         ) : (
           <img src={image} alt="Captured" className="w-full h-full object-cover" />

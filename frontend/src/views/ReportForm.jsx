@@ -652,7 +652,7 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
                       audio={false}
                       ref={webcamRef}
                       screenshotFormat="image/jpeg"
-                      videoConstraints={{ facingMode: "environment" }}
+                      videoConstraints={{ facingMode: "environment" }} onUserMediaError={(e) => { console.warn("Primary camera access failed:", e); }}
                       className="w-full object-cover aspect-[3/4]"
                     />
                     <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent flex justify-center gap-6">

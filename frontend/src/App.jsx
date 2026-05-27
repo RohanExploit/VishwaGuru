@@ -302,6 +302,7 @@ function AppContent() {
               <Route path="/verify/:id" element={<VerifyView />} />
               <Route path="/pothole" element={<PotholeDetector onBack={() => navigate('/')} />} />
               <Route path="/emotion" element={<EmotionDetector onBack={() => navigate('/')} />} />
+              <Route path="/hf-vision" element={<ZeroShotDetector onBack={() => navigate('/')} />} />
               <Route path="/garbage" element={<GarbageDetector onBack={() => navigate('/')} />} />
               <Route
                 path="/vandalism"
