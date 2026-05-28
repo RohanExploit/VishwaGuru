@@ -93,3 +93,6 @@
 ## 2026-05-20 - Joined Queries for Integrity Verification
 **Learning:** Performing multiple sequential database queries to verify cryptographically chained records (e.g., fetching a record and then its associated token/metadata from another table) introduces unnecessary latency and increases database load.
 **Action:** Consolidate associated data retrieval into a single SQL `JOIN` query within the verification hot-path. This reduces database round-trips and improves end-to-end latency for blockchain-style integrity checks.
+## 2026-05-21 - SQLAlchemy Aggregation Optimization
+**Learning:** For aggregations over a single categorical column, a standard `GROUP BY` is faster. However, when aggregating across multiple distinct categorical columns simultaneously (e.g., role and is_active) or combining with other aggregates like `avg` and `count(distinct)`, a single query using `func.sum(case(...))` is more efficient and reduces database round-trips.
+**Action:** Consolidate multiple aggregate queries into a single query using `func.sum(case(...))` for categorical counts, but explicitly handle `None` return values (e.g., `int(value or 0)`) to avoid validation errors in schemas expecting integers.

@@ -440,35 +440,20 @@ def get_visit_statistics(db: Session = Depends(get_db)):
         # Optimized: Use a single aggregate query to fetch multiple statistics in one database roundtrip
         agg_stats = db.query(
             func.count(func.distinct(FieldOfficerVisit.officer_email)).label('unique_officers'),
-            func.avg(FieldOfficerVisit.distance_from_site).label('avg_distance')
+            func.avg(FieldOfficerVisit.distance_from_site).label('avg_distance'),
+            func.count(FieldOfficerVisit.id).label('total_visits'),
+            func.sum(case((FieldOfficerVisit.verified_at.isnot(None), 1), else_=0)).label('verified_visits'),
+            func.sum(case((FieldOfficerVisit.within_geofence == True, 1), else_=0)).label('within_geofence_count'),
+            func.sum(case((FieldOfficerVisit.within_geofence == False, 1), else_=0)).label('outside_geofence_count')
         ).first()
 
-        counts = db.query(
-            FieldOfficerVisit.verified_at.isnot(None).label("is_verified"),
-            FieldOfficerVisit.within_geofence,
-            func.count(FieldOfficerVisit.id)
-        ).group_by(
-            FieldOfficerVisit.verified_at.isnot(None),
-            FieldOfficerVisit.within_geofence
-        ).all()
+        total_visits = int(agg_stats.total_visits or 0) if agg_stats else 0
+        verified_visits = int(agg_stats.verified_visits or 0) if agg_stats else 0
+        within_geofence_count = int(agg_stats.within_geofence_count or 0) if agg_stats else 0
+        outside_geofence_count = int(agg_stats.outside_geofence_count or 0) if agg_stats else 0
 
-        total_visits = 0
-        verified_visits = 0
-        within_geofence_count = 0
-        outside_geofence_count = 0
-
-        for is_verified, within_geofence, count in counts:
-            c = count or 0
-            total_visits += c
-            if is_verified:
-                verified_visits += c
-            if within_geofence is True:
-                within_geofence_count += c
-            elif within_geofence is False:
-                outside_geofence_count += c
-
-        unique_officers = agg_stats.unique_officers or 0
-        average_distance = agg_stats.avg_distance
+        unique_officers = agg_stats.unique_officers or 0 if agg_stats else 0
+        average_distance = agg_stats.avg_distance if agg_stats else None
         
         # Round to 2 decimals if not None
         if average_distance is not None:
