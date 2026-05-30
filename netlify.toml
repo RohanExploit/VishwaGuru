@@ -17,4 +17,5 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
 
 [build.environment]
+  NODE_VERSION = "20"
   CI = ""
