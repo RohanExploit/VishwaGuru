@@ -93,3 +93,7 @@
 ## 2026-05-20 - Joined Queries for Integrity Verification
 **Learning:** Performing multiple sequential database queries to verify cryptographically chained records (e.g., fetching a record and then its associated token/metadata from another table) introduces unnecessary latency and increases database load.
 **Action:** Consolidate associated data retrieval into a single SQL `JOIN` query within the verification hot-path. This reduces database round-trips and improves end-to-end latency for blockchain-style integrity checks.
+
+## 2026-05-21 - Optimized Tokenization in Trend Analysis
+**Learning:** In text analysis hot paths like `TrendAnalyzer`, pre-compiling a Unicode-aware regex like `re.compile(r'\w+')` and using it with `findall` is significantly faster than using `re.findall(r'\b\w+\b')` with its redundant boundary checks. Furthermore, batching string segments with `"".join()` before calling `.lower()` is more efficient than lowering segments individually. Replacing `findall` with `re.sub().split()` should be avoided as it strips Unicode characters and merges words separated by punctuation (e.g., "high-priority" becomes "highpriority").
+**Action:** Use pre-compiled Unicode-aware regexes and batch string transformations (like `.lower()`) in text analysis loops to maximize throughput without sacrificing accuracy or internationalization support.
