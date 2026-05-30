@@ -93,3 +93,7 @@
 ## 2026-05-20 - Joined Queries for Integrity Verification
 **Learning:** Performing multiple sequential database queries to verify cryptographically chained records (e.g., fetching a record and then its associated token/metadata from another table) introduces unnecessary latency and increases database load.
 **Action:** Consolidate associated data retrieval into a single SQL `JOIN` query within the verification hot-path. This reduces database round-trips and improves end-to-end latency for blockchain-style integrity checks.
+
+## 2026-06-05 - Tokenization Optimization in TrendAnalyzer
+**Learning:** Using `re.findall(r'\b\w+\b', text)` for extracting words in high-volume text analysis like `TrendAnalyzer._extract_keywords` is significantly slower than stripping non-alphanumeric characters with a pre-compiled regex substitution (`re.sub`) and splitting by whitespace.
+**Action:** Replace `re.findall` with a pre-compiled `_tokenizer_re = re.compile(r'[^a-z0-9\s]')` and `self._tokenizer_re.sub('', text).split()`. Compile regex in class initialization to avoid repeated compilation overhead.
