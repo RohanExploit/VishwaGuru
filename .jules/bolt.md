@@ -93,3 +93,7 @@
 ## 2026-05-20 - Joined Queries for Integrity Verification
 **Learning:** Performing multiple sequential database queries to verify cryptographically chained records (e.g., fetching a record and then its associated token/metadata from another table) introduces unnecessary latency and increases database load.
 **Action:** Consolidate associated data retrieval into a single SQL `JOIN` query within the verification hot-path. This reduces database round-trips and improves end-to-end latency for blockchain-style integrity checks.
+
+## 2026-05-21 - Bitwise Set Intersection in Hot Paths
+**Learning:** In high-frequency set operations (like RAG Jaccard similarity), using the bitwise `&` operator for intersection is measurably faster than the `.intersection()` method as it avoids a method lookup and is implemented as a direct C-level operation.
+**Action:** Prefer `set_a & set_b` over `set_a.intersection(set_b)` in performance-critical hot paths to shave off microseconds in tight loops.
