@@ -18,3 +18,4 @@
 
 [build.environment]
   CI = ""
+  NODE_VERSION = "20"
