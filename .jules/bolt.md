@@ -96,3 +96,7 @@
 ## 2025-06-25 - Keyword Extraction Pre-compiled Regex
 **Learning:** In `backend/trend_analyzer.py`, executing the default inline `re.findall(r'\b\w+\b', ...)` regex pattern to tokenize and extract keywords during array iteration causes significant regex recompilation and string creation overhead for large issue lists.
 **Action:** Always pre-compile standard regex patterns (`self._keyword_pattern = re.compile(r'\w+')`) in the `__init__` constructor. Batch string segments using a single `.join()` operation before tokenizing, which drastically speeds up the tokenization of large civic descriptions while maintaining valid boundaries and Unicode support.
+
+## 2026-06-25 - Netlify Deployment Node Version Mismatch
+**Learning:** Netlify defaults to older Node.js versions which fail to parse `lockfileVersion: 3` (npm v9+) during deployments, causing `Deploy failed` errors across check suites like Pages changed, Header rules, and Redirect rules.
+**Action:** Always ensure `NODE_VERSION = "20"` (or appropriate modern version) is explicitly set in the `[build.environment]` section of `netlify.toml` for repositories using modern frontend tooling like Vite.
