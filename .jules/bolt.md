@@ -93,3 +93,6 @@
 ## 2026-05-20 - Joined Queries for Integrity Verification
 **Learning:** Performing multiple sequential database queries to verify cryptographically chained records (e.g., fetching a record and then its associated token/metadata from another table) introduces unnecessary latency and increases database load.
 **Action:** Consolidate associated data retrieval into a single SQL `JOIN` query within the verification hot-path. This reduces database round-trips and improves end-to-end latency for blockchain-style integrity checks.
+## 2025-06-25 - Keyword Extraction Pre-compiled Regex
+**Learning:** In `backend/trend_analyzer.py`, executing the default inline `re.findall(r'\b\w+\b', ...)` regex pattern to tokenize and extract keywords during array iteration causes significant regex recompilation and string creation overhead for large issue lists.
+**Action:** Always pre-compile standard regex patterns (`self._keyword_pattern = re.compile(r'\w+')`) in the `__init__` constructor. Batch string segments using a single `.join()` operation before tokenizing, which drastically speeds up the tokenization of large civic descriptions while maintaining valid boundaries and Unicode support.
