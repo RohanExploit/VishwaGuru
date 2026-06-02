@@ -93,3 +93,7 @@
 ## 2026-05-20 - Joined Queries for Integrity Verification
 **Learning:** Performing multiple sequential database queries to verify cryptographically chained records (e.g., fetching a record and then its associated token/metadata from another table) introduces unnecessary latency and increases database load.
 **Action:** Consolidate associated data retrieval into a single SQL `JOIN` query within the verification hot-path. This reduces database round-trips and improves end-to-end latency for blockchain-style integrity checks.
+
+## 2026-06-02 - Keyword Extraction Optimization
+**Learning:** In bulk text analysis (like TrendAnalyzer), calling string methods like `.lower()` on thousands of small objects individually is significantly slower than joining them into a single string and calling the method once. Additionally, pre-compiling simple word-splitting regexes (`\w+`) provides a measurable boost over repeated `re.findall` calls with complex boundary markers.
+**Action:** Always batch string normalization operations before tokenization in high-volume processing paths. Pre-compile word-extraction regexes at the class level.
