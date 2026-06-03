@@ -189,3 +189,4 @@ user_issues_cache = ThreadSafeCache(ttl=300, max_size=50) # 5 minutes TTL
 grievance_list_cache = ThreadSafeCache(ttl=300, max_size=50)
 escalation_stats_cache = ThreadSafeCache(ttl=300, max_size=10)
 visit_stats_cache = ThreadSafeCache(ttl=300, max_size=10)
+follower_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=1)
