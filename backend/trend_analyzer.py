@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 class TrendAnalyzer:
     def __init__(self):
+        self._word_re = re.compile(r'\w+')
         self.stop_words = {
             "the", "a", "an", "in", "on", "at", "to", "for", "of", "and", "is", "are",
             "was", "were", "this", "that", "it", "with", "from", "by", "as", "be",
@@ -46,9 +47,9 @@ class TrendAnalyzer:
         """
         Extract top 5 most common keywords from issue descriptions.
         """
-        text = " ".join([issue.description.lower() for issue in issues if issue.description])
+        text = " ".join([issue.description for issue in issues if issue.description]).lower()
         # Simple tokenization: remove punctuation and split by whitespace
-        words = re.findall(r'\b\w+\b', text)
+        words = self._word_re.findall(text)
         filtered_words = [w for w in words if w not in self.stop_words and len(w) > 2 and not w.isdigit()]
 
         counter = Counter(filtered_words)

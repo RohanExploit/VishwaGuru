@@ -93,3 +93,11 @@
 ## 2026-05-20 - Joined Queries for Integrity Verification
 **Learning:** Performing multiple sequential database queries to verify cryptographically chained records (e.g., fetching a record and then its associated token/metadata from another table) introduces unnecessary latency and increases database load.
 **Action:** Consolidate associated data retrieval into a single SQL `JOIN` query within the verification hot-path. This reduces database round-trips and improves end-to-end latency for blockchain-style integrity checks.
+
+## 2026-05-22 - Substring Pre-filtering with Missing Keywords Fix
+**Learning:** Adding substring pre-filtering for expensive regex searches is a good optimization, but when the regex pattern doesn't have literal keywords to extract (e.g. it only uses wildcards or complex logic resulting in empty `keywords`), the pre-filtering logic must handle it. If not, it can bypass the regex check entirely for valid inputs, resulting in missing functionality and test regressions.
+**Action:** When implementing substring pre-filtering, always ensure the fallback handles the case where no literal keywords could be extracted. E.g. `if not keywords: if regex.search(text): ... else: for k in keywords: if k in text: if regex.search(text): ... break`
+
+## 2026-05-22 - Regex Optimization in Keyword Extraction
+**Learning:** Using a pre-compiled `re.compile(r'\w+')` with `.findall()` is significantly faster than using `re.findall(r'\b\w+\b', ...)` while maintaining proper word boundary handling. Additionally, batching string segments into one `.join()` before calling `.lower()` improves performance in bulk text processing operations.
+**Action:** Always pre-compile regular expressions used in hot paths or bulk text processing, and optimize string concatenations by joining first then applying transformations.
