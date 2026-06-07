@@ -93,3 +93,7 @@
 ## 2026-05-20 - Joined Queries for Integrity Verification
 **Learning:** Performing multiple sequential database queries to verify cryptographically chained records (e.g., fetching a record and then its associated token/metadata from another table) introduces unnecessary latency and increases database load.
 **Action:** Consolidate associated data retrieval into a single SQL `JOIN` query within the verification hot-path. This reduces database round-trips and improves end-to-end latency for blockchain-style integrity checks.
+
+## 2026-05-21 - Regex Tokenization Bottleneck
+**Learning:** In bulk text processing (like keyword extraction), using a complex regex pattern like `\b\w+\b` inside a loop for each document is significantly slower than joining all text and using a pre-compiled, simpler pattern like `\w+`.
+**Action:** Always batch string operations and use pre-compiled regex objects for high-traffic tokenization paths. Avoid redundant `.lower()` calls on small substrings.
