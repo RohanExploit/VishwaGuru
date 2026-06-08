@@ -93,3 +93,11 @@
 ## 2026-05-20 - Joined Queries for Integrity Verification
 **Learning:** Performing multiple sequential database queries to verify cryptographically chained records (e.g., fetching a record and then its associated token/metadata from another table) introduces unnecessary latency and increases database load.
 **Action:** Consolidate associated data retrieval into a single SQL `JOIN` query within the verification hot-path. This reduces database round-trips and improves end-to-end latency for blockchain-style integrity checks.
+
+## 2026-06-08 - String Joining & Regex Findall
+**Learning:** In bulk string operations, iterating and applying `.lower()` to each item inside a list comprehension creates unnecessary intermediate string objects. Similarly, `re.findall(r'\b\w+\b', ...)` is slower than pre-compiling `re.compile(r'\w+')` and using `.findall()` because the latter avoids the extra word boundary checks while still effectively tokenizing words in most alphanumeric texts.
+**Action:** For simple keyword extraction across multiple texts, batch the strings using `.join()` *before* applying `.lower()` to the combined text. Use `re.compile(r'\w+')` to quickly extract alphanumeric tokens instead of relying on `\b` boundaries unless strict word boundaries inside complex punctuation are required.
+
+## 2026-06-08 - Idiomatic Set Intersection
+**Learning:** Calling the `.intersection(other_set)` method incurs slightly more overhead due to Python attribute lookup compared to using the bitwise `&` operator (`set_a & set_b`).
+**Action:** In high-traffic hot paths like RAG retrieval where set intersections are computed in tight loops, prefer the bitwise `&` operator for computing intersections to shave off marginal overhead and improve code idiomaticity.
