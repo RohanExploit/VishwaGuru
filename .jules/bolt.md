@@ -93,3 +93,11 @@
 ## 2026-05-20 - Joined Queries for Integrity Verification
 **Learning:** Performing multiple sequential database queries to verify cryptographically chained records (e.g., fetching a record and then its associated token/metadata from another table) introduces unnecessary latency and increases database load.
 **Action:** Consolidate associated data retrieval into a single SQL `JOIN` query within the verification hot-path. This reduces database round-trips and improves end-to-end latency for blockchain-style integrity checks.
+
+## 2026-05-22 - Thread-Safe Blockchain Chaining with O(1) Cache
+**Learning:** Implementing blockchain-style integrity hashes for high-traffic records (like followers) can become a bottleneck if every creation requires a database scan for the previous hash.
+**Action:** Utilize a `ThreadSafeCache` and a `threading.Lock` to maintain the "tail" of the blockchain in memory. This enables O(1) hash generation during record creation. Always ensure the cache is updated only after a successful database commit to maintain consistency.
+
+## 2026-05-22 - Column Projection for Integrity Verification
+**Learning:** Verifying cryptographic integrity often only requires a subset of a record's data. Loading a full ORM model instance with multiple relationships for a simple hash check is inefficient.
+**Action:** Use SQLAlchemy column projection (`db.query(Model.col1, Model.col2)`) in verification endpoints. This reduces memory footprint and database I/O, providing a significant speed boost for audit-heavy paths.
