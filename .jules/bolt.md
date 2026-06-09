@@ -93,3 +93,7 @@
 ## 2026-05-20 - Joined Queries for Integrity Verification
 **Learning:** Performing multiple sequential database queries to verify cryptographically chained records (e.g., fetching a record and then its associated token/metadata from another table) introduces unnecessary latency and increases database load.
 **Action:** Consolidate associated data retrieval into a single SQL `JOIN` query within the verification hot-path. This reduces database round-trips and improves end-to-end latency for blockchain-style integrity checks.
+
+## 2026-05-22 - Regex Pre-compilation and Batch String Joining
+**Learning:** In `backend/trend_analyzer.py`, using a pre-compiled `re.compile(r'\w+')` with `.findall()` is significantly faster than the default `re.findall(r'\b\w+\b', ...)` while maintaining Unicode support and correct word boundary handling. Additionally, batching string segments into one `.join()` before calling `.lower()` further improves performance in bulk text processing by reducing the number of C-level string operations.
+**Action:** Pre-compile regular expressions used in hot loops or frequently called functions, especially in bulk text analysis scenarios. Batch string joining before applying transformations like `.lower()` to minimize overhead.
