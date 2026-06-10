@@ -17,4 +17,4 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
 
 [build.environment]
-  CI = ""
+  CI = "false"
