@@ -93,3 +93,7 @@
 ## 2026-05-20 - Joined Queries for Integrity Verification
 **Learning:** Performing multiple sequential database queries to verify cryptographically chained records (e.g., fetching a record and then its associated token/metadata from another table) introduces unnecessary latency and increases database load.
 **Action:** Consolidate associated data retrieval into a single SQL `JOIN` query within the verification hot-path. This reduces database round-trips and improves end-to-end latency for blockchain-style integrity checks.
+
+## 2026-06-21 - Optimizing Keyword Extraction Loops
+**Learning:** In bulk text analysis scenarios like `TrendAnalyzer`, extracting keywords using `re.findall(r'\b\w+\b', text)` dynamically per string is slow. Lowercasing strings individually in a list comprehension before joining them also adds overhead.
+**Action:** Pre-compile the regular expression (`re.compile(r'\w+')`) in the class `__init__`. Batch the strings by using `" ".join(...)` first, and then call `.lower()` on the single combined string before executing `regex.findall()`. This measurably improves tokenization speed while maintaining exact functional parity.
