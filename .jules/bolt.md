@@ -93,3 +93,7 @@
 ## 2026-05-20 - Joined Queries for Integrity Verification
 **Learning:** Performing multiple sequential database queries to verify cryptographically chained records (e.g., fetching a record and then its associated token/metadata from another table) introduces unnecessary latency and increases database load.
 **Action:** Consolidate associated data retrieval into a single SQL `JOIN` query within the verification hot-path. This reduces database round-trips and improves end-to-end latency for blockchain-style integrity checks.
+
+## 2026-06-11 - Synchronized Blockchain Chaining for Followers
+**Learning:** Concurrent requests to follow a grievance can lead to race conditions in hash chaining if multiple threads read the same "last hash" before any of them commits the next one. This breaks the integrity of the blockchain.
+**Action:** Use a global `threading.Lock` to synchronize hash generation and database commits for chained records. Ensure the in-memory `last_hash_cache` is updated ONLY after a successful `db.commit()` within the lock to maintain consistency across requests.
