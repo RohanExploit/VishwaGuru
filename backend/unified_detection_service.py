@@ -53,15 +53,22 @@ class UnifiedDetectionService:
             return self._local_available
         
         try:
-            from local_ml_service import get_local_model
-            model = get_local_model()
+            from local_ml_service import get_general_model
+            model = get_general_model()
             
-            # Try a simple classification to verify
+            # Check if model is loaded
+            if model is None:
+                self._local_available = False
+                return False
+
+            # Try a simple prediction to verify
+            # Run in threadpool as it might be blocking
+            from fastapi.concurrency import run_in_threadpool
             test_image = Image.new("RGB", (224, 224), color="white")
-            model.classify_image(test_image, ["test"], threshold=0.0)
+            await run_in_threadpool(model.predict, test_image, verbose=False)
             
-            self._local_available = model.is_available
-            return self._local_available
+            self._local_available = True
+            return True
             
         except Exception as e:
             logger.warning(f"Local ML service unavailable: {e}")
@@ -182,7 +189,92 @@ class UnifiedDetectionService:
         else:
             logger.error("No detection backend available")
             raise ServiceUnavailableException("Detection service", details={"detection_type": "flooding"})
-    
+
+    async def detect_garbage(self, image: Image.Image) -> List[Dict]:
+        """
+        Detect garbage/waste in an image.
+
+        Args:
+            image: PIL Image to analyze
+
+        Returns:
+            List of detections with 'label', 'confidence', and 'box' keys.
+            For HF/CLIP, 'box' will be empty as it classifies the whole image.
+        """
+        backend = await self._get_detection_backend()
+
+        if backend == "local":
+            from backend.garbage_detection import detect_garbage
+            # Local model expects image source, but PIL image works if model supports it
+            # The existing detect_garbage uses model.predict(image_source)
+            # Ultralytics YOLO supports PIL Image directly
+            from fastapi.concurrency import run_in_threadpool
+            return await run_in_threadpool(detect_garbage, image)
+
+        elif backend == "huggingface":
+            from backend.hf_api_service import detect_waste_clip
+            result = await detect_waste_clip(image)
+
+            # Map classification to detection format
+            if result and result.get("waste_type") != "unknown":
+                return [{
+                    "label": result["waste_type"],
+                    "confidence": result.get("confidence", 0.0),
+                    "box": [] # No bounding box for classification
+                }]
+            return []
+
+        else:
+            logger.error("No detection backend available")
+            raise ServiceUnavailableException("Detection service", details={"detection_type": "garbage"})
+
+    async def detect_fire(self, image: Image.Image) -> List[Dict]:
+        """
+        Detect fire/smoke in an image.
+
+        Args:
+            image: PIL Image to analyze
+
+        Returns:
+            List of detections with 'label', 'confidence', and 'box' keys
+        """
+        # Fire detection currently relies on HF API
+        # Future: Add local model support
+
+        # We check backend availability but primarily rely on HF for now
+        # unless a local model is implemented
+        backend = await self._get_detection_backend()
+
+        if backend == "huggingface" or backend == "auto":
+             # Even in auto, if we don't have local fire model, we fallback or use HF if enabled
+             if await self._check_hf_available():
+                from backend.hf_api_service import detect_fire_clip
+                # Clip returns dict, we need list of dicts
+                # detect_fire_clip returns {"fire_detected": bool, "confidence": float} or similar dict
+                # Wait, I need to check detect_fire_clip return type.
+                # In detection.py it returns {"detections": ...}
+                # Let's assume it returns a dict-like object or list.
+                # Actually, most clip functions return dict.
+                result = await detect_fire_clip(image)
+                if isinstance(result, list):
+                    return result
+                if isinstance(result, dict) and "detections" in result:
+                    return result["detections"]
+                if isinstance(result, dict):
+                     # Wrap in list if it's a single detection dict
+                     return [result]
+                return []
+
+        # If we reached here, no suitable backend found
+        if backend == "local":
+             # Placeholder for local fire detection
+             logger.warning("Local fire detection not yet implemented")
+             return []
+
+        logger.error("No detection backend available for fire detection")
+        # Don't raise exception to avoid failing detect_all, just return empty
+        return []
+
     async def detect_all(self, image: Image.Image) -> Dict[str, List[Dict]]:
         """
         Run all detection types on an image.
@@ -193,10 +285,22 @@ class UnifiedDetectionService:
         Returns:
             Dictionary mapping detection type to list of results
         """
+        import asyncio
+
+        results = await asyncio.gather(
+            self.detect_vandalism(image),
+            self.detect_infrastructure(image),
+            self.detect_flooding(image),
+            self.detect_garbage(image),
+            self.detect_fire(image)
+        )
+
         return {
-            "vandalism": await self.detect_vandalism(image),
-            "infrastructure": await self.detect_infrastructure(image),
-            "flooding": await self.detect_flooding(image)
+            "vandalism": results[0],
+            "infrastructure": results[1],
+            "flooding": results[2],
+            "garbage": results[3],
+            "fire": results[4]
         }
     
     async def get_status(self) -> Dict:
@@ -226,8 +330,8 @@ class UnifiedDetectionService:
         # Add local model details if available
         if local_available:
             try:
-                from local_ml_service import get_model_status
-                status["local_backend"]["details"] = get_model_status()
+                from local_ml_service import get_detection_status
+                status["local_backend"]["details"] = await get_detection_status()
             except Exception:
                 pass
         
@@ -260,6 +364,11 @@ async def detect_infrastructure(image: Image.Image) -> List[Dict]:
 async def detect_flooding(image: Image.Image) -> List[Dict]:
     """Detect flooding using the default service."""
     return await get_detection_service().detect_flooding(image)
+
+
+async def detect_garbage(image: Image.Image) -> List[Dict]:
+    """Detect garbage using the default service."""
+    return await get_detection_service().detect_garbage(image)
 
 
 async def detect_all(image: Image.Image) -> Dict[str, List[Dict]]:

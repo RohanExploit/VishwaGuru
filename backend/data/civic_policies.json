@@ -1,0 +1,27 @@
+[
+  {
+    "title": "Pothole Repair SLA",
+    "text": "According to the Municipal Corporation Act, potholes reported on major roads must be filled within 48 hours of reporting. For internal roads, the timeline is 7 days. Failure to comply may result in action against the responsible contractor.",
+    "source": "Municipal Corporation Act, Section 24"
+  },
+  {
+    "title": "Garbage Collection Rules",
+    "text": "Solid Waste Management Rules 2016 mandate segregation of wet and dry waste at source. The local body is responsible for daily door-to-door collection. Burning of garbage is strictly prohibited and punishable with a fine.",
+    "source": "Solid Waste Management Rules 2016"
+  },
+  {
+    "title": "Noise Pollution Limits",
+    "text": "The Noise Pollution (Regulation and Control) Rules 2000 specify ambient air quality standards in respect of noise. In residential areas, the limit is 55 dB(A) during the day (6 AM - 10 PM) and 45 dB(A) at night (10 PM - 6 AM).",
+    "source": "Noise Pollution Rules 2000"
+  },
+  {
+    "title": "Streetlight Maintenance",
+    "text": "All non-functional streetlights must be repaired within 24 hours of complaint registration. If a pole is damaged, it must be replaced within 3 working days.",
+    "source": "Public Lighting Service Standards"
+  },
+  {
+    "title": "Water Supply Contamination",
+    "text": "In case of contaminated water supply complaints, the water department must collect samples within 4 hours and provide an alternative water source (tanker) within 6 hours.",
+    "source": "Water Department Citizen Charter"
+  }
+]

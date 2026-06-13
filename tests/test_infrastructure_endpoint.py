@@ -11,8 +11,8 @@ def client():
     with TestClient(app) as c:
         yield c
 
-@patch("backend.main.detect_infrastructure_local", new_callable=AsyncMock)
-@patch("backend.main.run_in_threadpool")
+@patch("backend.routers.detection.detect_infrastructure_unified", new_callable=AsyncMock)
+@patch("backend.utils.run_in_threadpool")
 def test_detect_infrastructure_endpoint(mock_run, mock_detect, client):
     # Create a dummy image
     img = Image.new('RGB', (100, 100), color='red')
@@ -22,8 +22,10 @@ def test_detect_infrastructure_endpoint(mock_run, mock_detect, client):
 
     # Mock Image.open calls via run_in_threadpool
     async def async_mock_run_img(*args, **kwargs):
-        if args[0] == Image.open:
+        if args and args[0] == Image.open:
             return img
+        if args and "validate_image_for_processing" in str(args[0]):
+             return True
         return MagicMock() # Fallback
 
     mock_run.side_effect = async_mock_run_img
@@ -41,8 +43,8 @@ def test_detect_infrastructure_endpoint(mock_run, mock_detect, client):
     assert len(data["detections"]) == 1
     assert data["detections"][0]["label"] == "broken streetlight"
 
-@patch("backend.main.detect_infrastructure_local", new_callable=AsyncMock)
-@patch("backend.main.run_in_threadpool")
+@patch("backend.routers.detection.detect_infrastructure_unified", new_callable=AsyncMock)
+@patch("backend.utils.run_in_threadpool")
 def test_detect_infrastructure_endpoint_empty(mock_run, mock_detect, client):
     # Create a dummy image
     img = Image.new('RGB', (100, 100), color='blue')
@@ -52,8 +54,10 @@ def test_detect_infrastructure_endpoint_empty(mock_run, mock_detect, client):
 
     # Mock Image.open calls via run_in_threadpool
     async def async_mock_run_img(*args, **kwargs):
-        if args[0] == Image.open:
+        if args and args[0] == Image.open:
             return img
+        if args and "validate_image_for_processing" in str(args[0]):
+             return True
         return MagicMock() # Fallback
 
     mock_run.side_effect = async_mock_run_img

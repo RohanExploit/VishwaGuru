@@ -40,7 +40,7 @@ async def test_detect_severity_endpoint():
     # Mock AI services initialization to prevent startup failure
     with patch('backend.main.create_all_ai_services') as mock_create_services, \
          patch('backend.main.initialize_ai_services') as mock_init_services, \
-         patch('backend.main.detect_severity_clip', new_callable=AsyncMock) as mock_detect:
+         patch('backend.routers.detection.detect_severity_clip', new_callable=AsyncMock) as mock_detect:
 
         # Setup mocks
         mock_create_services.return_value = (MagicMock(), MagicMock(), MagicMock())
@@ -53,13 +53,20 @@ async def test_detect_severity_endpoint():
         }
 
         # Create a dummy image file
-        file_content = b"fake image content"
+        import io
+        from PIL import Image
+        img = Image.new('RGB', (100, 100), color='white')
+        img_byte_arr = io.BytesIO()
+        img.save(img_byte_arr, format='JPEG')
+        file_content = img_byte_arr.getvalue()
+
         files = {"image": ("test.jpg", file_content, "image/jpeg")}
 
         # Use TestClient as context manager to trigger lifespan (startup/shutdown)
         with TestClient(app) as client:
             # Call the endpoint
-            response = client.post("/api/detect-severity", files=files)
+            with patch('backend.utils.validate_uploaded_file'):
+                response = client.post("/detect-severity", files=files)
 
             # Assertions
             assert response.status_code == 200

@@ -128,7 +128,7 @@ def test_deduplication_api():
         assert distances == sorted(distances), "Issues should be sorted by distance"
 
         # Test issue creation with deduplication
-        with patch("backend.main.validate_uploaded_file", new_callable=AsyncMock):
+        with patch("backend.utils.validate_uploaded_file", new_callable=AsyncMock):
             with TestClient(app) as client:
                 response = client.post(
                     "/api/issues",

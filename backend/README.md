@@ -45,18 +45,20 @@ CORS_ORIGINS=https://your-frontend.netlify.app
 
 ## Running the Backend
 
+It is recommended to run the backend from the project root directory.
+
 ### Development
 ```bash
-cd backend
-pip install -r requirements.txt
-PYTHONPATH=backend python -m uvicorn main:app --reload
+# From project root
+pip install -r backend/requirements.txt
+PYTHONPATH=. python -m uvicorn backend.main:app --reload
 ```
 
 ### Production
 ```bash
-cd backend
-pip install -r requirements.txt
-PYTHONPATH=backend python -m uvicorn main:app --host 0.0.0.0 --port 8000
+# From project root
+pip install -r backend/requirements.txt
+PYTHONPATH=. python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000
 ```
 
 ## API Endpoints
@@ -70,16 +72,20 @@ PYTHONPATH=backend python -m uvicorn main:app --host 0.0.0.0 --port 8000
 ### Issues Management
 
 - `GET /api/issues/recent` - Get recent issues
-- `POST /api/issues` - Create new issue
-- `GET /api/issues/{id}` - Get specific issue
-- `PUT /api/issues/{id}/vote` - Vote on issue
-- `PUT /api/issues/{id}/status` - Update issue status
+- `POST /api/issues` - Create new issue (form-data: `image`, `description`, `category`, etc.)
+- `GET /api/issues/{id}` - Get specific issue details
+- `POST /api/issues/{id}/vote` - Upvote an issue
+- `POST /api/issues/{id}/verify` - Verify an issue (manual or AI-based with image)
+- `PUT /api/issues/status` - Update issue status (via secure reference ID)
 
-### AI Services
+### AI & Detection Services
 
 - `POST /api/chat` - Chat with civic assistant
-- `POST /api/detect/{detector_type}` - Run ML detection
-- `POST /api/analyze-urgency` - Analyze issue urgency
+- `POST /api/detect-pothole` - Detect potholes in an image
+- `POST /api/detect-garbage` - Detect garbage/waste
+- `POST /api/detect-vandalism` - Detect vandalism or graffiti
+- `POST /api/analyze-urgency` - AI analysis of issue urgency
+- `POST /api/generate-description` - Generate AI description for an image
 
 ### Utility Endpoints
 
@@ -101,10 +107,10 @@ PYTHONPATH=backend python -m uvicorn main:app --host 0.0.0.0 --port 8000
 
 ```bash
 # Install dependencies
-pip install -r requirements.txt
+pip install -r backend/requirements.txt
 
 # Set environment variables
-export PYTHONPATH=backend
+export PYTHONPATH=.
 export FRONTEND_URL=https://your-frontend.netlify.app
 export GEMINI_API_KEY=your_key
 export TELEGRAM_BOT_TOKEN=your_token

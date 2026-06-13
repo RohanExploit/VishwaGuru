@@ -91,6 +91,11 @@ async def _detect_clip_generic(image: Union[Image.Image, bytes], labels: List[st
 
 # --- Specific Detectors ---
 
+async def detect_vandalism_clip(image: Union[Image.Image, bytes], client: httpx.AsyncClient = None):
+    labels = ["graffiti", "vandalism", "broken window", "defaced property", "clean wall", "intact property"]
+    targets = ["graffiti", "vandalism", "broken window", "defaced property"]
+    return await _detect_clip_generic(image, labels, targets, client)
+
 async def detect_illegal_parking_clip(image: Union[Image.Image, bytes], client: httpx.AsyncClient = None):
     labels = ["illegal parking", "car blocking driveway", "double parked", "car on sidewalk", "legal parking", "empty street"]
     targets = ["illegal parking", "car blocking driveway", "double parked", "car on sidewalk"]
@@ -375,4 +380,142 @@ async def detect_depth_map(image: Union[Image.Image, bytes], client: httpx.Async
 
     except Exception as e:
         logger.error(f"Depth Estimation Error: {e}")
+        return {"error": str(e)}
+
+async def transcribe_audio(audio_bytes: bytes, client: httpx.AsyncClient = None):
+    """
+    Transcribes audio using OpenAI Whisper model via HF API.
+    """
+    try:
+        headers_bin = {"Authorization": f"Bearer {token}"} if token else {}
+        async def do_post(c):
+             return await c.post(WHISPER_API_URL, headers=headers_bin, content=audio_bytes, timeout=60.0)
+
+        if client:
+            response = await do_post(client)
+        else:
+            async with httpx.AsyncClient() as new_client:
+                response = await do_post(new_client)
+
+        if response.status_code == 200:
+            # Result: {"text": "..."}
+            data = response.json()
+            return data.get("text", "")
+        else:
+            logger.error(f"Whisper API Error: {response.status_code} - {response.text}")
+            return ""
+    except Exception as e:
+        logger.error(f"Audio Transcription Error: {e}")
+        return ""
+
+async def detect_waste_clip(image: Union[Image.Image, bytes], client: httpx.AsyncClient = None):
+    """
+    Classifies waste type for sorting.
+    """
+    labels = ["plastic bottle", "glass bottle", "metal can", "paper cardboard", "organic food waste", "electronic waste", "general trash"]
+
+    img_bytes = _prepare_image_bytes(image)
+    results = await query_hf_api(img_bytes, labels, client=client)
+
+    if isinstance(results, list) and len(results) > 0:
+        top = results[0]
+        return {
+            "waste_type": top.get('label'),
+            "confidence": top.get('score'),
+            "all_scores": results[:3]
+        }
+    return {"waste_type": "unknown", "confidence": 0}
+
+async def detect_civic_eye_clip(image: Union[Image.Image, bytes], client: httpx.AsyncClient = None):
+    """
+    Performs a comprehensive assessment of the scene.
+    """
+    # 1. Safety
+    safety_labels = ["safe area", "unsafe area", "dangerous situation", "secure environment"]
+
+    # 2. Cleanliness
+    clean_labels = ["clean street", "dirty street", "garbage piled up", "spotless area"]
+
+    # 3. Infrastructure
+    infra_labels = ["good infrastructure", "broken infrastructure", "potholes", "well maintained road"]
+
+    img_bytes = _prepare_image_bytes(image)
+
+    # We can do 3 separate calls or 1 big call. CLIP handles many labels well.
+    all_labels = safety_labels + clean_labels + infra_labels
+
+    results = await query_hf_api(img_bytes, all_labels, client=client)
+
+    if not isinstance(results, list):
+        return {"error": "Analysis failed"}
+
+    def get_top_category(res_list, category_labels):
+        relevant = [r for r in res_list if r.get('label') in category_labels]
+        if relevant:
+            return relevant[0]
+        return {"label": "unknown", "score": 0}
+
+    safety = get_top_category(results, safety_labels)
+    cleanliness = get_top_category(results, clean_labels)
+    infra = get_top_category(results, infra_labels)
+
+    return {
+        "safety": {"status": safety['label'], "score": safety['score']},
+        "cleanliness": {"status": cleanliness['label'], "score": cleanliness['score']},
+        "infrastructure": {"status": infra['label'], "score": infra['score']}
+    }
+
+async def detect_graffiti_art_clip(image: Union[Image.Image, bytes], client: httpx.AsyncClient = None):
+    """
+    Distinguish between artistic mural (legal) and graffiti vandalism (illegal).
+    """
+    labels = ["artistic mural", "street art", "graffiti tag", "vandalism", "clean wall"]
+    targets = ["artistic mural", "street art", "graffiti tag", "vandalism"]
+    return await _detect_clip_generic(image, labels, targets, client)
+
+async def detect_traffic_sign_clip(image: Union[Image.Image, bytes], client: httpx.AsyncClient = None):
+    """
+    Detects damaged or vandalized traffic signs.
+    """
+    labels = ["damaged traffic sign", "graffiti on sign", "bent sign", "faded sign", "clear traffic sign"]
+    targets = ["damaged traffic sign", "graffiti on sign", "bent sign", "faded sign"]
+    return await _detect_clip_generic(image, labels, targets, client)
+
+async def detect_abandoned_vehicle_clip(image: Union[Image.Image, bytes], client: httpx.AsyncClient = None):
+    """
+    Detects abandoned or wrecked vehicles.
+    """
+    labels = ["abandoned car", "rusted vehicle", "car with flat tires", "wrecked car", "normal parked car"]
+    targets = ["abandoned car", "rusted vehicle", "car with flat tires", "wrecked car"]
+    return await _detect_clip_generic(image, labels, targets, client)
+
+
+async def detect_facial_emotion(image: Union[Image.Image, bytes], client: httpx.AsyncClient = None):
+    """
+    Detects facial emotions in an image using Hugging Face's dima806/facial_emotions_image_detection model.
+    """
+    img_bytes = _prepare_image_bytes(image)
+
+    try:
+        headers_bin = {"Authorization": f"Bearer {token}"} if token else {}
+        async def do_post(c):
+             return await c.post(FACIAL_EMOTION_API_URL, headers=headers_bin, content=img_bytes, timeout=30.0)
+
+        if client:
+            response = await do_post(client)
+        else:
+            async with httpx.AsyncClient() as new_client:
+                response = await do_post(new_client)
+
+        if response.status_code == 200:
+            data = response.json()
+            if isinstance(data, list) and len(data) > 0:
+                return {"emotions": data[:3]} # Return top 3 emotions
+            return {"emotions": []}
+        else:
+            logger.error(f"Emotion API Error: {response.status_code} - {response.text}")
+            return {"error": "Failed to analyze emotions", "details": response.text}
+
+    except Exception as e:
+        logger.error(f"Emotion Estimation Error: {e}")
         return {"error": str(e)}

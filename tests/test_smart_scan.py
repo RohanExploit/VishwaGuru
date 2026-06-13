@@ -5,8 +5,9 @@ import pytest
 
 def test_smart_scan_endpoint():
     with TestClient(app) as client:
-        with patch("backend.main.detect_smart_scan_clip", new_callable=AsyncMock) as mock_detect:
-            mock_detect.return_value = {"label": "pothole", "score": 0.95}
+        # Patch the function where it is imported in the ROUTER
+        with patch("backend.routers.detection.detect_smart_scan_clip", new_callable=AsyncMock) as mock_detect:
+            mock_detect.return_value = {"category": "pothole", "confidence": 0.95}
 
             file_content = b"fakeimagebytes"
 
@@ -17,5 +18,5 @@ def test_smart_scan_endpoint():
 
             assert response.status_code == 200
             data = response.json()
-            assert data["label"] == "pothole"
-            assert data["score"] == 0.95
+            assert data["category"] == "pothole"
+            assert data["confidence"] == 0.95

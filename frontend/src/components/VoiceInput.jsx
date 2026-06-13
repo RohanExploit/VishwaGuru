@@ -72,6 +72,10 @@ const VoiceInput = ({ onTranscript }) => {
     }
   };
 
+  if (!isSupported) {
+      return null; // Or render a disabled state
+  }
+
   if (error) {
     return (
       <div className="flex flex-col items-end">

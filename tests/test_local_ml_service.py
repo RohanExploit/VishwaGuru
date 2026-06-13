@@ -26,7 +26,39 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
 
 class TestLocalMLService:
     """Tests for the local_ml_service module."""
-    
+
+    @pytest.fixture(autouse=True)
+    def mock_dependencies(self):
+        """Mock external dependencies."""
+        # Mock ultralytics and torch modules since they might not be installed
+        mock_ultralytics = MagicMock()
+        mock_yolo = MagicMock()
+        mock_ultralytics.YOLO = mock_yolo
+
+        mock_torch = MagicMock()
+        mock_torch.load = MagicMock()
+
+        with patch.dict(sys.modules, {'ultralytics': mock_ultralytics, 'torch': mock_torch}):
+
+            # Setup mock model
+            mock_model_instance = MagicMock()
+            mock_yolo.return_value = mock_model_instance
+
+            # Setup mock prediction results
+            mock_result = MagicMock()
+
+            # Create box mock separately to avoid keyword argument conflict with 'cls'
+            box_mock = MagicMock()
+            box_mock.xyxy = [MagicMock(cpu=lambda: MagicMock(numpy=lambda: MagicMock(tolist=lambda: [0, 0, 100, 100])))]
+            box_mock.conf = [MagicMock(cpu=lambda: MagicMock(numpy=lambda: 0.9))]
+            box_mock.cls = [MagicMock(cpu=lambda: MagicMock(numpy=lambda: 0))]
+
+            mock_result.boxes = [box_mock]
+            mock_result.names = {0: "person", 1: "car"}
+            mock_model_instance.predict.return_value = [mock_result]
+
+            yield
+
     @pytest.fixture
     def sample_image(self):
         """Create a sample test image."""
@@ -40,34 +72,23 @@ class TestLocalMLService:
         img_byte_arr.seek(0)
         return img_byte_arr.getvalue()
     
-    def test_local_clip_model_singleton(self):
-        """Test that LocalCLIPModel follows singleton pattern."""
-        from local_ml_service import LocalCLIPModel
+    def test_get_general_model_returns_instance(self):
+        """Test that get_general_model returns the model instance."""
+        from local_ml_service import get_general_model
         
-        model1 = LocalCLIPModel()
-        model2 = LocalCLIPModel()
+        model = get_general_model()
         
-        assert model1 is model2, "LocalCLIPModel should be a singleton"
+        assert model is not None
     
-    def test_get_local_model_returns_instance(self):
-        """Test that get_local_model returns a LocalCLIPModel instance."""
-        from local_ml_service import get_local_model, LocalCLIPModel
+    @pytest.mark.asyncio
+    async def test_detection_status_structure(self):
+        """Test that get_detection_status returns expected structure."""
+        from local_ml_service import get_detection_status
         
-        model = get_local_model()
+        status = await get_detection_status()
         
-        assert isinstance(model, LocalCLIPModel)
-    
-    def test_model_status_structure(self):
-        """Test that get_model_status returns expected structure."""
-        from local_ml_service import get_model_status
-        
-        status = get_model_status()
-        
-        assert "model_name" in status
-        assert "is_available" in status
-        assert "device" in status
-        assert "quantization_enabled" in status
-        assert "error" in status
+        assert "model_loaded" in status
+        assert "backend" in status
     
     @pytest.mark.asyncio
     async def test_detect_vandalism_local_returns_list(self, sample_image):
@@ -104,31 +125,6 @@ class TestLocalMLService:
         except Exception as e:
             pytest.skip(f"Model dependencies not available: {e}")
     
-    @pytest.mark.asyncio
-    async def test_detect_civic_issues_local_all(self, sample_image):
-        """Test unified detection function with 'all' issue type."""
-        from local_ml_service import detect_civic_issues_local
-        
-        try:
-            result = await detect_civic_issues_local(sample_image, issue_type="all")
-            
-            assert isinstance(result, dict)
-            assert "vandalism" in result
-            assert "infrastructure" in result
-            assert "flooding" in result
-        except Exception as e:
-            pytest.skip(f"Model dependencies not available: {e}")
-    
-    @pytest.mark.asyncio
-    async def test_check_local_model_health(self):
-        """Test health check function."""
-        from local_ml_service import check_local_model_health
-        
-        is_healthy, message = await check_local_model_health()
-        
-        assert isinstance(is_healthy, bool)
-        assert isinstance(message, str)
-        assert len(message) > 0
 
 
 class TestUnifiedDetectionService:
@@ -269,16 +265,16 @@ class TestIntegrationWithMain:
         img_byte_arr.seek(0)
         return img_byte_arr.getvalue()
     
-    def test_main_imports_unified_service(self):
-        """Test that main.py correctly imports the unified detection service."""
+    def test_detection_router_imports_unified_service(self):
+        """Test that detection router correctly imports the unified detection service."""
         try:
             # This should not raise an ImportError
-            from main import detect_vandalism, detect_flooding, detect_infrastructure
-            assert callable(detect_vandalism)
-            assert callable(detect_flooding)
-            assert callable(detect_infrastructure)
+            from backend.routers.detection import detect_vandalism_unified, detect_flooding_unified, detect_infrastructure_unified
+            assert callable(detect_vandalism_unified)
+            assert callable(detect_flooding_unified)
+            assert callable(detect_infrastructure_unified)
         except ImportError as e:
-            pytest.fail(f"Failed to import detection functions from main: {e}")
+            pytest.fail(f"Failed to import detection functions from detection router: {e}")
 
 
 if __name__ == "__main__":

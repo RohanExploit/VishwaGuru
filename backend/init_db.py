@@ -1,95 +1,211 @@
-from sqlalchemy import text
-from backend.database import engine
+import sys
+import os
+from pathlib import Path
+from sqlalchemy import text, inspect
 import logging
+
+# Add project root to path
+current_file = Path(__file__).resolve()
+backend_dir = current_file.parent
+repo_root = backend_dir.parent
+sys.path.insert(0, str(repo_root))
+
+from dotenv import load_dotenv
+load_dotenv()
+
+from backend.database import engine, Base
+from backend.models import *
 
 logger = logging.getLogger(__name__)
 
+def init_db():
+    print("Creating tables...")
+    Base.metadata.create_all(bind=engine)
+    print("Tables created.")
+
 def migrate_db():
     """
-    Perform database migrations.
-    This is a simple MVP migration strategy.
+    Perform database migrations using SQLAlchemy inspection.
+    This prevents transaction aborts in Postgres when columns already exist.
     """
     try:
-        with engine.connect() as conn:
-            # Check for upvotes column and add if missing
-            try:
-                # SQLite doesn't support IF NOT EXISTS in ALTER TABLE
-                # So we just try to add it and ignore error if it exists
-                conn.execute(text("ALTER TABLE issues ADD COLUMN upvotes INTEGER DEFAULT 0"))
-                logger.info("Migrated database: Added upvotes column.")
-            except Exception:
-                # Column likely already exists
-                pass
+        inspector = inspect(engine)
 
-            # Check if index exists or create it
-            try:
-                conn.execute(text("CREATE INDEX ix_issues_upvotes ON issues (upvotes)"))
-                logger.info("Migrated database: Added index on upvotes column.")
-            except Exception:
-                # Index likely already exists
-                pass
+        # Helper to check column existence
+        def column_exists(table, column):
+            if not inspector.has_table(table):
+                return False
+            columns = [c["name"] for c in inspector.get_columns(table)]
+            return column in columns
 
-            # Add index on created_at for faster sorting
-            try:
-                conn.execute(text("CREATE INDEX ix_issues_created_at ON issues (created_at)"))
-                logger.info("Migrated database: Added index on created_at column.")
-            except Exception:
-                # Index likely already exists
-                pass
+        # Helper to check index existence (by name)
+        def index_exists(table, index_name):
+            if not inspector.has_table(table):
+                return False
+            indexes = [i["name"] for i in inspector.get_indexes(table)]
+            return index_name in indexes
 
-            # Add index on status for faster filtering
-            try:
-                conn.execute(text("CREATE INDEX ix_issues_status ON issues (status)"))
-                logger.info("Migrated database: Added index on status column.")
-            except Exception:
-                # Index likely already exists
-                pass
+        with engine.begin() as conn:
+            # Issues Table Migrations
+            if inspector.has_table("issues"):
+                if not column_exists("issues", "upvotes"):
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN upvotes INTEGER DEFAULT 0"))
+                    logger.info("Added upvotes column to issues")
 
-            # Add latitude column
-            try:
-                conn.execute(text("ALTER TABLE issues ADD COLUMN latitude FLOAT"))
-                print("Migrated database: Added latitude column.")
-            except Exception:
-                pass
+                if not column_exists("issues", "latitude"):
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN latitude FLOAT"))
+                    logger.info("Added latitude column to issues")
 
-            # Add longitude column
-            try:
-                conn.execute(text("ALTER TABLE issues ADD COLUMN longitude FLOAT"))
-                print("Migrated database: Added longitude column.")
-            except Exception:
-                pass
+                if not column_exists("issues", "longitude"):
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN longitude FLOAT"))
+                    logger.info("Added longitude column to issues")
 
-            # Add index on latitude for faster spatial queries
-            try:
-                conn.execute(text("CREATE INDEX ix_issues_latitude ON issues (latitude)"))
-                logger.info("Migrated database: Added index on latitude column.")
-            except Exception:
-                # Index likely already exists
-                pass
+                if not column_exists("issues", "location"):
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN location VARCHAR"))
+                    logger.info("Added location column to issues")
 
-            # Add index on longitude for faster spatial queries
-            try:
-                conn.execute(text("CREATE INDEX ix_issues_longitude ON issues (longitude)"))
-                logger.info("Migrated database: Added index on longitude column.")
-            except Exception:
-                # Index likely already exists
-                pass
+                if not column_exists("issues", "action_plan"):
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN action_plan TEXT"))
+                    logger.info("Added action_plan column to issues")
 
-            # Add location column
-            try:
-                conn.execute(text("ALTER TABLE issues ADD COLUMN location VARCHAR"))
-                print("Migrated database: Added location column.")
-            except Exception:
-                pass
+                if not column_exists("issues", "integrity_hash"):
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN integrity_hash VARCHAR"))
+                    logger.info("Added integrity_hash column to issues")
 
-            # Add action_plan column
-            try:
-                conn.execute(text("ALTER TABLE issues ADD COLUMN action_plan TEXT"))
-                print("Migrated database: Added action_plan column.")
-            except Exception:
-                pass
+                if not column_exists("issues", "previous_integrity_hash"):
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN previous_integrity_hash VARCHAR"))
+                    logger.info("Added previous_integrity_hash column to issues")
 
-            conn.commit()
-            logger.info("Database migration check completed.")
+                # Indexes (using IF NOT EXISTS syntax where supported or check first)
+                if not index_exists("issues", "ix_issues_upvotes"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_issues_upvotes ON issues (upvotes)"))
+
+                if not index_exists("issues", "ix_issues_created_at"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_issues_created_at ON issues (created_at)"))
+
+                if not index_exists("issues", "ix_issues_status"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_issues_status ON issues (status)"))
+
+                if not index_exists("issues", "ix_issues_latitude"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_issues_latitude ON issues (latitude)"))
+
+                if not index_exists("issues", "ix_issues_longitude"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_issues_longitude ON issues (longitude)"))
+
+                if not index_exists("issues", "ix_issues_status_lat_lon"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_issues_status_lat_lon ON issues (status, latitude, longitude)"))
+
+                if not index_exists("issues", "ix_issues_user_email"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_issues_user_email ON issues (user_email)"))
+
+                if not index_exists("issues", "ix_issues_previous_integrity_hash"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_issues_previous_integrity_hash ON issues (previous_integrity_hash)"))
+
+                # Voice and Language Support Columns (Issue #291)
+                if not column_exists("issues", "submission_type"):
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN submission_type VARCHAR DEFAULT 'text'"))
+                    logger.info("Added submission_type column to issues")
+
+                if not column_exists("issues", "original_language"):
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN original_language VARCHAR"))
+                    logger.info("Added original_language column to issues")
+
+                if not column_exists("issues", "original_text"):
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN original_text TEXT"))
+                    logger.info("Added original_text column to issues")
+
+                if not column_exists("issues", "transcription_confidence"):
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN transcription_confidence FLOAT"))
+                    logger.info("Added transcription_confidence column to issues")
+
+                if not column_exists("issues", "manual_correction_applied"):
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN manual_correction_applied BOOLEAN DEFAULT FALSE"))
+                    logger.info("Added manual_correction_applied column to issues")
+
+                if not column_exists("issues", "audio_file_path"):
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN audio_file_path VARCHAR"))
+                    logger.info("Added audio_file_path column to issues")
+
+            # Grievances Table Migrations
+            if inspector.has_table("grievances"):
+                if not column_exists("grievances", "latitude"):
+                    conn.execute(text("ALTER TABLE grievances ADD COLUMN latitude FLOAT"))
+                    logger.info("Added latitude column to grievances")
+
+                if not column_exists("grievances", "longitude"):
+                    conn.execute(text("ALTER TABLE grievances ADD COLUMN longitude FLOAT"))
+                    logger.info("Added longitude column to grievances")
+
+                if not column_exists("grievances", "address"):
+                    conn.execute(text("ALTER TABLE grievances ADD COLUMN address VARCHAR"))
+                    logger.info("Added address column to grievances")
+
+                if not column_exists("grievances", "issue_id"):
+                    conn.execute(text("ALTER TABLE grievances ADD COLUMN issue_id INTEGER"))
+                    logger.info("Added issue_id column to grievances")
+
+                # Indexes
+                if not index_exists("grievances", "ix_grievances_latitude"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_grievances_latitude ON grievances (latitude)"))
+
+                if not index_exists("grievances", "ix_grievances_longitude"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_grievances_longitude ON grievances (longitude)"))
+
+                if not index_exists("grievances", "ix_grievances_status_lat_lon"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_grievances_status_lat_lon ON grievances (status, latitude, longitude)"))
+
+                if not index_exists("grievances", "ix_grievances_status_jurisdiction"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_grievances_status_jurisdiction ON grievances (status, current_jurisdiction_id)"))
+
+                if not index_exists("grievances", "ix_grievances_issue_id"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_grievances_issue_id ON grievances (issue_id)"))
+
+                if not index_exists("grievances", "ix_grievances_assigned_authority"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_grievances_assigned_authority ON grievances (assigned_authority)"))
+
+                if not index_exists("grievances", "ix_grievances_category_status"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_grievances_category_status ON grievances (category, status)"))
+
+                if not column_exists("grievances", "integrity_hash"):
+                    conn.execute(text("ALTER TABLE grievances ADD COLUMN integrity_hash VARCHAR"))
+                    logger.info("Added integrity_hash column to grievances")
+
+                if not column_exists("grievances", "previous_integrity_hash"):
+                    conn.execute(text("ALTER TABLE grievances ADD COLUMN previous_integrity_hash VARCHAR"))
+                    logger.info("Added previous_integrity_hash column to grievances")
+
+                if not index_exists("grievances", "ix_grievances_previous_integrity_hash"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_grievances_previous_integrity_hash ON grievances (previous_integrity_hash)"))
+
+            # Field Officer Visits Table (Issue #288)
+            # This table is newly created for field officer check-in system
+            if not inspector.has_table("field_officer_visits"):
+                logger.info("Creating field_officer_visits table...")
+                # Use conn.execute to stay within the transaction
+                Base.metadata.tables['field_officer_visits'].create(bind=conn)
+                logger.info("Created field_officer_visits table")
+            
+            # Indexes for field_officer_visits (run regardless of table creation)
+            if inspector.has_table("field_officer_visits"):
+                if not index_exists("field_officer_visits", "ix_field_officer_visits_issue_id"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_field_officer_visits_issue_id ON field_officer_visits (issue_id)"))
+                
+                if not index_exists("field_officer_visits", "ix_field_officer_visits_officer_email"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_field_officer_visits_officer_email ON field_officer_visits (officer_email)"))
+                
+                if not index_exists("field_officer_visits", "ix_field_officer_visits_status"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_field_officer_visits_status ON field_officer_visits (status)"))
+                
+                if not index_exists("field_officer_visits", "ix_field_officer_visits_check_in_time"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_field_officer_visits_check_in_time ON field_officer_visits (check_in_time)"))
+
+            logger.info("Database migration check completed successfully.")
+
     except Exception as e:
-        logger.error(f"Database migration error: {e}")
+        logger.error(f"Database migration error: {e}", exc_info=True)
+        # Re-raise to alert deployment failure if migration is critical
+        # raise e
+
+if __name__ == "__main__":
+    init_db()
+    migrate_db()

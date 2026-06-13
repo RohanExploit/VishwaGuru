@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - Aqlli fuqarolik muammolarini xabar qiluvchi",
+        "subtitle": "Jamiyatingizdagi fuqarolik muammolarini xabar qiling va kuzatib boring",
+        "privacyActive": "Sun'iy intellektga asoslangan maxfiylik himoyasi faol",
+        "communityImpact": "Jamiyatga ta'siri",
+        "makingChange": "Birgalikda biz o'zgarishlar qilyapmiz!",
+        "issuesSolved": "Hal qilingan muammolar",
+        "smartScanner": "Smart City skaneri",
+        "aiPoweredDetection": "Sun'iy intellekt orqali tezkor aniqlash",
+        "categories": {
+            "roadTraffic": "Yo'l va transport",
+            "environmentSafety": "Atrof-muhit va xavfsizlik",
+            "civicServices": "Fuqarolik xizmatlari",
+            "management": "Boshqaruv"
+        },
+        "issues": {
+            "pothole": "Yo'ldagi chuqur",
+            "blockedRoad": "Yopilgan yo'l",
+            "illegalParking": "Noqonuniy to'xtash",
+            "darkStreet": "Qorong'i ko'cha",
+            "trafficSign": "Yo'l belgisi",
+            "abandonedVehicle": "Tashlab ketilgan transport",
+            "garbage": "Chiqindi",
+            "flood": "Suv toshqini",
+            "fireSmoke": "Yong'in/Tutun",
+            "treeHazard": "Xavfli daraxt",
+            "strayAnimal": "Daydi hayvon",
+            "pestControl": "Zararkunandalarga qarshi kurash",
+            "reportIssue": "Muammoni xabar qilish",
+            "brokenInfra": "Buzilgan infratuzilma",
+            "graffiti": "Graffiti",
+            "findMLA": "Vakilni topish",
+            "grievanceManagement": "Shikoyatlarni boshqarish",
+            "viewStats": "Statistikani ko'rish",
+            "leaderboard": "Reyting",
+            "responsibilityMap": "Mas'uliyat xaritasi",
+            "noise": "Shovqin",
+            "crowd": "Odamlar ko'pligi",
+            "waterLeak": "Suv sizib chiqishi",
+            "waste": "Chiqindi saralovchi",
+            "civicEye": "Fuqarolik ko'zi",
+            "myReports": "Mening xabarlarim",
+            "analyzeGrievance": "Shikoyatni tahlil qilish"
+        },
+        "tools": {
+            "whoIsResponsible": "Kim mas'ul?",
+            "topReporters": "Eng yaxshi xabarchilar",
+            "cameraCheck": "Kamerani tekshirish"
+        },
+        "activity": {
+            "communityActivity": "Jamiyat faoliyati",
+            "liveFeed": "Jonli efir",
+            "noActivity": "Ko'rsatish uchun yangi faoliyat yo'q.",
+            "loadMore": "Ko'proq yuklash",
+            "verify": "Tasdiqlash"
+        },
+        "stats": {
+            "totalImpact": "Umumiy ta'sir",
+            "issuesResolved": "Hal qilingan muammolar",
+            "activeUsers": "Faol foydalanuvchilar"
+        },
+        "landing": {
+            "empowering": "Fuqarolar imkoniyatlarini kengaytirish",
+            "governance": "yaxshi boshqaruv uchun",
+            "subtitle": "Fuqarolik muammolarini xabar qiling va SI tomonidan yaratilgan yechimlarni oling. Telegram orqali rasmiylar bilan bog'laning.",
+            "cta": "Muammoni xabar qilish",
+            "cards": {
+                "reportCitizens": "Fuqarolar bilan birga xabar qiling",
+                "generatedCivic": "yaratilgan fuqarolik boshqaruvi",
+                "govServices": "Davlat xizmatlari",
+                "questionGov": "Hukumatga savol bering",
+                "govDesc": "Savollar yuboring, shaffoflikni talab qiling va rasmiylardan hisobot so'rang",
+                "communityAction": "Jamiyat harakati",
+                "joinMovement": "Harakatga qo'shiling"
+            },
+            "features": {
+                "publicTrust": "Jamoatchilik ishonchi",
+                "ethics": "& Etika",
+                "civicIssues": "Fuqarolik muammolari",
+                "reportProblems": "Muammolarni xabar qiling",
+                "voiceVote": "O'z ovozingizni bildiring",
+                "shareIdeas": "Yaxshiroq siyosat uchun g'oyalar bilan bo'lishing",
+                "aiDemocracy": "Demokratiya uchun SI",
+                "civicActions": "& Fuqarolik harakatlari",
+                "aiDesc": "Shaffof boshqaruv va tezkor yechimlar uchun texnologiyadan foydalanish.",
+                "smartAnalysis": "Aqlli tahlil",
+                "aiInsights": "SI asosidagi tushunchalar",
+                "citizenCount": "10k+ faol fuqarolar",
+                "secureSafe": "Xavfsiz va ishonchli",
+                "verifiedReports": "Tasdiqlangan xabarlar",
+                "quickAction": "Tezkor harakat",
+                "responseTime": "24 soatlik javob vaqti"
+            }
+        }
+    },
+    "common": {
+        "loading": "Yuklanmoqda...",
+        "error": "Xato",
+        "submit": "Yuborish",
+        "cancel": "Bekor qilish",
+        "yes": "Ha",
+        "no": "Yo'q",
+        "back": "Orqaga"
+    }
+}

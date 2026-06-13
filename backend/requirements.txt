@@ -1,11 +1,11 @@
 fastapi
 uvicorn
+python-dotenv
 sqlalchemy
 python-telegram-bot
 google-generativeai
 python-multipart
 psycopg2-binary
-async-lru
 ultralyticsplus==0.0.28
 ultralytics
 opencv-python-headless
@@ -21,6 +21,15 @@ firebase-functions
 firebase-admin
 a2wsgi
 # Spatial deduplication dependencies
-geopy
 scikit-learn
 numpy
+pytest
+python-jose[cryptography]
+passlib[bcrypt]
+# Voice and Language Support (Issue #291)
+SpeechRecognition
+pydub
+googletrans==4.0.2
+langdetect
+indic-nlp-library
+async_lru
