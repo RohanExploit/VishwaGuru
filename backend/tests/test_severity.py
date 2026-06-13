@@ -35,8 +35,7 @@ sys.modules['telegram.ext'] = mock_telegram.ext
 
 from backend.main import app
 
-@pytest.mark.asyncio
-async def test_detect_severity_endpoint():
+def test_detect_severity_endpoint():
     # Mock AI services initialization to prevent startup failure
     with patch('backend.main.create_all_ai_services') as mock_create_services, \
          patch('backend.main.initialize_ai_services') as mock_init_services, \
@@ -66,7 +65,7 @@ async def test_detect_severity_endpoint():
         with TestClient(app) as client:
             # Call the endpoint
             with patch('backend.utils.validate_uploaded_file'):
-                response = client.post("/detect-severity", files=files)
+                response = client.post("/api/detect-severity", files=files)
 
             # Assertions
             assert response.status_code == 200

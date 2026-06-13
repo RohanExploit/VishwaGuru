@@ -543,6 +543,8 @@ class PublicFieldOfficerVisitResponse(BaseModel):
     status: str = Field(..., description="Visit status")
     verified_by: Optional[str] = Field(None, description="Verified by")
     verified_at: Optional[datetime] = Field(None, description="Verification timestamp")
+    visit_hash: Optional[str] = Field(None, description="Integrity hash")
+    previous_visit_hash: Optional[str] = Field(None, description="Previous visit hash")
     is_public: bool = Field(..., description="Public visibility")
     created_at: datetime = Field(..., description="Creation timestamp")
 
