@@ -19,13 +19,13 @@ sample_text = (
 def benchmark(iterations=10000):
     start_time = time.perf_counter()
     for _ in range(iterations):
-        priority_engine._calculate_urgency(sample_text, 10)
+        priority_engine.calculate_urgency(sample_text, 10)
     end_time = time.perf_counter()
 
     total_time = end_time - start_time
     avg_time_ms = (total_time / iterations) * 1000
 
-    print(f"Benchmark: _calculate_urgency")
+    print(f"Benchmark: calculate_urgency")
     print(f"Iterations: {iterations}")
     print(f"Total time: {total_time:.4f} seconds")
     print(f"Average time per call: {avg_time_ms:.4f} ms")
@@ -40,7 +40,7 @@ if __name__ == "__main__":
         priority_engine._regex_cache.append((re.compile(pattern), weight, pattern, []))
 
     # Warm up
-    priority_engine._calculate_urgency(sample_text, 10)
+    priority_engine.calculate_urgency(sample_text, 10)
 
     print("--- Running Unoptimized Benchmark ---")
     benchmark()
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     pr = cProfile.Profile()
     pr.enable()
     for _ in range(5000):
-        priority_engine._calculate_urgency(sample_text, 10)
+        priority_engine.calculate_urgency(sample_text, 10)
     pr.disable()
     s = io.StringIO()
     ps = pstats.Stats(pr, stream=s).sort_stats('cumulative')
