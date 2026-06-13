@@ -50,6 +50,7 @@ class TrendAnalyzer:
         """
         # Batch join then lower() is faster
         text = " ".join([issue.description for issue in issues if issue.description]).lower()
+
         # Simple tokenization: remove punctuation and split by whitespace
         # Optimized: pre-compiled \w+ avoids \b boundaries overhead while being functionally equivalent
         words = self._word_re.findall(text)
