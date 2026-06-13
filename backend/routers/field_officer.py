@@ -5,7 +5,6 @@ Issue #288: Field Officer Check-In System With Location Verification
 """
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Response
-from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case
 from typing import List, Optional
@@ -338,11 +337,8 @@ async def upload_visit_images(
             file_path = os.path.join(VISIT_IMAGES_DIR, safe_filename)
             
             # Save file
-            def _save_file():
-                with open(file_path, 'wb') as f:
-                    f.write(content)
-
-            await run_in_threadpool(_save_file)
+            with open(file_path, 'wb') as f:
+                f.write(content)
             
             # Store relative path
             relative_path = os.path.join("data", "visit_images", safe_filename)
@@ -441,23 +437,38 @@ def get_visit_statistics(db: Session = Depends(get_db)):
         if cached_json:
             return Response(content=cached_json, media_type="application/json")
 
-        # Optimized: Use a single aggregate query to fetch all statistics in one database roundtrip
-        # This reduces database overhead and network latency by avoiding multiple roundtrips and table scans.
-        stats = db.query(
-            func.count(FieldOfficerVisit.id).label('total_visits'),
+        # Optimized: Use a single aggregate query to fetch multiple statistics in one database roundtrip
+        agg_stats = db.query(
             func.count(func.distinct(FieldOfficerVisit.officer_email)).label('unique_officers'),
-            func.avg(FieldOfficerVisit.distance_from_site).label('avg_distance'),
-            func.sum(case([(FieldOfficerVisit.verified_at.isnot(None), 1)], else_=0)).label('verified_visits'),
-            func.sum(case([(FieldOfficerVisit.within_geofence == True, 1)], else_=0)).label('within_geofence_count'),
-            func.sum(case([(FieldOfficerVisit.within_geofence == False, 1)], else_=0)).label('outside_geofence_count')
+            func.avg(FieldOfficerVisit.distance_from_site).label('avg_distance')
         ).first()
 
-        total_visits = stats.total_visits or 0
-        verified_visits = int(stats.verified_visits or 0)
-        within_geofence_count = int(stats.within_geofence_count or 0)
-        outside_geofence_count = int(stats.outside_geofence_count or 0)
-        unique_officers = stats.unique_officers or 0
-        average_distance = stats.avg_distance
+        counts = db.query(
+            FieldOfficerVisit.verified_at.isnot(None).label("is_verified"),
+            FieldOfficerVisit.within_geofence,
+            func.count(FieldOfficerVisit.id)
+        ).group_by(
+            FieldOfficerVisit.verified_at.isnot(None),
+            FieldOfficerVisit.within_geofence
+        ).all()
+
+        total_visits = 0
+        verified_visits = 0
+        within_geofence_count = 0
+        outside_geofence_count = 0
+
+        for is_verified, within_geofence, count in counts:
+            c = count or 0
+            total_visits += c
+            if is_verified:
+                verified_visits += c
+            if within_geofence is True:
+                within_geofence_count += c
+            elif within_geofence is False:
+                outside_geofence_count += c
+
+        unique_officers = agg_stats.unique_officers or 0
+        average_distance = agg_stats.avg_distance
         
         # Round to 2 decimals if not None
         if average_distance is not None:

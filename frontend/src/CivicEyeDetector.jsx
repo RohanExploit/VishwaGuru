@@ -18,13 +18,9 @@ const CivicEyeDetector = ({ onBack }) => {
     const startCamera = async () => {
         setError(null);
         try {
-            let mediaStream;
-            try {
-                mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-            } catch (fallbackErr) {
-                console.warn("Primary camera access failed, trying fallback:", fallbackErr);
-                mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
-            }
+            const mediaStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment' }
+            });
             setStream(mediaStream);
             if (videoRef.current) {
                 videoRef.current.srcObject = mediaStream;

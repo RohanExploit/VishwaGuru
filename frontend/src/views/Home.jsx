@@ -7,7 +7,7 @@ import {
   AlertTriangle, MapPin, Search, Activity, Camera, Trash2, ThumbsUp, Brush,
   Droplets, Zap, Truck, Flame, Dog, XCircle, Lightbulb, TreeDeciduous, Bug,
   Scan, ChevronRight, LayoutGrid, Shield, Leaf, Building, CheckCircle, Trophy, Monitor,
-  Volume2, Users, Waves, Accessibility, Siren, Recycle, Eye, ChevronUp, Signpost, Car, Brain
+  Volume2, Users, Waves, Accessibility, Siren, Recycle, Eye, ChevronUp, Signpost, Car
 } from 'lucide-react';
 
 const CameraCheckModal = ({ onClose }) => {
@@ -395,22 +395,6 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loa
           {/* Side Tools - Minimalist Glass Cards */}
           <div className="xl:col-span-4 space-y-6">
             <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.3em] px-2 mb-2">Auxiliary Systems</h3>
-
-            <motion.button
-              whileHover={{ scale: 1.02, x: 5 }}
-              onClick={() => navigate('/grievance-analysis')}
-              className="w-full flex items-center gap-6 bg-blue-600 rounded-[2rem] p-8 text-white shadow-2xl shadow-blue-500/20 group overflow-hidden relative"
-            >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-              <div className="p-4 bg-white/20 rounded-2xl">
-                <Activity size={28} />
-              </div>
-              <div className="text-left">
-                <span className="block text-xl font-black leading-tight">Grievance Classifier</span>
-                <span className="text-[10px] font-black uppercase tracking-widest opacity-80 mt-1 block">HF Text Gen AI</span>
-              </div>
-            </motion.button>
-
             <motion.button
               whileHover={{ scale: 1.02, x: 5 }}
               onClick={() => navigate('/emotion')}
@@ -484,20 +468,6 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loa
               <div className="text-left">
                 <span className="block text-xl font-black leading-tight">{t('home.tools.cameraCheck')}</span>
                 <span className="text-[10px] font-black uppercase tracking-widest opacity-80 mt-1 block">Diagnostics Hub</span>
-              </div>
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.02, x: 5 }}
-              onClick={() => setView('hf-vision')}
-              className="w-full flex items-center gap-6 bg-indigo-600 rounded-[2rem] p-8 text-white shadow-2xl shadow-indigo-500/20 group overflow-hidden relative mt-6"
-            >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-              <div className="p-4 bg-white/20 rounded-2xl">
-                <Brain size={28} />
-              </div>
-              <div className="text-left">
-                <span className="block text-xl font-black leading-tight">HF Vision Explorer</span>
-                <span className="text-[10px] font-black uppercase tracking-widest opacity-80 mt-1 block">Zero-Shot Image AI</span>
               </div>
             </motion.button>
           </div>

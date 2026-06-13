@@ -16,21 +16,12 @@ const GrievanceAnalysis = ({ onBack }) => {
     setResult(null);
 
     try {
-      const prompt = `Classify the following public grievance into one of these departments: Road Maintenance, Waste Management, Electricity, Water Supply, Public Safety, or Other. Respond with ONLY the department name.
-
-Grievance: ${text}
-
-Department:`;
-      const response = await fetch(`${API_URL}/api/hf/generate`, {
+      const response = await fetch(`${API_URL}/api/classify-grievance`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          prompt: prompt,
-          max_new_tokens: 10,
-          temperature: 0.1
-        }),
+        body: JSON.stringify({ text }),
       });
 
       if (!response.ok) {
@@ -38,7 +29,7 @@ Department:`;
       }
 
       const data = await response.json();
-      setResult(data.text.trim());
+      setResult(data.category);
     } catch (err) {
       setError('Failed to classify grievance. Please try again.');
       console.error(err);

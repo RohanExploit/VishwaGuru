@@ -11,34 +11,19 @@ const EmotionDetector = ({ onBack }) => {
     const startCamera = async () => {
         setError(null);
         try {
-            let stream;
-            try {
-                stream = await navigator.mediaDevices.getUserMedia({ video: {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: {
                     facingMode: 'user', // Front camera for emotions
                     width: { ideal: 640 },
                     height: { ideal: 480 }
-                } });
-            } catch (fallbackErr) {
-                console.warn("Primary camera access failed, trying fallback:", fallbackErr);
-                stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            }
+                }
+            });
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
             }
         } catch (err) {
-            console.warn("Strict camera access failed, trying fallback:", err);
-            try {
-                // Fallback to any available video camera
-                const fallbackStream = await navigator.mediaDevices.getUserMedia({
-                    video: true
-                });
-                if (videoRef.current) {
-                    videoRef.current.srcObject = fallbackStream;
-                }
-            } catch (fallbackErr) {
-                setError("Could not access camera: " + fallbackErr.message);
-                setIsDetecting(false);
-            }
+            setError("Could not access camera: " + err.message);
+            setIsDetecting(false);
         }
     };
 

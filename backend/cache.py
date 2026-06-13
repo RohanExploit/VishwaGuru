@@ -178,18 +178,14 @@ recent_issues_cache = ThreadSafeCache(ttl=300, max_size=20)  # 5 minutes TTL, ma
 nearby_issues_cache = ThreadSafeCache(ttl=60, max_size=100)  # 1 minute TTL, max 100 entries
 user_upload_cache = ThreadSafeCache(ttl=3600, max_size=1000)  # 1 hour TTL for upload limits
 blockchain_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=1)
-follower_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=1)
 grievance_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=1)
-follower_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=1)
 resolution_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=1)
 token_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=1)
 visit_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=2)
 audit_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=2)
-follower_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=1)
 evidence_audit_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=1)
 closure_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=1)
 user_issues_cache = ThreadSafeCache(ttl=300, max_size=50) # 5 minutes TTL
 grievance_list_cache = ThreadSafeCache(ttl=300, max_size=50)
 escalation_stats_cache = ThreadSafeCache(ttl=300, max_size=10)
 visit_stats_cache = ThreadSafeCache(ttl=300, max_size=10)
-follower_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=1)

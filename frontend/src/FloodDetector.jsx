@@ -9,7 +9,6 @@ const FloodDetector = () => {
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
-  const [cameraError, setCameraError] = useState(null);
 
   const capture = useCallback(() => {
     const imageSrc = webcamRef.current.getScreenshot();
@@ -53,12 +52,6 @@ const FloodDetector = () => {
         <Droplets className="text-cyan-600"/> Flooding Detector
       </h2>
 
-      {cameraError && (
-          <div className="w-full max-w-md bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
-              <strong className="font-bold">Camera Error:</strong>
-              <span className="block sm:inline"> {cameraError}</span>
-          </div>
-      )}
       <div className="relative w-full max-w-md aspect-video bg-black rounded-lg overflow-hidden shadow-lg">
         {!image ? (
           <Webcam
@@ -66,7 +59,7 @@ const FloodDetector = () => {
             ref={webcamRef}
             screenshotFormat="image/jpeg"
             className="w-full h-full object-cover"
-            videoConstraints={{ facingMode: "environment" }} onUserMediaError={(e) => { console.warn("Primary camera access failed:", e); }}
+            videoConstraints={{ facingMode: "environment" }}
           />
         ) : (
           <img src={image} alt="Captured" className="w-full h-full object-cover" />

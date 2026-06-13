@@ -31,8 +31,6 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
   const [describing, setDescribing] = useState(false);
   const [urgencyAnalysis, setUrgencyAnalysis] = useState(null);
   const [analyzingUrgency, setAnalyzingUrgency] = useState(false);
-  const [sentimentAnalysis, setSentimentAnalysis] = useState(null);
-  const [analyzingSentiment, setAnalyzingSentiment] = useState(false);
   const [depthMap, setDepthMap] = useState(null);
   const [analyzingDepth, setAnalyzingDepth] = useState(false);
   const [smartCategory, setSmartCategory] = useState(null);
@@ -45,7 +43,6 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
   const [checkingNearby, setCheckingNearby] = useState(false);
   const [showNearbyModal, setShowNearbyModal] = useState(false);
   const [showWebcam, setShowWebcam] = useState(false);
-  const [cameraError, setCameraError] = useState(null);
   const webcamRef = React.useRef(null);
 
   const captureWebcam = React.useCallback(() => {
@@ -82,39 +79,22 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
   const analyzeUrgency = async () => {
     if (!formData.description || formData.description.length < 5) return;
     setAnalyzingUrgency(true);
-    setAnalyzingSentiment(true);
     try {
-      const [urgencyRes, sentimentRes] = await Promise.all([
-        fetch(`${API_URL}/api/analyze-urgency`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ description: formData.description }),
-        }).catch(() => null),
-        fetch(`${API_URL}/api/hf/sentiment`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ text: formData.description }),
-        }).catch(() => null)
-      ]);
-
-      if (urgencyRes && urgencyRes.ok) {
-        const data = await urgencyRes.json();
+      const response = await fetch(`${API_URL}/api/analyze-urgency`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ description: formData.description }),
+      });
+      if (response.ok) {
+        const data = await response.json();
         setUrgencyAnalysis(data);
       }
-
-      if (sentimentRes && sentimentRes.ok) {
-        const data = await sentimentRes.json();
-        setSentimentAnalysis(data);
-      }
     } catch (e) {
-      console.error("Text analysis failed", e);
+      console.error("Urgency analysis failed", e);
     } finally {
       setAnalyzingUrgency(false);
-      setAnalyzingSentiment(false);
     }
   };
 
@@ -587,18 +567,6 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
                     {urgencyAnalysis.urgency} Priority Detected
                   </motion.div>
                 )}
-                {sentimentAnalysis && !analyzingSentiment && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className={`px-4 py-2 rounded-xl text-xs font-black border flex items-center gap-2 shadow-sm ${sentimentAnalysis.sentiment === 'negative' ? 'bg-rose-50 border-rose-100 text-rose-700 dark:bg-rose-900/20 dark:border-rose-900/50 dark:text-rose-400' :
-                      sentimentAnalysis.sentiment === 'positive' ? 'bg-emerald-50 border-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-900/50 dark:text-emerald-400' :
-                        'bg-blue-50 border-blue-100 text-blue-700 dark:bg-blue-900/20 dark:border-blue-900/50 dark:text-blue-400'
-                      }`}
-                  >
-                    Sentiment: <span className="capitalize">{sentimentAnalysis.sentiment}</span> ({(sentimentAnalysis.confidence * 100).toFixed(0)}%)
-                  </motion.div>
-                )}
                 {formData.image && (
                   <button
                     type="button"
@@ -684,7 +652,7 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
                       audio={false}
                       ref={webcamRef}
                       screenshotFormat="image/jpeg"
-                      videoConstraints={{ facingMode: "environment" }} onUserMediaError={(e) => { console.warn("Primary camera access failed:", e); }}
+                      videoConstraints={{ facingMode: "environment" }}
                       className="w-full object-cover aspect-[3/4]"
                     />
                     <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent flex justify-center gap-6">
