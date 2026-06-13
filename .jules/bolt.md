@@ -69,11 +69,6 @@
 ## 2026-03-05 - Transaction Consolidation with Blockchain Chaining
 **Learning:** Consolidating multiple database operations into a single transaction reduces disk I/O and latency. However, when using blockchain-style hash chaining with in-memory caches, global caches MUST NOT be updated until after a successful commit to prevent poisoning on rollbacks. Intermediate chaining during the transaction must be handled manually or via a separate local tracking mechanism.
 **Action:** Consolidate multiple `db.commit()` calls into one using `db.flush()` for intermediate IDs. Track generated hashes locally and update global `ThreadSafeCache` only after `db.commit()` succeeds.
-
-## 2026-04-17 - ORM Counting vs func.count().scalar()
-**Learning:** Using `db.query(Model).filter(...).count()` can be slower and have more ORM overhead than `db.query(func.count(Model.id)).filter(...).scalar() or 0` or doing an early `.first()` exit.
-**Action:** When counting records or verifying existence, prefer early `.first()` exits combined with `func.count().scalar()` for performance in high-traffic APIs.
-
-## 2026-05-18 - Single Query Aggregation instead of Group By and Python Dicts
-**Learning:** For performance optimization in database queries, using a `group_by` query and then manually processing the results into a Python dictionary introduces unnecessary application-level computation. It's more efficient to let the database do the aggregation directly.
-**Action:** Prefer using SQLAlchemy's `func.sum(case(...))` within a single query to aggregate multiple metrics (like status counts) instead of using `group_by` with Python-level dictionary processing.
+## 2024-05-18 - Replacing .count() with func.count()
+**Learning:** Using `db.query(Model).filter(...).count()` in SQLAlchemy involves unnecessary ORM overhead or subqueries compared to `db.query(func.count(Model.id)).filter(...).scalar() or 0`.
+**Action:** Replace `.count()` with `func.count(Model.id)` combined with `.scalar() or 0` to optimize database count queries. Ensure `func` is imported from `sqlalchemy`.

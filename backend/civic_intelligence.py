@@ -192,7 +192,6 @@ class CivicIntelligenceEngine:
         last_24h = now - timedelta(hours=24)
 
         # Count resolutions in last 24h
-        # Optimized: Use func.count() and .scalar() to avoid ORM overhead
         resolved_count = db.query(func.count(Issue.id)).filter(
             Issue.resolved_at >= last_24h
         ).scalar() or 0

@@ -148,20 +148,15 @@ def test_civic_intelligence_run(mock_listdir, mock_json_dump, mock_file_open, mo
     mock_query_grievance = MagicMock()
 
     # Define query side effects
-    def query_side_effect(*args):
-        if len(args) > 0:
-            model = args[0]
-            # Handle column projection (InstrumentedAttribute) by checking class_
-            class_name = getattr(model, 'class_', model).__name__ if hasattr(model, 'class_') else getattr(model, '__name__', '')
-
-            if class_name == 'Issue':
-                return mock_query_issues
-            elif hasattr(model, 'name') and model.name == 'count':
-                return mock_query_issues
-            elif class_name == 'EscalationAudit':
-                return mock_query_upgrades
-            elif class_name == 'Grievance':
-                return mock_query_grievance
+    def query_side_effect(model):
+        if hasattr(model, 'name') and model.name == 'count':
+            return mock_query_issues
+        if model == Issue:
+            return mock_query_issues
+        elif model == EscalationAudit:
+            return mock_query_upgrades
+        elif model == Grievance:
+            return mock_query_grievance
         return MagicMock()
 
     mock_session.query.side_effect = query_side_effect
@@ -172,7 +167,7 @@ def test_civic_intelligence_run(mock_listdir, mock_json_dump, mock_file_open, mo
     # Issue Query Chain
     # First call is for fetching issues_24h, second for resolved_count?
     # Actually code calls: db.query(Issue).filter(Issue.created_at >= last_24h).all()
-    # And: db.query(Issue).filter(Issue.resolved_at >= last_24h).count()
+    # And: db.query(func.count(Issue.id)).filter(Issue.resolved_at >= last_24h).scalar()
 
     # To differentiate, we can check the filter call or just return appropriate mocks
     # Let's just make sure it returns something valid for both
