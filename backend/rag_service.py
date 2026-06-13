@@ -48,8 +48,6 @@ class CivicRAG:
             content = f"{title} {text}"
             content_tokens = self._tokenize(content)
 
-            content_tokens = self._tokenize(content)
-
             self._prepared_policies.append({
                 'title_tokens': self._tokenize(title),
                 'content_tokens': content_tokens,
@@ -84,7 +82,6 @@ class CivicRAG:
         if not len_query:
             return None
 
-        query_len = len(query_tokens)
         best_score = 0.0
         best_formatted = None
 
@@ -95,13 +92,10 @@ class CivicRAG:
             if query_tokens.isdisjoint(policy_tokens):
                 continue
 
-            # Optimized: Early exit using isdisjoint which is faster than computing intersection
-            if query_tokens.isdisjoint(policy_tokens):
-                continue
-
             # Jaccard Similarity
             # Optimization 2: Calculate intersection
-            intersection_len = len(query_tokens.intersection(policy_tokens))
+            # Use & operator for faster set intersection
+            intersection_len = len(query_tokens & policy_tokens)
 
             # Optimization 3: Calculate union length mathematically (O(1))
             # |A union B| = |A| + |B| - |A intersect B|
