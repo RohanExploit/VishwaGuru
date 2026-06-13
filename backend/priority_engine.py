@@ -1,6 +1,7 @@
 import re
 import math
 from typing import List, Dict, Any, Optional
+from backend.adaptive_weights import adaptive_weights
 
 class PriorityEngine:
     """
@@ -9,102 +10,27 @@ class PriorityEngine:
     """
 
     def __init__(self):
-        # Keyword dictionaries for Severity Classification
-        self.severity_keywords = {
-            "critical": [
-                "fire", "explosion", "blood", "death", "collapse", "gas leak",
-                "electric shock", "spark", "electrocution", "drowning",
-                "flood", "landslide", "earthquake", "cyclone", "hurricane",
-                "attack", "assault", "rabid", "deadly", "fatal", "emergency",
-                "blocked road", "ambulance", "hospital", "school", "child",
-                "exposed wire", "transformer", "chemical", "toxic", "poison",
-                "weapon", "gun", "bomb", "terror", "riot", "stampede",
-                "structural failure", "pillar", "bridge", "flyover",
-                "open manhole", "live wire", "gas smell", "open electrical box",
-                "burning", "flame", "smoke", "crack", "fissure"
-            ],
-            "high": [
-                "accident", "injury", "broken", "bleeding", "hazard", "risk",
-                "dangerous", "unsafe", "threat", "pollution", "smoke",
-                "sewage", "overflow", "contamination", "infection", "disease",
-                "mosquito", "dengue", "malaria", "typhoid", "cholera",
-                "rat", "snake", "stray dog", "bite", "attack", "cattle",
-                "theft", "robbery", "burglary", "harassment", "abuse",
-                "illegal", "crime", "violation", "bribe", "corruption",
-                "traffic jam", "congestion", "gridlock", "delay",
-                "no water", "power cut", "blackout", "load shedding",
-                "pothole", "manhole", "open drain", "water logging",
-                "dead", "animal", "fish", "stuck",
-                "not working", "signal", "traffic light", "fallen tree",
-                "water leakage", "leakage", "burst", "pipe burst", "damage",
-                "leaning", "tilted", "unstable", "waterlogging"
-            ],
-            "medium": [
-                "garbage", "trash", "waste", "litter", "rubbish", "dustbin",
-                "smell", "odor", "stink", "foul", "dirty", "unclean",
-                "messy", "ugly", "eyesore", "bad", "poor",
-                "leak", "drip", "seepage", "moisture", "damp",
-                "noise", "loud", "sound", "music", "party", "barking",
-                "encroachment", "hawker", "vendor", "stall", "shop",
-                "parking", "parked", "vehicle", "car", "bike", "scooter",
-                "construction", "debris", "material", "sand", "cement",
-                "graffiti", "poster", "banner", "hoarding", "advertisement",
-                "slippery", "muddy", "path", "pavement", "sidewalk",
-                "crowd", "gathering", "tap", "wasting", "running water",
-                "speed breaker", "hump", "bump"
-            ],
-            "low": [
-                "light", "lamp", "bulb", "flicker", "dim", "dark",
-                "sign", "board", "paint", "color", "faded",
-                "bench", "chair", "seat", "grass", "plant", "tree",
-                "leaf", "branch", "garden", "park", "playground",
-                "cosmetic", "look", "appearance", "aesthetic",
-                "old", "rusty", "dirty", "leaning"
-            ]
-        }
+        # Load weights from adaptive engine
+        weights = adaptive_weights.get_weights()
 
-        # Regex patterns for Urgency Scoring
-        self.urgency_patterns = [
-            (r"\b(now|immediately|urgent|emergency|critical|danger|help)\b", 20),
-            (r"\b(today|tonight|morning|evening|afternoon)\b", 10),
-            (r"\b(yesterday|last night|week|month)\b", 5),
-            (r"\b(blood|bleeding|injury|hurt|pain|dead)\b", 25),
-            (r"\b(fire|smoke|flame|burn|gas|leak|explosion)\b", 30),
-            (r"\b(blocked|stuck|trapped|jam)\b", 15),
-            (r"\b(school|hospital|clinic)\b", 15),  # Sensitive locations
-            (r"\b(child|kid|baby|elderly|senior)\b", 10) # Vulnerable groups
-        ]
+        self.severity_keywords = weights.get("severity_keywords", {})
+        self.urgency_patterns = weights.get("urgency_patterns", [])
+        self.categories = weights.get("categories", {})
 
-        # Category mapping
-        self.categories = {
-            "Fire": ["fire", "smoke", "flame", "burn", "explosion", "burning"],
-            "Pothole": ["pothole", "hole", "crater", "road damage", "broken road"],
-            "Street Light": ["light", "lamp", "bulb", "dark", "street light", "flicker"],
-            "Garbage": ["garbage", "trash", "waste", "litter", "rubbish", "dump", "dustbin"],
-            "Water Leak": ["water", "leak", "pipe", "burst", "flood", "seepage", "drip", "leakage", "tap", "running"],
-            "Stray Animal": ["dog", "cat", "cow", "cattle", "monkey", "bite", "stray", "animal", "rabid", "dead animal"],
-            "Construction Safety": ["construction", "debris", "material", "cement", "sand", "building"],
-            "Illegal Parking": ["parking", "parked", "blocking", "vehicle", "car", "bike"],
-            "Vandalism": ["graffiti", "paint", "broken", "destroy", "damage", "poster"],
-            "Infrastructure": ["bridge", "flyover", "pillar", "crack", "collapse", "structure", "manhole", "drain", "wire", "cable", "pole", "electrical box", "electric box", "transformer", "sidewalk", "pavement", "tile", "speed breaker", "road"],
-            "Traffic Sign": ["sign", "signal", "light", "traffic", "board", "direction", "stop sign"],
-            "Public Facilities": ["toilet", "washroom", "bench", "seat", "park", "garden", "playground", "slide", "swing"],
-            "Tree Hazard": ["tree", "branch", "fallen", "root", "leaf"],
-            "Accessibility": ["ramp", "wheelchair", "step", "stair", "access", "disability"],
-            "Noise Pollution": ["noise", "loud", "sound", "music", "speaker"],
-            "Air Pollution": ["smoke", "dust", "fume", "smell", "pollution", "air"],
-            "Water Pollution": ["river", "lake", "pond", "chemical", "oil", "poison", "fish"],
-            "Health Hazard": ["mosquito", "dengue", "malaria", "rat", "disease", "health"],
-            "Crowd": ["crowd", "gathering", "mob", "people", "protest"],
-            "Gas Leak": ["gas", "leak", "smell", "cylinder", "pipeline"],
-            "Environment": ["tree", "cutting", "deforestation", "forest", "nature"],
-            "Flooding": ["flood", "waterlogging", "water logged", "rain", "drainage"]
-        }
+    def reload_weights(self):
+        """Reloads weights from the adaptive engine."""
+        weights = adaptive_weights.get_weights()
+        self.severity_keywords = weights.get("severity_keywords", {})
+        self.urgency_patterns = weights.get("urgency_patterns", [])
+        self.categories = weights.get("categories", {})
 
     def analyze(self, text: str, image_labels: Optional[List[str]] = None) -> Dict[str, Any]:
         """
         Analyzes the issue text and optional image labels to determine priority.
         """
+        # Ensure we have the latest weights if they might change at runtime (optional optimization)
+        # self.reload_weights()
+
         text = text.lower()
 
         # Merge image labels into text for analysis if provided
@@ -135,7 +61,7 @@ class PriorityEngine:
         label = "Low"
 
         # Check for critical keywords (highest priority)
-        found_critical = [word for word in self.severity_keywords["critical"] if word in text]
+        found_critical = [word for word in self.severity_keywords.get("critical", []) if word in text]
         if found_critical:
             score = 90
             label = "Critical"
@@ -143,7 +69,7 @@ class PriorityEngine:
 
         # Check for high keywords
         if score < 70:
-            found_high = [word for word in self.severity_keywords["high"] if word in text]
+            found_high = [word for word in self.severity_keywords.get("high", []) if word in text]
             if found_high:
                 score = max(score, 70)
                 label = "High" if score == 70 else label
@@ -151,7 +77,7 @@ class PriorityEngine:
 
         # Check for medium keywords
         if score < 40:
-            found_medium = [word for word in self.severity_keywords["medium"] if word in text]
+            found_medium = [word for word in self.severity_keywords.get("medium", []) if word in text]
             if found_medium:
                 score = max(score, 40)
                 label = "Medium" if score == 40 else label

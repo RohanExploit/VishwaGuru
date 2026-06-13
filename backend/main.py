@@ -41,23 +41,12 @@ logger = logging.getLogger(__name__)
 async def background_initialization(app: FastAPI):
     """Perform non-critical startup tasks in background to speed up app availability"""
     try:
-        # 1. AI Services initialization
-        # These can take a few seconds due to imports and configuration
-        action_plan_service, chat_service, mla_summary_service = await run_in_threadpool(create_all_ai_services)
-
-        initialize_ai_services(
-            action_plan_service=action_plan_service,
-            chat_service=chat_service,
-            mla_summary_service=mla_summary_service
-        )
-        logger.info("AI services initialized successfully.")
-
-        # 2. Static data pre-loading (loads large JSONs into memory)
+        # Static data pre-loading (loads large JSONs into memory)
         await run_in_threadpool(load_maharashtra_pincode_data)
         await run_in_threadpool(load_maharashtra_mla_data)
         logger.info("Maharashtra data pre-loaded successfully.")
 
-        # 3. Start Telegram Bot in separate thread
+        # Start Telegram Bot in separate thread
         await run_in_threadpool(start_bot_thread)
         logger.info("Telegram bot started in separate thread.")
     except Exception as e:
@@ -79,6 +68,18 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Database initialization failed: {e}", exc_info=True)
         # We continue to allow health checks even if DB has issues (for debugging)
+
+    # Startup: AI Services initialization (Synchronous for safety)
+    try:
+        action_plan_service, chat_service, mla_summary_service = await run_in_threadpool(create_all_ai_services)
+        initialize_ai_services(
+            action_plan_service=action_plan_service,
+            chat_service=chat_service,
+            mla_summary_service=mla_summary_service
+        )
+        logger.info("AI services initialized successfully.")
+    except Exception as e:
+        logger.error(f"AI services initialization failed: {e}", exc_info=True)
 
     # Startup: Initialize Grievance Service (needed for escalation engine)
     try:
