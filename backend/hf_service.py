@@ -23,28 +23,24 @@ async def query_hf_api(image_bytes, labels, client: httpx.AsyncClient = None):
         # { "inputs": "image_base64...", "parameters": { "candidate_labels": [...] } }
         # OR we can send raw bytes if the model supports it, but usually zero-shot needs candidate labels.
 
-        # Let's check the HF Inference API docs for zero-shot-image-classification.
-        # It typically expects a JSON payload with 'inputs' (image) and 'parameters' (candidate_labels).
-        # We need to base64 encode the image.
+    async with httpx.AsyncClient() as new_client:
+        return await _make_request(new_client, image_bytes, labels)
 
-        import base64
-        image_base64 = base64.b64encode(image_bytes).decode('utf-8')
+async def _make_request(client, image_bytes, labels):
+    import base64
+    image_base64 = base64.b64encode(image_bytes).decode('utf-8')
 
-        payload = {
-            "inputs": image_base64,
-            "parameters": {
-                "candidate_labels": labels
-            }
+    payload = {
+        "inputs": image_base64,
+        "parameters": {
+            "candidate_labels": labels
         }
+    }
 
-        try:
-            response = await client.post(API_URL, headers=headers, json=payload, timeout=20.0)
-            if response.status_code != 200:
-                print(f"HF API Error: {response.status_code} - {response.text}")
-                return []
-            return response.json()
-        except Exception as e:
-            print(f"HF API Request Exception: {e}")
+    try:
+        response = await client.post(API_URL, headers=headers, json=payload, timeout=20.0)
+        if response.status_code != 200:
+            print(f"HF API Error: {response.status_code} - {response.text}")
             return []
     finally:
         if should_close:

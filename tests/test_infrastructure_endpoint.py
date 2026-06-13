@@ -3,12 +3,17 @@ from backend.main import app
 from unittest.mock import patch, MagicMock, AsyncMock
 from PIL import Image
 import io
+import pytest
 
-client = TestClient(app)
+# Use context manager to trigger lifespan events (initializing http_client)
+@pytest.fixture
+def client():
+    with TestClient(app) as c:
+        yield c
 
 @patch("backend.main.detect_infrastructure_clip", new_callable=AsyncMock)
 @patch("backend.main.run_in_threadpool")
-def test_detect_infrastructure_endpoint(mock_run, mock_detect):
+def test_detect_infrastructure_endpoint(mock_run, mock_detect, client):
     # Create a dummy image
     img = Image.new('RGB', (100, 100), color='red')
     img_byte_arr = io.BytesIO()
@@ -38,7 +43,7 @@ def test_detect_infrastructure_endpoint(mock_run, mock_detect):
 
 @patch("backend.main.detect_infrastructure_clip", new_callable=AsyncMock)
 @patch("backend.main.run_in_threadpool")
-def test_detect_infrastructure_endpoint_empty(mock_run, mock_detect):
+def test_detect_infrastructure_endpoint_empty(mock_run, mock_detect, client):
     # Create a dummy image
     img = Image.new('RGB', (100, 100), color='blue')
     img_byte_arr = io.BytesIO()
