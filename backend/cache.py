@@ -35,6 +35,8 @@ class ThreadSafeCache:
                 if current_time - self._timestamps[key] < self._ttl:
                     # Move to end (most recently used)
                     self._data.move_to_end(key)
+                    # Note: We don't update timestamp here to maintain fixed TTL from creation/last set.
+                    # To implement sliding expiration, we would update timestamp and move_to_end in _timestamps.
                     self._hits += 1
                     return self._data[key]
                 else:
@@ -52,7 +54,7 @@ class ThreadSafeCache:
             current_time = time.time()
             
             # Clean up expired entries before adding new one
-            self._cleanup_expired()
+            self._cleanup_expired(current_time)
             
             # If cache is full, evict least recently used entry
             if len(self._data) >= self._max_size and key not in self._data:
@@ -113,9 +115,10 @@ class ThreadSafeCache:
         self._data.pop(key, None)
         self._timestamps.pop(key, None)
     
-    def _cleanup_expired(self) -> None:
+    def _cleanup_expired(self, current_time: Optional[float] = None) -> None:
         """
         Internal method to clean up expired entries.
+        Optimized to O(K) where K is the number of expired entries.
         Must be called within lock context.
         Optimized to O(K) by breaking at the first non-expired entry.
         """
