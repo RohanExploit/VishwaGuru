@@ -185,7 +185,7 @@ def migrate_db():
                 Base.metadata.tables['field_officer_visits'].create(bind=conn)
                 logger.info("Created field_officer_visits table")
             
-            # Indexes for field_officer_visits (run regardless of table creation)
+            # Indexes and Columns for field_officer_visits (run regardless of table creation)
             if inspector.has_table("field_officer_visits"):
                 if not column_exists("field_officer_visits", "previous_visit_hash"):
                     conn.execute(text("ALTER TABLE field_officer_visits ADD COLUMN previous_visit_hash VARCHAR"))

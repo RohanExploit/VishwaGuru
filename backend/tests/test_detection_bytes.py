@@ -92,7 +92,7 @@ async def test_detect_vandalism_with_bytes(client):
          patch('backend.pothole_detection.validate_image_for_processing'), \
          patch('backend.routers.detection.detect_vandalism_unified', AsyncMock(return_value=[{"label": "graffiti", "score": 0.95}])):
         response = client.post(
-            "/detect-vandalism",
+            "/api/detect-vandalism",
             files={"image": ("test.jpg", img_bytes, "image/jpeg")}
         )
 
@@ -130,7 +130,7 @@ async def test_detect_infrastructure_with_bytes(client):
          patch('backend.pothole_detection.validate_image_for_processing'), \
          patch('backend.routers.detection.detect_infrastructure_unified', AsyncMock(return_value=[{"label": "fallen tree", "score": 0.8}])):
         response = client.post(
-            "/detect-infrastructure",
+            "/api/detect-infrastructure",
             files={"image": ("test.jpg", img_bytes, "image/jpeg")}
         )
 

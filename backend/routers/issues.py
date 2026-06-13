@@ -30,7 +30,7 @@ from backend.tasks import (
     send_status_notification
 )
 from backend.spatial_utils import get_bounding_box, find_nearby_issues
-from backend.cache import recent_issues_cache, nearby_issues_cache, blockchain_last_hash_cache
+from backend.cache import recent_issues_cache, nearby_issues_cache, blockchain_last_hash_cache, user_issues_cache
 from backend.hf_api_service import verify_resolution_vqa
 from backend.dependencies import get_http_client
 from backend.rag_service import rag_service
@@ -162,6 +162,12 @@ async def create_issue(
                 # Commit the upvote
                 await run_in_threadpool(db.commit)
 
+                # Invalidate cache after successful commit
+                try:
+                    user_issues_cache.clear()
+                except Exception as e:
+                    logger.error(f"Error clearing cache during deduplication: {e}")
+
                 logger.info(f"Spatial deduplication: Linked new report to existing issue {linked_issue_id}")
 
         except Exception as e:
@@ -186,9 +192,6 @@ async def create_issue(
             hash_content = f"{description}|{category}|{prev_hash}"
             integrity_hash = hashlib.sha256(hash_content.encode()).hexdigest()
 
-            # Update cache for next report
-            blockchain_last_hash_cache.set(data=integrity_hash, key="last_hash")
-
             # RAG Retrieval (New)
             relevant_rule = rag_service.retrieve(description)
             initial_action_plan = None
@@ -212,6 +215,9 @@ async def create_issue(
 
             # Offload blocking DB operations to threadpool
             await run_in_threadpool(save_issue_db, db, new_issue)
+
+            # Update cache for next report ONLY after successful commit
+            blockchain_last_hash_cache.set(data=integrity_hash, key="last_hash")
         else:
             # Don't create new issue, just return deduplication info
             new_issue = None
@@ -284,6 +290,7 @@ async def upvote_issue(issue_id: int, db: Session = Depends(get_db)):
 
     await run_in_threadpool(db.commit)
 
+    # Invalidate cache after successful commit
     try:
         user_issues_cache.clear()
     except Exception as e:
@@ -533,12 +540,14 @@ def update_issue_status(
         issue.resolved_at = now
 
     db.commit()
-    db.refresh(issue)
 
+    # Invalidate cache after successful commit
     try:
         user_issues_cache.clear()
     except Exception as e:
         logger.error(f"Error clearing cache: {e}")
+
+    db.refresh(issue)
 
     # Send notification to citizen
     background_tasks.add_task(send_status_notification, issue.id, old_status, request.status.value, request.notes)
@@ -590,8 +599,6 @@ def subscribe_push_notifications(
         id=subscription.id,
         message="Push subscription created"
     )
-
-from backend.cache import user_issues_cache
 
 @router.get("/issues/user", response_model=List[IssueSummaryResponse])
 def get_user_issues(

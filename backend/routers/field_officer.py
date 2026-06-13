@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 from backend.database import get_db
 from backend.models import FieldOfficerVisit, Issue, Grievance, User
 from backend.dependencies import get_current_active_user
+from backend.cache import visit_last_hash_cache
 from backend.schemas import (
     OfficerCheckInRequest,
     OfficerCheckOutRequest,
@@ -22,7 +23,8 @@ from backend.schemas import (
     PublicFieldOfficerVisitResponse,
     VisitHistoryResponse,
     VisitStatsResponse,
-    VisitImageUploadResponse
+    VisitImageUploadResponse,
+    BlockchainVerificationResponse
 )
 from backend.geofencing_service import (
     is_within_geofence,
@@ -108,6 +110,15 @@ def officer_check_in(request: OfficerCheckInRequest, db: Session = Depends(get_d
             prev_hash = prev_visit[0] if prev_visit and prev_visit[0] else ""
             visit_last_hash_cache.set(data=prev_hash, key="last_hash")
         
+        # Blockchain Chaining: Fetch latest visit hash
+        # Use high-performance cache with DB fallback
+        prev_hash = visit_last_hash_cache.get("last_hash")
+        if prev_hash is None:
+            # Cache miss: Fetch only the last hash from DB
+            prev_visit = db.query(FieldOfficerVisit.visit_hash).order_by(FieldOfficerVisit.id.desc()).first()
+            prev_hash = prev_visit[0] if prev_visit and prev_visit[0] else ""
+            visit_last_hash_cache.set(data=prev_hash, key="last_hash")
+
         visit_data = {
             'issue_id': request.issue_id,
             'officer_email': request.officer_email,
@@ -137,6 +148,7 @@ def officer_check_in(request: OfficerCheckInRequest, db: Session = Depends(get_d
             visit_notes=request.visit_notes,
             status='checked_in',
             visit_hash=visit_hash,
+            previous_visit_hash=prev_hash,
             is_public=True
         )
         
@@ -144,11 +156,18 @@ def officer_check_in(request: OfficerCheckInRequest, db: Session = Depends(get_d
 
         db.add(new_visit)
         db.commit()
+
+        # Update cache for next visit ONLY after successful commit
+        visit_last_hash_cache.set(data=visit_hash, key="last_hash")
+
         db.refresh(new_visit)
 
         # Update cache after successful commit
         visit_last_hash_cache.set(data=visit_hash, key="last_hash")
         
+        # Update cache for next visit after successful commit
+        visit_last_hash_cache.set(data=visit_hash, key="last_hash")
+
         logger.info(
             f"Officer {request.officer_name} checked in at issue {request.issue_id}. "
             f"Distance: {distance:.2f}m, Within fence: {within_fence}"
