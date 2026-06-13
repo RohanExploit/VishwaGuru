@@ -39,6 +39,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          retries: 3
           script: |
             const prAuthor = context.payload.pull_request.user.login;
             const prNumber = context.payload.pull_request.number;
@@ -81,6 +82,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          retries: 3
           script: |
             const issueAuthor = context.payload.issue.user.login;
             const issueNumber = context.payload.issue.number;
@@ -123,6 +125,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          retries: 3
           script: |
             const prNumber = context.payload.pull_request.number;
             

@@ -1,0 +1,34 @@
+grievance_text,category
+"Garbage has not been collected from my street for a week.",Sanitation
+"There is a huge pile of waste near the park entrance.",Sanitation
+"Dustbins are overflowing in Sector 14 market.",Sanitation
+"The street cleaning truck hasn't come for 3 days.",Sanitation
+"Rotting garbage smell is unbearable in our locality.",Sanitation
+"Potholes on the main road are causing severe traffic jams.",Roads
+"The road surface is uneven and dangerous for bikers.",Roads
+"Construction debris left on the road is blocking traffic.",Roads
+"Need immediate repair of the road near the school.",Roads
+"Street lights are not working in our colony.",Electricity
+"Frequent power cuts are affecting our work.",Electricity
+"The electric pole is leaning dangerously.",Electricity
+"Streetlight on corner of 5th street is broken.",Electricity
+"No water supply in our area since yesterday morning.",Water
+"The water coming from the tap is muddy and smelly.",Water
+"Water pipeline burst on the main road.",Water
+"Low water pressure in the mornings.",Water
+"There was a chain snatching incident near the bus stop.",Police
+"Suspicious activities observed in the abandoned building.",Police
+"Need more police patrolling at night in this area.",Police
+"My parked bike was stolen from the market area.",Police
+"Bus 505 is always late and overcrowded.",Transport
+"The metro station escalator is not working.",Transport
+"Auto drivers are refusing to go by meter.",Transport
+"Need better bus connectivity to the industrial area.",Transport
+"Drainage is blocked and water is entering houses.",Sanitation
+"Open manhole is a death trap for pedestrians.",Roads
+"Voltage fluctuation damaged my appliances.",Electricity
+"Sewer water is mixing with drinking water supply.",Water
+"Loud noise from neighbors late at night.",Police
+"No electricity in the house.",Electricity
+"My wallet was stolen.",Police
+"Thieves broke into the shop.",Police

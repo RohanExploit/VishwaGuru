@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - ਸਮਾਰਟ ਨਾਗਰਿਕ ਮੁੱਦਾ ਰਿਪੋਰਟਰ",
+        "subtitle": "ਆਪਣੇ ਭਾਈਚਾਰੇ ਵਿੱਚ ਨਾਗਰਿਕ ਮੁੱਦਿਆਂ ਦੀ ਰਿਪੋਰਟ ਕਰੋ ਅਤੇ ਉਹਨਾਂ ਨੂੰ ਟ੍ਰੈਕ ਕਰੋ",
+        "privacyActive": "AI-ਪਾਵਰਡ ਪ੍ਰਾਈਵੇਸੀ ਪ੍ਰੋਟੈਕਸ਼ਨ ਐਕਟਿਵ ਹੈ",
+        "communityImpact": "ਕਮਿਊਨਿਟੀ ਪ੍ਰਭਾਵ",
+        "makingChange": "ਮਿਲ ਕੇ ਅਸੀਂ ਬਦਲਾਅ ਲਿਆ ਰਹੇ ਹਾਂ!",
+        "issuesSolved": "ਹੱਲ ਕੀਤੇ ਮੁੱਦੇ",
+        "smartScanner": "ਸਮਾਰਟ ਸਿਟੀ ਸਕੈਨਰ",
+        "aiPoweredDetection": "AI-ਪਾਵਰਡ ਤੁਰੰਤ ਪਛਾਣ",
+        "categories": {
+            "roadTraffic": "ਸੜਕ ਅਤੇ ਟ੍ਰੈਫਿਕ",
+            "environmentSafety": "ਵਾਤਾਵਰਣ ਅਤੇ ਸੁਰੱਖਿਆ",
+            "civicServices": "ਨਾਗਰਿਕ ਸੇਵਾਵਾਂ",
+            "management": "ਪ੍ਰਬੰਧਨ"
+        },
+        "issues": {
+            "pothole": "ਟੋਆ",
+            "blockedRoad": "ਬੰਦ ਸੜਕ",
+            "illegalParking": "ਨਾਜਾਇਜ਼ ਪਾਰਕਿੰਗ",
+            "darkStreet": "ਹਨੇਰੀ ਸੜਕ",
+            "trafficSign": "ਟ੍ਰੈਫਿਕ ਚਿੰਨ੍ਹ",
+            "abandonedVehicle": "ਲਾਵਾਰਿਸ ਵਾਹਨ",
+            "garbage": "ਕੂੜਾ",
+            "flood": "ਹੜ੍ਹ",
+            "fireSmoke": "ਅੱਗ/ਧੂੰਆਂ",
+            "treeHazard": "ਦਰੱਖਤ ਦਾ ਖਤਰਾ",
+            "strayAnimal": "ਅਵਾਰਾ ਪਸ਼ੂ",
+            "pestControl": "ਕੀੜੇਮਾਰ ਕੰਟਰੋਲ",
+            "reportIssue": "ਮੁੱਦੇ ਦੀ ਰਿਪੋਰਟ ਕਰੋ",
+            "brokenInfra": "ਟੁੱਟਿਆ ਬੁਨਿਆਦੀ ਢਾਂਚਾ",
+            "graffiti": "ਗ੍ਰੈਫਿਟੀ",
+            "findMLA": "ਐਮਐਲਏ ਲੱਭੋ",
+            "grievanceManagement": "ਸ਼ਿਕਾਇਤ ਪ੍ਰਬੰਧਨ",
+            "viewStats": "ਅੰਕੜੇ ਦੇਖੋ",
+            "leaderboard": "ਲੀਡਰਬੋਰਡ",
+            "responsibilityMap": "ਜ਼ਿੰਮੇਵਾਰੀ ਨਕਸ਼ਾ",
+            "noise": "ਸ਼ੋਰ",
+            "crowd": "ਭੀੜ",
+            "waterLeak": "ਪਾਣੀ ਦੀ ਲੀਕੇਜ",
+            "waste": "ਕੂੜਾ ਵੱਖ ਕਰਨ ਵਾਲਾ",
+            "civicEye": "ਨਾਗਰਿਕ ਅੱਖ",
+            "myReports": "ਮੇਰੀਆਂ ਰਿਪੋਰਟਾਂ",
+            "analyzeGrievance": "ਸ਼ਿਕਾਇਤ ਦਾ ਵਿਸ਼ਲੇਸ਼ਣ ਕਰੋ"
+        },
+        "tools": {
+            "whoIsResponsible": "ਜ਼ਿੰਮੇਵਾਰ ਕੌਣ ਹੈ?",
+            "topReporters": "ਚੋਟੀ ਦੇ ਰਿਪੋਰਟਰ",
+            "cameraCheck": "ਕੈਮਰਾ ਚੈੱਕ"
+        },
+        "activity": {
+            "communityActivity": "ਕਮਿਊਨਿਟੀ ਗਤੀਵਿਧੀ",
+            "liveFeed": "ਲਾਈਵ ਫੀਡ",
+            "noActivity": "ਦਿਖਾਉਣ ਲਈ ਕੋਈ ਤਾਜ਼ਾ ਗਤੀਵਿਧੀ ਨਹੀਂ ਹੈ।",
+            "loadMore": "ਹੋਰ ਗਤੀਵਿਧੀ ਲੋਡ ਕਰੋ",
+            "verify": "ਤਸਦੀਕ ਕਰੋ"
+        },
+        "stats": {
+            "totalImpact": "ਕੁੱਲ ਪ੍ਰਭਾਵ",
+            "issuesResolved": "ਹੱਲ ਕੀਤੇ ਮੁੱਦੇ",
+            "activeUsers": "ਸਰਗਰਮ ਉਪਭੋਗਤਾ"
+        },
+        "landing": {
+            "empowering": "ਨਾਗਰਿਕਾਂ ਦਾ ਸਸ਼ਕਤੀਕਰਨ",
+            "governance": "ਬਿਹਤਰ ਸ਼ਾਸਨ ਲਈ",
+            "subtitle": "ਨਾਗਰਿਕ ਮੁੱਦਿਆਂ ਦੀ ਰਿਪੋਰਟ ਕਰੋ ਅਤੇ AI-ਦੁਆਰਾ ਤਿਆਰ ਕੀਤੇ ਹੱਲ ਪ੍ਰਾਪਤ ਕਰੋ। ਸ਼ਾਸਨ ਵਿੱਚ ਸਰਗਰਮੀ ਨਾਲ ਹਿੱਸਾ ਲੈਣ ਲਈ ਟੈਲੀਗ੍ਰਾਮ ਰਾਹੀਂ ਅਧਿਕਾਰੀਆਂ ਨਾਲ ਜੁੜੋ।",
+            "cta": "ਮੁੱਦੇ ਦੀ ਰਿਪੋਰਟ ਕਰੋ",
+            "cards": {
+                "reportCitizens": "ਨਾਗਰਿਕਾਂ ਨਾਲ ਰਿਪੋਰਟ ਕਰੋ",
+                "generatedCivic": "ਨਾਗਰਿਕ ਸ਼ਾਸਨ",
+                "govServices": "ਸਰਕਾਰੀ ਸੇਵਾਵਾਂ",
+                "questionGov": "ਸਰਕਾਰ ਨੂੰ ਸਵਾਲ ਕਰੋ",
+                "govDesc": "ਸਵਾਲ ਜਮ੍ਹਾਂ ਕਰੋ, ਪਾਰਦਰਸ਼ਤਾ ਦੀ ਮੰਗ ਕਰੋ, ਅਤੇ ਅਧਿਕਾਰੀਆਂ ਨੂੰ ਜਵਾਬਦੇਹ ਬਣਾਓ",
+                "communityAction": "ਕਮਿਊਨਿਟੀ ਐਕਸ਼ਨ",
+                "joinMovement": "ਮੁਹਿੰਮ ਵਿੱਚ ਸ਼ਾਮਲ ਹੋਵੋ"
+            },
+            "features": {
+                "publicTrust": "ਜਨਤਕ ਵਿਸ਼ਵਾਸ",
+                "ethics": "& ਨੈਤਿਕਤਾ",
+                "civicIssues": "ਨਾਗਰਿਕ ਮੁੱਦੇ",
+                "reportProblems": "ਸਮੱਸਿਆਵਾਂ ਦੀ ਰਿਪੋਰਟ ਕਰੋ",
+                "voiceVote": "ਆਪਣੀ ਆਵਾਜ਼ ਉਠਾਓ",
+                "shareIdeas": "ਬਿਹਤਰ ਨੀਤੀਆਂ ਲਈ ਵਿਚਾਰ ਸਾਂਝੇ ਕਰੋ",
+                "aiDemocracy": "ਲੋਕਤੰਤਰ ਲਈ AI",
+                "civicActions": "& ਨਾਗਰਿਕ ਕਾਰਵਾਈਆਂ",
+                "aiDesc": "ਪਾਰਦਰਸ਼ੀ ਸ਼ਾਸਨ ਅਤੇ ਤੇਜ਼ੀ ਨਾਲ ਹੱਲ ਲਈ ਤਕਨਾਲੋજી ਦਾ ਲਾਭ ਉਠਾਉਣਾ।",
+                "smartAnalysis": "ਸਮਾਰਟ ਵਿਸ਼ਲੇਸ਼ਣ",
+                "aiInsights": "AI-ਪਾਵਰਡ ਇਨਸਾਈਟਸ",
+                "citizenCount": "10k+ ਸਰਗਰਮ ਨਾਗਰਿਕ",
+                "secureSafe": "ਸੁਰੱਖਿਅਤ",
+                "verifiedReports": "ਤਸਦੀਕਸ਼ੁਦਾ ਰਿਪੋਰਟਾਂ",
+                "quickAction": "ਤੁਰੰਤ ਕਾਰਵਾਈ",
+                "responseTime": "24 ਘੰਟੇ ਜਵਾਬ ਦਾ ਸਮਾਂ"
+            }
+        }
+    },
+    "common": {
+        "loading": "ਲੋਡ ਹੋ ਰਿਹਾ ਹੈ...",
+        "error": "ਗਲਤੀ",
+        "submit": "ਜਮ੍ਹਾਂ ਕਰੋ",
+        "cancel": "ਰੱਦ ਕਰੋ",
+        "yes": "ਹਾਂ",
+        "no": "ਨਹੀਂ",
+        "back": "ਪਿੱਛੇ"
+    }
+}

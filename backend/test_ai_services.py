@@ -4,8 +4,16 @@ Test script to verify AI service dependency injection works correctly.
 import asyncio
 import pytest
 import os
-from ai_interfaces import initialize_ai_services, get_ai_services
-from mock_services import (
+import sys
+from pathlib import Path
+
+# Ensure repository root on sys.path so backend package resolves
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from backend.ai_interfaces import initialize_ai_services, get_ai_services
+from backend.mock_services import (
     create_mock_action_plan_service,
     create_mock_chat_service,
     create_mock_mla_summary_service

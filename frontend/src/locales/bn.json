@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - স্মার্ট নাগরিক সমস্যা রিপোর্টার",
+        "subtitle": "আপনার সম্প্রদায়ের নাগরিক সমস্যাগুলি রিপোর্ট করুন এবং ট্র্যাক করুন",
+        "privacyActive": "এআই-চালিত গোপনীয়তা সুরক্ষা সক্রিয়",
+        "communityImpact": "কমিউনিটি ইমপ্যাক্ট",
+        "makingChange": "একসাথে আমরা পরিবর্তন আনছি!",
+        "issuesSolved": "সমস্যা সমাধান করা হয়েছে",
+        "smartScanner": "স্মার্ট সিটি স্ক্যানার",
+        "aiPoweredDetection": "এআই-চালিত তাৎক্ষনিক শনাক্তকরণ",
+        "categories": {
+            "roadTraffic": "রাস্তা ও ট্রাফিক",
+            "environmentSafety": "পরিবেশ ও নিরাপত্তা",
+            "civicServices": "নাগরিক পরিষেবা",
+            "management": "ব্যবস্থাপনা"
+        },
+        "issues": {
+            "pothole": "গর্ত",
+            "blockedRoad": "বন্ধ রাস্তা",
+            "illegalParking": "অবৈধ পার্কিং",
+            "darkStreet": "অন্ধকার রাস্তা",
+            "trafficSign": "ট্রাফিক সাইন",
+            "abandonedVehicle": "পরিত্যক্ত যান",
+            "garbage": "আবর্জনা",
+            "flood": "বন্যা",
+            "fireSmoke": "আগুন/ধোঁয়া",
+            "treeHazard": "গাছের বিপদ",
+            "strayAnimal": "বিপথগামী প্রাণী",
+            "pestControl": "পোকামাকড় নিয়ন্ত্রণ",
+            "reportIssue": "সমস্যা রিপোর্ট করুন",
+            "brokenInfra": "ভাঙ্গা অবকাঠামো",
+            "graffiti": "গ্রাফিতি",
+            "findMLA": "এমএলএ খুঁজুন",
+            "grievanceManagement": "অভিযোগ ব্যবস্থাপনা",
+            "viewStats": "পরিসংখ্যান দেখুন",
+            "leaderboard": "লিডারবোর্ড",
+            "responsibilityMap": "দায়িত্ব মানচিত্র",
+            "noise": "শব্দ",
+            "crowd": "ভিড়",
+            "waterLeak": "জল লিক",
+            "waste": "বর্জ্য সর্টার",
+            "civicEye": "নাগরিক চক্ষু",
+            "myReports": "আমার রিপোর্ট",
+            "analyzeGrievance": "অভিযোগ বিশ্লেষণ করুন"
+        },
+        "tools": {
+            "whoIsResponsible": "কে দায়ী?",
+            "topReporters": "শীর্ষ রিপোর্টার",
+            "cameraCheck": "ক্যামেরা চেক"
+        },
+        "activity": {
+            "communityActivity": "কমিউনিটি কার্যক্রম",
+            "liveFeed": "লাইভ ফিড",
+            "noActivity": "দেখানোর মতো কোনো সাম্প্রতিক কার্যক্রম নেই।",
+            "loadMore": "আরো কার্যক্রম লোড করুন",
+            "verify": "যাচাই করুন"
+        },
+        "stats": {
+            "totalImpact": "মোট প্রভাব",
+            "issuesResolved": "সমস্যা সমাধান করা হয়েছে",
+            "activeUsers": "সক্রিয় ব্যবহারকারী"
+        },
+        "landing": {
+            "empowering": "নাগরিকদের ক্ষমতায়ন",
+            "governance": "উন্নত শাসনের জন্য",
+            "subtitle": "নাগরিক সমস্যা রিপোর্ট করুন এবং এআই-চালিত সমাধান পান। শাসনে সক্রিয়ভাবে অংশগ্রহণ করতে টেলিগ্রামের মাধ্যমে কর্মকর্তাদের সাথে যোগাযোগ করুন।",
+            "cta": "কল অ্যাকশন ইস্যু",
+            "cards": {
+                "reportCitizens": "নাগরিকদের সাথে রিপোর্ট করুন",
+                "generatedCivic": "উৎপন্ন নাগরিক শাসন",
+                "govServices": "সরকারি পরিষেবা",
+                "questionGov": "সরকারকে প্রশ্ন করুন",
+                "govDesc": "প্রশ্ন জমা দিন, স্বচ্ছতা দাবি করুন এবং কর্মকর্তাদের জবাবদিহি নিশ্চিত করুন",
+                "communityAction": "কমিউনিটি অ্যাকশন",
+                "joinMovement": "আন্দোলনে যোগ দিন"
+            },
+            "features": {
+                "publicTrust": "জনসাধারণের আস্থা",
+                "ethics": "ও নীতি",
+                "civicIssues": "নাগরিক সমস্যা",
+                "reportProblems": "সমস্যা রিপোর্ট করুন",
+                "voiceVote": "আপনার ভোট দিন",
+                "shareIdeas": "উন্নত নীতির জন্য ধারণা শেয়ার করুন",
+                "aiDemocracy": "গণতন্ত্রের জন্য এআই",
+                "civicActions": "ও নাগরিক কর্ম",
+                "aiDesc": "স্বচ্ছ শাসন এবং দ্রুত সমাধানের জন্য প্রযুক্তির ব্যবহার।",
+                "smartAnalysis": "স্মার্ট বিশ্লেষণ",
+                "aiInsights": "এআই-চালিত অন্তর্দৃষ্টি",
+                "citizenCount": "১০ হাজার+ সক্রিয় নাগরিক",
+                "secureSafe": "নিরাপদ ও সুরক্ষিত",
+                "verifiedReports": "যাচাইকৃত রিপোর্ট",
+                "quickAction": "দ্রুত পদক্ষেপ",
+                "responseTime": "২৪ ঘণ্টা রেসপন্স টাইম"
+            }
+        }
+    },
+    "common": {
+        "loading": "লোড হচ্ছে...",
+        "error": "ত্রুটি",
+        "submit": "জমা দিন",
+        "cancel": "বাতিল করুন",
+        "yes": "হ্যাঁ",
+        "no": "না",
+        "back": "পিছনে"
+    }
+}
