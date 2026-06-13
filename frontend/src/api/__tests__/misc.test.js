@@ -35,7 +35,7 @@ describe('miscApi', () => {
 
       const result = await miscApi.getResponsibilityMap();
 
-      expect(apiClient.get).toHaveBeenCalledWith('/api/responsibility-map');
+      expect(apiClient.get).toHaveBeenCalledWith('/responsibility-map');
       expect(result).toEqual(mockMap);
     });
 
@@ -47,7 +47,7 @@ describe('miscApi', () => {
 
       const result = await miscApi.getResponsibilityMap();
 
-      expect(apiClient.get).toHaveBeenCalledWith('/api/responsibility-map');
+      expect(apiClient.get).toHaveBeenCalledWith('/responsibility-map');
       expect(result).toEqual(fakeResponsibilityMap);
       expect(consoleWarnSpy).toHaveBeenCalledWith('Failed to fetch responsibility map, using fake data', error);
 
@@ -79,7 +79,7 @@ describe('miscApi', () => {
 
       const result = await miscApi.chat(message);
 
-      expect(apiClient.post).toHaveBeenCalledWith('/api/chat', { query: message });
+      expect(apiClient.post).toHaveBeenCalledWith('/chat', { query: message });
       expect(result).toEqual(mockResponse);
     });
 
@@ -96,7 +96,7 @@ describe('miscApi', () => {
 
         await miscApi.chat(message);
 
-        expect(apiClient.post).toHaveBeenCalledWith('/api/chat', { query: message });
+        expect(apiClient.post).toHaveBeenCalledWith('/chat', { query: message });
       }
     });
 
@@ -117,7 +117,7 @@ describe('miscApi', () => {
 
       const result = await miscApi.chat(message);
 
-      expect(apiClient.post).toHaveBeenCalledWith('/api/chat', { query: message });
+      expect(apiClient.post).toHaveBeenCalledWith('/chat', { query: message });
       expect(result).toEqual(mockResponse);
     });
   });
@@ -135,7 +135,7 @@ describe('miscApi', () => {
 
       const result = await miscApi.getRepContact(pincode);
 
-      expect(apiClient.get).toHaveBeenCalledWith('/api/mh/rep-contacts?pincode=400001');
+      expect(apiClient.get).toHaveBeenCalledWith('/mh/rep-contacts?pincode=400001');
       expect(result).toEqual(mockResponse);
     });
 
@@ -147,7 +147,7 @@ describe('miscApi', () => {
 
         await miscApi.getRepContact(pincode);
 
-        expect(apiClient.get).toHaveBeenCalledWith(`/api/mh/rep-contacts?pincode=${pincode}`);
+        expect(apiClient.get).toHaveBeenCalledWith(`/mh/rep-contacts?pincode=${pincode}`);
       }
     });
 
@@ -189,7 +189,7 @@ describe('miscApi', () => {
 
       const result = await miscApi.getStats();
 
-      expect(apiClient.get).toHaveBeenCalledWith('/api/stats');
+      expect(apiClient.get).toHaveBeenCalledWith('/stats');
       expect(result).toEqual(mockStats);
     });
 

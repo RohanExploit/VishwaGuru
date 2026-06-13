@@ -43,17 +43,20 @@ async def _make_request(client, image_bytes, labels):
         }
     }
 
-    try:
-        response = await client.post(API_URL, headers=headers, json=payload, timeout=20.0)
-        if response.status_code != 200:
-            logger.error(f"HF API Error: {response.status_code} - {response.text}")
-            raise ExternalAPIException("Hugging Face API", f"HTTP {response.status_code}: {response.text}")
-        return response.json()
-    except httpx.HTTPError as e:
-        logger.error(f"HF API HTTP Error: {e}")
-        raise ExternalAPIException("Hugging Face API", str(e)) from e
+        try:
+            response = await client.post(API_URL, headers=headers, json=payload, timeout=20.0)
+            if response.status_code != 200:
+                logger.error(f"HF API Error: {response.status_code} - {response.text}")
+                raise ExternalAPIException("Hugging Face API", f"HTTP {response.status_code}: {response.text}")
+            return response.json()
+        except httpx.HTTPError as e:
+            logger.error(f"HF API HTTP Error: {e}")
+            raise ExternalAPIException("Hugging Face API", str(e)) from e
+        except Exception as e:
+            logger.error(f"HF API Request Exception: {e}")
+            raise ExternalAPIException("Hugging Face API", str(e)) from e
     except Exception as e:
-        logger.error(f"HF API Request Exception: {e}")
+        logger.error(f"Error preparing HF API request: {e}")
         raise ExternalAPIException("Hugging Face API", str(e)) from e
 
 def _prepare_image_bytes(image: Union[Image.Image, bytes]) -> bytes:

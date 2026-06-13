@@ -10,6 +10,19 @@ import { Issue } from "../services/types";
 const dbPath =
   process.env.DB_PATH || path.join(__dirname, "../../backend/app.db");
 
+/**
+ * DailyRefinementJob: Orchestrates the daily process of trend detection,
+ * adaptive weight optimization, and index generation. Runs locally with SQLite.
+ *
+ * Algorithm and Evolution Logic:
+ * 1. Executes every 24 hours via node-cron.
+ * 2. Fetches all civic issues reported in the past 24 hours.
+ * 3. Uses TrendAnalyzer to find the top 5 emerging keywords and category spikes (>50% increase).
+ * 4. Uses AdaptiveWeights to increase severity multipliers for critical issue patterns
+ *    and dynamically tighten/relax the global duplicate threshold based on volume.
+ * 5. Calculates a Daily Civic Intelligence Index using IntelligenceIndex, heavily weighting resolutions.
+ * 6. Stores these insights locally for auditability without external APIs.
+ */
 export class DailyRefinementJob {
   private db: sqlite3.Database;
   private trendAnalyzer: TrendAnalyzer;
