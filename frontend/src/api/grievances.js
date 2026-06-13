@@ -1,6 +1,17 @@
 // Grievance and Escalation API functions
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
+const getApiBase = () => {
+  if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'test') {
+    return '';
+  }
+  try {
+    // eslint-disable-next-line no-undef
+    return import.meta.env.VITE_API_URL || '';
+  } catch (e) {
+    return '';
+  }
+};
+const API_BASE = getApiBase();
 
 export const grievancesApi = {
   // Get list of grievances with escalation history

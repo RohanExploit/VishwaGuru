@@ -1,8 +1,8 @@
 from fastapi import APIRouter, UploadFile, File, Request, HTTPException
 from fastapi.concurrency import run_in_threadpool
 from PIL import Image
-from async_lru import alru_cache
 import logging
+import time
 
 from backend.utils import process_and_detect, validate_uploaded_file, process_uploaded_image
 from backend.schemas import DetectionResponse, UrgencyAnalysisRequest, UrgencyAnalysisResponse
@@ -46,29 +46,68 @@ router = APIRouter()
 
 # Cached Functions
 
-@alru_cache(maxsize=100)
+# Simple Cache Implementation to avoid async-lru dependency issues on Render
+_cache_store = {}
+CACHE_TTL = 3600  # 1 hour
+MAX_CACHE_SIZE = 500
+
+async def _get_cached_result(key: str, func, *args, **kwargs):
+    current_time = time.time()
+
+    # Check cache
+    if key in _cache_store:
+        result, timestamp = _cache_store[key]
+        if current_time - timestamp < CACHE_TTL:
+            return result
+        else:
+            del _cache_store[key]
+
+    # Prune cache if too large
+    if len(_cache_store) > MAX_CACHE_SIZE:
+        keys_to_remove = list(_cache_store.keys())[:int(MAX_CACHE_SIZE * 0.2)]
+        for k in keys_to_remove:
+            del _cache_store[k]
+
+    # Execute function
+    if 'client' not in kwargs:
+        import backend.dependencies
+        kwargs['client'] = backend.dependencies.SHARED_HTTP_CLIENT
+
+    result = await func(*args, **kwargs)
+    _cache_store[key] = (result, current_time)
+    return result
+
 async def _cached_detect_severity(image_bytes: bytes):
-    return await detect_severity_clip(image_bytes, client=backend.dependencies.SHARED_HTTP_CLIENT)
+    key = f"severity_{hash(image_bytes)}"
+    return await _get_cached_result(key, detect_severity_clip, image_bytes)
 
-@alru_cache(maxsize=100)
 async def _cached_detect_smart_scan(image_bytes: bytes):
-    return await detect_smart_scan_clip(image_bytes, client=backend.dependencies.SHARED_HTTP_CLIENT)
+    key = f"smart_scan_{hash(image_bytes)}"
+    return await _get_cached_result(key, detect_smart_scan_clip, image_bytes)
 
-@alru_cache(maxsize=100)
 async def _cached_generate_caption(image_bytes: bytes):
-    return await generate_image_caption(image_bytes, client=backend.dependencies.SHARED_HTTP_CLIENT)
+    key = f"caption_{hash(image_bytes)}"
+    return await _get_cached_result(key, generate_image_caption, image_bytes)
 
-@alru_cache(maxsize=100)
 async def _cached_detect_waste(image_bytes: bytes):
-    return await detect_waste_clip(image_bytes, client=backend.dependencies.SHARED_HTTP_CLIENT)
+    key = f"waste_{hash(image_bytes)}"
+    return await _get_cached_result(key, detect_waste_clip, image_bytes)
 
-@alru_cache(maxsize=100)
 async def _cached_detect_civic_eye(image_bytes: bytes):
-    return await detect_civic_eye_clip(image_bytes, client=backend.dependencies.SHARED_HTTP_CLIENT)
+    key = f"civic_eye_{hash(image_bytes)}"
+    return await _get_cached_result(key, detect_civic_eye_clip, image_bytes)
 
-@alru_cache(maxsize=100)
 async def _cached_detect_graffiti(image_bytes: bytes):
-    return await detect_graffiti_art_clip(image_bytes, client=backend.dependencies.SHARED_HTTP_CLIENT)
+    key = f"graffiti_{hash(image_bytes)}"
+    return await _get_cached_result(key, detect_graffiti_art_clip, image_bytes)
+
+async def _cached_detect_traffic_sign(image_bytes: bytes):
+    key = f"traffic_sign_{hash(image_bytes)}"
+    return await _get_cached_result(key, detect_traffic_sign_clip, image_bytes)
+
+async def _cached_detect_abandoned_vehicle(image_bytes: bytes):
+    key = f"abandoned_vehicle_{hash(image_bytes)}"
+    return await _get_cached_result(key, detect_abandoned_vehicle_clip, image_bytes)
 
 # Endpoints
 
@@ -405,34 +444,24 @@ async def detect_graffiti_endpoint(image: UploadFile = File(...)):
 
 
 @router.post("/api/detect-traffic-sign")
-async def detect_traffic_sign_endpoint(request: Request, image: UploadFile = File(...)):
-    try:
-        image_bytes = await image.read()
-    except Exception as e:
-        logger.error(f"Invalid image file: {e}", exc_info=True)
-        raise HTTPException(status_code=400, detail="Invalid image file")
+async def detect_traffic_sign_endpoint(image: UploadFile = File(...)):
+    # Optimized Image Processing: Validation + Optimization
+    _, image_bytes = await process_uploaded_image(image)
 
     try:
-        client = get_http_client(request)
-        detections = await detect_traffic_sign_clip(image_bytes, client=client)
-        return {"detections": detections}
+        return {"detections": await _cached_detect_traffic_sign(image_bytes)}
     except Exception as e:
         logger.error(f"Traffic sign detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/api/detect-abandoned-vehicle")
-async def detect_abandoned_vehicle_endpoint(request: Request, image: UploadFile = File(...)):
-    try:
-        image_bytes = await image.read()
-    except Exception as e:
-        logger.error(f"Invalid image file: {e}", exc_info=True)
-        raise HTTPException(status_code=400, detail="Invalid image file")
+async def detect_abandoned_vehicle_endpoint(image: UploadFile = File(...)):
+    # Optimized Image Processing: Validation + Optimization
+    _, image_bytes = await process_uploaded_image(image)
 
     try:
-        client = get_http_client(request)
-        detections = await detect_abandoned_vehicle_clip(image_bytes, client=client)
-        return {"detections": detections}
+        return {"detections": await _cached_detect_abandoned_vehicle(image_bytes)}
     except Exception as e:
         logger.error(f"Abandoned vehicle detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")

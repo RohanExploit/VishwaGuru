@@ -64,7 +64,6 @@
       "empowering": "Empowering Citizens",
       "governance": "for Better Governance",
       "subtitle": "Report civic issues and get AI-generated solutions. Connect with officials via Telegram to actively participate in governance.",
-      "cta": "Call Action Issue",
       "cards": {
         "reportCitizens": "Report Citizens with",
         "generatedCivic": "generated civic governance",
@@ -76,23 +75,55 @@
       },
       "features": {
         "publicTrust": "Public Trust",
-        "ethics": "& Ethics",
+        "ethics": "Built on a foundation of public trust and ethical AI practices.",
         "civicIssues": "Civic Issues",
-        "reportProblems": "Report problems",
-        "voiceVote": "Voice Your Vote",
-        "shareIdeas": "Share ideas for better policies",
-        "aiDemocracy": "AI for Democracy",
-        "civicActions": "& Civic Actions",
-        "aiDesc": "Leveraging technology for transparent governance and faster resolutions.",
+        "reportProblems": "Report problems in seconds with smart scanning",
+        "voiceVote": "Voice & Vote",
+        "shareIdeas": "Share ideas and vote on community priorities",
+        "aiDemocracy": "Join the AI-Powered Democracy",
+        "civicActions": "for Real-Time Civic Actions",
+        "aiDesc": "Our platform leverages cutting-edge AI to bridge the gap between citizens and authorities, ensuring every report is handled with transparency and speed.",
         "smartAnalysis": "Smart Analysis",
-        "aiInsights": "AI-Powered Insights",
-        "citizenCount": "10k+ Active Citizens",
+        "aiInsights": "Deep insights from thousands of civic reports",
+        "citizenCount": "citizens active in this journey",
         "secureSafe": "Secure & Safe",
-        "verifiedReports": "Verified Reports",
+        "verifiedReports": "100% verified and encrypted reporting pipeline",
         "quickAction": "Quick Action",
-        "responseTime": "24h Response Time"
+        "responseTime": "Average resolution time: 48 hours"
+      },
+      "about": {
+        "title": "Bridging the Gap Between Citizens & Authority",
+        "subtitle": "VishwaGuru is more than just a reporting tool; it's a movement aimed at increasing civic participation. We believe that technology can transform traditional governance into a transparent, efficient, and responsive system.",
+        "feature1": "AI-powered issue validation & categorization",
+        "feature2": "Real-time tracking of civic resolutions",
+        "feature3": "Direct connection with local representatives",
+        "feature4": "Community-driven voting & priorities",
+        "mission": "Learn More About Our Mission"
+      },
+      "cta": {
+        "title": "Ready to Make a Real Difference?",
+        "subtitle": "Join thousands of citizens who are already helping shape their communities for the better. Your voice matters.",
+        "button": "Get Started Now",
+        "support": "Contact Support"
       }
     }
+  },
+  "nav": {
+    "home": "Home",
+    "about": "About",
+    "services": "Services",
+    "contact": "Contact",
+    "login": "Login",
+    "signup": "Sign Up",
+    "dashboard": "Dashboard"
+  },
+  "footer": {
+    "description": "Empowering citizens to participate in governance through AI-powered civic issue reporting and transparency.",
+    "quickLinks": "Quick Links",
+    "social": "Social Media",
+    "contact": "Contact Info",
+    "copyright": "All rights reserved.",
+    "address": "Mumbai, Maharashtra, India"
   },
   "common": {
     "loading": "Loading...",

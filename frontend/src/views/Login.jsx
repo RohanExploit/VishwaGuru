@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Mail, Lock, User, ArrowRight, Github, Chrome, ShieldCheck, Zap, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 
 function Login({ initialIsLogin = true }) {
     const [isLogin, setIsLogin] = useState(initialIsLogin);
@@ -9,12 +13,33 @@ function Login({ initialIsLogin = true }) {
     const [fullName, setFullName] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [passwordFocused, setPasswordFocused] = useState(false);
 
     const { login, signup } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
 
     const from = location.state?.from?.pathname || "/";
+
+    // Password strength calculator
+    const getPasswordStrength = (pwd) => {
+        if (!pwd) return { score: 0, label: '', color: '', width: '0%' };
+        let score = 0;
+        if (pwd.length >= 6) score++;
+        if (pwd.length >= 10) score++;
+        if (/[A-Z]/.test(pwd)) score++;
+        if (/[a-z]/.test(pwd)) score++;
+        if (/[0-9]/.test(pwd)) score++;
+        if (/[^A-Za-z0-9]/.test(pwd)) score++;
+
+        if (score <= 2) return { score, label: 'Weak', color: 'bg-red-500', textColor: 'text-red-500', width: '25%' };
+        if (score <= 3) return { score, label: 'Fair', color: 'bg-orange-500', textColor: 'text-orange-500', width: '50%' };
+        if (score <= 4) return { score, label: 'Good', color: 'bg-yellow-500', textColor: 'text-yellow-500', width: '75%' };
+        return { score, label: 'Strong', color: 'bg-green-500', textColor: 'text-green-500', width: '100%' };
+    };
+
+    const passwordStrength = getPasswordStrength(password);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -112,6 +137,7 @@ function Login({ initialIsLogin = true }) {
                             />
                         </div>
                     </div>
+                </div>
 
                     {error && (
                         <div className="text-red-500 text-sm text-center font-medium bg-red-50 dark:bg-red-900/20 py-3 px-4 rounded-xl border border-red-100 dark:border-red-900/30">
