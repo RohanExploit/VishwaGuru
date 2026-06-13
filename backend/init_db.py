@@ -42,6 +42,34 @@ def migrate_db():
                 # Index likely already exists
                 pass
 
+            # Add latitude column
+            try:
+                conn.execute(text("ALTER TABLE issues ADD COLUMN latitude FLOAT"))
+                print("Migrated database: Added latitude column.")
+            except Exception:
+                pass
+
+            # Add longitude column
+            try:
+                conn.execute(text("ALTER TABLE issues ADD COLUMN longitude FLOAT"))
+                print("Migrated database: Added longitude column.")
+            except Exception:
+                pass
+
+            # Add location column
+            try:
+                conn.execute(text("ALTER TABLE issues ADD COLUMN location VARCHAR"))
+                print("Migrated database: Added location column.")
+            except Exception:
+                pass
+
+            # Add action_plan column
+            try:
+                conn.execute(text("ALTER TABLE issues ADD COLUMN action_plan TEXT"))
+                print("Migrated database: Added action_plan column.")
+            except Exception:
+                pass
+
             conn.commit()
             print("Database migration check completed.")
     except Exception as e:
