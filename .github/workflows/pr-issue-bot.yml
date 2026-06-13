@@ -16,19 +16,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Label PR based on size
-        uses: codelytv/pr-size-labeler@v1
-        with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          xs_label: 'size/xs'
-          xs_max_size: '10'
-          s_label: 'size/s'
-          s_max_size: '100'
-          m_label: 'size/m'
-          m_max_size: '500'
-          l_label: 'size/l'
-          l_max_size: '1000'
-          xl_label: 'size/xl'
-          fail_if_xl: 'false'
+        uses: pascalgn/size-label-action@v0.5.0
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          IGNORED: "package-lock.json,yarn.lock"
 
   welcome-message:
     if: github.event.action == 'opened'
