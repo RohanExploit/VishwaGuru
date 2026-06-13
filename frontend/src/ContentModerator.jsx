@@ -22,8 +22,19 @@ const ContentModerator = ({ onBack }) => {
                 videoRef.current.srcObject = stream;
             }
         } catch (err) {
-            setError("Could not access camera: " + err.message);
-            setIsDetecting(false);
+            console.warn("Strict camera access failed, trying fallback:", err);
+            try {
+                // Fallback to any available video camera
+                const fallbackStream = await navigator.mediaDevices.getUserMedia({
+                    video: true
+                });
+                if (videoRef.current) {
+                    videoRef.current.srcObject = fallbackStream;
+                }
+            } catch (fallbackErr) {
+                setError("Could not access camera: " + fallbackErr.message);
+                setIsDetecting(false);
+            }
         }
     };
 
