@@ -9,6 +9,7 @@
   },
   "scripts": {
     "test": "jest",
+    "build": "echo 'No Node build required; bypassing Render default.'",
     "start": "ts-node scheduler/dailyRefinementJob.ts"
   },
   "repository": {
@@ -20,6 +21,7 @@
   "license": "ISC",
   "dependencies": {
     "node-cron": "^3.0.3",
+    "react-markdown": "^10.1.0",
     "sqlite3": "^5.1.7"
   },
   "devDependencies": {

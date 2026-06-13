@@ -5,6 +5,7 @@ from typing import List, Optional
 import os
 import json
 import logging
+import hashlib
 from datetime import datetime, timezone
 
 from backend.database import get_db
@@ -15,7 +16,8 @@ from backend.schemas import (
     FollowGrievanceRequest, FollowGrievanceResponse,
     RequestClosureRequest, RequestClosureResponse,
     ConfirmClosureRequest, ConfirmClosureResponse,
-    ClosureStatusResponse
+    ClosureStatusResponse,
+    BlockchainVerificationResponse
 )
 from backend.grievance_service import GrievanceService
 from backend.closure_service import ClosureService
@@ -405,7 +407,7 @@ def get_closure_status(
         # Get all confirmation counts in a single query instead of multiple round-trips
         counts = db.query(
             ClosureConfirmation.confirmation_type,
-            func.count(ClosureConfirmation.id)
+            func.count(ClosureConfirmation.id).label("count")
         ).filter(ClosureConfirmation.grievance_id == grievance_id).group_by(ClosureConfirmation.confirmation_type).all()
         
         counts_dict = {ctype: count for ctype, count in counts}
@@ -436,3 +438,60 @@ def get_closure_status(
     except Exception as e:
         logger.error(f"Error getting closure status for grievance {grievance_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to get closure status")
+
+
+@router.get("/grievances/{grievance_id}/blockchain-verify", response_model=BlockchainVerificationResponse)
+def verify_grievance_blockchain(
+    grievance_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Verify the cryptographic integrity of a grievance using blockchain-style chaining.
+    Optimized: Uses previous_integrity_hash column for O(1) verification.
+    """
+    try:
+        grievance = db.query(
+            Grievance.unique_id,
+            Grievance.category,
+            Grievance.severity,
+            Grievance.integrity_hash,
+            Grievance.previous_integrity_hash
+        ).filter(Grievance.id == grievance_id).first()
+
+        if not grievance:
+            raise HTTPException(status_code=404, detail="Grievance not found")
+
+        # Determine previous hash (O(1) from stored column)
+        prev_hash = grievance.previous_integrity_hash or ""
+
+        # Recompute hash based on current data and previous hash
+        # Chaining logic: hash(unique_id|category|severity|prev_hash)
+        severity_value = grievance.severity.value if hasattr(grievance.severity, 'value') else grievance.severity
+        hash_content = f"{grievance.unique_id}|{grievance.category}|{severity_value}|{prev_hash}"
+        computed_hash = hashlib.sha256(hash_content.encode()).hexdigest()
+
+        if grievance.integrity_hash is None:
+            # Legacy or unsealed grievance: no integrity hash stored, so we cannot verify tampering.
+            is_valid = False
+            message = (
+                "No integrity hash present for this grievance; cryptographic integrity cannot be verified."
+            )
+        else:
+            is_valid = (computed_hash == grievance.integrity_hash)
+            message = (
+                "Integrity verified. This grievance record is cryptographically sealed."
+                if is_valid
+                else "Integrity check failed! The grievance data does not match its cryptographic seal."
+            )
+        return BlockchainVerificationResponse(
+            is_valid=is_valid,
+            current_hash=grievance.integrity_hash,
+            computed_hash=computed_hash,
+            message=message
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error verifying grievance blockchain for {grievance_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to verify grievance integrity")
