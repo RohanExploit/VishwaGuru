@@ -35,8 +35,7 @@ sys.modules['telegram.ext'] = mock_telegram.ext
 
 from backend.main import app
 
-@pytest.mark.asyncio
-async def test_detect_severity_endpoint():
+def test_detect_severity_endpoint():
     # Mock AI services initialization to prevent startup failure
     with patch('backend.main.create_all_ai_services') as mock_create_services, \
          patch('backend.main.initialize_ai_services') as mock_init_services, \
