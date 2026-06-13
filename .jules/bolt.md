@@ -93,3 +93,7 @@
 ## 2026-05-20 - Joined Queries for Integrity Verification
 **Learning:** Performing multiple sequential database queries to verify cryptographically chained records (e.g., fetching a record and then its associated token/metadata from another table) introduces unnecessary latency and increases database load.
 **Action:** Consolidate associated data retrieval into a single SQL `JOIN` query within the verification hot-path. This reduces database round-trips and improves end-to-end latency for blockchain-style integrity checks.
+
+## 2024-05-21 - Spatial Distance Hot Loop Optimization
+**Learning:** Converting coordinates to radians inside a hot loop (like `find_nearby_issues`) using `math.radians` adds significant overhead when evaluating thousands of candidates.
+**Action:** Pre-calculate constant factor calculations (meters per degree of latitude and longitude) outside the loop based on the target coordinates. This allows calculating distance entirely using subtraction and multiplication of degrees, bypassing the radian conversion overhead.

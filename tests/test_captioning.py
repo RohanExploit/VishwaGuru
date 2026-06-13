@@ -3,6 +3,15 @@ from unittest.mock import patch, AsyncMock
 from backend.main import app
 import pytest
 
+import io
+from PIL import Image
+
+def create_test_image():
+    img = Image.new('RGB', (100, 100), color='red')
+    img_byte_arr = io.BytesIO()
+    img.save(img_byte_arr, format='JPEG')
+    return img_byte_arr.getvalue()
+
 @pytest.mark.asyncio
 async def test_generate_description_endpoint():
     # Mock the generate_image_caption function in 'backend.routers.detection' module
@@ -11,7 +20,7 @@ async def test_generate_description_endpoint():
 
         with TestClient(app) as client:
             # Create a dummy image
-            file_content = b"fake image content"
+            file_content = create_test_image()
             files = {"image": ("test.jpg", file_content, "image/jpeg")}
 
             response = client.post("/api/generate-description", files=files)

@@ -2,8 +2,16 @@ from fastapi.testclient import TestClient
 from unittest.mock import patch
 from backend.main import app
 import pytest
+import io
+from PIL import Image
 
 client = TestClient(app)
+
+def create_test_image():
+    img = Image.new('RGB', (100, 100), color='red')
+    img_byte_arr = io.BytesIO()
+    img.save(img_byte_arr, format='JPEG')
+    return img_byte_arr.getvalue()
 
 @pytest.fixture
 def mock_detect_graffiti():
@@ -24,7 +32,7 @@ def test_detect_graffiti(mock_detect_graffiti, mock_validate_file):
     ]
 
     # Simple dummy bytes
-    files = {"image": ("test.jpg", b"fake_image_bytes", "image/jpeg")}
+    files = {"image": ("test.jpg", create_test_image(), "image/jpeg")}
 
     response = client.post("/api/detect-graffiti", files=files)
 
