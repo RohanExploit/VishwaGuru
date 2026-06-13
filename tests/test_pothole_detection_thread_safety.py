@@ -33,18 +33,18 @@ class TestThreadSafeModelLoading:
     def setup_and_teardown(self):
         """Reset the model state before and after each test."""
         # Import here to get fresh module state
-        from pothole_detection import reset_model
+        from backend.pothole_detection import reset_model
         reset_model()
         yield
         reset_model()
 
-    @patch('pothole_detection.load_model')
+    @patch('backend.pothole_detection.load_model')
     def test_single_thread_model_loading(self, mock_load_model):
         """Test that model loads correctly in a single-threaded scenario."""
         mock_model = MagicMock()
         mock_load_model.return_value = mock_model
         
-        from pothole_detection import get_model, reset_model
+        from backend.pothole_detection import get_model, reset_model
         reset_model()
         
         result = get_model()
@@ -52,13 +52,13 @@ class TestThreadSafeModelLoading:
         assert result == mock_model
         mock_load_model.assert_called_once()
 
-    @patch('pothole_detection.load_model')
+    @patch('backend.pothole_detection.load_model')
     def test_model_loaded_only_once_with_multiple_calls(self, mock_load_model):
         """Test that the model is only loaded once even with multiple get_model calls."""
         mock_model = MagicMock()
         mock_load_model.return_value = mock_model
         
-        from pothole_detection import get_model, reset_model
+        from backend.pothole_detection import get_model, reset_model
         reset_model()
         
         # Call get_model multiple times
@@ -69,7 +69,7 @@ class TestThreadSafeModelLoading:
         # load_model should have been called exactly once
         mock_load_model.assert_called_once()
 
-    @patch('pothole_detection.load_model')
+    @patch('backend.pothole_detection.load_model')
     def test_concurrent_access_single_load(self, mock_load_model):
         """
         Test that concurrent access from multiple threads only triggers
@@ -88,7 +88,7 @@ class TestThreadSafeModelLoading:
         
         mock_load_model.side_effect = mock_load
         
-        from pothole_detection import get_model, reset_model
+        from backend.pothole_detection import get_model, reset_model
         reset_model()
         
         num_threads = 20
@@ -116,7 +116,7 @@ class TestThreadSafeModelLoading:
         # All threads should have received the same model instance
         assert all(r == results[0] for r in results)
 
-    @patch('pothole_detection.load_model')
+    @patch('backend.pothole_detection.load_model')
     def test_concurrent_access_with_thread_pool(self, mock_load_model):
         """Test concurrent access using ThreadPoolExecutor."""
         mock_model = MagicMock()
@@ -130,7 +130,7 @@ class TestThreadSafeModelLoading:
         
         mock_load_model.side_effect = slow_load
         
-        from pothole_detection import get_model, reset_model
+        from backend.pothole_detection import get_model, reset_model
         reset_model()
         
         with ThreadPoolExecutor(max_workers=10) as executor:
@@ -140,12 +140,12 @@ class TestThreadSafeModelLoading:
         assert load_count[0] == 1, f"Expected 1 load, got {load_count[0]}"
         assert all(r == mock_model for r in results)
 
-    @patch('pothole_detection.load_model')
+    @patch('backend.pothole_detection.load_model')
     def test_error_handling_during_model_load(self, mock_load_model):
         """Test that errors during model loading are properly propagated."""
         mock_load_model.side_effect = RuntimeError("Model loading failed!")
         
-        from pothole_detection import get_model, reset_model
+        from backend.pothole_detection import get_model, reset_model
         from backend.exceptions import ModelLoadException
         reset_model()
         
@@ -153,13 +153,13 @@ class TestThreadSafeModelLoading:
         with pytest.raises((RuntimeError, ModelLoadException)):
             get_model()
 
-    @patch('pothole_detection.load_model')
+    @patch('backend.pothole_detection.load_model')
     def test_error_cached_and_reraised(self, mock_load_model):
         """Test that loading errors are cached and re-raised on subsequent calls."""
         original_error = RuntimeError("Model loading failed!")
         mock_load_model.side_effect = original_error
         
-        from pothole_detection import get_model, reset_model
+        from backend.pothole_detection import get_model, reset_model
         from backend.exceptions import ModelLoadException
         reset_model()
         
@@ -177,12 +177,12 @@ class TestThreadSafeModelLoading:
         # load_model should NOT have been called again
         mock_load_model.assert_not_called()
 
-    @patch('pothole_detection.load_model')
+    @patch('backend.pothole_detection.load_model')
     def test_concurrent_error_handling(self, mock_load_model):
         """Test that errors are handled correctly in concurrent scenarios."""
         mock_load_model.side_effect = RuntimeError("Concurrent load failed!")
         
-        from pothole_detection import get_model, reset_model
+        from backend.pothole_detection import get_model, reset_model
         reset_model()
         
         errors = []
@@ -204,14 +204,14 @@ class TestThreadSafeModelLoading:
         # load_model should have been called only once
         assert mock_load_model.call_count == 1
 
-    @patch('pothole_detection.load_model')
+    @patch('backend.pothole_detection.load_model')
     def test_reset_model_allows_reload(self, mock_load_model):
         """Test that reset_model allows the model to be reloaded."""
         mock_model_1 = MagicMock(name="model_1")
         mock_model_2 = MagicMock(name="model_2")
         mock_load_model.side_effect = [mock_model_1, mock_model_2]
         
-        from pothole_detection import get_model, reset_model
+        from backend.pothole_detection import get_model, reset_model
         reset_model()
         
         # First load
@@ -228,12 +228,12 @@ class TestThreadSafeModelLoading:
         # load_model should have been called twice
         assert mock_load_model.call_count == 2
 
-    @patch('pothole_detection.load_model')
+    @patch('backend.pothole_detection.load_model')
     def test_reset_is_thread_safe(self, mock_load_model):
         """Test that reset_model is thread-safe."""
         mock_load_model.return_value = MagicMock()
         
-        from pothole_detection import get_model, reset_model
+        from backend.pothole_detection import get_model, reset_model
         reset_model()
         
         errors = []
@@ -275,12 +275,12 @@ class TestModelLoadingPerformance:
     @pytest.fixture(autouse=True)
     def setup_and_teardown(self):
         """Reset the model state before and after each test."""
-        from pothole_detection import reset_model
+        from backend.pothole_detection import reset_model
         reset_model()
         yield
         reset_model()
 
-    @patch('pothole_detection.load_model')
+    @patch('backend.pothole_detection.load_model')
     def test_fast_path_after_initialization(self, mock_load_model):
         """
         Test that after initialization, subsequent calls use the fast path
@@ -289,7 +289,7 @@ class TestModelLoadingPerformance:
         mock_model = MagicMock()
         mock_load_model.return_value = mock_model
         
-        from pothole_detection import get_model, reset_model
+        from backend.pothole_detection import get_model, reset_model
         reset_model()
         
         # Initial load
@@ -305,12 +305,12 @@ class TestModelLoadingPerformance:
         # This is a soft assertion - actual timing depends on system
         assert elapsed < 1.0, f"Fast path took too long: {elapsed}s"
 
-    @patch('pothole_detection.load_model')
+    @patch('backend.pothole_detection.load_model')
     def test_high_concurrency_stress_test(self, mock_load_model):
         """Stress test with high concurrency."""
         mock_load_model.return_value = MagicMock()
         
-        from pothole_detection import get_model, reset_model
+        from backend.pothole_detection import get_model, reset_model
         reset_model()
         
         num_threads = 100

@@ -1,5 +1,0 @@
-{
-  "date": "2026-04-17",
-  "placeholder": true,
-  "message": "Actual daily snapshots should not be committed to the repository. Generate this file at runtime or in CI if needed."
-}
