@@ -3,7 +3,7 @@ import os
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, load_only
 from sqlalchemy import func
 
 from backend.models import Issue, EscalationAudit, EscalationReason, Grievance

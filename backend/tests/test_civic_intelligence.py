@@ -208,6 +208,7 @@ def test_civic_intelligence_run(
     g1 = Grievance(id=1, category="Fire")
     g2 = Grievance(id=2, category="Fire")
     g3 = Grievance(id=3, category="Fire")
+    mock_query_grievance.options.return_value.filter.return_value.all.return_value = [g1, g2, g3]
     mock_query_grievance.filter.return_value.all.return_value = [g1, g2, g3]
 
     # Setup Trend Analyzer
