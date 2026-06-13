@@ -68,9 +68,20 @@ def migrate_db():
                     conn.execute(text("ALTER TABLE issues ADD COLUMN action_plan TEXT"))
                     logger.info("Added action_plan column to issues")
 
-                if not column_exists("issues", "integrity_hash"):
-                    conn.execute(text("ALTER TABLE issues ADD COLUMN integrity_hash VARCHAR"))
-                    logger.info("Added integrity_hash column to issues")
+            # Add composite index for spatial queries with status filter
+            try:
+                conn.execute(text("CREATE INDEX ix_issues_status_lat_lon ON issues (status, latitude, longitude)"))
+                logger.info("Migrated database: Added composite index on status, latitude, longitude.")
+            except Exception:
+                # Index likely already exists
+                pass
+
+            # Add location column
+            try:
+                conn.execute(text("ALTER TABLE issues ADD COLUMN location VARCHAR"))
+                print("Migrated database: Added location column.")
+            except Exception:
+                pass
 
                 if not column_exists("issues", "previous_integrity_hash"):
                     conn.execute(text("ALTER TABLE issues ADD COLUMN previous_integrity_hash VARCHAR"))
@@ -165,6 +176,17 @@ def migrate_db():
 
                 if not index_exists("grievances", "ix_grievances_category_status"):
                     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_grievances_category_status ON grievances (category, status)"))
+
+                if not column_exists("grievances", "integrity_hash"):
+                    conn.execute(text("ALTER TABLE grievances ADD COLUMN integrity_hash VARCHAR"))
+                    logger.info("Added integrity_hash column to grievances")
+
+                if not column_exists("grievances", "previous_integrity_hash"):
+                    conn.execute(text("ALTER TABLE grievances ADD COLUMN previous_integrity_hash VARCHAR"))
+                    logger.info("Added previous_integrity_hash column to grievances")
+
+                if not index_exists("grievances", "ix_grievances_previous_integrity_hash"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_grievances_previous_integrity_hash ON grievances (previous_integrity_hash)"))
 
             # Field Officer Visits Table (Issue #288)
             # This table is newly created for field officer check-in system

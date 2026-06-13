@@ -1,16 +1,16 @@
 # Netlify Configuration for VishwaGuru Frontend
 
 [build]
-  # Execute from root, explicit paths
-  publish = "frontend/dist"
-  command = "cd frontend && npm install && npm run build"
+  # Base directory for the build (where package.json lives)
+  base = "frontend"
+  # Directory to publish (relative to base)
+  publish = "dist"
+  # Build command
+  command = "npm install && npm run build"
 
 [build.environment]
   NODE_VERSION = "20"
   CI = "false"
-
-# Environment variables (set these in Netlify dashboard)
-# VITE_API_URL = https://your-backend.onrender.com
 
 # Redirects for SPA
 [[redirects]]

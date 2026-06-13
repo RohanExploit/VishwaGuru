@@ -40,8 +40,8 @@ const VandalismDetector = () => {
         if (data.detections.length === 0) {
             alert("No vandalism detected.");
         }
-    } catch (error) {
-        console.error("Error:", error);
+    } catch (error) { // eslint-disable-line no-unused-vars
+        console.error("Detection error");
         alert("An error occurred during detection.");
     } finally {
         setLoading(false);

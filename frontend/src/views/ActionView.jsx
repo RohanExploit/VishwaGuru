@@ -6,9 +6,26 @@ const API_URL = import.meta.env.VITE_API_URL || '';
 
 const ActionView = ({ actionPlan, setActionPlan, setView }) => {
   useEffect(() => {
-    // Only poll if we have an action plan that is generating
-    if (!actionPlan || actionPlan.status !== 'generating' || !actionPlan.id) {
-        return;
+    if (!actionPlan) return;
+
+    let interval;
+    if (actionPlan.status === 'generating' && actionPlan.id) {
+      interval = setInterval(async () => {
+        try {
+          const res = await fetch(`${API_URL}/api/issues/recent`);
+          if (res.ok) {
+            const data = await res.json();
+            // Find the issue by ID
+            const issue = data.find(i => i.id === actionPlan.id);
+            if (issue && issue.action_plan && issue.action_plan.whatsapp) {
+               // Plan is ready!
+               setActionPlan(issue.action_plan);
+            }
+          }
+        } catch (e) {
+          console.error("Polling error:", e);
+        }
+      }, 2000);
     }
 
     const interval = setInterval(async () => {
@@ -33,6 +50,19 @@ const ActionView = ({ actionPlan, setActionPlan, setView }) => {
   }, [actionPlan, setActionPlan]);
 
   if (!actionPlan) return null;
+
+  if (actionPlan.status === 'generating') {
+      return (
+        <div className="mt-6 space-y-6 text-center">
+            <StatusTracker currentStep={2} />
+            <div className="p-8">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <h2 className="text-xl font-bold text-gray-800">Generating Action Plan...</h2>
+                <p className="text-gray-600">AI is crafting the perfect message for authorities.</p>
+            </div>
+        </div>
+      );
+  }
 
   return (
     <div className="mt-6 space-y-6">

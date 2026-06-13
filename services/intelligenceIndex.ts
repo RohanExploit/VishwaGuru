@@ -2,6 +2,17 @@ import { Issue, DailySnapshot } from "./types";
 import * as fs from "fs";
 import * as path from "path";
 
+/**
+ * IntelligenceIndex: Produces a daily Civic Intelligence snapshot, aggregating
+ * system performance metrics to capture overall municipal health and activity.
+ *
+ * Algorithm and Evolution Logic:
+ * Starts at a 50.0 Index Baseline.
+ * Increases (+): Base score raises by ratio of resolved civic issues (high resolutions = better performance).
+ * Minor Bonus (+): If top keywords contain rich descriptions, minor bump (+0.5 per keyword).
+ * Penalizes (-): Immediate penalty per significant Category Spikes (-1.5 per concern) to represent unmet issues.
+ * Stores a JSON snapshot daily (e.g. data/dailySnapshots/YYYY-MM-DD.json) comparing delta changes.
+ */
 export class IntelligenceIndex {
   private snapshotsDir: string;
 

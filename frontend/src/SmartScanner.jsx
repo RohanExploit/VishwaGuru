@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { detectorsApi } from './api';
 import { Loader2, Camera, AlertTriangle, Zap } from 'lucide-react';
@@ -14,7 +14,7 @@ const SmartScanner = ({ onBack }) => {
     const lastSentRef = useRef(0);
     const navigate = useNavigate();
 
-    const startCamera = async () => {
+    const startCamera = useCallback(async () => {
         setError(null);
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
@@ -31,17 +31,17 @@ const SmartScanner = ({ onBack }) => {
             setError("Could not access camera: " + err.message);
             setIsDetecting(false);
         }
-    };
+    }, []);
 
-    const stopCamera = () => {
+    const stopCamera = useCallback(() => {
         if (videoRef.current && videoRef.current.srcObject) {
             const tracks = videoRef.current.srcObject.getTracks();
             tracks.forEach(track => track.stop());
             videoRef.current.srcObject = null;
         }
-    };
+    }, []);
 
-    const calculateFrameDifference = (currentData, previousData) => {
+    const calculateFrameDifference = useCallback((currentData, previousData) => {
         if (!previousData) return 1; // First frame, consider as change
         let diff = 0;
         // Sample pixels to improve performance (check every 4th pixel)
@@ -50,11 +50,11 @@ const SmartScanner = ({ onBack }) => {
                     Math.abs(currentData[i + 1] - previousData[i + 1]) + // G
                     Math.abs(currentData[i + 2] - previousData[i + 2]); // B
         }
-        return diff / (currentData.length / 16) / 255;
-    };
+        return diff / (currentData.length / 4) / 255; // Average difference normalized
+    }, []);
 
-    const detectFrame = async () => {
-        if (!videoRef.current || !canvasRef.current || !isDetecting) return;
+    const detectFrame = useCallback(async () => {
+        if (!videoRef.current || !canvasRef.current || !isDetecting || !model) return;
 
         const video = videoRef.current;
         if (video.readyState !== 4) return;
@@ -111,42 +111,20 @@ const SmartScanner = ({ onBack }) => {
                         score: data.confidence,
                         mapped: mapLabelToCategory(data.category)
                     });
-                }
-            } catch (err) {
-                console.error("Detection error:", err);
-                // Don't show error to user for transient API failures, just log
-            } finally {
-                setIsAnalyzing(false);
-            }
-        }, 'image/jpeg', 0.7); // Compress to 0.7 quality
-    };
 
-    useEffect(() => {
-        let interval;
-        if (isDetecting) {
-            startCamera();
-            interval = setInterval(detectFrame, 500); // Check for motion every 500ms
+                    if (response.ok) {
+                        const data = await response.json();
+                        setDetection({ label: data.category, score: data.confidence });
+                    }
+                } catch (err) { // eslint-disable-line no-unused-vars
+                    console.error("Detection error");
+                }
+            }, 'image/jpeg', 0.8);
         } else {
-            stopCamera();
-            if (interval) clearInterval(interval);
+            // Local detection: low confidence, consider safe
+            setDetection({ label: 'Safe', score: topPrediction.probability });
         }
-        return () => {
-            stopCamera();
-            if (interval) clearInterval(interval);
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isDetecting]);
-
-    const handleReport = () => {
-        if (detection && detection.label) {
-            navigate('/report', {
-                state: {
-                    category: detection.mapped,
-                    description: `Detected ${detection.label} with ${(detection.score * 100).toFixed(0)}% confidence using AI Smart Scanner.`
-                }
-            });
-        }
-    };
+    }, [isDetecting, model, previousFrame, calculateFrameDifference]);
 
     const mapLabelToCategory = (label) => {
         const map = {
@@ -167,6 +145,46 @@ const SmartScanner = ({ onBack }) => {
         };
         return map[label] || 'road';
     };
+
+    const handleReport = () => {
+        if (detection && detection.label && detection.label !== 'Safe' && detection.label !== 'unknown') {
+            navigate('/report', {
+                state: {
+                    category: mapLabelToCategory(detection.label),
+                    description: `Detected ${detection.label} using Smart Scanner.`
+                }
+            });
+        }
+    };
+
+    useEffect(() => {
+        const loadModel = async () => {
+            try {
+                await tf.ready();
+                const loadedModel = await mobilenet.load();
+                setModel(loadedModel);
+            } catch (err) { // eslint-disable-line no-unused-vars
+                console.error('Failed to load model');
+            }
+        };
+        loadModel();
+    }, []);
+
+    useEffect(() => {
+        let interval;
+        if (isDetecting) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            startCamera();
+            interval = setInterval(detectFrame, 1000);
+        } else {
+            stopCamera();
+            if (interval) clearInterval(interval);
+        }
+        return () => {
+            stopCamera();
+            if (interval) clearInterval(interval);
+        };
+    }, [isDetecting, startCamera, stopCamera, detectFrame]);
 
     return (
         <div className="flex flex-col items-center w-full h-full relative">

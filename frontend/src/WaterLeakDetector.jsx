@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
@@ -8,26 +8,7 @@ const WaterLeakDetector = ({ onBack }) => {
     const [isDetecting, setIsDetecting] = useState(false);
     const [error, setError] = useState(null);
 
-    useEffect(() => {
-        let interval;
-        if (isDetecting) {
-            startCamera();
-            interval = setInterval(detectFrame, 2000); // Check every 2 seconds
-        } else {
-            stopCamera();
-            if (interval) clearInterval(interval);
-            if (canvasRef.current) {
-                const ctx = canvasRef.current.getContext('2d');
-                ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-            }
-        }
-        return () => {
-            stopCamera();
-            if (interval) clearInterval(interval);
-        };
-    }, [isDetecting]);
-
-    const startCamera = async () => {
+    const startCamera = useCallback(async () => {
         setError(null);
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
@@ -44,17 +25,40 @@ const WaterLeakDetector = ({ onBack }) => {
             setError("Could not access camera: " + err.message);
             setIsDetecting(false);
         }
-    };
+    }, []);
 
-    const stopCamera = () => {
+    const stopCamera = useCallback(() => {
         if (videoRef.current && videoRef.current.srcObject) {
             const tracks = videoRef.current.srcObject.getTracks();
             tracks.forEach(track => track.stop());
             videoRef.current.srcObject = null;
         }
-    };
+    }, []);
 
-    const detectFrame = async () => {
+    const drawDetections = useCallback((detections, context) => {
+        context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+
+        detections.forEach((det, index) => {
+            if (det.box && det.box.length === 4) {
+                 const [x1, y1, x2, y2] = det.box;
+                 context.strokeStyle = '#00BFFF'; // Deep Sky Blue for water
+                 context.lineWidth = 4;
+                 context.strokeRect(x1, y1, x2 - x1, y2 - y1);
+            } else {
+                 context.font = 'bold 20px Arial';
+                 context.fillStyle = 'rgba(0, 191, 255, 0.8)';
+                 const label = `${det.label} ${(det.confidence * 100).toFixed(0)}%`;
+                 const textWidth = context.measureText(label).width;
+
+                 const yPos = 40 + (index * 50);
+                 context.fillRect(10, yPos - 30, textWidth + 20, 40);
+                 context.fillStyle = '#FFFFFF';
+                 context.fillText(label, 20, yPos - 4);
+            }
+        });
+    }, []);
+
+    const detectFrame = useCallback(async () => {
         if (!videoRef.current || !canvasRef.current || !isDetecting) return;
 
         const video = videoRef.current;
@@ -86,36 +90,31 @@ const WaterLeakDetector = ({ onBack }) => {
                     const data = await response.json();
                     drawDetections(data.detections, context);
                 }
-            } catch (err) {
-                console.error("Detection error:", err);
+            } catch (err) { // eslint-disable-line no-unused-vars
+                console.error("Detection error");
             }
         }, 'image/jpeg', 0.8);
-    };
+    }, [isDetecting, drawDetections]);
 
-    const drawDetections = (detections, context) => {
-        context.clearRect(0, 0, context.canvas.width, context.canvas.height);
-
-        detections.forEach((det, index) => {
-            if (det.box && det.box.length === 4) {
-                 const [x1, y1, x2, y2] = det.box;
-                 context.strokeStyle = '#00BFFF'; // Deep Sky Blue for water
-                 context.lineWidth = 4;
-                 context.strokeRect(x1, y1, x2 - x1, y2 - y1);
-                 // ... label drawing ...
-            } else {
-                 // Zero-shot detection (no box)
-                 context.font = 'bold 20px Arial';
-                 context.fillStyle = 'rgba(0, 191, 255, 0.8)';
-                 const label = `${det.label} ${(det.confidence * 100).toFixed(0)}%`;
-                 const textWidth = context.measureText(label).width;
-
-                 const yPos = 40 + (index * 50);
-                 context.fillRect(10, yPos - 30, textWidth + 20, 40);
-                 context.fillStyle = '#FFFFFF';
-                 context.fillText(label, 20, yPos - 4);
+    useEffect(() => {
+        let interval;
+        if (isDetecting) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            startCamera();
+            interval = setInterval(detectFrame, 2000); // Check every 2 seconds
+        } else {
+            stopCamera();
+            if (interval) clearInterval(interval);
+            if (canvasRef.current) {
+                const ctx = canvasRef.current.getContext('2d');
+                ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
             }
-        });
-    };
+        }
+        return () => {
+            stopCamera();
+            if (interval) clearInterval(interval);
+        };
+    }, [isDetecting, startCamera, stopCamera, detectFrame]);
 
     return (
         <div className="mt-6 flex flex-col items-center w-full">
