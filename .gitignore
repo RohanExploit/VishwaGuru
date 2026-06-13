@@ -23,6 +23,8 @@ venv/
 # =====================
 data/*.db
 data/uploads/
+data/dailySnapshots/
+data/modelWeights.json
 
 # =====================
 # Node / Frontend

@@ -298,6 +298,16 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loa
             </button>
 
             <button
+              onClick={() => setView('construction-safety')}
+              className="flex flex-col items-center justify-center bg-orange-50 border-2 border-orange-100 p-4 rounded-xl hover:bg-orange-100 transition shadow-sm h-32"
+            >
+              <div className="bg-orange-600 text-white p-3 rounded-full mb-2">
+                <Hammer size={24} />
+              </div>
+              <span className="font-semibold text-orange-900 text-sm">Construction Safety</span>
+            </button>
+
+            <button
               onClick={() => setView('grievance-analysis')}
               className="flex flex-col items-center justify-center bg-teal-50 border-2 border-teal-100 p-4 rounded-xl hover:bg-teal-100 transition shadow-sm h-32"
             >

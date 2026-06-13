@@ -15,7 +15,7 @@ from backend.database import get_db
 from backend.models import Issue, PushSubscription
 from backend.schemas import (
     IssueCreateWithDeduplicationResponse, IssueCategory, NearbyIssueResponse,
-    DeduplicationCheckResponse, IssueSummaryResponse, VoteResponse,
+    DeduplicationCheckResponse, IssueSummaryResponse, IssueResponse, VoteResponse,
     IssueStatusUpdateRequest, IssueStatusUpdateResponse, PushSubscriptionRequest,
     PushSubscriptionResponse, BlockchainVerificationResponse
 )
@@ -33,6 +33,7 @@ from backend.cache import recent_issues_cache, nearby_issues_cache
 from backend.hf_api_service import verify_resolution_vqa
 from backend.dependencies import get_http_client
 from backend.rag_service import rag_service
+from backend.config import get_config
 
 logger = logging.getLogger(__name__)
 
@@ -93,9 +94,10 @@ async def create_issue(
 
     if latitude is not None and longitude is not None:
         try:
-            # Find existing open issues within 50 meters
+            # Find existing open issues within 50 meters (configurable)
+            radius = get_config().deduplication_radius
             # Optimization: Use bounding box to filter candidates in SQL
-            min_lat, max_lat, min_lon, max_lon = get_bounding_box(latitude, longitude, 50.0)
+            min_lat, max_lat, min_lon, max_lon = get_bounding_box(latitude, longitude, radius)
 
             # Performance Boost: Use column projection to avoid loading full model instances
             open_issues = await run_in_threadpool(
@@ -118,11 +120,12 @@ async def create_issue(
             )
 
             nearby_issues_with_distance = find_nearby_issues(
-                open_issues, latitude, longitude, radius_meters=50.0
+                open_issues, latitude, longitude, radius_meters=radius
             )
 
             if nearby_issues_with_distance:
                 # Found nearby issues - prepare deduplication response
+                limit = get_config().deduplication_limit
                 nearby_responses = [
                     NearbyIssueResponse(
                         id=issue.id,
@@ -135,7 +138,7 @@ async def create_issue(
                         created_at=issue.created_at,
                         status=issue.status
                     )
-                    for issue, distance in nearby_issues_with_distance[:3]  # Limit to top 3 closest
+                    for issue, distance in nearby_issues_with_distance[:limit]  # Limit to configured number
                 ]
 
                 deduplication_info = DeduplicationCheckResponse(
@@ -168,15 +171,22 @@ async def create_issue(
     try:
         # Save to DB only if no nearby issues found or deduplication failed
         if deduplication_info is None or not deduplication_info.has_nearby_issues:
-            # Blockchain feature: calculate integrity hash for the report
-            # Optimization: Fetch only the last hash to maintain the chain with minimal overhead
+            # Robust Blockchain Implementation
+            # 1. Fetch only the last hash to maintain the chain with minimal overhead
             prev_issue = await run_in_threadpool(
                 lambda: db.query(Issue.integrity_hash).order_by(Issue.id.desc()).first()
             )
             prev_hash = prev_issue[0] if prev_issue and prev_issue[0] else ""
 
-# Simple but effective SHA-256 chaining
-            hash_content = f"{description}|{category}|{prev_hash}"
+            # 2. Generate secure reference ID
+            reference_id = str(uuid.uuid4())
+
+            # 3. Calculate robust integrity hash incorporating multiple fields
+            # Chaining logic: hash(ref_id|desc|cat|lat|lon|email|prev_hash)
+            # Use fixed float formatting to ensure consistent hashing across environments
+            lat_str = f"{latitude:.7f}" if latitude is not None else "None"
+            lon_str = f"{longitude:.7f}" if longitude is not None else "None"
+            hash_content = f"{reference_id}|{description}|{category}|{lat_str}|{lon_str}|{user_email}|{prev_hash}"
             integrity_hash = hashlib.sha256(hash_content.encode()).hexdigest()
 
             # RAG Retrieval (New)
@@ -186,7 +196,7 @@ async def create_issue(
                 initial_action_plan = {"relevant_government_rule": relevant_rule}
 
             new_issue = Issue(
-                reference_id=str(uuid.uuid4()),
+                reference_id=reference_id,
                 description=description,
                 category=category,
                 image_path=image_path,
@@ -196,7 +206,8 @@ async def create_issue(
                 longitude=longitude,
                 location=location,
                 action_plan=initial_action_plan,
-                integrity_hash=integrity_hash
+                integrity_hash=integrity_hash,
+                previous_integrity_hash=prev_hash
             )
 
             # Offload blocking DB operations to threadpool
@@ -451,7 +462,10 @@ async def verify_issue_endpoint(
         final_status = updated_issue.status if updated_issue else "open"
         final_upvotes = updated_issue.upvotes if updated_issue else 0
 
-        if updated_issue and updated_issue.upvotes >= 5 and updated_issue.status == "open":
+        # Use configured threshold
+        verification_threshold = get_config().verification_threshold
+
+        if updated_issue and updated_issue.upvotes >= verification_threshold and updated_issue.status == "open":
             await run_in_threadpool(
                 lambda: db.query(Issue).filter(Issue.id == issue_id).update({
                     Issue.status: "verified"
@@ -611,35 +625,57 @@ def get_user_issues(
 
     return data
 
-@router.get("/api/issues/{issue_id}/blockchain-verify", response_model=BlockchainVerificationResponse)
+@router.get("/api/issues/{issue_id:int}/blockchain-verify", response_model=BlockchainVerificationResponse)
 async def verify_blockchain_integrity(issue_id: int, db: Session = Depends(get_db)):
     """
     Verify the cryptographic integrity of a report using the blockchain-style chaining.
-    Optimized: Uses column projection to fetch only needed data.
+    Optimized: Uses stored previous_integrity_hash for O(1) chain verification.
     """
-    # Fetch current issue data
+    # Fetch current issue data (Performance Boost: Fetch only needed columns)
     current_issue = await run_in_threadpool(
         lambda: db.query(
-            Issue.id, Issue.description, Issue.category, Issue.integrity_hash
+            Issue.id,
+            Issue.reference_id,
+            Issue.description,
+            Issue.category,
+            Issue.latitude,
+            Issue.longitude,
+            Issue.user_email,
+            Issue.integrity_hash,
+            Issue.previous_integrity_hash
         ).filter(Issue.id == issue_id).first()
     )
 
     if not current_issue:
         raise HTTPException(status_code=404, detail="Issue not found")
 
-    # Fetch previous issue's integrity hash to verify the chain
-    prev_issue_hash = await run_in_threadpool(
-        lambda: db.query(Issue.integrity_hash).filter(Issue.id < issue_id).order_by(Issue.id.desc()).first()
-    )
+    # Chaining logic depends on when the issue was created (legacy fallback)
+    # Optimized: Use stored previous hash if available, otherwise fallback to subquery (O(N) search)
+    if current_issue.previous_integrity_hash is not None:
+        prev_hash = current_issue.previous_integrity_hash
+        # New robust hash formula with fixed float formatting
+        lat_str = f"{current_issue.latitude:.7f}" if current_issue.latitude is not None else "None"
+        lon_str = f"{current_issue.longitude:.7f}" if current_issue.longitude is not None else "None"
+        hash_content = f"{current_issue.reference_id}|{current_issue.description}|{current_issue.category}|{lat_str}|{lon_str}|{current_issue.user_email}|{prev_hash}"
+    else:
+        # Legacy fallback: Fetch previous issue's hash via subquery
+        prev_issue_hash = await run_in_threadpool(
+            lambda: db.query(Issue.integrity_hash).filter(Issue.id < issue_id).order_by(Issue.id.desc()).first()
+        )
+        prev_hash = prev_issue_hash[0] if prev_issue_hash and prev_issue_hash[0] else ""
+        # Legacy hash formula
+        hash_content = f"{current_issue.description}|{current_issue.category}|{prev_hash}"
 
-    prev_hash = prev_issue_hash[0] if prev_issue_hash and prev_issue_hash[0] else ""
-
-    # Recompute hash based on current data and previous hash
-    # Chaining logic: hash(description|category|prev_hash)
-    hash_content = f"{current_issue.description}|{current_issue.category}|{prev_hash}"
     computed_hash = hashlib.sha256(hash_content.encode()).hexdigest()
-
     is_valid = (computed_hash == current_issue.integrity_hash)
+
+    if not is_valid:
+        # Fallback to legacy check for older reports
+        legacy_content = f"{current_issue.description}|{current_issue.category}|{prev_hash}"
+        legacy_hash = hashlib.sha256(legacy_content.encode()).hexdigest()
+        if legacy_hash == current_issue.integrity_hash:
+            is_valid = True
+            computed_hash = legacy_hash
 
     if is_valid:
         message = "Integrity verified. This report is cryptographically sealed and has not been tampered with."
@@ -702,3 +738,43 @@ def get_recent_issues(
     # Thread-safe cache update
     recent_issues_cache.set(data, cache_key)
     return data
+
+@router.get("/api/issues/{issue_id}", response_model=IssueResponse)
+async def get_issue_by_id(issue_id: int, db: Session = Depends(get_db)):
+    """
+    Get a single issue by its ID.
+    Optimized: Uses column projection for efficient retrieval.
+    """
+    # Performance Boost: Use column projection instead of loading full model
+    issue = await run_in_threadpool(
+        lambda: db.query(
+            Issue.id,
+            Issue.category,
+            Issue.description,
+            Issue.created_at,
+            Issue.image_path,
+            Issue.status,
+            Issue.upvotes,
+            Issue.location,
+            Issue.latitude,
+            Issue.longitude,
+            Issue.action_plan
+        ).filter(Issue.id == issue_id).first()
+    )
+
+    if not issue:
+        raise HTTPException(status_code=404, detail="Issue not found")
+
+    return {
+        "id": issue.id,
+        "category": issue.category,
+        "description": issue.description,
+        "created_at": issue.created_at,
+        "image_path": issue.image_path,
+        "status": issue.status,
+        "upvotes": issue.upvotes or 0,
+        "location": issue.location,
+        "latitude": issue.latitude,
+        "longitude": issue.longitude,
+        "action_plan": issue.action_plan
+    }

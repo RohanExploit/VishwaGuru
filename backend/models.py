@@ -161,7 +161,8 @@ class Issue(Base):
     longitude = Column(Float, nullable=True, index=True)
     location = Column(String, nullable=True)
     action_plan = Column(JSONEncodedDict, nullable=True)
-    integrity_hash = Column(String, nullable=True)  # Blockchain integrity seal
+    integrity_hash = Column(String, nullable=True)  # Current report hash
+    previous_integrity_hash = Column(String, nullable=True)  # Link to predecessor for O(1) verification
 
 class PushSubscription(Base):
     __tablename__ = "push_subscriptions"

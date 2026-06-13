@@ -34,6 +34,7 @@ const StrayAnimalDetector = React.lazy(() => import('./StrayAnimalDetector'));
 const BlockedRoadDetector = React.lazy(() => import('./BlockedRoadDetector'));
 const TreeDetector = React.lazy(() => import('./TreeDetector'));
 const PestDetector = React.lazy(() => import('./PestDetector'));
+const ConstructionSafetyDetector = React.lazy(() => import('./ConstructionSafetyDetector'));
 const SmartScanner = React.lazy(() => import('./SmartScanner'));
 const GrievanceAnalysis = React.lazy(() => import('./views/GrievanceAnalysis'));
 const NoiseDetector = React.lazy(() => import('./NoiseDetector'));
@@ -292,6 +293,7 @@ function AppContent() {
             <Route path="/blocked" element={<BlockedRoadDetector onBack={() => navigate('/')} />} />
             <Route path="/tree" element={<TreeDetector onBack={() => navigate('/')} />} />
             <Route path="/pest" element={<PestDetector onBack={() => navigate('/')} />} />
+            <Route path="/construction-safety" element={<ConstructionSafetyDetector onBack={() => navigate('/')} />} />
             <Route path="/smart-scan" element={<SmartScanner onBack={() => navigate('/')} />} />
             <Route path="/grievance-analysis" element={<GrievanceAnalysis onBack={() => navigate('/')} />} />
             <Route path="/noise" element={<NoiseDetector onBack={() => navigate('/')} />} />

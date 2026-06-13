@@ -50,6 +50,8 @@ class IssueSummaryResponse(BaseModel):
     location: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+    integrity_hash: Optional[str] = None
+    previous_integrity_hash: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
