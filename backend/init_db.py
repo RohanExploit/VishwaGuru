@@ -245,6 +245,19 @@ def migrate_db():
                 if not index_exists("evidence_audit_logs", "ix_evidence_audit_logs_previous_integrity_hash"):
                     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_evidence_audit_logs_previous_integrity_hash ON evidence_audit_logs (previous_integrity_hash)"))
 
+            # Grievance Followers Table Migrations
+            if inspector.has_table("grievance_followers"):
+                if not column_exists("grievance_followers", "integrity_hash"):
+                    conn.execute(text("ALTER TABLE grievance_followers ADD COLUMN integrity_hash VARCHAR"))
+                    logger.info("Added integrity_hash column to grievance_followers")
+
+                if not column_exists("grievance_followers", "previous_integrity_hash"):
+                    conn.execute(text("ALTER TABLE grievance_followers ADD COLUMN previous_integrity_hash VARCHAR"))
+                    logger.info("Added previous_integrity_hash column to grievance_followers")
+
+                if not index_exists("grievance_followers", "ix_grievance_followers_previous_integrity_hash"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_grievance_followers_previous_integrity_hash ON grievance_followers (previous_integrity_hash)"))
+
             # Closure Confirmations Table Migrations
             if inspector.has_table("closure_confirmations"):
                 if not column_exists("closure_confirmations", "integrity_hash"):
