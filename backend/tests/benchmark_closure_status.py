@@ -68,14 +68,19 @@ def benchmark_new_agg(db: Session, grievance_id: int, iterations=1000):
             GrievanceFollower.grievance_id == grievance_id
         ).scalar()
 
-        # Optimize the two counts into one aggregate without group_by
-        stats = db.query(
-            func.sum(case((ClosureConfirmation.confirmation_type == 'confirmed', 1), else_=0)).label('confirmed'),
-            func.sum(case((ClosureConfirmation.confirmation_type == 'disputed', 1), else_=0)).label('disputed')
-        ).filter(ClosureConfirmation.grievance_id == grievance_id).first()
+        # Re-optimized: use group_by as it is faster for categorical columns
+        counts = db.query(
+            ClosureConfirmation.confirmation_type,
+            func.count(ClosureConfirmation.id)
+        ).filter(ClosureConfirmation.grievance_id == grievance_id).group_by(ClosureConfirmation.confirmation_type).all()
 
-        confirmations_count = stats.confirmed or 0
-        disputes_count = stats.disputed or 0
+        confirmations_count = 0
+        disputes_count = 0
+        for confirmation_type, count in counts:
+            if confirmation_type == 'confirmed':
+                confirmations_count = count
+            elif confirmation_type == 'disputed':
+                disputes_count = count
     end = time.perf_counter()
     if iterations > 10:
         print(f"New approach (Agg) ({iterations} iters): {end - start:.4f}s")

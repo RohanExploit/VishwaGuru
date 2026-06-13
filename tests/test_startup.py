@@ -29,8 +29,8 @@ def test_root_endpoint():
     
     assert response.status_code == 200
     json_response = response.json()
-    assert "data" in json_response
-    assert json_response["data"]["service"] == "VishwaGuru API"
+    assert "status" in json_response
+    assert json_response["service"] == "VishwaGuru API"
 
 if __name__ == "__main__":
     print("Testing startup and port binding...")

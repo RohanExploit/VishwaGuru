@@ -39,6 +39,50 @@ router = APIRouter(
 # TOKEN GENERATION
 # ============================================================================
 
+@router.get("/token/{token_id}/blockchain-verify", response_model=BlockchainVerificationResponse)
+async def verify_token_blockchain_integrity(token_id: str, db: Session = Depends(get_db)):
+    """
+    Verify the cryptographic integrity of a resolution proof token using blockchain-style chaining.
+    Optimized: Uses previous_integrity_hash column for O(1) verification.
+    """
+    from backend.models import ResolutionProofToken
+
+    # Performance Boost: Use projected previous_integrity_hash to avoid N+1 or secondary lookups
+    token = await run_in_threadpool(
+        lambda: db.query(
+            ResolutionProofToken.token_id,
+            ResolutionProofToken.grievance_id,
+            ResolutionProofToken.authority_email,
+            ResolutionProofToken.integrity_hash,
+            ResolutionProofToken.previous_integrity_hash
+        ).filter(ResolutionProofToken.token_id == token_id).first()
+    )
+
+    if not token:
+        raise HTTPException(status_code=404, detail="Resolution proof token not found")
+
+    # Determine previous hash (O(1) from stored column)
+    prev_hash = token.previous_integrity_hash or ""
+
+    # Chaining logic: hash(token_id|grievance_id|authority_email|prev_hash)
+    chain_content = f"{token.token_id}|{token.grievance_id}|{token.authority_email}|{prev_hash}"
+    computed_hash = hashlib.sha256(chain_content.encode()).hexdigest()
+
+    is_valid = (computed_hash == token.integrity_hash)
+
+    if is_valid:
+        message = "Integrity verified. This resolution proof token is cryptographically sealed and part of a secure chain."
+    else:
+        message = "Integrity check failed! The token data does not match its cryptographic seal."
+
+    return BlockchainVerificationResponse(
+        is_valid=is_valid,
+        current_hash=token.integrity_hash,
+        computed_hash=computed_hash,
+        message=message
+    )
+
+
 @router.post("/generate-token", response_model=RPTResponse)
 def generate_resolution_token(
     request: GenerateRPTRequest,
@@ -260,40 +304,34 @@ def get_audit_log(
 async def verify_resolution_blockchain_integrity(evidence_id: int, db: Session = Depends(get_db)):
     """
     Verify the cryptographic integrity of resolution evidence using blockchain-style chaining.
-    Optimized: Uses previous_integrity_hash column for O(1) verification.
+    Optimized: Uses a single joined query and previous_integrity_hash column for O(1) verification.
     """
-    # Fetch current evidence data including the link to previous hash
-    # Performance Boost: Use projected previous_integrity_hash to avoid N+1 or secondary lookups
-    evidence = await run_in_threadpool(
+    # Performance Boost: Use a single joined query to fetch evidence and token_id in one round-trip.
+    from backend.models import ResolutionProofToken
+
+    result = await run_in_threadpool(
         lambda: db.query(
-            ResolutionEvidence.id,
             ResolutionEvidence.grievance_id,
-            ResolutionEvidence.token_id,
             ResolutionEvidence.evidence_hash,
             ResolutionEvidence.integrity_hash,
-            ResolutionEvidence.previous_integrity_hash
+            ResolutionEvidence.previous_integrity_hash,
+            ResolutionProofToken.token_id
+        ).join(
+            ResolutionProofToken, ResolutionEvidence.token_id == ResolutionProofToken.id
         ).filter(ResolutionEvidence.id == evidence_id).first()
     )
 
-    if not evidence:
+    if not result:
         raise HTTPException(status_code=404, detail="Resolution evidence not found")
 
-    # Fetch token to get token_id string (required for chaining logic)
-    # We need the string token_id from ResolutionProofToken
-    from backend.models import ResolutionProofToken
-    token = await run_in_threadpool(
-        lambda: db.query(ResolutionProofToken.token_id).filter(ResolutionProofToken.id == evidence.token_id).first()
-    )
-    token_id_str = token[0] if token else "unknown"
-
     # Determine previous hash (O(1) from stored column)
-    prev_hash = evidence.previous_integrity_hash or ""
+    prev_hash = result.previous_integrity_hash or ""
 
     # Chaining logic: hash(token_id|grievance_id|evidence_hash|prev_hash)
-    chain_content = f"{token_id_str}|{evidence.grievance_id}|{evidence.evidence_hash}|{prev_hash}"
+    chain_content = f"{result.token_id}|{result.grievance_id}|{result.evidence_hash}|{prev_hash}"
     computed_hash = hashlib.sha256(chain_content.encode()).hexdigest()
 
-    is_valid = (computed_hash == evidence.integrity_hash)
+    is_valid = (computed_hash == result.integrity_hash)
 
     if is_valid:
         message = "Integrity verified. This resolution evidence is cryptographically sealed and part of a secure chain."
@@ -302,7 +340,7 @@ async def verify_resolution_blockchain_integrity(evidence_id: int, db: Session =
 
     return BlockchainVerificationResponse(
         is_valid=is_valid,
-        current_hash=evidence.integrity_hash,
+        current_hash=result.integrity_hash,
         computed_hash=computed_hash,
         message=message
     )

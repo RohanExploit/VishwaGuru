@@ -435,14 +435,18 @@ def get_closure_status(
         ).scalar()
         
         # Get all confirmation counts in a single query instead of multiple round-trips
-        from sqlalchemy import case
-        stats = db.query(
-            func.sum(case((ClosureConfirmation.confirmation_type == 'confirmed', 1), else_=0)).label('confirmed'),
-            func.sum(case((ClosureConfirmation.confirmation_type == 'disputed', 1), else_=0)).label('disputed')
-        ).filter(ClosureConfirmation.grievance_id == grievance_id).first()
+        counts = db.query(
+            ClosureConfirmation.confirmation_type,
+            func.count(ClosureConfirmation.id)
+        ).filter(ClosureConfirmation.grievance_id == grievance_id).group_by(ClosureConfirmation.confirmation_type).all()
         
-        confirmations_count = stats.confirmed or 0
-        disputes_count = stats.disputed or 0
+        confirmations_count = 0
+        disputes_count = 0
+        for confirmation_type, count in counts:
+            if confirmation_type == 'confirmed':
+                confirmations_count = count
+            elif confirmation_type == 'disputed':
+                disputes_count = count
         
         required_confirmations = max(1, int(total_followers * ClosureService.CONFIRMATION_THRESHOLD))
         

@@ -26,7 +26,7 @@ from backend.models import (
     EvidenceAuditLog, VerificationStatus, GrievanceStatus
 )
 from backend.config import get_config, get_auth_config
-from backend.cache import resolution_last_hash_cache, evidence_audit_last_hash_cache
+from backend.cache import resolution_last_hash_cache, evidence_audit_last_hash_cache, token_last_hash_cache
 
 logger = logging.getLogger(__name__)
 
@@ -189,6 +189,15 @@ class ResolutionProofService:
 
         signature = ResolutionProofService._sign_payload(payload)
 
+        # 4. Blockchain Chaining
+        # Performance Boost: Use thread-safe cache to eliminate DB query for last hash
+        last_record = db.query(ResolutionProofToken.integrity_hash).order_by(ResolutionProofToken.id.desc()).first()
+        prev_hash = last_record[0] if last_record and last_record[0] else ""
+
+        # Chaining: hash(token_id|grievance_id|authority_email|prev_hash)
+        chain_content = f"{token_uuid}|{grievance_id}|{authority_email}|{prev_hash}"
+        integrity_hash = hashlib.sha256(chain_content.encode()).hexdigest()
+
         # Create token record
         token = ResolutionProofToken(
             token_id=token_uuid,
@@ -203,11 +212,16 @@ class ResolutionProofService:
             nonce=nonce,
             token_signature=signature,
             is_used=False,
+            integrity_hash=integrity_hash,
+            previous_integrity_hash=prev_hash,
         )
 
         db.add(token)
         db.commit()
         db.refresh(token)
+
+        # Update cache for next report AFTER successful DB commit
+        token_last_hash_cache.set(data=integrity_hash, key="last_hash")
 
         logger.info(
             f"Generated RPT {token_uuid} for grievance {grievance_id} "

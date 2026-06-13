@@ -100,6 +100,8 @@ def equirectangular_distance(
     return R * math.sqrt(x * x + y * y)
 
 
+DEG_TO_RAD = math.pi / 180.0
+
 def find_nearby_issues(
     issues: List[Issue],
     target_lat: float,
@@ -114,18 +116,24 @@ def find_nearby_issues(
         target_lat: Target latitude
         target_lon: Target longitude
         radius_meters: Search radius in meters (default 50m)
+        pre_filtered: If True, skips the bounding box pre-filter (caller must pre-filter)
 
     Returns:
         List of tuples (issue, distance_meters) for issues within radius
     """
     nearby_issues = []
 
+    # Optimization: pre-filter using a bounding box to avoid math on distant points
+    min_lat, max_lat, min_lon, max_lon = get_bounding_box(
+        target_lat, target_lon, radius_meters
+    )
+
     # Optimization: Use inline Equirectangular approximation for short distances (< 10km)
     # This avoids function call overhead and repeated radian conversions.
     # For larger distances, fallback to precise Haversine calculation.
     if radius_meters > 10000:
         for issue in issues:
-            if issue.latitude is None or issue.longitude is None:
+            if getattr(issue, 'latitude', None) is None or getattr(issue, 'longitude', None) is None:
                 continue
             distance = haversine_distance(
                 target_lat, target_lon, issue.latitude, issue.longitude
@@ -134,7 +142,6 @@ def find_nearby_issues(
                 nearby_issues.append((issue, distance))
     else:
         # Optimized path for common case (small radius)
-        R = 6371000.0
         radius_sq = radius_meters * radius_meters
         deg_to_rad = math.pi / 180.0
 
@@ -163,8 +170,18 @@ def find_nearby_issues(
 
             dist_sq = x * x + y * y
 
-            if dist_sq <= radius_sq:
-                nearby_issues.append((issue, math.sqrt(dist_sq)))
+                # Handle longitude wrapping (dateline crossing)
+                if dlon > 180.0:
+                    dlon -= 360.0
+                elif dlon < -180.0:
+                    dlon += 360.0
+
+                x = dlon * meters_per_degree_lon
+                y = dlat * meters_per_degree_lat
+                dist_sq = (x*x + y*y)
+
+                if dist_sq <= radius_sq:
+                    nearby_issues.append((issue, math.sqrt(dist_sq)))
 
     # Sort by distance (closest first)
     nearby_issues.sort(key=lambda x: x[1])

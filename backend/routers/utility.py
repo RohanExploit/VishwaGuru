@@ -57,21 +57,24 @@ def get_stats(db: Session = Depends(get_db)):
     # This eliminates a redundant database roundtrip
     cat_counts = db.query(
         Issue.category,
-        func.count(Issue.id).label("total"),
-        func.sum(case((Issue.status.in_(['resolved', 'verified']), 1), else_=0)).label("resolved")
-    ).group_by(Issue.category).all()
+        Issue.status,
+        func.count(Issue.id)
+    ).group_by(Issue.category, Issue.status).all()
 
     total = 0
     resolved = 0
     issues_by_category = {}
 
-    for cat, cat_total, cat_resolved in cat_counts:
-        # Sum up system-wide totals
-        total += cat_total or 0
-        resolved += int(cat_resolved or 0)
+    for cat, status, count in cat_counts:
+        c = count or 0
+        total += c
+        if status in ['resolved', 'verified']:
+            resolved += c
 
         # Build category breakdown
-        issues_by_category[cat] = cat_total or 0
+        if cat not in issues_by_category:
+            issues_by_category[cat] = 0
+        issues_by_category[cat] += c
 
     # Pending is everything else
     pending = total - resolved
