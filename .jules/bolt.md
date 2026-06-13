@@ -78,6 +78,10 @@
 **Learning:** Saving audio recordings (up to 10MB) synchronously in a FastAPI async endpoint blocks the main event loop, significantly increasing tail latency for all concurrent users during high-traffic periods.
 **Action:** Wrap blocking synchronous File I/O operations like `f.write()` in `run_in_threadpool` to offload them to a separate thread, keeping the event loop responsive for other requests.
 
+## 2026-03-05 - Transaction Consolidation with Blockchain Chaining
+**Learning:** Consolidating multiple database operations into a single transaction reduces disk I/O and latency. However, when using blockchain-style hash chaining with in-memory caches, global caches MUST NOT be updated until after a successful commit to prevent poisoning on rollbacks. Intermediate chaining during the transaction must be handled manually or via a separate local tracking mechanism.
+**Action:** Consolidate multiple `db.commit()` calls into one using `db.flush()` for intermediate IDs. Track generated hashes locally and update global `ThreadSafeCache` only after `db.commit()` succeeds.
+
 ## 2026-05-15 - Serialization Caching Bypass
 **Learning:** Caching raw Python objects (like SQLAlchemy models or Pydantic instances) in a high-traffic API still incurs significant overhead because FastAPI/Pydantic must re-validate and re-serialize the data on every request.
 **Action:** Serialize data to a JSON string using `json.dumps()` BEFORE caching. On cache hits, return a raw `fastapi.Response(content=..., media_type="application/json")`. This bypasses the validation and serialization layer, resulting in significant performance gains (up to 50x in benchmarks).
@@ -93,3 +97,11 @@
 ## 2026-05-20 - Joined Queries for Integrity Verification
 **Learning:** Performing multiple sequential database queries to verify cryptographically chained records (e.g., fetching a record and then its associated token/metadata from another table) introduces unnecessary latency and increases database load.
 **Action:** Consolidate associated data retrieval into a single SQL `JOIN` query within the verification hot-path. This reduces database round-trips and improves end-to-end latency for blockchain-style integrity checks.
+
+## 2026-05-22 - Substring Pre-filtering with Missing Keywords Fix
+**Learning:** Adding substring pre-filtering for expensive regex searches is a good optimization, but when the regex pattern doesn't have literal keywords to extract (e.g. it only uses wildcards or complex logic resulting in empty `keywords`), the pre-filtering logic must handle it. If not, it can bypass the regex check entirely for valid inputs, resulting in missing functionality and test regressions.
+**Action:** When implementing substring pre-filtering, always ensure the fallback handles the case where no literal keywords could be extracted. E.g. `if not keywords: if regex.search(text): ... else: for k in keywords: if k in text: if regex.search(text): ... break`
+
+## 2026-05-22 - Regex Optimization in Keyword Extraction
+**Learning:** Using a pre-compiled `re.compile(r'\w+')` with `.findall()` is significantly faster than using `re.findall(r'\b\w+\b', ...)` while maintaining proper word boundary handling. Additionally, batching string segments into one `.join()` before calling `.lower()` improves performance in bulk text processing operations.
+**Action:** Always pre-compile regular expressions used in hot paths or bulk text processing, and optimize string concatenations by joining first then applying transformations.
