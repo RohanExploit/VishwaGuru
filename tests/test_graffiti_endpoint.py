@@ -1,5 +1,5 @@
 from fastapi.testclient import TestClient
-from unittest.mock import patch
+from unittest.mock import patch, AsyncMock
 from backend.main import app
 import pytest
 import io
@@ -20,6 +20,7 @@ def mock_process_image():
 
 def test_detect_graffiti(mock_detect_graffiti, mock_process_image):
     # Mock return value
+    mock_process.return_value = (None, b"fake_image_bytes")
     mock_detect_graffiti.return_value = [
         {"label": "street art", "confidence": 0.95, "box": []},
         {"label": "clean wall", "confidence": 0.05, "box": []}
