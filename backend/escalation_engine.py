@@ -293,6 +293,10 @@ class EscalationEngine:
             # Update cache for next audit AFTER successful DB commit
             audit_last_hash_cache.set(data=integrity_hash, key="last_hash")
 
+            # Invalidate grievance caches
+            grievance_list_cache.clear()
+            escalation_stats_cache.clear()
+
             return True
 
         except Exception as e:
