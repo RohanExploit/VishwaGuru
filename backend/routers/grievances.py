@@ -26,9 +26,10 @@ from backend.schemas import (
 from backend.grievance_service import GrievanceService
 from backend.closure_service import ClosureService
 
+import threading
 logger = logging.getLogger(__name__)
 
-# Global lock for synchronizing follower blockchain operations
+# Lock for synchronizing blockchain operations
 follower_blockchain_lock = threading.Lock()
 
 router = APIRouter()
