@@ -139,7 +139,7 @@ async def create_issue(
             open_issues = await run_in_threadpool(
                 lambda: db.query(
                     Issue.id,
-                    Issue.description,
+                    func.substr(Issue.description, 1, 100).label("description"),
                     Issue.category,
                     Issue.latitude,
                     Issue.longitude,
@@ -422,8 +422,9 @@ def get_nearby_issues(
         # Performance Boost: Map directly to dictionaries to avoid Pydantic overhead
         nearby_data = []
         for issue, distance in nearby_issues_with_distance[:limit]:
+            # description is already truncated to 100 chars by SQL substr()
             desc = issue.description or ""
-            short_desc = desc[:100] + "..." if len(desc) > 100 else desc
+            short_desc = desc + "..." if len(desc) >= 100 else desc
 
             nearby_data.append(
                 {
@@ -737,8 +738,9 @@ def get_user_issues(
     # Convert results to dictionaries for faster serialization and schema compliance
     data = []
     for row in results:
+        # description is already truncated to 100 chars by SQL substr()
         desc = row.description or ""
-        short_desc = desc[:100] + "..." if len(desc) > 100 else desc
+        short_desc = desc + "..." if len(desc) >= 100 else desc
 
         data.append(
             {
@@ -837,7 +839,7 @@ def get_recent_issues(
     query = db.query(
         Issue.id,
         Issue.category,
-        Issue.description,
+        func.substr(Issue.description, 1, 100).label("description"),
         Issue.created_at,
         Issue.image_path,
         Issue.status,
@@ -856,8 +858,9 @@ def get_recent_issues(
     data = []
     for row in results:
         # Manually construct dict from named tuple row to avoid full object overhead
+        # description is already truncated to 100 chars by SQL substr()
         desc = row.description or ""
-        short_desc = desc[:100] + "..." if len(desc) > 100 else desc
+        short_desc = desc + "..." if len(desc) >= 100 else desc
 
         data.append(
             {

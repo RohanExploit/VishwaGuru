@@ -157,6 +157,9 @@ def find_nearby_issues(
         # Cosine term is constant for the target latitude in equirectangular projection
         cos_lat = math.cos(target_lat_rad)
 
+        # Optimization: Pre-calculate scaling factor
+        DEG_TO_RAD = math.pi / 180.0
+
         for issue in issues:
             lat = issue.latitude
             lon = issue.longitude
