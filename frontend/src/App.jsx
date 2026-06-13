@@ -26,6 +26,10 @@ const NotFound = React.lazy(() => import('./views/NotFound'));
 const PotholeDetector = React.lazy(() => import('./PotholeDetector'));
 const EmotionDetector = React.lazy(() => import('./EmotionDetector'));
 const GarbageDetector = React.lazy(() => import('./GarbageDetector'));
+const WaterLeakDetector = React.lazy(() => import('./WaterLeakDetector'));
+const CrowdDetector = React.lazy(() => import('./CrowdDetector'));
+const WasteDetector = React.lazy(() => import('./WasteDetector'));
+const AccessibilityDetector = React.lazy(() => import('./AccessibilityDetector'));
 const VandalismDetector = React.lazy(() => import('./VandalismDetector'));
 const FloodDetector = React.lazy(() => import('./FloodDetector'));
 const InfrastructureDetector = React.lazy(() => import('./InfrastructureDetector'));
@@ -45,6 +49,7 @@ const MyReportsView = React.lazy(() => import('./views/MyReportsView'));
 const ContentModerator = React.lazy(() => import('./ContentModerator'));
 const AbandonedVehicleDetector = React.lazy(() => import('./AbandonedVehicleDetector'));
 const TrafficSignDetector = React.lazy(() => import('./TrafficSignDetector'));
+const SeverityDetector = React.lazy(() => import('./SeverityDetector'));
 
 
 // Auth Components
@@ -303,6 +308,10 @@ function AppContent() {
               <Route path="/pothole" element={<PotholeDetector onBack={() => navigate('/')} />} />
               <Route path="/emotion" element={<EmotionDetector onBack={() => navigate('/')} />} />
               <Route path="/garbage" element={<GarbageDetector onBack={() => navigate('/')} />} />
+              <Route path="/waterleak" element={<WaterLeakDetector onBack={() => navigate('/')} />} />
+              <Route path="/crowd" element={<CrowdDetector onBack={() => navigate('/')} />} />
+              <Route path="/waste" element={<WasteDetector onBack={() => navigate('/')} />} />
+              <Route path="/accessibility" element={<AccessibilityDetector onBack={() => navigate('/')} />} />
               <Route
                 path="/vandalism"
                 element={
@@ -342,6 +351,7 @@ function AppContent() {
               <Route path="/content-moderator" element={<ContentModerator onBack={() => navigate('/')} />} />
               <Route path="/abandoned-vehicle" element={<AbandonedVehicleDetector onBack={() => navigate('/')} />} />
               <Route path="/traffic-sign" element={<TrafficSignDetector onBack={() => navigate('/')} />} />
+              <Route path="/severity" element={<SeverityDetector onBack={() => navigate('/')} />} />
               <Route path="/safety-check" element={
                 <div className="flex flex-col h-full p-4">
                   <button onClick={() => navigate('/')} className="self-start text-blue-600 mb-2 font-bold">

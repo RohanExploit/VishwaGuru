@@ -22,6 +22,9 @@ class GrievanceService:
     Main service for managing grievances, routing, and escalations.
     """
 
+    # Class-level cache to avoid redundant disk I/O when instantiating the service
+    _rules_cache = {}
+
     def __init__(self, rules_config_path: str = "backend/grievance_rules.json"):
         """
         Initialize the grievance service.
@@ -29,8 +32,12 @@ class GrievanceService:
         Args:
             rules_config_path: Path to the rules configuration file
         """
-        with open(rules_config_path, 'r') as f:
-            self.rules_config = json.load(f)
+        # Optimized: Use class-level cache to avoid reading and parsing the JSON file repeatedly
+        if rules_config_path not in GrievanceService._rules_cache:
+            with open(rules_config_path, 'r') as f:
+                GrievanceService._rules_cache[rules_config_path] = json.load(f)
+
+        self.rules_config = GrievanceService._rules_cache[rules_config_path]
 
         self.routing_service = RoutingService(self.rules_config)
         self.sla_service = SLAConfigService(

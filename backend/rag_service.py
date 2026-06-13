@@ -46,6 +46,25 @@ class CivicRAG:
         except Exception as e:
             logger.error(f"Error loading policies: {e}")
 
+    def _prepare_policies(self):
+        """Pre-tokenize and pre-format policies for faster retrieval."""
+        self._prepared_policies = []
+        for policy in self.policies:
+            title = policy.get('title', '')
+            text = policy.get('text', '')
+            source = policy.get('source', 'Unknown')
+
+            content = f"{title} {text}"
+            content_tokens = self._tokenize(content)
+
+            self._prepared_policies.append({
+                'title_tokens': self._tokenize(title),
+                'content_tokens': content_tokens,
+                'content_tokens_len': len(content_tokens),
+                'formatted': f"**{title}**: {text} (Source: {source})",
+                'original': policy
+            })
+
     def _tokenize(self, text: str) -> set:
         """Simple tokenizer: lowercase, remove non-alphanumeric, split."""
         text = text.lower()
@@ -57,32 +76,38 @@ class CivicRAG:
         """
         Retrieve the most relevant policy based on Jaccard similarity of tokens.
         Returns the formatted policy string or None if below threshold.
+        Optimized: Uses pre-calculated token lengths and mathematical union to avoid O(N) union.
         """
-        if not query or not self.policies:
+        if not query or not self._prepared_policies:
             return None
 
         query_tokens = self._tokenize(query)
-        if not query_tokens:
+        query_token_count = len(query_tokens)
+        if query_token_count == 0:
             return None
 
+        query_tokens_len = len(query_tokens)
         best_score = 0.0
-        best_policy = None
+        best_formatted = None
 
         for policy, pretokenized in zip(self.policies, self.pretokenized_policies):
             # Performance Boost: Use pre-calculated token sets
             policy_tokens = pretokenized["content_tokens"]
 
-            if not policy_tokens:
+            # Optimization: Use isdisjoint() for fast early exit
+            if query_tokens.isdisjoint(policy_tokens):
                 continue
 
             # Jaccard Similarity
-            intersection = query_tokens.intersection(policy_tokens)
-            union = query_tokens.union(policy_tokens)
+            # Optimized: Calculate intersection and mathematically deduce union length
+            # to avoid creating a new set object in memory for union operations.
+            intersection_len = len(query_tokens.intersection(policy_tokens))
 
-            if not union:
+            if intersection_len == 0:
                 continue
 
-            score = len(intersection) / len(union)
+            union_len = len(query_tokens) + len(policy_tokens) - intersection_len
+            score = intersection_len / union_len
 
             # Boost score if title words match (weighted)
             title_tokens = pretokenized["title_tokens"]
@@ -92,10 +117,10 @@ class CivicRAG:
 
             if score > best_score:
                 best_score = score
-                best_policy = policy
+                best_formatted = prepared['formatted']
 
-        if best_score >= threshold and best_policy:
-            return f"**{best_policy['title']}**: {best_policy['text']} (Source: {best_policy['source']})"
+        if best_score >= threshold and best_formatted:
+            return best_formatted
 
         return None
 
