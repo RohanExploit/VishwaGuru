@@ -16,8 +16,7 @@ logger = logging.getLogger(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 API_URL = os.getenv(
-    "HF_TEXT_API_URL",
-    "https://router.huggingface.co/featherless-ai/v1/completions"
+    "HF_TEXT_API_URL", "https://router.huggingface.co/featherless-ai/v1/completions"
 )
 HF_TOKEN = os.getenv("HF_TOKEN", "")
 
@@ -47,7 +46,9 @@ async def generate(
         Generated text string. Falls back to a dev-mode stub if API is unavailable.
     """
     if not API_URL or not HF_TOKEN:
-        logger.warning("HF_TEXT_API_URL or HF_TOKEN not configured — returning dev stub.")
+        logger.warning(
+            "HF_TEXT_API_URL or HF_TOKEN not configured — returning dev stub."
+        )
         return f"[DEV MODE OUTPUT]\n{prompt[:800]}"
 
     headers = {"Authorization": f"Bearer {HF_TOKEN}"}
@@ -69,9 +70,7 @@ async def generate(
             )
 
         if response.status_code != 200:
-            logger.error(
-                f"HF Text API error {response.status_code}: {response.text}"
-            )
+            logger.error(f"HF Text API error {response.status_code}: {response.text}")
             return f"[DEV MODE OUTPUT]\n{prompt[:800]}"
 
         data = response.json()
@@ -98,6 +97,7 @@ async def generate(
 
 
 # ── Convenience Wrappers ─────────────────────────────────────────────────────
+
 
 async def generate_civic_response(
     issue_description: str,
@@ -181,7 +181,9 @@ async def generate_mla_summary_hf(
     Generate an MLA summary using HF LLM.
     Drop-in replacement for the Gemini-based MLA summary.
     """
-    category_clause = f"\nFocus on their work related to: {issue_category}" if issue_category else ""
+    category_clause = (
+        f"\nFocus on their work related to: {issue_category}" if issue_category else ""
+    )
 
     prompt = f"""Provide a brief summary about {mla_name}, the MLA from {assembly_constituency} constituency in {district} district, Maharashtra, India.{category_clause}
 
@@ -197,6 +199,7 @@ Keep it factual, concise, and helpful for citizens."""
 
 
 # ── Health Check ──────────────────────────────────────────────────────────────
+
 
 async def check_hf_text_health() -> Dict[str, Any]:
     """Check whether the HF text generation endpoint is reachable."""

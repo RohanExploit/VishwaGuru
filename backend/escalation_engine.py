@@ -9,20 +9,37 @@ import hmac
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
-from backend.models import Grievance, Jurisdiction, EscalationAudit, GrievanceStatus, JurisdictionLevel, EscalationReason, SeverityLevel
+from backend.models import (
+    Grievance,
+    Jurisdiction,
+    EscalationAudit,
+    GrievanceStatus,
+    JurisdictionLevel,
+    EscalationReason,
+    SeverityLevel,
+)
 from backend.database import SessionLocal
 from backend.config import get_auth_config
-from backend.cache import audit_last_hash_cache, grievance_list_cache, escalation_stats_cache
+from backend.cache import (
+    audit_last_hash_cache,
+    grievance_list_cache,
+    escalation_stats_cache,
+)
 from backend.routing_service import RoutingService
 from backend.sla_config_service import SLAConfigService
+
 
 class EscalationEngine:
     """
     Engine for handling grievance escalations based on SLA breaches and severity changes.
     """
 
-    def __init__(self, routing_service: RoutingService, sla_service: SLAConfigService,
-                 rules_config: Dict[str, Any]):
+    def __init__(
+        self,
+        routing_service: RoutingService,
+        sla_service: SLAConfigService,
+        rules_config: Dict[str, Any],
+    ):
         """
         Initialize the escalation engine.
 
@@ -57,21 +74,25 @@ class EscalationEngine:
 
             for grievance in grievances_to_evaluate:
                 if self._should_escalate(grievance, db):
-                    success = self._escalate_grievance(grievance, EscalationReason.SLA_BREACH, db)
+                    success = self._escalate_grievance(
+                        grievance, EscalationReason.SLA_BREACH, db
+                    )
                     if success:
                         escalated_count += 1
 
-            return {
-                "evaluated": evaluated_count,
-                "escalated": escalated_count
-            }
+            return {"evaluated": evaluated_count, "escalated": escalated_count}
 
         finally:
             if db is not SessionLocal():
                 db.close()
 
-    def escalate_grievance_severity(self, grievance_id: int, new_severity: SeverityLevel,
-                                   reason: str = "", db: Session = None) -> bool:
+    def escalate_grievance_severity(
+        self,
+        grievance_id: int,
+        new_severity: SeverityLevel,
+        reason: str = "",
+        db: Session = None,
+    ) -> bool:
         """
         Escalate a grievance due to severity upgrade.
 
@@ -102,7 +123,9 @@ class EscalationEngine:
 
             # Check if escalation to higher jurisdiction is needed
             if self._should_escalate_due_to_severity(grievance, old_severity, db):
-                return self._escalate_grievance(grievance, EscalationReason.SEVERITY_UPGRADE, db, reason)
+                return self._escalate_grievance(
+                    grievance, EscalationReason.SEVERITY_UPGRADE, db, reason
+                )
 
             db.commit()
             return True
@@ -115,7 +138,9 @@ class EscalationEngine:
             if db is not SessionLocal():
                 db.close()
 
-    def manual_escalate(self, grievance_id: int, reason: str = "", db: Session = None) -> bool:
+    def manual_escalate(
+        self, grievance_id: int, reason: str = "", db: Session = None
+    ) -> bool:
         """
         Manually escalate a grievance.
 
@@ -135,7 +160,9 @@ class EscalationEngine:
             if not grievance:
                 return False
 
-            return self._escalate_grievance(grievance, EscalationReason.MANUAL, db, reason)
+            return self._escalate_grievance(
+                grievance, EscalationReason.MANUAL, db, reason
+            )
 
         finally:
             if db is not SessionLocal():
@@ -154,12 +181,22 @@ class EscalationEngine:
         now = datetime.datetime.now(datetime.timezone.utc)
 
         # Get grievances that are active and past SLA deadline
-        return db.query(Grievance).filter(
-            and_(
-                Grievance.status.in_([GrievanceStatus.OPEN, GrievanceStatus.IN_PROGRESS, GrievanceStatus.ESCALATED]),
-                Grievance.sla_deadline < now
+        return (
+            db.query(Grievance)
+            .filter(
+                and_(
+                    Grievance.status.in_(
+                        [
+                            GrievanceStatus.OPEN,
+                            GrievanceStatus.IN_PROGRESS,
+                            GrievanceStatus.ESCALATED,
+                        ]
+                    ),
+                    Grievance.sla_deadline < now,
+                )
             )
-        ).all()
+            .all()
+        )
 
     def _should_escalate(self, grievance: Grievance, db: Session) -> bool:
         """
@@ -180,7 +217,9 @@ class EscalationEngine:
         # Check if escalation is possible
         return self.routing_service.can_escalate(grievance.jurisdiction.level)
 
-    def _should_escalate_due_to_severity(self, grievance: Grievance, old_severity: SeverityLevel, db: Session) -> bool:
+    def _should_escalate_due_to_severity(
+        self, grievance: Grievance, old_severity: SeverityLevel, db: Session
+    ) -> bool:
         """
         Check if severity change requires jurisdiction escalation.
 
@@ -196,7 +235,7 @@ class EscalationEngine:
             SeverityLevel.LOW: 1,
             SeverityLevel.MEDIUM: 2,
             SeverityLevel.HIGH: 3,
-            SeverityLevel.CRITICAL: 4
+            SeverityLevel.CRITICAL: 4,
         }
 
         old_level = severity_hierarchy.get(old_severity, 1)
@@ -208,8 +247,13 @@ class EscalationEngine:
 
         return False
 
-    def _escalate_grievance(self, grievance: Grievance, reason: EscalationReason,
-                           db: Session, notes: str = "") -> bool:
+    def _escalate_grievance(
+        self,
+        grievance: Grievance,
+        reason: EscalationReason,
+        db: Session,
+        notes: str = "",
+    ) -> bool:
         """
         Perform the actual escalation of a grievance.
 
@@ -224,7 +268,9 @@ class EscalationEngine:
         """
         try:
             # Get next jurisdiction level
-            next_level = self.routing_service.get_next_jurisdiction_level(grievance.jurisdiction.level)
+            next_level = self.routing_service.get_next_jurisdiction_level(
+                grievance.jurisdiction.level
+            )
             if not next_level:
                 return False  # Cannot escalate beyond national level
 
@@ -234,7 +280,7 @@ class EscalationEngine:
                 state=grievance.state,
                 district=grievance.district,
                 city=grievance.city,
-                db=db
+                db=db,
             )
 
             if not new_jurisdiction:
@@ -245,7 +291,9 @@ class EscalationEngine:
 
             # Update grievance
             grievance.current_jurisdiction_id = new_jurisdiction.id
-            grievance.assigned_authority = self.routing_service.assign_authority(new_jurisdiction, grievance.category)
+            grievance.assigned_authority = self.routing_service.assign_authority(
+                new_jurisdiction, grievance.category
+            )
             grievance.status = GrievanceStatus.ESCALATED
             grievance.updated_at = datetime.datetime.now(datetime.timezone.utc)
 
@@ -257,19 +305,21 @@ class EscalationEngine:
             prev_hash = audit_last_hash_cache.get("last_hash")
             if prev_hash is None:
                 # Cache miss: Fetch only the last hash from DB
-                last_audit = db.query(EscalationAudit.integrity_hash).order_by(EscalationAudit.id.desc()).first()
+                last_audit = (
+                    db.query(EscalationAudit.integrity_hash)
+                    .order_by(EscalationAudit.id.desc())
+                    .first()
+                )
                 prev_hash = last_audit[0] if last_audit and last_audit[0] else ""
                 audit_last_hash_cache.set(data=prev_hash, key="last_hash")
 
             # Chaining logic: hash(grievance_id|previous_authority|new_authority|reason|prev_hash)
-            reason_str = reason.value if hasattr(reason, 'value') else str(reason)
+            reason_str = reason.value if hasattr(reason, "value") else str(reason)
             hash_content = f"{grievance.id}|{previous_authority}|{grievance.assigned_authority}|{reason_str}|{prev_hash}"
 
             secret_key = get_auth_config().secret_key
             integrity_hash = hmac.new(
-                secret_key.encode('utf-8'),
-                hash_content.encode('utf-8'),
-                hashlib.sha256
+                secret_key.encode("utf-8"), hash_content.encode("utf-8"), hashlib.sha256
             ).hexdigest()
 
             # Create audit log with integrity hash
@@ -280,7 +330,7 @@ class EscalationEngine:
                 reason=reason,
                 notes=notes,
                 integrity_hash=integrity_hash,
-                previous_integrity_hash=prev_hash
+                previous_integrity_hash=prev_hash,
             )
 
             db.add(audit_log)
@@ -312,7 +362,7 @@ class EscalationEngine:
             severity=grievance.severity,
             jurisdiction_level=grievance.jurisdiction.level,
             department=grievance.category,
-            db=db
+            db=db,
         )
 
         now = datetime.datetime.now(datetime.timezone.utc)

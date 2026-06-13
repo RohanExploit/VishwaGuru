@@ -1,4 +1,3 @@
-
 import pytest
 import warnings
 from fastapi.testclient import TestClient
@@ -21,21 +20,22 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 # Set environment variable
-os.environ['FRONTEND_URL'] = 'http://localhost:5173'
+os.environ["FRONTEND_URL"] = "http://localhost:5173"
 
 # Mock magic module before any imports
 mock_magic = MagicMock()
 mock_magic.from_buffer.return_value = "image/jpeg"
-sys.modules['magic'] = mock_magic
+sys.modules["magic"] = mock_magic
 
 # Mock telegram
 mock_telegram = MagicMock()
-sys.modules['telegram'] = mock_telegram
-sys.modules['telegram.ext'] = mock_telegram.ext
+sys.modules["telegram"] = mock_telegram
+sys.modules["telegram.ext"] = mock_telegram.ext
 
 # Import main (will trigger app creation)
 import backend.main
 from backend.main import app
+
 
 @pytest.fixture
 def client():
@@ -52,6 +52,7 @@ def client():
     dummy_request = MagicMock()
     dummy_request.app.state.http_client = mock_client
     import backend.main as main_module
+
     main_module.request = dummy_request
 
     # We need to ensure that when main.py does app.state.http_client = httpx.AsyncClient()
@@ -59,11 +60,13 @@ def client():
 
     # Let's rely on patching httpx.AsyncClient class constructor
     with patch("httpx.AsyncClient", return_value=mock_client):
-         with TestClient(app) as c:
+        with TestClient(app) as c:
             c.app.state.http_client = mock_client
             import backend.dependencies
+
             backend.dependencies.SHARED_HTTP_CLIENT = mock_client
             yield c
+
 
 @pytest.mark.asyncio
 async def test_detect_vandalism_with_bytes(client):
@@ -82,18 +85,21 @@ async def test_detect_vandalism_with_bytes(client):
     mock_client.post.return_value = mock_response
 
     # Create a dummy image bytes
-    img = Image.new('RGB', (100, 100), color='red')
+    img = Image.new("RGB", (100, 100), color="red")
     img_byte_arr = io.BytesIO()
-    img.save(img_byte_arr, format='JPEG')
+    img.save(img_byte_arr, format="JPEG")
     img_bytes = img_byte_arr.getvalue()
 
     # Send request
-    with patch('backend.utils.validate_uploaded_file'), \
-         patch('backend.pothole_detection.validate_image_for_processing'), \
-         patch('backend.routers.detection.detect_vandalism_unified', AsyncMock(return_value=[{"label": "graffiti", "score": 0.95}])):
+    with patch("backend.utils.validate_uploaded_file"), patch(
+        "backend.pothole_detection.validate_image_for_processing"
+    ), patch(
+        "backend.routers.detection.detect_vandalism_unified",
+        AsyncMock(return_value=[{"label": "graffiti", "score": 0.95}]),
+    ):
         response = client.post(
             "/api/detect-vandalism",
-            files={"image": ("test.jpg", img_bytes, "image/jpeg")}
+            files={"image": ("test.jpg", img_bytes, "image/jpeg")},
         )
 
     assert response.status_code == 200
@@ -103,6 +109,7 @@ async def test_detect_vandalism_with_bytes(client):
     assert data["detections"][0]["label"] == "graffiti"
 
     # Client not invoked because detection is mocked above
+
 
 @pytest.mark.asyncio
 async def test_detect_infrastructure_with_bytes(client):
@@ -119,19 +126,23 @@ async def test_detect_infrastructure_with_bytes(client):
     dummy_request = MagicMock()
     dummy_request.app.state.http_client = mock_client
     import backend.main as main_module
+
     main_module.request = dummy_request
 
-    img = Image.new('RGB', (100, 100), color='blue')
+    img = Image.new("RGB", (100, 100), color="blue")
     img_byte_arr = io.BytesIO()
-    img.save(img_byte_arr, format='JPEG')
+    img.save(img_byte_arr, format="JPEG")
     img_bytes = img_byte_arr.getvalue()
 
-    with patch('backend.utils.validate_uploaded_file'), \
-         patch('backend.pothole_detection.validate_image_for_processing'), \
-         patch('backend.routers.detection.detect_infrastructure_unified', AsyncMock(return_value=[{"label": "fallen tree", "score": 0.8}])):
+    with patch("backend.utils.validate_uploaded_file"), patch(
+        "backend.pothole_detection.validate_image_for_processing"
+    ), patch(
+        "backend.routers.detection.detect_infrastructure_unified",
+        AsyncMock(return_value=[{"label": "fallen tree", "score": 0.8}]),
+    ):
         response = client.post(
             "/api/detect-infrastructure",
-            files={"image": ("test.jpg", img_bytes, "image/jpeg")}
+            files={"image": ("test.jpg", img_bytes, "image/jpeg")},
         )
 
     assert response.status_code == 200
