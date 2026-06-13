@@ -43,7 +43,7 @@
 **Action:** Serialize data to a JSON string BEFORE caching. On cache hits, return a raw `fastapi.Response` with `media_type="application/json"`. This bypasses the validation layer and is measurably faster (2-3x).
 
 ## 2026-02-10 - Group-By for Multi-Count Statistics
-**Learning:** Executing multiple `count()` queries with different filters (e.g., for different statuses) causes redundant database scans and network round-trips.
+**Learning:** Executing multiple `count()` queries with different filters (e.g., for different statuses) causes redundant database scans and network round-triPS.
 **Action:** Use a single SQL `GROUP BY` query to fetch counts for all categories/statuses at once, then process the results in Python.
 
 ## 2026-02-11 - O(1) Blockchain Verification
@@ -61,3 +61,11 @@
 ## 2025-02-13 - API Route Prefix Consistency
 **Learning:** Inconsistent application of `/api` prefixes between `main.py` router mounting and test suite request paths can lead to 404 errors during testing, even if the logic is correct. This is especially prevalent when multiple agents work on the same codebase with different assumptions about global prefixes.
 **Action:** Always verify that `app.include_router` in `backend/main.py` uses `prefix="/api"` if the test suite (e.g., `tests/test_blockchain.py`) expects it. If a router is mounted without a prefix, ensure tests are updated or the prefix is added to `main.py` to maintain repository-wide consistency.
+
+## 2026-03-05 - Scratchpad File Cleanup
+**Learning:** Leaving scratchpad files like Python test scripts or benchmarking shell scripts pollutes the repository and will cause code reviews to fail. Even if the optimization works, the PR must be clean and only contain relevant application changes.
+**Action:** Always clean up generated development files, scripts, and temporary databases using `rm` before requesting a code review or submitting a PR.
+
+## 2026-03-05 - Avoid Sequential .count() and .first()
+**Learning:** Checking for the existence of records using `.count()` and then fetching the record with `.first()` results in two database round-trips. Furthermore, `.count()` requires the database to tally all matching rows, whereas `.first()` uses `LIMIT 1` and returns immediately upon finding a match.
+**Action:** Use `.first()` initially. If it returns `None`, you can return early (saving the count query). Only execute `.count()` if the record exists AND the exact total count is strictly required for the response.
