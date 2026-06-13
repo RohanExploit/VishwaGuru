@@ -269,9 +269,6 @@ class VerificationStatus(enum.Enum):
 
 class ResolutionEvidence(Base):
     __tablename__ = "resolution_evidence"
-    __table_args__ = (
-        Index("ix_resolution_evidence_grievance_id", "grievance_id"),
-    )
     id = Column(Integer, primary_key=True, index=True)
     grievance_id = Column(Integer, ForeignKey("grievances.id"), nullable=False)
     token_id = Column(Integer, ForeignKey("resolution_proof_tokens.id"), nullable=True)
@@ -289,9 +286,6 @@ class ResolutionEvidence(Base):
     metadata_bundle = Column(JSON, nullable=True)
     server_signature = Column(String, nullable=True)
     verification_status = Column(Enum(VerificationStatus), default=VerificationStatus.PENDING)
-    # Blockchain integrity fields
-    integrity_hash = Column(String, nullable=True)
-    previous_integrity_hash = Column(String, nullable=True, index=True)
 
     # Blockchain integrity fields
     integrity_hash = Column(String, nullable=True)
@@ -304,31 +298,22 @@ class ResolutionEvidence(Base):
 
 class ResolutionProofToken(Base):
     __tablename__ = "resolution_proof_tokens"
-    __table_args__ = (
-        Index("ix_resolution_proof_tokens_grievance_id", "grievance_id"),
-    )
     id = Column(Integer, primary_key=True, index=True)
     grievance_id = Column(Integer, ForeignKey("grievances.id"), nullable=False)
     token = Column(String, unique=True, index=True, nullable=True)
     token_id = Column(String, unique=True, index=True, nullable=True)  # UUID string
     authority_email = Column(String, nullable=True)
     generated_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
-    valid_from = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
-    valid_until = Column(DateTime, nullable=True)
-    expires_at = Column(DateTime, nullable=False)
-    # Validity fields (Issue #292)
-    nonce = Column(String, nullable=True)
     valid_from = Column(DateTime, nullable=True)
     valid_until = Column(DateTime, nullable=True)
+    expires_at = Column(DateTime, nullable=False)
+    nonce = Column(String, nullable=True)
     is_used = Column(Boolean, default=False)
     used_at = Column(DateTime, nullable=True)
     geofence_latitude = Column(Float, nullable=True)
     geofence_longitude = Column(Float, nullable=True)
     geofence_radius_meters = Column(Float, default=200.0)
     token_signature = Column(String, nullable=True)
-    nonce = Column(String, nullable=True)
-    valid_from = Column(DateTime, nullable=True)
-    valid_until = Column(DateTime, nullable=True)
 
     # Relationship
     grievance = relationship("Grievance", back_populates="resolution_tokens")

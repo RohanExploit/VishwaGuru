@@ -1,10 +1,3 @@
-/**
- * AdaptiveWeights handles dynamic adjustment of severity scores and duplicate thresholds.
- * It evolves the model by boosting category weights if they receive critical resolutions,
- * and tightening or relaxing the duplicate threshold based on overall platform volume.
- * Preserves history for full auditability.
- */
-
 import { Issue, ModelWeights } from "./types";
 import * as fs from "fs";
 import * as path from "path";

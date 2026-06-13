@@ -59,4 +59,3 @@ Thumbs.db
 frontend/.genkit/
 .genkit/
 .netlify
-test_venv/

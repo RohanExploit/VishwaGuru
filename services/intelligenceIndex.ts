@@ -1,9 +1,3 @@
-/**
- * IntelligenceIndex calculates a daily Civic Intelligence score (0-100).
- * The score reflects the citys civic health, rewarding high resolution rates and rich descriptions,
- * while penalizing sudden category spikes. Saves a local JSON snapshot for historical tracking.
- */
-
 import { Issue, DailySnapshot } from "./types";
 import * as fs from "fs";
 import * as path from "path";

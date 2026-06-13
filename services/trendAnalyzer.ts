@@ -1,9 +1,3 @@
-/**
- * TrendAnalyzer analyzes civic issues to identify emerging trends.
- * It extracts the top keywords, detects significant spikes (>50%) in specific categories,
- * and identifies geographic clusters of issues.
- */
-
 import { Issue } from "./types";
 
 export class TrendAnalyzer {

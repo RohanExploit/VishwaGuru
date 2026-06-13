@@ -143,6 +143,10 @@ def officer_check_in(request: OfficerCheckInRequest, db: Session = Depends(get_d
         
         db.add(new_visit)
         db.commit()
+
+        # Update cache for next visit ONLY after successful commit
+        visit_last_hash_cache.set(data=visit_hash, key="last_hash")
+
         db.refresh(new_visit)
         
         # Update cache for next visit AFTER successful commit to avoid cache poisoning

@@ -301,9 +301,9 @@ class ClosureStatusResponse(BaseModel):
     days_remaining: Optional[int] = Field(None, description="Days until deadline")
 
 class BlockchainVerificationResponse(BaseModel):
-    is_valid: bool = Field(..., description="Whether the issue/record integrity is intact")
+    is_valid: bool = Field(..., description="Whether the issue integrity is intact")
     current_hash: Optional[str] = Field(None, description="Current integrity hash stored in DB")
-    computed_hash: str = Field(..., description="Hash computed from current data and previous hash")
+    computed_hash: str = Field(..., description="Hash computed from current issue data and previous issue's hash")
     message: str = Field(..., description="Verification result message")
 
 
@@ -345,17 +345,8 @@ class EvidenceResponse(BaseModel):
     capture_timestamp: datetime = Field(..., description="When evidence was captured")
     verification_status: str = Field(..., description="Verification status: pending, verified, flagged, fraud_detected")
     server_signature: str = Field(..., description="Server cryptographic signature")
-    integrity_hash: Optional[str] = Field(None, description="Blockchain integrity hash")
-    previous_integrity_hash: Optional[str] = Field(None, description="Previous blockchain hash")
     created_at: datetime = Field(..., description="Record creation timestamp")
     message: str = Field(..., description="Status message")
-
-
-class ResolutionBlockchainVerificationResponse(BaseModel):
-    is_valid: bool = Field(..., description="Whether the resolution integrity is intact")
-    current_hash: Optional[str] = Field(None, description="Current integrity hash stored in DB")
-    computed_hash: str = Field(..., description="Hash computed from current evidence data and previous record's hash")
-    message: str = Field(..., description="Verification result message")
 
 
 class VerificationResponse(BaseModel):

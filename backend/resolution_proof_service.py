@@ -18,6 +18,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, Optional, List, Tuple
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from backend.models import (
@@ -170,14 +171,16 @@ class ResolutionProofService:
         # Generate token fields
         token_uuid = str(uuid.uuid4())
         nonce = uuid.uuid4().hex
-        now = datetime.now(timezone.utc)
+
+        # Normalize timestamps (strip microseconds) for deterministic hashing/signing across databases
+        now = datetime.now(timezone.utc).replace(microsecond=0)
         valid_until = now + timedelta(minutes=TOKEN_VALIDITY_MINUTES)
 
-        # Use fixed format for deterministic hashing
-        valid_from_str = now.strftime('%Y-%m-%dT%H:%M:%S')
-        valid_until_str = valid_until.strftime('%Y-%m-%dT%H:%M:%S')
+        # Build signing payload using standardized ISO format without timezone offset or microseconds
+        # This prevents mismatches when reading back from databases like SQLite that may strip TZ
+        now_str = now.strftime('%Y-%m-%dT%H:%M:%S')
+        until_str = valid_until.strftime('%Y-%m-%dT%H:%M:%S')
 
-        # Build signing payload
         payload = json.dumps({
             "token_id": token_uuid,
             "grievance_id": grievance_id,
@@ -185,17 +188,15 @@ class ResolutionProofService:
             "geofence_lat": grievance.latitude,
             "geofence_lon": grievance.longitude,
             "geofence_radius": geofence_radius,
-            "valid_from": valid_from_str,
-            "valid_until": valid_until_str,
+            "valid_from": now_str,
+            "valid_until": until_str,
             "nonce": nonce
         }, sort_keys=True)
 
         signature = ResolutionProofService._sign_payload(payload)
 
         # Create token record
-        # Populate both 'token' and 'token_id' for compatibility and to fix AttributeErrors
         token = ResolutionProofToken(
-            token=token_uuid,
             token_id=token_uuid,
             grievance_id=grievance_id,
             authority_email=authority_email,
@@ -204,7 +205,7 @@ class ResolutionProofService:
             geofence_radius_meters=geofence_radius,
             valid_from=now,
             valid_until=valid_until,
-            expires_at=valid_until, # Required field
+            expires_at=valid_until, # Maintain legacy column
             nonce=nonce,
             token_signature=signature,
             is_used=False,
@@ -242,9 +243,8 @@ class ResolutionProofService:
         Raises:
             ValueError: If any validation check fails
         """
-        # Fix: Query against 'token' column as it's the primary/unique identifier in some versions
         token = db.query(ResolutionProofToken).filter(
-            ResolutionProofToken.token == token_id
+            ResolutionProofToken.token_id == token_id
         ).first()
 
         if not token:
@@ -265,14 +265,14 @@ class ResolutionProofService:
                 f"Valid until: {valid_until.isoformat()}, current: {now.isoformat()}"
             )
 
-        # Verify signature
-        valid_from = token.valid_from
+        # Verify signature using normalized string formatting
+        # Ensure we handle possible None values for legacy tokens
+        valid_from = token.valid_from or token.generated_at
         if valid_from.tzinfo is None:
             valid_from = valid_from.replace(tzinfo=timezone.utc)
 
-        # Use fixed format for deterministic hashing
-        valid_from_str = valid_from.strftime('%Y-%m-%dT%H:%M:%S')
-        valid_until_str = valid_until.strftime('%Y-%m-%dT%H:%M:%S')
+        now_str = valid_from.strftime('%Y-%m-%dT%H:%M:%S')
+        until_str = valid_until.strftime('%Y-%m-%dT%H:%M:%S')
 
         payload = json.dumps({
             "token_id": token.token_id,
@@ -281,9 +281,9 @@ class ResolutionProofService:
             "geofence_lat": token.geofence_latitude,
             "geofence_lon": token.geofence_longitude,
             "geofence_radius": token.geofence_radius_meters,
-            "valid_from": valid_from_str,
-            "valid_until": valid_until_str,
-            "nonce": token.nonce
+            "valid_from": now_str,
+            "valid_until": until_str,
+            "nonce": token.nonce or ""
         }, sort_keys=True)
 
         if not ResolutionProofService._verify_signature(payload, token.token_signature):
@@ -365,8 +365,8 @@ class ResolutionProofService:
                 f"for grievance(s): {dup_ids}. Possible fraud."
             )
 
-        # 5. Blockchain chaining logic
-        # Performance Boost: Use thread-safe cache to eliminate DB query for last hash
+        # 5. Blockchain integrity logic
+        # Performance Boost: Cache-First, DB-Fallback to minimize database round-trips
         prev_hash = resolution_last_hash_cache.get("last_hash")
         if prev_hash is None:
             # Cache miss: Fetch only the last hash from DB
@@ -374,10 +374,8 @@ class ResolutionProofService:
             prev_hash = prev_evidence[0] if prev_evidence and prev_evidence[0] else ""
             resolution_last_hash_cache.set(data=prev_hash, key="last_hash")
 
-        # Chaining: hash(token_id|evidence_hash|gps|ts|prev_hash)
-        # Use fixed timestamp format for deterministic hashing
-        cap_ts_str = cap_ts.strftime('%Y-%m-%dT%H:%M:%S')
-        chain_content = f"{token.token_id}|{evidence_hash}|{gps_latitude}|{gps_longitude}|{cap_ts_str}|{prev_hash}"
+        # Chaining: hash(evidence_hash|token_id|prev_hash)
+        chain_content = f"{evidence_hash}|{token.token_id}|{prev_hash}"
         integrity_hash = hashlib.sha256(chain_content.encode()).hexdigest()
 
         # 6. Create server-side signed metadata bundle
@@ -388,7 +386,7 @@ class ResolutionProofService:
             "evidence_hash": evidence_hash,
             "gps_latitude": gps_latitude,
             "gps_longitude": gps_longitude,
-            "capture_timestamp": cap_ts_str,
+            "capture_timestamp": cap_ts.isoformat(),
             "device_fingerprint_hash": device_fingerprint_hash,
             "geofence_distance_meters": distance,
             "integrity_hash": integrity_hash,
@@ -423,7 +421,7 @@ class ResolutionProofService:
         db.commit()
         db.refresh(evidence)
 
-        # Update cache for next submission AFTER successful commit
+        # Update cache for next evidence AFTER successful commit to prevent cache poisoning
         resolution_last_hash_cache.set(data=integrity_hash, key="last_hash")
 
         # 9. Create audit log
@@ -458,53 +456,6 @@ class ResolutionProofService:
     # ──────────────────────────────────────────────
 
     @staticmethod
-    def verify_evidence_integrity(evidence_id: int, db: Session) -> Dict[str, Any]:
-        """
-        Verify the cryptographic integrity of a single resolution evidence record.
-        Optimized: Uses previous_integrity_hash column for O(1) verification.
-        """
-        evidence = db.query(ResolutionEvidence).filter(ResolutionEvidence.id == evidence_id).first()
-        if not evidence:
-            raise ValueError(f"Evidence {evidence_id} not found")
-
-        # Determine previous hash (O(1) from stored column)
-        prev_hash = evidence.previous_integrity_hash or ""
-
-        # Re-verify the server signature
-        bundle_str = json.dumps(evidence.metadata_bundle, sort_keys=True)
-        signature_valid = ResolutionProofService._verify_signature(
-            bundle_str, evidence.server_signature
-        )
-
-        # Recompute chaining hash
-        cap_ts = evidence.capture_timestamp
-        if cap_ts.tzinfo is None:
-            cap_ts = cap_ts.replace(tzinfo=timezone.utc)
-        cap_ts_str = cap_ts.strftime('%Y-%m-%dT%H:%M:%S')
-
-        # Fix: Query token explicitly using the ID stored in evidence
-        token = db.query(ResolutionProofToken.token_id).filter(ResolutionProofToken.id == evidence.token_id).first()
-        token_id_val = token[0] if token else ""
-
-        chain_content = f"{token_id_val}|{evidence.evidence_hash}|{evidence.gps_latitude}|{evidence.gps_longitude}|{cap_ts_str}|{prev_hash}"
-        computed_hash = hashlib.sha256(chain_content.encode()).hexdigest()
-
-        is_valid = (computed_hash == evidence.integrity_hash) and signature_valid
-
-        if is_valid:
-            message = "Integrity verified. This resolution evidence is cryptographically sealed and part of a secure chain."
-        else:
-            message = "Integrity check failed! The evidence data does not match its cryptographic seal."
-
-        return {
-            "is_valid": is_valid,
-            "current_hash": evidence.integrity_hash,
-            "computed_hash": computed_hash,
-            "signature_valid": signature_valid,
-            "message": message
-        }
-
-    @staticmethod
     def verify_evidence(grievance_id: int, db: Session) -> Dict[str, Any]:
         """
         Verify the resolution evidence for a grievance.
@@ -512,17 +463,15 @@ class ResolutionProofService:
         Checks:
         - Evidence exists
         - Evidence hash integrity (re-sign and compare)
-        - Blockchain integrity (recompute chain hash)
         - Location match (within geofence)
 
         Returns:
             Verification result dictionary
         """
-        # Optimized: Fetch only the latest evidence and the count in separate optimized queries
-        # This is more efficient than loading ALL evidence records into memory
+        # Performance Boost: Fetch only the latest record directly instead of loading all
         evidence = db.query(ResolutionEvidence).filter(
             ResolutionEvidence.grievance_id == grievance_id
-        ).order_by(ResolutionEvidence.id.desc()).first()
+        ).order_by(ResolutionEvidence.created_at.desc()).first()
 
         if not evidence:
             return {
@@ -536,11 +485,6 @@ class ResolutionProofService:
                 "evidence_count": 0,
                 "message": "No resolution evidence found for this grievance"
             }
-
-        # Get total count efficiently
-        evidence_count = db.query(ResolutionEvidence).filter(
-            ResolutionEvidence.grievance_id == grievance_id
-        ).count()
 
         # Re-verify the server signature
         bundle_str = json.dumps(evidence.metadata_bundle, sort_keys=True)
@@ -562,18 +506,9 @@ class ResolutionProofService:
             )
             location_match = is_inside
 
-        # Verify blockchain integrity
-        prev_hash = evidence.previous_integrity_hash or ""
-        # Re-derive token_id for hash (it's in metadata_bundle)
-        token_uuid = evidence.metadata_bundle.get("token_id", "")
-        hash_content = f"{evidence.evidence_hash}|{token_uuid}|{evidence.gps_latitude}|{evidence.gps_longitude}|{prev_hash}"
-        computed_integrity_hash = ResolutionProofService._sign_payload(hash_content)
-        blockchain_valid = (computed_integrity_hash == evidence.integrity_hash)
-
         is_verified = (
             signature_valid and
             location_match and
-            blockchain_valid and
             evidence.verification_status == VerificationStatus.VERIFIED
         )
 
@@ -582,6 +517,11 @@ class ResolutionProofService:
         grievance = db.query(Grievance.resolved_at).filter(Grievance.id == grievance_id).first()
         resolution_ts = grievance.resolved_at if grievance else None
 
+        # Get count separately to maintain response schema
+        evidence_count = db.query(func.count(ResolutionEvidence.id)).filter(
+            ResolutionEvidence.grievance_id == grievance_id
+        ).scalar()
+
         return {
             "grievance_id": grievance_id,
             "is_verified": is_verified,
@@ -589,7 +529,6 @@ class ResolutionProofService:
             "resolution_timestamp": resolution_ts,
             "location_match": location_match,
             "evidence_integrity": signature_valid,
-            "blockchain_integrity": blockchain_valid,
             "evidence_hash": evidence.evidence_hash,
             "evidence_count": evidence_count,
             "message": (

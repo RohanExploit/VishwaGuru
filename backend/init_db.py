@@ -206,7 +206,7 @@ def migrate_db():
                 if not index_exists("field_officer_visits", "ix_field_officer_visits_previous_visit_hash"):
                     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_field_officer_visits_previous_visit_hash ON field_officer_visits (previous_visit_hash)"))
 
-            # Resolution Evidence Migrations
+            # Resolution Evidence Table Migrations
             if inspector.has_table("resolution_evidence"):
                 if not column_exists("resolution_evidence", "integrity_hash"):
                     conn.execute(text("ALTER TABLE resolution_evidence ADD COLUMN integrity_hash VARCHAR"))
@@ -216,32 +216,22 @@ def migrate_db():
                     conn.execute(text("ALTER TABLE resolution_evidence ADD COLUMN previous_integrity_hash VARCHAR"))
                     logger.info("Added previous_integrity_hash column to resolution_evidence")
 
-                if not index_exists("resolution_evidence", "ix_resolution_evidence_grievance_id"):
-                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_resolution_evidence_grievance_id ON resolution_evidence (grievance_id)"))
-
                 if not index_exists("resolution_evidence", "ix_resolution_evidence_previous_integrity_hash"):
                     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_resolution_evidence_previous_integrity_hash ON resolution_evidence (previous_integrity_hash)"))
 
-            # Resolution Proof Tokens Migrations
+            # Resolution Proof Tokens Table Migrations
             if inspector.has_table("resolution_proof_tokens"):
-                if not column_exists("resolution_proof_tokens", "token_id"):
-                    conn.execute(text("ALTER TABLE resolution_proof_tokens ADD COLUMN token_id VARCHAR"))
-                    logger.info("Added token_id column to resolution_proof_tokens")
+                if not column_exists("resolution_proof_tokens", "valid_from"):
+                    conn.execute(text("ALTER TABLE resolution_proof_tokens ADD COLUMN valid_from TIMESTAMP"))
+                    logger.info("Added valid_from column to resolution_proof_tokens")
+
+                if not column_exists("resolution_proof_tokens", "valid_until"):
+                    conn.execute(text("ALTER TABLE resolution_proof_tokens ADD COLUMN valid_until TIMESTAMP"))
+                    logger.info("Added valid_until column to resolution_proof_tokens")
 
                 if not column_exists("resolution_proof_tokens", "nonce"):
                     conn.execute(text("ALTER TABLE resolution_proof_tokens ADD COLUMN nonce VARCHAR"))
                     logger.info("Added nonce column to resolution_proof_tokens")
-
-                if not column_exists("resolution_proof_tokens", "valid_from"):
-                    conn.execute(text("ALTER TABLE resolution_proof_tokens ADD COLUMN valid_from DATETIME"))
-                    logger.info("Added valid_from column to resolution_proof_tokens")
-
-                if not column_exists("resolution_proof_tokens", "valid_until"):
-                    conn.execute(text("ALTER TABLE resolution_proof_tokens ADD COLUMN valid_until DATETIME"))
-                    logger.info("Added valid_until column to resolution_proof_tokens")
-
-                if not index_exists("resolution_proof_tokens", "ix_resolution_proof_tokens_grievance_id"):
-                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_resolution_proof_tokens_grievance_id ON resolution_proof_tokens (grievance_id)"))
 
             logger.info("Database migration check completed successfully.")
 

@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case
 from datetime import datetime, timezone
 import logging
-import json
 
 from backend.database import get_db
 from backend.models import Issue
@@ -51,7 +51,7 @@ def health():
 def get_stats(db: Session = Depends(get_db)):
     cached_stats = recent_issues_cache.get("stats")
     if cached_stats:
-        return Response(content=cached_stats, media_type="application/json")
+        return JSONResponse(content=cached_stats)
 
     # Optimized: Single aggregate query for both category breakdowns and system-wide totals
     # This eliminates a redundant database roundtrip
@@ -71,8 +71,7 @@ def get_stats(db: Session = Depends(get_db)):
         resolved += int(cat_resolved or 0)
 
         # Build category breakdown
-        if cat:
-            issues_by_category[cat] = cat_total or 0
+        issues_by_category[cat] = cat_total or 0
 
     # Pending is everything else
     pending = total - resolved
@@ -85,10 +84,9 @@ def get_stats(db: Session = Depends(get_db)):
     )
 
     data = response.model_dump(mode='json')
-    json_data = json.dumps(data)
-    recent_issues_cache.set(json_data, "stats")
+    recent_issues_cache.set(data, "stats")
 
-    return Response(content=json_data, media_type="application/json")
+    return response
 
 @router.get("/ml-status", response_model=MLStatusResponse)
 async def ml_status():
@@ -118,7 +116,7 @@ def get_leaderboard(db: Session = Depends(get_db)):
     cache_key = "leaderboard"
     cached_data = recent_issues_cache.get(cache_key)
     if cached_data:
-        return Response(content=cached_data, media_type="application/json")
+        return JSONResponse(content=cached_data)
 
     # Group by user_email, count issues, sum upvotes
     # Optimization: Only select needed columns and use aggregation
@@ -143,19 +141,18 @@ def get_leaderboard(db: Session = Depends(get_db)):
         except Exception:
             masked_email = "User***"
 
-        leaderboard_data.append({
-            "user_email": masked_email,
-            "reports_count": count,
-            "total_upvotes": upvotes or 0,
-            "rank": idx + 1
-        })
+        leaderboard_data.append(LeaderboardEntry(
+            user_email=masked_email,
+            reports_count=count,
+            total_upvotes=upvotes or 0,
+            rank=idx + 1
+        ).model_dump(mode='json'))
 
     response_data = {"leaderboard": leaderboard_data}
-    json_data = json.dumps(response_data)
     # Cache for 5 minutes to reduce DB load on frequent hits
-    recent_issues_cache.set(json_data, cache_key)
+    recent_issues_cache.set(response_data, cache_key)
 
-    return Response(content=json_data, media_type="application/json")
+    return response_data
 
 
 @router.get("/mh/rep-contacts")
