@@ -108,6 +108,7 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loa
       icon: <Monitor size={20} className="text-gray-600" />,
       items: [
         { id: 'safety-check', label: t('home.issues.civicEye'), icon: <Eye size={24} />, color: 'text-blue-600', bg: 'bg-blue-50' },
+        { id: 'emotion', label: 'Emotion Check', icon: <Eye size={24} />, color: 'text-pink-600', bg: 'bg-pink-50' },
         { id: 'my-reports', label: t('home.issues.myReports'), icon: <CheckCircle size={24} />, color: 'text-teal-600', bg: 'bg-teal-50' },
         { id: 'grievance', label: t('home.issues.grievanceManagement'), icon: <AlertTriangle size={24} />, color: 'text-orange-600', bg: 'bg-orange-50' },
         { id: 'stats', label: t('home.issues.viewStats'), icon: <Activity size={24} />, color: 'text-indigo-600', bg: 'bg-indigo-50' },
@@ -442,6 +443,10 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loa
           </div>
         </div>
       </div>
+
+      {showCameraCheck && (
+        <CameraCheckModal onClose={() => setShowCameraCheck(false)} />
+      )}
     </>
   );
 };

@@ -125,6 +125,8 @@ class PriorityEngine:
                 # Pre-extract literal keywords for fast substring pre-filtering
                 # Only apply this optimization if the pattern is a simple list of words like \b(word1|word2)\b
                 keywords = []
+                # Optimization: Extract literal keywords from simple regex strings like "\b(word1|word2)\b"
+                # This allows us to use a fast substring check (`in text`) before executing the regex engine.
                 if re.fullmatch(r'\\b\([a-zA-Z0-9\s|]+\)\\b', pattern):
                     clean_pattern = pattern.replace('\\b', '').replace('(', '').replace(')', '')
                     keywords = [k.strip() for k in clean_pattern.split('|') if k.strip()]
