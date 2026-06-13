@@ -1,5 +1,5 @@
 [build]
-  command = "npm install && npm run build"
+  command = "npm ci && npm run build"
   publish = "dist"
   base = "frontend"
 
@@ -17,4 +17,4 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
 
 [build.environment]
-  CI = ""
+  CI = "false"
