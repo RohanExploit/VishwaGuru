@@ -10,8 +10,7 @@ logger = logging.getLogger(__name__)
 
 class TrendAnalyzer:
     def __init__(self):
-        # Optimization: Pre-compile regex for faster tokenization
-        self._word_pattern = re.compile(r"\w+")
+        self._word_re = re.compile(r'\w+')
         self.stop_words = {
             "the", "a", "an", "in", "on", "at", "to", "for", "of", "and", "is", "are",
             "was", "were", "this", "that", "it", "with", "from", "by", "as", "be",
@@ -51,12 +50,11 @@ class TrendAnalyzer:
         """
         Extract top 5 most common keywords from issue descriptions.
         """
-        # Optimization: Join texts before lowercasing to reduce method call overhead
+        # Batching string segments into one .join() before calling .lower()
         text = " ".join([issue.description for issue in issues if issue.description]).lower()
 
-        # Optimization: Use pre-compiled regex for tokenization. It is significantly faster
-        # than re.findall with word boundaries.
-        words = self._word_extractor_re.findall(text)
+        # Using pre-compiled regex for speed
+        words = self._word_re.findall(text)
         filtered_words = [w for w in words if w not in self.stop_words and len(w) > 2 and not w.isdigit()]
 
         counter = Counter(filtered_words)
