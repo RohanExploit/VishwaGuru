@@ -1,6 +1,7 @@
 """
 Spatial utilities for geospatial operations and deduplication.
 """
+
 import math
 from typing import List, Tuple, Optional
 import logging
@@ -8,6 +9,7 @@ import logging
 try:
     from sklearn.cluster import DBSCAN
     import numpy as np
+
     HAS_SKLEARN = True
 except ImportError:
     HAS_SKLEARN = False
@@ -18,7 +20,10 @@ from backend.models import Issue
 
 logger = logging.getLogger(__name__)
 
-def get_bounding_box(lat: float, lon: float, radius_meters: float) -> Tuple[float, float, float, float]:
+
+def get_bounding_box(
+    lat: float, lon: float, radius_meters: float
+) -> Tuple[float, float, float, float]:
     """
     Calculate the bounding box coordinates for a given radius.
     Returns (min_lat, max_lat, min_lon, max_lon).
@@ -59,13 +64,18 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     dlambda = math.radians(lon2 - lon1)
 
     # Haversine formula
-    a = math.sin(dphi / 2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2)**2
+    a = (
+        math.sin(dphi / 2) ** 2
+        + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
+    )
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
     return R * c
 
 
-def equirectangular_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+def equirectangular_distance(
+    lat1: float, lon1: float, lat2: float, lon2: float
+) -> float:
     """
     Calculate the distance between two points on the earth (specified in decimal degrees)
     using the Equirectangular approximation. This is faster than Haversine for small distances.
@@ -89,14 +99,17 @@ def equirectangular_distance(lat1: float, lon1: float, lat2: float, lon2: float)
     x = dlon * math.cos((lat1_rad + lat2_rad) / 2)
     y = dlat
 
-    return R * math.sqrt(x*x + y*y)
+    return R * math.sqrt(x * x + y * y)
 
+
+DEG_TO_RAD = math.pi / 180.0
 
 def find_nearby_issues(
     issues: List[Issue],
     target_lat: float,
     target_lon: float,
-    radius_meters: float = 50.0
+    radius_meters: float = 50.0,
+    pre_filtered: bool = False
 ) -> List[Tuple[Issue, float]]:
     """
     Find issues within a specified radius of a target location.
@@ -106,6 +119,7 @@ def find_nearby_issues(
         target_lat: Target latitude
         target_lon: Target longitude
         radius_meters: Search radius in meters (default 50m)
+        pre_filtered: Whether the issues list has already been spatially filtered by the caller
 
     Returns:
         List of tuples (issue, distance_meters) for issues within radius
@@ -113,22 +127,24 @@ def find_nearby_issues(
     nearby_issues = []
 
     # Optimization: pre-filter using a bounding box to avoid math on distant points
-    min_lat, max_lat, min_lon, max_lon = get_bounding_box(target_lat, target_lon, radius_meters)
+    if not pre_filtered:
+        min_lat, max_lat, min_lon, max_lon = get_bounding_box(target_lat, target_lon, radius_meters)
 
     # Optimization: Use inline Equirectangular approximation for short distances (< 10km)
     # This avoids function call overhead and repeated radian conversions.
     # For larger distances, fallback to precise Haversine calculation.
     if radius_meters > 10000:
         for issue in issues:
-            if issue.latitude is None or issue.longitude is None:
+            if getattr(issue, 'latitude', None) is None or getattr(issue, 'longitude', None) is None:
                 continue
 
             # Apply bounding box pre-filter
-            if issue.latitude < min_lat or issue.latitude > max_lat or \
-               issue.longitude < min_lon or issue.longitude > max_lon:
-                continue
+            if not pre_filtered:
+                if issue.latitude < min_lat or issue.latitude > max_lat or \
+                   issue.longitude < min_lon or issue.longitude > max_lon:
+                    continue
 
-            distance = haversine_distance(target_lat, target_lon, issue.latitude, issue.longitude)
+            distance = haversine_distance(target_lat, target_lon, lat, lon)
             if distance <= radius_meters:
                 nearby_issues.append((issue, distance))
     else:
@@ -136,39 +152,38 @@ def find_nearby_issues(
         R = 6371000.0
         radius_sq = radius_meters * radius_meters
 
-        target_lat_rad = math.radians(target_lat)
-        target_lon_rad = math.radians(target_lon)
+        target_lat_rad = target_lat * DEG_TO_RAD
         # Cosine term is constant for the target latitude in equirectangular projection
         cos_lat = math.cos(target_lat_rad)
 
+        # Hoist constants to avoid inner-loop recalculation
+        R_RAD_SQ = (R * DEG_TO_RAD) ** 2
+
         for issue in issues:
-            if issue.latitude is None or issue.longitude is None:
+            if getattr(issue, 'latitude', None) is None or getattr(issue, 'longitude', None) is None:
                 continue
 
             # Apply bounding box pre-filter
-            if issue.latitude < min_lat or issue.latitude > max_lat or \
-               issue.longitude < min_lon or issue.longitude > max_lon:
-                continue
+            if not pre_filtered:
+                if issue.latitude < min_lat or issue.latitude > max_lat or \
+                   issue.longitude < min_lon or issue.longitude > max_lon:
+                    continue
 
-            # Inline conversion to radians
-            lat_rad = math.radians(issue.latitude)
-            lon_rad = math.radians(issue.longitude)
-
-            dlat = lat_rad - target_lat_rad
-            dlon = lon_rad - target_lon_rad
+            dlat = issue.latitude - target_lat
+            dlon = issue.longitude - target_lon
 
             # Handle longitude wrapping (dateline crossing)
-            if dlon > math.pi:
-                dlon -= 2 * math.pi
-            elif dlon < -math.pi:
-                dlon += 2 * math.pi
+            if dlon > 180.0:
+                dlon -= 360.0
+            elif dlon < -180.0:
+                dlon += 360.0
 
             x = dlon * cos_lat
             y = dlat
 
             # Squared distance check avoids expensive sqrt()
-            # (x*R)^2 + (y*R)^2 = R^2 * (x^2 + y^2)
-            dist_sq = (x*x + y*y) * R * R
+            # Equivalent to equirectangular distance using degree deltas
+            dist_sq = (x*x + y*y) * R_RAD_SQ
 
             if dist_sq <= radius_sq:
                 nearby_issues.append((issue, math.sqrt(dist_sq)))
@@ -179,7 +194,9 @@ def find_nearby_issues(
     return nearby_issues
 
 
-def cluster_issues_dbscan(issues: List[Issue], eps_meters: float = 30.0) -> List[List[Issue]]:
+def cluster_issues_dbscan(
+    issues: List[Issue], eps_meters: float = 30.0
+) -> List[List[Issue]]:
     """
     Cluster issues using DBSCAN algorithm based on spatial proximity.
 
@@ -194,11 +211,16 @@ def cluster_issues_dbscan(issues: List[Issue], eps_meters: float = 30.0) -> List
     if not HAS_SKLEARN:
         logger.warning("Scikit-learn not available, returning unclustered issues.")
         # Return each issue as its own cluster to ensure visibility
-        return [[issue] for issue in issues if issue.latitude is not None and issue.longitude is not None]
+        return [
+            [issue]
+            for issue in issues
+            if issue.latitude is not None and issue.longitude is not None
+        ]
 
     # Filter issues with valid coordinates
     valid_issues = [
-        issue for issue in issues
+        issue
+        for issue in issues
         if issue.latitude is not None and issue.longitude is not None
     ]
 
@@ -206,9 +228,9 @@ def cluster_issues_dbscan(issues: List[Issue], eps_meters: float = 30.0) -> List
         return []
 
     # Convert to numpy array for DBSCAN
-    coordinates = np.array([
-        [issue.latitude, issue.longitude] for issue in valid_issues
-    ])
+    coordinates = np.array(
+        [[issue.latitude, issue.longitude] for issue in valid_issues]
+    )
 
     # Convert eps from meters to degrees (approximate)
     # 1 degree latitude ≈ 111,000 meters
@@ -217,7 +239,7 @@ def cluster_issues_dbscan(issues: List[Issue], eps_meters: float = 30.0) -> List
 
     # Perform DBSCAN clustering
     try:
-        db = DBSCAN(eps=eps_degrees, min_samples=1, metric='haversine').fit(
+        db = DBSCAN(eps=eps_degrees, min_samples=1, metric="haversine").fit(
             np.radians(coordinates)
         )
 
@@ -250,10 +272,7 @@ def get_cluster_representative(cluster: List[Issue]) -> Issue:
         raise ValueError("Cluster cannot be empty")
 
     # Sort by upvotes (descending), then by creation date (ascending)
-    sorted_issues = sorted(
-        cluster,
-        key=lambda x: (-(x.upvotes or 0), x.created_at)
-    )
+    sorted_issues = sorted(cluster, key=lambda x: (-(x.upvotes or 0), x.created_at))
 
     return sorted_issues[0]
 
@@ -269,7 +288,8 @@ def calculate_cluster_centroid(cluster: List[Issue]) -> Tuple[float, float]:
         Tuple of (latitude, longitude) representing the centroid
     """
     valid_issues = [
-        issue for issue in cluster
+        issue
+        for issue in cluster
         if issue.latitude is not None and issue.longitude is not None
     ]
 
