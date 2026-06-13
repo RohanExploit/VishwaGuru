@@ -28,6 +28,9 @@ from backend.cache import grievance_list_cache, escalation_stats_cache, follower
 
 logger = logging.getLogger(__name__)
 
+# Global lock for synchronizing follower blockchain operations
+follower_blockchain_lock = threading.Lock()
+
 router = APIRouter()
 
 # Global lock for follower blockchain operations to prevent race conditions during hash chaining
