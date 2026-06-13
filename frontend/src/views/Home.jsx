@@ -36,7 +36,7 @@ const CameraCheckModal = ({ onClose }) => {
     };
   }, []);
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center">
         <h3 className="text-lg font-bold mb-4">Camera Diagnostics</h3>
@@ -48,7 +48,8 @@ const CameraCheckModal = ({ onClose }) => {
         {status === 'active' && <p className="text-green-600 font-medium text-sm mb-4">Camera is working correctly!</p>}
         <button onClick={onClose} className="w-full bg-blue-600 text-white py-2 rounded-lg font-bold">Close</button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
@@ -107,6 +108,7 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loa
       icon: <Monitor size={20} className="text-gray-600" />,
       items: [
         { id: 'safety-check', label: t('home.issues.civicEye'), icon: <Eye size={24} />, color: 'text-blue-600', bg: 'bg-blue-50' },
+        { id: 'emotion', label: 'Emotion Check', icon: <Eye size={24} />, color: 'text-pink-600', bg: 'bg-pink-50' },
         { id: 'my-reports', label: t('home.issues.myReports'), icon: <CheckCircle size={24} />, color: 'text-teal-600', bg: 'bg-teal-50' },
         { id: 'grievance', label: t('home.issues.grievanceManagement'), icon: <AlertTriangle size={24} />, color: 'text-orange-600', bg: 'bg-orange-50' },
         { id: 'stats', label: t('home.issues.viewStats'), icon: <Activity size={24} />, color: 'text-indigo-600', bg: 'bg-indigo-50' },
@@ -441,6 +443,10 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loa
           </div>
         </div>
       </div>
+
+      {showCameraCheck && (
+        <CameraCheckModal onClose={() => setShowCameraCheck(false)} />
+      )}
     </>
   );
 };

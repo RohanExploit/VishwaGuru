@@ -114,7 +114,7 @@ class ClosureService:
         # Get all confirmation counts in a single query instead of multiple round-trips
         counts = db.query(
             ClosureConfirmation.confirmation_type,
-            func.count(ClosureConfirmation.id)
+            func.count(ClosureConfirmation.id).label("count")
         ).filter(ClosureConfirmation.grievance_id == grievance_id).group_by(ClosureConfirmation.confirmation_type).all()
         
         counts_dict = {ctype: count for ctype, count in counts}

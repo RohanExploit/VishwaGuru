@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { fakeActionPlan } from '../fakeData';
 import { Camera, Image as ImageIcon, CheckCircle2, AlertTriangle, Loader2, Layers } from 'lucide-react';
@@ -644,7 +645,7 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
                 </button>
               </div>
 
-              {showWebcam && (
+              {showWebcam && createPortal(
                 <div className="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center p-4">
                   <div className="relative w-full max-w-md bg-black rounded-3xl overflow-hidden border border-gray-800">
                     <Webcam
@@ -671,7 +672,7 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
                       </button>
                     </div>
                   </div>
-                </div>
+                </div>, document.body
               )}
 
               {/* Image Preview & Analysis Hub */}
