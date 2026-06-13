@@ -33,7 +33,7 @@ follower_blockchain_lock = threading.Lock()
 
 router = APIRouter()
 
-# Thread lock for synchronizing blockchain operations
+# Global lock for follower blockchain operations to prevent race conditions during hash chaining
 follower_blockchain_lock = threading.Lock()
 
 @router.get("/grievances", response_model=List[GrievanceSummaryResponse])
@@ -297,8 +297,8 @@ def follow_grievance(
         if existing:
             raise HTTPException(status_code=400, detail="Already following this grievance")
         
-        # Blockchain integrity logic with O(1) cache and thread-safety
         with follower_blockchain_lock:
+            # Blockchain feature: calculate integrity hash for the follower record
             # Performance Boost: Use thread-safe cache to eliminate DB query for last hash
             prev_hash = follower_last_hash_cache.get("last_hash")
             if prev_hash is None:
@@ -307,7 +307,7 @@ def follow_grievance(
                 prev_hash = last_follower[0] if last_follower and last_follower[0] else ""
                 follower_last_hash_cache.set(data=prev_hash, key="last_hash")
 
-            # Chaining: hash(grievance_id|user_email|prev_hash)
+            # Chaining logic: hash(grievance_id|user_email|prev_hash)
             hash_content = f"{grievance_id}|{request.user_email}|{prev_hash}"
             integrity_hash = hashlib.sha256(hash_content.encode()).hexdigest()
 
@@ -686,10 +686,9 @@ def verify_follower_blockchain(
 ):
     """
     Verify the cryptographic integrity of a grievance follower record using blockchain-style chaining.
-    Optimized: Uses previous_integrity_hash column for O(1) verification.
+    Optimized: Uses previous_integrity_hash column for O(1) verification and column projection.
     """
     try:
-        # Performance Boost: Use column projection to avoid loading full model instances
         follower = db.query(
             GrievanceFollower.grievance_id,
             GrievanceFollower.user_email,

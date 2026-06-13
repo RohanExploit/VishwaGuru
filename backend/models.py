@@ -189,6 +189,10 @@ class GrievanceFollower(Base):
     grievance_id = Column(Integer, ForeignKey("grievances.id"), nullable=False)
     user_email = Column(String, nullable=False, index=True)
     followed_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+
+    # Blockchain integrity fields
+    integrity_hash = Column(String, nullable=True)
+    previous_integrity_hash = Column(String, nullable=True, index=True)
     
     # Blockchain integrity fields
     integrity_hash = Column(String, nullable=True)
