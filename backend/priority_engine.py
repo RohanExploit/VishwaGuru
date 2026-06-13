@@ -30,6 +30,9 @@ class PriorityEngine:
         """
         Analyzes the issue text and optional image labels to determine priority.
         """
+        # Ensure we have the latest weights if they might change at runtime (optional optimization)
+        # self.reload_weights()
+
         text = text.lower()
 
         # Merge image labels into text for analysis if provided
@@ -60,7 +63,7 @@ class PriorityEngine:
         label = "Low"
 
         # Check for critical keywords (highest priority)
-        found_critical = [word for word in self.severity_keywords["critical"] if word in text]
+        found_critical = [word for word in self.severity_keywords.get("critical", []) if word in text]
         if found_critical:
             score = 90
             label = "Critical"
@@ -68,7 +71,7 @@ class PriorityEngine:
 
         # Check for high keywords
         if score < 70:
-            found_high = [word for word in self.severity_keywords["high"] if word in text]
+            found_high = [word for word in self.severity_keywords.get("high", []) if word in text]
             if found_high:
                 score = max(score, 70)
                 label = "High" if score == 70 else label
@@ -76,7 +79,7 @@ class PriorityEngine:
 
         # Check for medium keywords
         if score < 40:
-            found_medium = [word for word in self.severity_keywords["medium"] if word in text]
+            found_medium = [word for word in self.severity_keywords.get("medium", []) if word in text]
             if found_medium:
                 score = max(score, 40)
                 label = "Medium" if score == 40 else label

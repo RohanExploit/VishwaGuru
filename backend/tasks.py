@@ -5,7 +5,7 @@ from pywebpush import webpush, WebPushException
 from backend.database import SessionLocal
 from backend.models import Issue, PushSubscription
 from backend.cache import recent_issues_cache
-from backend.ai_service import generate_action_plan, build_x_post
+from backend.ai_interfaces import get_ai_services
 from backend.grievance_service import GrievanceService
 from backend.schemas import IssueSummaryResponse
 
@@ -15,7 +15,8 @@ async def process_action_plan_background(issue_id: int, description: str, catego
     db = SessionLocal()
     try:
         # Generate Action Plan (AI)
-        action_plan = await generate_action_plan(description, category, language, image_path)
+        action_plan_service = get_ai_services().action_plan_service
+        action_plan = await action_plan_service.generate_action_plan(description, category, language, image_path)
 
         # Update issue in DB
         issue = db.query(Issue).filter(Issue.id == issue_id).first()

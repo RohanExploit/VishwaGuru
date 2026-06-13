@@ -3,7 +3,7 @@ from fastapi import UploadFile, HTTPException
 from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
-from PIL import Image
+from PIL import Image, ImageOps
 import os
 import shutil
 import logging
@@ -100,6 +100,8 @@ def _validate_uploaded_file_sync(file: UploadFile) -> Optional[Image.Image]:
     # Additional content validation: Try to open with PIL to ensure it's a valid image
     try:
         img = Image.open(file.file)
+        original_format = img.format
+
         # Optimization: Skip img.verify() to avoid full file read.
         # Corrupt files will fail during resize or subsequent processing.
 
@@ -113,7 +115,10 @@ def _validate_uploaded_file_sync(file: UploadFile) -> Optional[Image.Image]:
                     detail=f"Invalid image format: {fmt}"
                 )
 
-        # Resize large images for better performance
+        # Keep track if we modified the image to avoid unnecessary re-encoding
+        img_modified = False
+
+        # Resize large images for better performance (Optimization)
         if img.width > 1024 or img.height > 1024:
             # Calculate new size maintaining aspect ratio
             ratio = min(1024 / img.width, 1024 / img.height)
@@ -122,10 +127,31 @@ def _validate_uploaded_file_sync(file: UploadFile) -> Optional[Image.Image]:
 
             # Use BILINEAR for faster resizing (LANCZOS is too slow for upload path)
             img = img.resize((new_width, new_height), Image.Resampling.BILINEAR)
+            img_modified = True
 
-            # Save resized image back to file
+        # Handle orientation (Correctness) after resize
+        # exif_transpose works on resized image because resize preserves info
+        try:
+            img_transposed = ImageOps.exif_transpose(img)
+            if img_transposed is not img:
+                img = img_transposed
+                img_modified = True
+        except Exception:
+            # Fallback to original image if transpose fails
+            pass
+
+        # Update file content only if modified
+        if img_modified:
             output = io.BytesIO()
-            img.save(output, format=img.format or 'JPEG', quality=85)
+            # If format is lost (e.g. after resize), default to JPEG
+            # Use original_format if available and valid for mode
+            save_fmt = img.format or original_format or 'JPEG'
+
+            # Explicitly handle RGBA -> JPEG conversion
+            if save_fmt == 'JPEG' and img.mode in ('RGBA', 'P'):
+                img = img.convert('RGB')
+
+            img.save(output, format=save_fmt, quality=85)
             output.seek(0)
 
             # Replace file content
@@ -133,7 +159,7 @@ def _validate_uploaded_file_sync(file: UploadFile) -> Optional[Image.Image]:
             file.size = output.tell()
             output.seek(0)
 
-        # Return the image object (resized or original)
+        # Return the image object (resized and oriented)
         # Ensure file pointer is at start for any subsequent reads from file.file
         file.file.seek(0)
 
@@ -189,16 +215,24 @@ def process_uploaded_image_sync(file: UploadFile) -> tuple[Image.Image, bytes]:
         img = Image.open(file.file)
         original_format = img.format
 
-        # Resize if needed
+        # Resize first to save memory (Optimization)
+        # Resize based on raw dimensions. Orientation is handled later.
         if img.width > 1024 or img.height > 1024:
             ratio = min(1024 / img.width, 1024 / img.height)
             new_width = int(img.width * ratio)
             new_height = int(img.height * ratio)
             img = img.resize((new_width, new_height), Image.Resampling.BILINEAR)
 
+        # Handle orientation (Correctness) after resize
+        # exif_transpose works on resized image because resize preserves info
+        try:
+            img = ImageOps.exif_transpose(img)
+        except Exception:
+            pass
+
         # Strip EXIF
-        img_no_exif = Image.new(img.mode, img.size)
-        img_no_exif.paste(img)
+        if 'exif' in img.info:
+            del img.info['exif']
 
         # Save to BytesIO
         output = io.BytesIO()
@@ -209,10 +243,14 @@ def process_uploaded_image_sync(file: UploadFile) -> tuple[Image.Image, bytes]:
         else:
             fmt = 'PNG' if img.mode == 'RGBA' else 'JPEG'
 
-        img_no_exif.save(output, format=fmt, quality=85)
+        # Explicitly handle RGBA -> JPEG conversion
+        if fmt == 'JPEG' and img.mode in ('RGBA', 'P'):
+            img = img.convert('RGB')
+
+        img.save(output, format=fmt, quality=85)
         img_bytes = output.getvalue()
 
-        return img_no_exif, img_bytes
+        return img, img_bytes
 
     except Exception as pil_error:
         logger.error(f"PIL processing failed: {pil_error}")
@@ -272,14 +310,25 @@ def save_file_blocking(file_obj, path, image: Optional[Image.Image] = None):
         else:
              img = Image.open(file_obj)
 
-        # Strip EXIF data by creating a new image without metadata
-        # Use paste() instead of getdata() for O(1) performance (vs O(N) list creation)
-        img_no_exif = Image.new(img.mode, img.size)
-        img_no_exif.paste(img)
+        # Handle orientation if not already done (idempotent-ish)
+        try:
+            img = ImageOps.exif_transpose(img)
+        except Exception:
+            pass
+
+        # Strip EXIF data (Optimization)
+        if 'exif' in img.info:
+            del img.info['exif']
+
         # Save without EXIF
         # Use original format if available, otherwise default to JPEG if mode is RGB, PNG if RGBA
         fmt = img.format or ('PNG' if img.mode == 'RGBA' else 'JPEG')
-        img_no_exif.save(path, format=fmt)
+
+        # Explicitly handle RGBA -> JPEG conversion
+        if fmt == 'JPEG' and img.mode in ('RGBA', 'P'):
+            img = img.convert('RGB')
+
+        img.save(path, format=fmt)
         logger.info(f"Saved image {path} with EXIF metadata stripped")
     except Exception:
         # If not an image or PIL fails, save as binary
