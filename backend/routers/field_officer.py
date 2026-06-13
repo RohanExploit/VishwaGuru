@@ -29,9 +29,12 @@ from backend.schemas import (
 from backend.geofencing_service import (
     is_within_geofence,
     generate_visit_hash,
+    verify_visit_integrity,
     calculate_visit_metrics,
     get_geofencing_service
 )
+from backend.cache import visit_last_hash_cache
+from backend.schemas import BlockchainVerificationResponse
 
 logger = logging.getLogger(__name__)
 
@@ -141,6 +144,10 @@ def officer_check_in(request: OfficerCheckInRequest, db: Session = Depends(get_d
         
         db.add(new_visit)
         db.commit()
+
+        # Update cache for next visit ONLY after successful commit
+        visit_last_hash_cache.set(data=visit_hash, key="last_hash")
+
         db.refresh(new_visit)
         
         # Update cache for next visit after successful commit

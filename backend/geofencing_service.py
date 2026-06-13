@@ -95,7 +95,7 @@ def generate_visit_hash(visit_data: dict, prev_hash: str = "") -> str:
     Generate a tamper-resistant HMAC hash for visit data (blockchain-like integrity).
     
     Uses HMAC-SHA256 with server secret to prevent forgery.
-    Normalizes datetime to ISO format for deterministic hashing.
+    Normalizes datetime to UTC ISO format for deterministic hashing.
     
     Args:
         visit_data: Dictionary containing visit information
