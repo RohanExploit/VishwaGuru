@@ -61,12 +61,20 @@ async def lifespan(app: FastAPI):
 
     # Startup: Initialize AI services
     try:
-        action_plan_service, chat_service, mla_summary_service = create_all_ai_services()
+        (action_plan_service, chat_service, mla_summary_service,
+         vandalism_detection_service, infrastructure_detection_service,
+         flooding_detection_service, pothole_detection_service,
+         garbage_detection_service) = create_all_ai_services()
 
         initialize_ai_services(
             action_plan_service=action_plan_service,
             chat_service=chat_service,
-            mla_summary_service=mla_summary_service
+            mla_summary_service=mla_summary_service,
+            vandalism_detection_service=vandalism_detection_service,
+            infrastructure_detection_service=infrastructure_detection_service,
+            flooding_detection_service=flooding_detection_service,
+            pothole_detection_service=pothole_detection_service,
+            garbage_detection_service=garbage_detection_service
         )
         logger.info("AI services initialized successfully.")
     except (ValueError, KeyError) as e:
@@ -342,9 +350,10 @@ async def detect_pothole_endpoint(image: UploadFile = File(...)):
         logger.error(f"Error reading image file for pothole detection: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail="Failed to read image file")
 
-    # Run detection (blocking, so run in threadpool)
+    # Run detection using injected service
     try:
-        detections = await run_in_threadpool(detect_potholes, pil_image)
+        ai_services = get_ai_services()
+        detections = await ai_services.pothole_detection_service.detect(pil_image)
         return {"detections": detections}
     except ValueError as e:
         logger.error(f"Invalid input for pothole detection: {e}", exc_info=True)
@@ -365,11 +374,12 @@ async def detect_infrastructure_endpoint(request: Request, image: UploadFile = F
         logger.error(f"Error reading image file for infrastructure detection: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail="Failed to read image file")
 
-    # Run detection (async now, so no threadpool needed for the detection call itself)
+    # Run detection using injected service
     try:
         # Use shared HTTP client from app state
         client = request.app.state.http_client
-        detections = await detect_infrastructure_clip(pil_image, client=client)
+        ai_services = get_ai_services()
+        detections = await ai_services.infrastructure_detection_service.detect(pil_image, client=client)
         return {"detections": detections}
     except (httpx.HTTPError, httpx.RequestError) as e:
         logger.error(f"Network error in infrastructure detection: {e}", exc_info=True)
@@ -393,11 +403,12 @@ async def detect_flooding_endpoint(request: Request, image: UploadFile = File(..
         logger.error(f"Error reading image file for flooding detection: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail="Failed to read image file")
 
-    # Run detection (async)
+    # Run detection using injected service
     try:
         # Use shared HTTP client from app state
         client = request.app.state.http_client
-        detections = await detect_flooding_clip(pil_image, client=client)
+        ai_services = get_ai_services()
+        detections = await ai_services.flooding_detection_service.detect(pil_image, client=client)
         return {"detections": detections}
     except (httpx.HTTPError, httpx.RequestError) as e:
         logger.error(f"Network error in flooding detection: {e}", exc_info=True)
@@ -421,11 +432,12 @@ async def detect_vandalism_endpoint(request: Request, image: UploadFile = File(.
         logger.error(f"Error reading image file for vandalism detection: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail="Failed to read image file")
 
-    # Run detection (async)
+    # Run detection using injected service
     try:
         # Use shared HTTP client from app state
         client = request.app.state.http_client
-        detections = await detect_vandalism_clip(pil_image, client=client)
+        ai_services = get_ai_services()
+        detections = await ai_services.vandalism_detection_service.detect(pil_image, client=client)
         return {"detections": detections}
     except (httpx.HTTPError, httpx.RequestError) as e:
         logger.error(f"Network error in vandalism detection: {e}", exc_info=True)
@@ -449,9 +461,10 @@ async def detect_garbage_endpoint(image: UploadFile = File(...)):
         logger.error(f"Error reading image file for garbage detection: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail="Failed to read image file")
 
-    # Run detection (blocking, so run in threadpool)
+    # Run detection using injected service
     try:
-        detections = await run_in_threadpool(detect_garbage, pil_image)
+        ai_services = get_ai_services()
+        detections = await ai_services.garbage_detection_service.detect(pil_image)
         return {"detections": detections}
     except ValueError as e:
         logger.error(f"Invalid input for garbage detection: {e}", exc_info=True)
