@@ -10,8 +10,9 @@ logger = logging.getLogger(__name__)
 
 class TrendAnalyzer:
     def __init__(self):
-        # Optimization: Pre-compile regex for faster tokenization
-        self._word_pattern = re.compile(r"\w+")
+        # Optimization: Pre-compile regex to avoid repeated compilation in hot loop.
+        # \w+ implicitly matches word boundaries when used with findall, which is faster than \b\w+\b.
+        self._word_re = re.compile(r'\w+')
         self.stop_words = {
             "the", "a", "an", "in", "on", "at", "to", "for", "of", "and", "is", "are",
             "was", "were", "this", "that", "it", "with", "from", "by", "as", "be",
@@ -20,8 +21,9 @@ class TrendAnalyzer:
             "issue", "problem", "complaint", "regarding", "please", "help", "fix",
             "near", "opposite", "behind", "front", "road", "street", "lane"
         }
-        # Bolt optimization: Pre-compile regex for faster tokenization
-        self.word_pattern = re.compile(r'\w+')
+        # Optimization: Pre-compile regex for word extraction to avoid repeatedly compiling
+        # the pattern in the hot path. r'\w+' is significantly faster than r'\b\w+\b'
+        self._word_extractor_re = re.compile(r'\w+')
 
     def analyze(self, issues: List[Issue]) -> Dict[str, Any]:
         """
