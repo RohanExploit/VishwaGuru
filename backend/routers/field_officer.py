@@ -438,37 +438,22 @@ def get_visit_statistics(db: Session = Depends(get_db)):
             return Response(content=cached_json, media_type="application/json")
 
         # Optimized: Use a single aggregate query to fetch multiple statistics in one database roundtrip
-        agg_stats = db.query(
+        stats = db.query(
             func.count(func.distinct(FieldOfficerVisit.officer_email)).label('unique_officers'),
-            func.avg(FieldOfficerVisit.distance_from_site).label('avg_distance')
+            func.avg(FieldOfficerVisit.distance_from_site).label('avg_distance'),
+            func.count(FieldOfficerVisit.id).label('total_visits'),
+            func.sum(case((FieldOfficerVisit.verified_at.isnot(None), 1), else_=0)).label('verified_visits'),
+            func.sum(case((FieldOfficerVisit.within_geofence == True, 1), else_=0)).label('within_geofence_count'),
+            func.sum(case((FieldOfficerVisit.within_geofence == False, 1), else_=0)).label('outside_geofence_count')
         ).first()
 
-        counts = db.query(
-            FieldOfficerVisit.verified_at.isnot(None).label("is_verified"),
-            FieldOfficerVisit.within_geofence,
-            func.count(FieldOfficerVisit.id)
-        ).group_by(
-            FieldOfficerVisit.verified_at.isnot(None),
-            FieldOfficerVisit.within_geofence
-        ).all()
+        total_visits = int(stats.total_visits or 0)
+        verified_visits = int(stats.verified_visits or 0)
+        within_geofence_count = int(stats.within_geofence_count or 0)
+        outside_geofence_count = int(stats.outside_geofence_count or 0)
+        unique_officers = int(stats.unique_officers or 0)
 
-        total_visits = 0
-        verified_visits = 0
-        within_geofence_count = 0
-        outside_geofence_count = 0
-
-        for is_verified, within_geofence, count in counts:
-            c = count or 0
-            total_visits += c
-            if is_verified:
-                verified_visits += c
-            if within_geofence is True:
-                within_geofence_count += c
-            elif within_geofence is False:
-                outside_geofence_count += c
-
-        unique_officers = agg_stats.unique_officers or 0
-        average_distance = agg_stats.avg_distance
+        average_distance = stats.avg_distance
         
         # Round to 2 decimals if not None
         if average_distance is not None:
@@ -544,10 +529,21 @@ def verify_visit(
 def verify_visit_blockchain(visit_id: int, db: Session = Depends(get_db)):
     """
     Verify the cryptographic integrity of a field officer visit using blockchain-style chaining.
-    Optimized: Uses previous_visit_hash column for O(1) verification.
+    Optimized: Uses column projection and previous_visit_hash column for O(1) verification.
     """
     try:
-        visit = db.query(FieldOfficerVisit).filter(FieldOfficerVisit.id == visit_id).first()
+        # Performance Boost: Use projected columns to avoid loading large JSON/Text fields (Issue #BOLT-OPT)
+        # Fetching only required columns reduces memory usage and latency.
+        visit = db.query(
+            FieldOfficerVisit.issue_id,
+            FieldOfficerVisit.officer_email,
+            FieldOfficerVisit.check_in_latitude,
+            FieldOfficerVisit.check_in_longitude,
+            FieldOfficerVisit.check_in_time,
+            FieldOfficerVisit.visit_notes,
+            FieldOfficerVisit.visit_hash,
+            FieldOfficerVisit.previous_visit_hash
+        ).filter(FieldOfficerVisit.id == visit_id).first()
 
         if not visit:
             raise HTTPException(status_code=404, detail=f"Visit {visit_id} not found")
