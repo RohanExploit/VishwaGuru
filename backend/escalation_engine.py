@@ -12,6 +12,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from backend.models import Grievance, Jurisdiction, EscalationAudit, GrievanceStatus, JurisdictionLevel, EscalationReason, SeverityLevel
 from backend.database import SessionLocal
+from backend.config import get_auth_config
+from backend.cache import audit_last_hash_cache, grievance_list_cache, escalation_stats_cache
 from backend.routing_service import RoutingService
 from backend.sla_config_service import SLAConfigService
 from backend.cache import audit_last_hash_cache
