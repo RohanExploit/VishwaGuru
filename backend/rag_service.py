@@ -93,8 +93,7 @@ class CivicRAG:
                 continue
 
             # Jaccard Similarity
-            # Optimization 2: Calculate intersection
-            # Use bitwise & for set intersection (idiomatic and slightly faster)
+            # Optimization 2: Calculate intersection using bitwise &
             intersection_len = len(query_tokens & policy_tokens)
 
             # Optimization 3: Calculate union length mathematically (O(1))
