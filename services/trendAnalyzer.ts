@@ -1,5 +1,16 @@
 import { Issue } from "./types";
 
+/**
+ * TrendAnalyzer: Performs local pattern detection, finding emerging keywords,
+ * significant category volume spikes, and geographical clustering of issues.
+ *
+ * Algorithm and Evolution Logic:
+ * 1. Trend detection extracts the top 5 most common keywords (>= 3 chars) after filtering stop-words.
+ * 2. It compares the last 24h category distribution with the previous 24h.
+ *    If an issue spikes > 50% and exceeds a baseline of 5, it's flagged as an "Emerging Concern".
+ * 3. Uses rounded coordinate boundaries (approx. 1.1km) to locate geographical clusters
+ *    and determine the region with the highest concentration of issues.
+ */
 export class TrendAnalyzer {
   public getTopKeywords(issues: Issue[], limit: number = 5): string[] {
     const wordCounts: Record<string, number> = {};
