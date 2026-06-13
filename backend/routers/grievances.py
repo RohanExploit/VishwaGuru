@@ -508,16 +508,15 @@ def get_closure_status(grievance_id: int, db: Session = Depends(get_db)):
             GrievanceFollower.grievance_id == grievance_id
         ).scalar()
         
-        # Get all confirmation counts efficiently using group_by
-        # ~0.94s vs ~1.34s per 1000 iterations compared to func.sum(case(...))
+        # Optimized: Group by category to avoid func.sum(case(...)) overhead (~30% faster)
         counts = db.query(
             ClosureConfirmation.confirmation_type,
             func.count(ClosureConfirmation.id)
         ).filter(ClosureConfirmation.grievance_id == grievance_id).group_by(ClosureConfirmation.confirmation_type).all()
         
         counts_dict = {ctype: count for ctype, count in counts}
-        confirmations_count = counts_dict.get('confirmed', 0)
-        disputes_count = counts_dict.get('disputed', 0)
+        confirmations_count = counts_dict.get("confirmed", 0)
+        disputes_count = counts_dict.get("disputed", 0)
         
         required_confirmations = max(1, int(total_followers * ClosureService.CONFIRMATION_THRESHOLD))
         

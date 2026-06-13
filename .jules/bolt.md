@@ -90,6 +90,6 @@
 **Learning:** In retrieval loops calculating Jaccard similarity (e.g. RAG), explicitly building a union set `A.union(B)` is expensive due to memory allocation and population.
 **Action:** Use the inclusion-exclusion principle $|A \cup B| = |A| + |B| - |A \cap B|$ to calculate union size in O(1) arithmetic time after calculating the intersection. Pre-calculate $|B|$ (token count) to further reduce overhead. Use `isdisjoint()` for fast early-exit.
 
-## 2026-05-09 - O(1) Blockchain Chaining with Dedicated Cache
-**Learning:** Adding blockchain-style integrity to high-frequency entities (like ResolutionProofToken) can introduce significant overhead if the "previous hash" must be queried from the database every time.
-**Action:** Use a dedicated `ThreadSafeCache` (e.g., `rpt_last_hash_cache`) with `max_size=1` to store the last generated hash in memory. This enables O(1) chaining for the next record, falling back to a database query only on cache misses or after server restarts.
+## 2026-06-05 - Group By for Multiple Counts
+**Learning:** Using multiple `func.sum(case(...))` calls for SQLAlchemy aggregations over categorical columns adds unnecessary overhead in SQLite/Postgres. A standard `GROUP BY` query (e.g., `db.query(Model.type, func.count(Model.id)).group_by(Model.type)`) is cleaner and measurably faster.
+**Action:** When counting records by status or category, use a `GROUP BY` query and process the resulting counts in a Python dictionary.
