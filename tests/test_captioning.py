@@ -1,13 +1,15 @@
 from fastapi.testclient import TestClient
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch, AsyncMock, MagicMock
 from backend.main import app
 import pytest
 
 @pytest.mark.asyncio
 async def test_generate_description_endpoint():
     # Mock the generate_image_caption function in 'backend.routers.detection' module
-    with patch("backend.routers.detection.generate_image_caption", new_callable=AsyncMock) as mock_caption:
+    with patch("backend.routers.detection.generate_image_caption", new_callable=AsyncMock) as mock_caption, \
+         patch("backend.routers.detection.process_uploaded_image", new_callable=AsyncMock) as mock_process:
         mock_caption.return_value = "A photo of a pothole on the road"
+        mock_process.return_value = (MagicMock(), b"fake image content")
 
         with TestClient(app) as client:
             # Create a dummy image
