@@ -6,7 +6,7 @@ import { AdaptiveWeights } from "../services/adaptiveWeights";
 import { IntelligenceIndex } from "../services/intelligenceIndex";
 import { Issue } from "../services/types";
 
-// Use DB_PATH env var if set, otherwise fall back to ../data/issues.db
+// Use DB_PATH environment variable if set; otherwise fall back to data/issues.db
 const dbPath =
   process.env.DB_PATH || path.join(__dirname, "../data/issues.db");
 
