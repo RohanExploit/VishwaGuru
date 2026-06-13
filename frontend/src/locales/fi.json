@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - Älykäs Kansalaisasioiden Raportoija",
+        "subtitle": "Raportoi ja seuraa kansalaisasioita yhteisössäsi",
+        "privacyActive": "AI-pohjainen tietosuojansuoja aktiivinen",
+        "communityImpact": "Yhteisövaikutus",
+        "makingChange": "Yhdessä teemme muutoksen!",
+        "issuesSolved": "Ratkaistut ongelmat",
+        "smartScanner": "Smart City -skanneri",
+        "aiPoweredDetection": "Välitön AI-tunnistus",
+        "categories": {
+            "roadTraffic": "Tiet & Liikenne",
+            "environmentSafety": "Ympäristö & Turvallisuus",
+            "civicServices": "Kansalaispalvelut",
+            "management": "Hallinto"
+        },
+        "issues": {
+            "pothole": "Kuoppa tiessä",
+            "blockedRoad": "Tukkeutunut tie",
+            "illegalParking": "Laiton pysäköinti",
+            "darkStreet": "Pimeä katu",
+            "trafficSign": "Liikennemerkki",
+            "abandonedVehicle": "Hylätty ajoneuvo",
+            "garbage": "Roskat",
+            "flood": "Tulva",
+            "fireSmoke": "Tulipalo/Savu",
+            "treeHazard": "Vaarallinen puu",
+            "strayAnimal": "Irtokoira/-kissa",
+            "pestControl": "Tuholaistorjunta",
+            "reportIssue": "Raportoi ongelma",
+            "brokenInfra": "Rikkoutunut infrastruktuuri",
+            "graffiti": "Graffiti",
+            "findMLA": "Etsi edustaja",
+            "grievanceManagement": "Valitusten hallinta",
+            "viewStats": "Katso tilastot",
+            "leaderboard": "Tulostaulu",
+            "responsibilityMap": "Vastuukartta",
+            "noise": "Melu",
+            "crowd": "Ruuhka",
+            "waterLeak": "Vesivuoto",
+            "waste": "Jätteiden lajittelija",
+            "civicEye": "Kansalaissilmä",
+            "myReports": "Omat raportit",
+            "analyzeGrievance": "Analysoi valitus"
+        },
+        "tools": {
+            "whoIsResponsible": "Kuka on vastuussa?",
+            "topReporters": "Huippuraportoijat",
+            "cameraCheck": "Kameratarkistus"
+        },
+        "activity": {
+            "communityActivity": "Yhteisön toiminta",
+            "liveFeed": "Live-syöte",
+            "noActivity": "Ei uutta toimintaa näytettäväksi.",
+            "loadMore": "Lataa lisää toimintaa",
+            "verify": "Vahvista"
+        },
+        "stats": {
+            "totalImpact": "Kokonaisvaikutus",
+            "issuesResolved": "Ratkaistut ongelmat",
+            "activeUsers": "Aktiiviset käyttäjät"
+        },
+        "landing": {
+            "empowering": "Kansalaisten voimaannuttaminen",
+            "governance": "parempaa hallintoa varten",
+            "subtitle": "Raportoi kansalaisasioita ja saat AI-tuottamia ratkaisuja. Ota yhteyttä viranomaisiin Telegramin kautta.",
+            "cta": "Raportoi ongelma",
+            "cards": {
+                "reportCitizens": "Raportoi kansalaisten kanssa",
+                "generatedCivic": "tuotettu kansalaishallinto",
+                "govServices": "Julkiset palvelut",
+                "questionGov": "Kyseenalaista hallinto",
+                "govDesc": "Lähetä kyselyitä, vaadi avoimuutta ja pidä viranomaiset vastuullisina",
+                "communityAction": "Yhteisön toiminta",
+                "joinMovement": "Liity liikkeeseen"
+            },
+            "features": {
+                "publicTrust": "Julkinen luottamus",
+                "ethics": "& Etiikka",
+                "civicIssues": "Kansalaisasiat",
+                "reportProblems": "Raportoi ongelmia",
+                "voiceVote": "Tuo äänesi kuuluviin",
+                "shareIdeas": "Jaa ideoita parempia käytäntöjä varten",
+                "aiDemocracy": "AI demokratialle",
+                "civicActions": "& Kansalaistoimet",
+                "aiDesc": "Teknologian hyödyntäminen avoimessa hallinnossa ja nopeammissa ratkaisuissa.",
+                "smartAnalysis": "Älykäs analyysi",
+                "aiInsights": "AI-pohjaiset oivallukset",
+                "citizenCount": "10k+ aktiivista kansalaista",
+                "secureSafe": "Turvallinen & Varman",
+                "verifiedReports": "Vahvistetut raportit",
+                "quickAction": "Nopea toiminta",
+                "responseTime": "24h vastausaika"
+            }
+        }
+    },
+    "common": {
+        "loading": "Ladataan...",
+        "error": "Virhe",
+        "submit": "Lähetä",
+        "cancel": "Peruuta",
+        "yes": "Kyllä",
+        "no": "Ei",
+        "back": "Takaisin"
+    }
+}

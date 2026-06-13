@@ -3,8 +3,8 @@ services:
   - type: web
     name: vishwaguru-backend
     runtime: python
-    buildCommand: "pip install -r backend/requirements.txt"
-    startCommand: "python -m uvicorn backend.main:app --host 0.0.0.0 --port $PORT"
+    buildCommand: "./render-build.sh"
+    startCommand: "python start-backend.py"
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.0
@@ -13,12 +13,40 @@ services:
           type: web
           name: vishwaguru-backend
           property: port
-      - key: TELEGRAM_BOT_TOKEN
-        sync: false  # Must be set in Render dashboard
+      # Required API Keys (must be set in Render dashboard)
       - key: GEMINI_API_KEY
-        sync: false  # Must be set in Render dashboard
+        sync: false
+      - key: HF_TOKEN
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      # Frontend URL (must be set to your Netlify deployment URL)
       - key: FRONTEND_URL
-        sync: false  # Set to your Netlify URL (e.g., https://your-app.netlify.app)
+        sync: false
+      # Database URL (use Neon, Supabase, or similar)
       - key: DATABASE_URL
-        sync: false  # Set to your Neon database connection string
+        sync: false
+      # Application settings
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: false
+      # CORS settings
+      - key: CORS_ORIGINS
+        sync: false  # Set to your frontend URL
+      # File upload settings
+      - key: MAX_UPLOAD_SIZE_MB
+        value: 10
+      - key: ALLOWED_FILE_TYPES
+        value: image/jpeg,image/png,image/jpg,video/mp4
+      # Rate limiting
+      - key: RATE_LIMIT_ENABLED
+        value: true
+      - key: MAX_REQUESTS_PER_MINUTE
+        value: 60
     healthCheckPath: /health
+    # Add disk for SQLite database (if using SQLite)
+    disk:
+      name: vishwaguru-data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1

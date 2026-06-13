@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - স্মার্ট সিভিক ইস্যু রিপোর্টার",
+        "subtitle": "नोंथाংनि समाजनि সিভিক সমস্যাপোরखौ রিপোর্ট खालाम आरो ট্র্যাক खालाम",
+        "privacyActive": "AI-चलायनाय गोपनीयता रैखाथि सख्रिअ दं",
+        "communityImpact": "समाजारि गोहोम",
+        "makingChange": "जयै जों सोलायनाय लाबोनो हादों!",
+        "issuesSolved": "सुस्रांनाय समस्यापोर",
+        "smartScanner": "স্মার্ট সিটি স্কেনার",
+        "aiPoweredDetection": "AI-चलायनाय गोख्रै সনাख्रिनाय",
+        "categories": {
+            "roadTraffic": "लामा आरो यातायात",
+            "environmentSafety": "आबहावा आरो रैखाथि",
+            "civicServices": "সিভিক রানথাই",
+            "management": "सामलायनाय"
+        },
+        "issues": {
+            "pothole": "लामा गोखौ",
+            "blockedRoad": "हेंथा लामा",
+            "illegalParking": "बेखायादा पारकिंग",
+            "darkStreet": "गोलोम लामा",
+            "trafficSign": "ট্রাফিক निसिन",
+            "abandonedVehicle": "गारनाय गारि",
+            "garbage": "मैला",
+            "flood": "दैबाना",
+            "fireSmoke": "अर / उखुन्दै",
+            "treeHazard": "बिफांनि खैफोद",
+            "strayAnimal": "सालायनाय जुनार",
+            "pestControl": "एनजाय सामलायनाय",
+            "reportIssue": "समस्या रिपोर्ट खालाम",
+            "brokenInfra": "बायनाय बुनियादी ढांचा",
+            "graffiti": "ग्रेफिटी",
+            "findMLA": "এমএলএ नागिर",
+            "grievanceManagement": "अजद सामलायनाय",
+            "viewStats": "जखाफोर नाय",
+            "leaderboard": "लीडरबोर्ड",
+            "responsibilityMap": "बिबान मेप",
+            "noise": "गोलेर",
+            "crowd": "मानसि थुबुर",
+            "waterLeak": "दै बोनाय",
+            "waste": "मैला बाख्रिनाय",
+            "civicEye": "सीविक मेगन",
+            "myReports": "आंनि रिपोर्टपोर",
+            "analyzeGrievance": "অজद बिजिरनाय"
+        },
+        "tools": {
+            "whoIsResponsible": "सो बिबानगिरि?",
+            "topReporters": "गाहाय रिपोर्टरपोर",
+            "cameraCheck": "क्यामेरा आनजाद"
+        },
+        "activity": {
+            "communityActivity": "समाजारि हाबाफारि",
+            "liveFeed": "লাইভ ফীদ",
+            "noActivity": "दिनथिनो थाखाय गोदान हाबाफारि गैया।",
+            "loadMore": "बावनाय हाबाफारि लाबो",
+            "verify": "आनजाद खालाम"
+        },
+        "stats": {
+            "totalImpact": "गासै गोहोम",
+            "issuesResolved": "सुस्रांनाय समस्यापोर",
+            "activeUsers": "सख्रिअ बाहायगिरिपोर"
+        },
+        "landing": {
+            "empowering": "नागरिकफोरनो गोहो होननाय",
+            "governance": "मोजां शासननि थाखाय",
+            "subtitle": "सीविक समस्या रिपोर्ट खालाम आरो AI-जों बानायनाय सुस्रांनाय मोन। शासनआव जयै बाहागो लानो टेलिग्रामनि जोहै बिबानगिरिफोरजों फोनांजाब खालाम।",
+            "cta": "समस्या रिपोर्ट खालाम",
+            "cards": {
+                "reportCitizens": "नागरिकफोरजों जयै रिपोर्ट खालाम",
+                "generatedCivic": "बानायनाय सीविक शासन",
+                "govServices": "सरकारी रनथाइ",
+                "questionGov": "सरकारखौ सोंथि खालाम",
+                "govDesc": "सोंथिफोर हो, गोज्रंनाय दाबि खालाम आरो बिबानगिरिफोरखौ बिबानगिरि खालाम",
+                "communityAction": "समाजारि हाबा",
+                "joinMovement": "हाबाफारिआव बाहागो ला"
+            },
+            "features": {
+                "publicTrust": "मैयामनि फोथायनाय",
+                "ethics": "& नैतिकता",
+                "civicIssues": "सीविक समस्यापोर",
+                "reportProblems": "समस्यापोर रिपोर्ट खालाम",
+                "voiceVote": "सोंरा हो",
+                "shareIdeas": "मोजां खानथिनि थाखाय साननाय रानना ला",
+                "aiDemocracy": "गणतंत्रनि थाखाय AI",
+                "civicActions": "& सीविक हाबाफोर",
+                "aiDesc": "गोज्रं शासन आरो गोख्रै सुस्रांनायनि थाखाय बिरोंदाव बाहायनाय।",
+                "smartAnalysis": "স্মার্ট बिजिरनाय",
+                "aiInsights": "AI-चलायनाय गियान",
+                "citizenCount": "१० हजार+ सख्रिअ नागरिकपोर",
+                "secureSafe": "रैखाथि आरो गोजोन",
+                "verifiedReports": "सत्यापित रिपोर्टपोर",
+                "quickAction": "गोख्रै हाबा",
+                "responseTime": "२৪ घन्टा रिसपन्स টাইম"
+            }
+        }
+    },
+    "common": {
+        "loading": "लोद जाबाय दं...",
+        "error": "गोरोनथि",
+        "submit": "हो",
+        "cancel": "बातिल खालाम",
+        "yes": "नंगौ",
+        "no": "नङा",
+        "back": "उन"
+    }
+}

@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - Pelapor Isu Sivik Pintar",
+        "subtitle": "Lapor dan jejak isu sivik dalam komuniti anda",
+        "privacyActive": "Perlindungan Privasi Berkuasa AI Aktif",
+        "communityImpact": "Impak Komuniti",
+        "makingChange": "Bersama-sama kita membuat perubahan!",
+        "issuesSolved": "Isu Selesai",
+        "smartScanner": "Pengimbas Bandar Pintar",
+        "aiPoweredDetection": "Pengesanan Segera Berkuasa AI",
+        "categories": {
+            "roadTraffic": "Jalan & Trafik",
+            "environmentSafety": "Alam Sekitar & Keselamatan",
+            "civicServices": "Perkhidmatan Sivik",
+            "management": "Pengurusan"
+        },
+        "issues": {
+            "pothole": "Lubang Jalan",
+            "blockedRoad": "Jalan Tersekat",
+            "illegalParking": "Tempat Letak Kereta Haram",
+            "darkStreet": "Jalan Gelap",
+            "trafficSign": "Papan Tanda Trafik",
+            "abandonedVehicle": "Kenderaan Terbiar",
+            "garbage": "Sampah",
+            "flood": "Banjir",
+            "fireSmoke": "Api/Asap",
+            "treeHazard": "Bahaya Pokok",
+            "strayAnimal": "Haiwan Jalanan",
+            "pestControl": "Kawalan Makhluk Perosak",
+            "reportIssue": "Lapor Isu",
+            "brokenInfra": "Infrastruktur Rosak",
+            "graffiti": "Grafiti",
+            "findMLA": "Cari Wakil Rakyat",
+            "grievanceManagement": "Pengurusan Aduan",
+            "viewStats": "Lihat Statistik",
+            "leaderboard": "Papan Dahulu",
+            "responsibilityMap": "Peta Tanggungjawab",
+            "noise": "Bunyi Bising",
+            "crowd": "Kesesakan",
+            "waterLeak": "Kebocoran Air",
+            "waste": "Penyisih Sisa",
+            "civicEye": "Mata Sivik",
+            "myReports": "Laporan Saya",
+            "analyzeGrievance": "Analisis Aduan"
+        },
+        "tools": {
+            "whoIsResponsible": "Siapa yang Bertanggungjawab?",
+            "topReporters": "Pelapor Teratas",
+            "cameraCheck": "Semakan Kamera"
+        },
+        "activity": {
+            "communityActivity": "Aktiviti Komuniti",
+            "liveFeed": "Suapan Langsung",
+            "noActivity": "Tiada aktiviti terkini untuk dipaparkan.",
+            "loadMore": "Muat Lebih Banyak Aktiviti",
+            "verify": "Sahkan"
+        },
+        "stats": {
+            "totalImpact": "Jumlah Impak",
+            "issuesResolved": "Isu Selesai",
+            "activeUsers": "Pengguna Aktif"
+        },
+        "landing": {
+            "empowering": "Memperkasakan Rakyat",
+            "governance": "untuk Tadbir Urus Lebih Baik",
+            "subtitle": "Lapor isu sivik dan dapatkan penyelesaian yang dijana oleh AI. Berhubung dengan pegawai melalui Telegram untuk mengambil bahagian secara aktif.",
+            "cta": "Lapor Isu",
+            "cards": {
+                "reportCitizens": "Lapor bersama Rakyat",
+                "generatedCivic": "tadbir urus sivik yang dijana",
+                "govServices": "Perkhidmatan Kerajaan",
+                "questionGov": "Persoalkan Kerajaan",
+                "govDesc": "Hantar pertanyaan, tuntut ketelusan dan pastikan pegawai bertanggungjawab",
+                "communityAction": "Tindakan Komuniti",
+                "joinMovement": "Sertai pergerakan"
+            },
+            "features": {
+                "publicTrust": "Kepercayaan Awam",
+                "ethics": "& Etika",
+                "civicIssues": "Isu Sivik",
+                "reportProblems": "Lapor masalah",
+                "voiceVote": "Suarakan Undi Anda",
+                "shareIdeas": "Kongsi idea untuk dasar yang lebih baik",
+                "aiDemocracy": "AI untuk Demokrasi",
+                "civicActions": "& Tindakan Sivik",
+                "aiDesc": "Memanfaatkan teknologi untuk tadbir urus yang telus dan penyelesaian yang lebih pantas.",
+                "smartAnalysis": "Analisis Pintar",
+                "aiInsights": "Wawasan Berkuasa AI",
+                "citizenCount": "10k+ Rakyat Aktif",
+                "secureSafe": "Aman & Selamat",
+                "verifiedReports": "Laporan Disahkan",
+                "quickAction": "Tindakan Pantas",
+                "responseTime": "Masa Tindak Balas 24j"
+            }
+        }
+    },
+    "common": {
+        "loading": "Memuatkan...",
+        "error": "Ralat",
+        "submit": "Hantar",
+        "cancel": "Batal",
+        "yes": "Ya",
+        "no": "Tidak",
+        "back": "Kembali"
+    }
+}

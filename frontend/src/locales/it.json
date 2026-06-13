@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - Segnalatore Intelligente di Problemi Civici",
+        "subtitle": "Segnala e monitora i problemi civici nella tua comunità",
+        "privacyActive": "Protezione della Privacy alimentata dall'IA attiva",
+        "communityImpact": "Impatto Comunitario",
+        "makingChange": "Insieme stiamo facendo la differenza!",
+        "issuesSolved": "Problemi Risolti",
+        "smartScanner": "Smart City Scanner",
+        "aiPoweredDetection": "Rilevamento istantaneo tramite IA",
+        "categories": {
+            "roadTraffic": "Strade e Traffico",
+            "environmentSafety": "Ambiente e Sicurezza",
+            "civicServices": "Servizi Civici",
+            "management": "Gestione"
+        },
+        "issues": {
+            "pothole": "Buca",
+            "blockedRoad": "Strada Bloccata",
+            "illegalParking": "Parcheggio Illegale",
+            "darkStreet": "Strada Buia",
+            "trafficSign": "Segnale Stradale",
+            "abandonedVehicle": "Veicolo Abbandonato",
+            "garbage": "Rifiuti",
+            "flood": "Alluvione",
+            "fireSmoke": "Fuoco/Fumo",
+            "treeHazard": "Pericolo Albero",
+            "strayAnimal": "Animale Randagio",
+            "pestControl": "Disinfestazione",
+            "reportIssue": "Segnala Problema",
+            "brokenInfra": "Infrastruttura Danneggiata",
+            "graffiti": "Graffiti",
+            "findMLA": "Trova Rappresentante",
+            "grievanceManagement": "Gestione Reclami",
+            "viewStats": "Vedi Statistiche",
+            "leaderboard": "Classifica",
+            "responsibilityMap": "Mappa delle Responsabilità",
+            "noise": "Rumore",
+            "crowd": "Folla",
+            "waterLeak": "Perdita d'Acqua",
+            "waste": "Smistamento Rifiuti",
+            "civicEye": "Occhio Civico",
+            "myReports": "I Miei Rapporti",
+            "analyzeGrievance": "Analizza Reclamo"
+        },
+        "tools": {
+            "whoIsResponsible": "Chi è Responsabile?",
+            "topReporters": "Migliori Segnalatori",
+            "cameraCheck": "Controllo Fotocamera"
+        },
+        "activity": {
+            "communityActivity": "Attività della Comunità",
+            "liveFeed": "Feed in Diretta",
+            "noActivity": "Nessuna attività recente da mostrare.",
+            "loadMore": "Carica Altre Attività",
+            "verify": "Verifica"
+        },
+        "stats": {
+            "totalImpact": "Impatto Totale",
+            "issuesResolved": "Problemi Risolti",
+            "activeUsers": "Utenti Attivi"
+        },
+        "landing": {
+            "empowering": "Responsabilizzare i Cittadini",
+            "governance": "per una Migliore Governance",
+            "subtitle": "Segnala problemi civici e ottieni soluzioni generate dall'IA. Connettiti con le autorità via Telegram.",
+            "cta": "Segnala Problema",
+            "cards": {
+                "reportCitizens": "Segnala con i Cittadini",
+                "generatedCivic": "governance civica generata",
+                "govServices": "Servizi Governativi",
+                "questionGov": "Interroga il Governo",
+                "govDesc": "Invia richieste, pretendi trasparenza e rendi le autorità responsabili",
+                "communityAction": "Azione Comunitaria",
+                "joinMovement": "Unisciti al movimento"
+            },
+            "features": {
+                "publicTrust": "Fiducia Pubblica",
+                "ethics": "& Etica",
+                "civicIssues": "Problemi Civici",
+                "reportProblems": "Segnala problemi",
+                "voiceVote": "Fai sentire la tua voce",
+                "shareIdeas": "Condividi idee per politiche migliori",
+                "aiDemocracy": "IA per la Democrazia",
+                "civicActions": "& Azioni Civiche",
+                "aiDesc": "Sfruttare la tecnologia per una governance trasparente e risoluzioni più rapide.",
+                "smartAnalysis": "Analisi Intelligente",
+                "aiInsights": "Approfondimenti tramite IA",
+                "citizenCount": "oltre 10.000 Cittadini Attivi",
+                "secureSafe": "Sicuro e Protetto",
+                "verifiedReports": "Rapporti Verificati",
+                "quickAction": "Azione Rapida",
+                "responseTime": "Risposta in 24 ore"
+            }
+        }
+    },
+    "common": {
+        "loading": "Caricamento...",
+        "error": "Errore",
+        "submit": "Invia",
+        "cancel": "Annulla",
+        "yes": "Sì",
+        "no": "No",
+        "back": "Indietro"
+    }
+}
