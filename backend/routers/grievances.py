@@ -6,12 +6,14 @@ import os
 import json
 import logging
 import hashlib
+import threading
 from datetime import datetime, timezone
 
 from backend.database import get_db
 import hmac
 from backend.config import get_auth_config
 from backend.models import Grievance, EscalationAudit, GrievanceFollower, ClosureConfirmation
+from backend.cache import grievance_list_cache, escalation_stats_cache, follower_last_hash_cache
 from backend.schemas import (
     GrievanceSummaryResponse, EscalationAuditResponse, EscalationStatsResponse,
     ResponsibilityMapResponse,
@@ -25,9 +27,16 @@ from backend.grievance_service import GrievanceService
 from backend.closure_service import ClosureService
 from backend.cache import grievance_list_cache, escalation_stats_cache, follower_last_hash_cache
 
+import threading
 logger = logging.getLogger(__name__)
 
+# Lock for synchronizing blockchain operations
+follower_blockchain_lock = threading.Lock()
+
 router = APIRouter()
+
+# Global lock for follower blockchain operations to prevent race conditions during hash chaining
+follower_blockchain_lock = threading.Lock()
 
 @router.get("/grievances", response_model=List[GrievanceSummaryResponse])
 def get_grievances(
