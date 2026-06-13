@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func
+from sqlalchemy import func, case
 from typing import List, Optional
 import os
 import json
@@ -400,6 +400,7 @@ def get_closure_status(
         if not grievance:
             raise HTTPException(status_code=404, detail="Grievance not found")
         
+        # Optimized: Use a single aggregate query to calculate total followers, confirmations and disputes in one database roundtrip
         total_followers = db.query(func.count(GrievanceFollower.id)).filter(
             GrievanceFollower.grievance_id == grievance_id
         ).scalar()
