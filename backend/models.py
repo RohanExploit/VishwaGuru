@@ -323,6 +323,10 @@ class ResolutionProofToken(Base):
     valid_from = Column(DateTime, nullable=True)
     valid_until = Column(DateTime, nullable=True)
 
+    # Blockchain integrity fields
+    integrity_hash = Column(String, nullable=True)
+    previous_integrity_hash = Column(String, nullable=True, index=True)
+
     # Relationship
     grievance = relationship("Grievance", back_populates="resolution_tokens")
 

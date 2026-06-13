@@ -26,7 +26,7 @@ from backend.models import (
     EvidenceAuditLog, VerificationStatus, GrievanceStatus
 )
 from backend.config import get_config, get_auth_config
-from backend.cache import resolution_last_hash_cache, evidence_audit_last_hash_cache
+from backend.cache import resolution_last_hash_cache, evidence_audit_last_hash_cache, token_last_hash_cache
 
 logger = logging.getLogger(__name__)
 
@@ -189,6 +189,22 @@ class ResolutionProofService:
 
         signature = ResolutionProofService._sign_payload(payload)
 
+        # Generate Integrity Hash
+        prev_hash = token_last_hash_cache.get("last_hash")
+        if prev_hash is None:
+            # Cache miss: Fetch only the last hash from DB
+            last_record = db.query(ResolutionProofToken.integrity_hash).order_by(ResolutionProofToken.id.desc()).first()
+            prev_hash = last_record[0] if last_record and last_record[0] else ""
+            token_last_hash_cache.set(data=prev_hash, key="last_hash")
+
+        hash_content = f"{token_uuid}|{grievance_id}|{authority_email}|{now.isoformat()}|{prev_hash}"
+        secret_key = get_auth_config().secret_key
+        integrity_hash = hmac.new(
+            secret_key.encode('utf-8'),
+            hash_content.encode('utf-8'),
+            hashlib.sha256
+        ).hexdigest()
+
         # Create token record
         token = ResolutionProofToken(
             token_id=token_uuid,
@@ -203,11 +219,15 @@ class ResolutionProofService:
             nonce=nonce,
             token_signature=signature,
             is_used=False,
+            integrity_hash=integrity_hash,
+            previous_integrity_hash=prev_hash,
         )
 
         db.add(token)
         db.commit()
         db.refresh(token)
+
+        token_last_hash_cache.set(data=integrity_hash, key="last_hash")
 
         logger.info(
             f"Generated RPT {token_uuid} for grievance {grievance_id} "
