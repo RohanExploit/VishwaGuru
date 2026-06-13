@@ -26,18 +26,7 @@ const CivicEyeDetector = ({ onBack }) => {
                 videoRef.current.srcObject = mediaStream;
             }
         } catch (err) {
-            console.warn("Environment camera failed, trying any available camera...", err);
-            try {
-                const mediaStream = await navigator.mediaDevices.getUserMedia({
-                    video: true
-                });
-                setStream(mediaStream);
-                if (videoRef.current) {
-                    videoRef.current.srcObject = mediaStream;
-                }
-            } catch (fallbackErr) {
-                setError("Camera access failed: " + fallbackErr.message);
-            }
+            setError("Camera access failed: " + err.message);
         }
     };
 

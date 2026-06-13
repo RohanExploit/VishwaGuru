@@ -4,7 +4,6 @@ AI Service Interfaces and Dependency Injection
 This module defines abstract interfaces for AI services to reduce tight coupling
 and enable easier testing, mocking, and service provider switching.
 """
-
 from abc import ABC, abstractmethod
 from typing import Dict, Optional, Protocol
 import asyncio
@@ -17,8 +16,8 @@ class ActionPlanService(Protocol):
         self,
         issue_description: str,
         category: str,
-        language: str = "en",
-        image_path: Optional[str] = None,
+        language: str = 'en',
+        image_path: Optional[str] = None
     ) -> Dict[str, str]:
         """
         Generate action plan with WhatsApp message and email draft.
@@ -58,7 +57,7 @@ class MLASummaryService(Protocol):
         district: str,
         assembly_constituency: str,
         mla_name: str,
-        issue_category: Optional[str] = None,
+        issue_category: Optional[str] = None
     ) -> str:
         """
         Generate a human-readable summary about an MLA.
@@ -82,7 +81,7 @@ class AIServiceContainer:
         self,
         action_plan_service: ActionPlanService,
         chat_service: ChatService,
-        mla_summary_service: MLASummaryService,
+        mla_summary_service: MLASummaryService
     ):
         self.action_plan_service = action_plan_service
         self.chat_service = chat_service
@@ -96,21 +95,19 @@ _ai_services: Optional[AIServiceContainer] = None
 def get_ai_services() -> AIServiceContainer:
     """Get the global AI services container."""
     if _ai_services is None:
-        raise RuntimeError(
-            "AI services not initialized. Call initialize_ai_services() first."
-        )
+        raise RuntimeError("AI services not initialized. Call initialize_ai_services() first.")
     return _ai_services
 
 
 def initialize_ai_services(
     action_plan_service: ActionPlanService,
     chat_service: ChatService,
-    mla_summary_service: MLASummaryService,
+    mla_summary_service: MLASummaryService
 ) -> None:
     """Initialize the global AI services container."""
     global _ai_services
     _ai_services = AIServiceContainer(
         action_plan_service=action_plan_service,
         chat_service=chat_service,
-        mla_summary_service=mla_summary_service,
+        mla_summary_service=mla_summary_service
     )

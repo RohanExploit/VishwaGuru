@@ -6,7 +6,6 @@ AI service implementations (Gemini, Hugging Face, Mock) based on configuration.
 
 Fallback chain:  gemini → huggingface → mock
 """
-
 import os
 from typing import Literal
 

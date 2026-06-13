@@ -9,25 +9,21 @@ from backend.schemas import UserResponse
 from backend.dependencies import get_current_admin_user
 
 router = APIRouter(
-    prefix="/admin", tags=["Admin"], dependencies=[Depends(get_current_admin_user)]
+    prefix="/admin",
+    tags=["Admin"],
+    dependencies=[Depends(get_current_admin_user)]
 )
-
 
 @router.get("/users", response_model=List[UserResponse])
 def get_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    users = (
-        db.query(
-            User.id,
-            User.email,
-            User.full_name,
-            User.role,
-            User.is_active,
-            User.created_at,
-        )
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
+    users = db.query(
+        User.id,
+        User.email,
+        User.full_name,
+        User.role,
+        User.is_active,
+        User.created_at
+    ).offset(skip).limit(limit).all()
 
     # Return list of dictionaries to match UserResponse schema and bypass Pydantic model instantiation overhead
     return [
@@ -37,11 +33,10 @@ def get_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
             "full_name": user.full_name,
             "role": user.role,
             "is_active": user.is_active,
-            "created_at": user.created_at,
+            "created_at": user.created_at
         }
         for user in users
     ]
-
 
 @router.get("/stats")
 def get_system_stats(db: Session = Depends(get_db)):
@@ -53,7 +48,7 @@ def get_system_stats(db: Session = Depends(get_db)):
     stats = db.query(
         func.count(User.id).label("total"),
         func.sum(case((User.role == UserRole.ADMIN, 1), else_=0)).label("admins"),
-        func.sum(case((User.is_active.is_(True), 1), else_=0)).label("active"),
+        func.sum(case((User.is_active.is_(True), 1), else_=0)).label("active")
     ).first()
 
     return {

@@ -1,14 +1,4 @@
-from fastapi import (
-    FastAPI,
-    UploadFile,
-    File,
-    Form,
-    HTTPException,
-    Query,
-    Request,
-    Depends,
-    BackgroundTasks,
-)
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query, Request, Depends, BackgroundTasks
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -35,23 +25,10 @@ from backend.cache import recent_issues_cache
 from backend.database import engine, Base, SessionLocal, get_db
 from backend.models import Issue
 from backend.schemas import (
-    IssueResponse,
-    IssueCreateRequest,
-    IssueCreateResponse,
-    ChatRequest,
-    ChatResponse,
-    VoteRequest,
-    VoteResponse,
-    DetectionResponse,
-    UrgencyAnalysisRequest,
-    UrgencyAnalysisResponse,
-    HealthResponse,
-    MLStatusResponse,
-    ResponsibilityMapResponse,
-    ErrorResponse,
-    SuccessResponse,
-    IssueCategory,
-    IssueStatus,
+    IssueResponse, IssueCreateRequest, IssueCreateResponse, ChatRequest, ChatResponse,
+    VoteRequest, VoteResponse, DetectionResponse, UrgencyAnalysisRequest,
+    UrgencyAnalysisResponse, HealthResponse, MLStatusResponse, ResponsibilityMapResponse,
+    ErrorResponse, SuccessResponse, IssueCategory, IssueStatus
 )
 from backend.exceptions import EXCEPTION_HANDLERS
 from backend.bot import run_bot
@@ -61,7 +38,7 @@ from backend.maharashtra_locator import (
     load_maharashtra_pincode_data,
     load_maharashtra_mla_data,
     find_constituency_by_pincode,
-    find_mla_by_constituency,
+    find_mla_by_constituency
 )
 from backend.init_db import migrate_db
 from backend.pothole_detection import detect_potholes, validate_image_for_processing
@@ -70,7 +47,7 @@ from backend.local_ml_service import (
     detect_infrastructure_local,
     detect_flooding_local,
     detect_vandalism_local,
-    get_detection_status,
+    get_detection_status
 )
 from backend.gemini_services import get_ai_services, initialize_ai_services
 from backend.hf_api_service import (
@@ -84,26 +61,26 @@ from backend.hf_api_service import (
     detect_severity_clip,
     detect_smart_scan_clip,
     generate_image_caption,
-    analyze_urgency_text,
+    analyze_urgency_text
 )
 
 # Configure structured logging
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
 # File upload validation constants
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 ALLOWED_MIME_TYPES = {
-    "image/jpeg",
-    "image/png",
-    "image/gif",
-    "image/webp",
-    "image/bmp",
-    "image/tiff",
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'image/webp',
+    'image/bmp',
+    'image/tiff'
 }
-
 
 def _validate_uploaded_file_sync(file: UploadFile) -> None:
     """
@@ -113,33 +90,32 @@ def _validate_uploaded_file_sync(file: UploadFile) -> None:
     file.file.seek(0, 2)  # Seek to end
     file_size = file.file.tell()
     file.file.seek(0)  # Reset to beginning
-
+    
     if file_size > MAX_FILE_SIZE:
         raise HTTPException(
-            status_code=413,
-            detail=f"File too large. Maximum size allowed is {MAX_FILE_SIZE // (1024*1024)}MB",
+            status_code=413, 
+            detail=f"File too large. Maximum size allowed is {MAX_FILE_SIZE // (1024*1024)}MB"
         )
-
+    
     # Check MIME type from content using python-magic
     try:
         # Read first 1024 bytes for MIME detection
         file_content = file.file.read(1024)
         file.file.seek(0)  # Reset file pointer
-
+        
         detected_mime = magic.from_buffer(file_content, mime=True)
-
+        
         if detected_mime not in ALLOWED_MIME_TYPES:
             raise HTTPException(
                 status_code=400,
-                detail=f"Invalid file type. Only image files are allowed. Detected: {detected_mime}",
+                detail=f"Invalid file type. Only image files are allowed. Detected: {detected_mime}"
             )
     except Exception as e:
         logger.error(f"Error validating file {file.filename}: {e}")
         raise HTTPException(
             status_code=400,
-            detail="Unable to validate file content. Please ensure it's a valid image file.",
+            detail="Unable to validate file content. Please ensure it's a valid image file."
         )
-
 
 async def validate_uploaded_file(file: UploadFile) -> None:
     """
@@ -153,14 +129,10 @@ async def validate_uploaded_file(file: UploadFile) -> None:
     """
     await run_in_threadpool(_validate_uploaded_file_sync, file)
 
-
 # Create tables if they don't exist
 Base.metadata.create_all(bind=engine)
 
-
-async def process_action_plan_background(
-    issue_id: int, description: str, category: str, image_path: str
-):
+async def process_action_plan_background(issue_id: int, description: str, category: str, image_path: str):
     db = SessionLocal()
     try:
         # Generate Action Plan (AI)
@@ -175,13 +147,9 @@ async def process_action_plan_background(
             # Invalidate cache to ensure users get the updated action plan
             recent_issues_cache.invalidate()
     except Exception as e:
-        logger.error(
-            f"Background action plan generation failed for issue {issue_id}: {e}",
-            exc_info=True,
-        )
+        logger.error(f"Background action plan generation failed for issue {issue_id}: {e}", exc_info=True)
     finally:
         db.close()
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -194,14 +162,12 @@ async def lifespan(app: FastAPI):
 
     # Startup: Initialize AI services
     try:
-        action_plan_service, chat_service, mla_summary_service = (
-            create_all_ai_services()
-        )
+        action_plan_service, chat_service, mla_summary_service = create_all_ai_services()
 
         initialize_ai_services(
             action_plan_service=action_plan_service,
             chat_service=chat_service,
-            mla_summary_service=mla_summary_service,
+            mla_summary_service=mla_summary_service
         )
         logger.info("AI services initialized successfully.")
     except Exception as e:
@@ -223,9 +189,9 @@ async def lifespan(app: FastAPI):
         logger.info("Telegram bot started in separate thread.")
     except Exception as e:
         logger.error(f"Error starting bot thread: {e}")
-
+    
     yield
-
+    
     # Shutdown: Close Shared HTTP Client
     await app.state.http_client.aclose()
     logger.info("Shared HTTP Client closed.")
@@ -237,12 +203,11 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Error stopping bot thread: {e}")
 
-
 app = FastAPI(
     title="VishwaGuru Backend",
     description="AI-powered civic issue reporting and resolution platform",
     version="1.0.0",
-    lifespan=lifespan,
+    lifespan=lifespan
 )
 
 # Add centralized exception handlers
@@ -291,14 +256,15 @@ app.add_middleware(
 # Enable Gzip compression
 app.add_middleware(GZipMiddleware, minimum_size=500)
 
-
 @app.get("/", response_model=SuccessResponse)
 def root():
     return SuccessResponse(
         message="VishwaGuru API is running",
-        data={"service": "VishwaGuru API", "version": "1.0.0"},
+        data={
+            "service": "VishwaGuru API",
+            "version": "1.0.0"
+        }
     )
-
 
 @app.get("/health", response_model=HealthResponse)
 def health():
@@ -306,9 +272,11 @@ def health():
         status="healthy",
         timestamp=datetime.now(timezone.utc),
         version="1.0.0",
-        services={"database": "connected", "ai_services": "initialized"},
+        services={
+            "database": "connected",
+            "ai_services": "initialized"
+        }
     )
-
 
 @app.get("/api/ml-status", response_model=MLStatusResponse)
 async def ml_status():
@@ -320,14 +288,12 @@ async def ml_status():
     return MLStatusResponse(
         status="ok",
         models_loaded=status.get("models_loaded", []),
-        memory_usage=status.get("memory_usage"),
+        memory_usage=status.get("memory_usage")
     )
-
 
 def save_file_blocking(file_obj, path):
     with open(path, "wb") as buffer:
         shutil.copyfileobj(file_obj, buffer)
-
 
 def save_issue_db(db: Session, issue: Issue):
     db.add(issue)
@@ -335,28 +301,25 @@ def save_issue_db(db: Session, issue: Issue):
     db.refresh(issue)
     return issue
 
-
 @app.post("/api/issues", response_model=IssueCreateResponse, status_code=201)
 async def create_issue(
     background_tasks: BackgroundTasks,
     description: str = Form(..., min_length=10, max_length=1000),
-    category: str = Form(
-        ..., pattern=f"^({'|'.join([cat.value for cat in IssueCategory])})$"
-    ),
+    category: str = Form(..., pattern=f"^({'|'.join([cat.value for cat in IssueCategory])})$"),
     user_email: str = Form(None),
     latitude: float = Form(None, ge=-90, le=90),
     longitude: float = Form(None, ge=-180, le=180),
     location: str = Form(None, max_length=200),
     image: UploadFile = File(None),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db)
 ):
     image_path = None
-
+    
     try:
         # Validate uploaded image if provided
         if image:
             await validate_uploaded_file(image)
-
+        
         # Save image if provided
         if image:
             upload_dir = "data/uploads"
@@ -385,7 +348,7 @@ async def create_issue(
             latitude=latitude,
             longitude=longitude,
             location=location,
-            action_plan=None,
+            action_plan=None
         )
 
         # Offload blocking DB operations to threadpool
@@ -397,14 +360,12 @@ async def create_issue(
                 os.remove(image_path)
             except OSError:
                 pass  # Ignore cleanup errors
-
+        
         logger.error(f"Database error while creating issue: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to save issue to database")
 
     # Add background task for AI generation
-    background_tasks.add_task(
-        process_action_plan_background, new_issue.id, description, category, image_path
-    )
+    background_tasks.add_task(process_action_plan_background, new_issue.id, description, category, image_path)
 
     # Optimistic Cache Update
     try:
@@ -414,11 +375,7 @@ async def create_issue(
             new_issue_dict = IssueResponse(
                 id=new_issue.id,
                 category=new_issue.category,
-                description=(
-                    new_issue.description[:100] + "..."
-                    if len(new_issue.description) > 100
-                    else new_issue.description
-                ),
+                description=new_issue.description[:100] + "..." if len(new_issue.description) > 100 else new_issue.description,
                 created_at=new_issue.created_at,
                 image_path=new_issue.image_path,
                 status=new_issue.status,
@@ -426,8 +383,8 @@ async def create_issue(
                 location=new_issue.location,
                 latitude=new_issue.latitude,
                 longitude=new_issue.longitude,
-                action_plan=new_issue.action_plan,
-            ).model_dump(mode="json")
+                action_plan=new_issue.action_plan
+            ).model_dump(mode='json')
 
             # Prepend new issue to the list
             current_cache.insert(0, new_issue_dict)
@@ -444,9 +401,8 @@ async def create_issue(
     return IssueCreateResponse(
         id=new_issue.id,
         message="Issue reported successfully. Action plan will be generated shortly.",
-        action_plan=None,
+        action_plan=None
     )
-
 
 @app.post("/api/issues/{issue_id}/vote", response_model=VoteResponse)
 def upvote_issue(issue_id: int, db: Session = Depends(get_db)):
@@ -463,18 +419,16 @@ def upvote_issue(issue_id: int, db: Session = Depends(get_db)):
     db.refresh(issue)
 
     return VoteResponse(
-        id=issue.id, upvotes=issue.upvotes, message="Issue upvoted successfully"
+        id=issue.id,
+        upvotes=issue.upvotes,
+        message="Issue upvoted successfully"
     )
-
 
 @lru_cache(maxsize=1)
 def _load_responsibility_map():
-    file_path = os.path.join(
-        os.path.dirname(os.path.dirname(__file__)), "data", "responsibility_map.json"
-    )
+    file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "responsibility_map.json")
     with open(file_path, "r") as f:
         return json.load(f)
-
 
 @app.get("/api/responsibility-map", response_model=ResponsibilityMapResponse)
 def get_responsibility_map():
@@ -489,25 +443,19 @@ def get_responsibility_map():
         logger.error(f"Error loading responsibility map: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to load responsibility map")
 
-
 @app.post("/api/analyze-urgency", response_model=UrgencyAnalysisResponse)
-async def analyze_urgency_endpoint(
-    request: Request, urgency_req: UrgencyAnalysisRequest
-):
+async def analyze_urgency_endpoint(request: Request, urgency_req: UrgencyAnalysisRequest):
     try:
         client = request.app.state.http_client
         result = await analyze_urgency_text(urgency_req.description, client=client)
         return UrgencyAnalysisResponse(
             urgency_level=result.get("urgency_level", "medium"),
             reasoning=result.get("reasoning", "Analysis completed"),
-            recommended_actions=result.get("recommended_actions", []),
+            recommended_actions=result.get("recommended_actions", [])
         )
     except Exception as e:
         logger.error(f"Urgency analysis error: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=500, detail="Urgency analysis service temporarily unavailable"
-        )
-
+        raise HTTPException(status_code=500, detail="Urgency analysis service temporarily unavailable")
 
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest):
@@ -516,10 +464,7 @@ async def chat_endpoint(request: ChatRequest):
         return ChatResponse(response=response)
     except Exception as e:
         logger.error(f"Chat service error: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=500, detail="Chat service temporarily unavailable"
-        )
-
+        raise HTTPException(status_code=500, detail="Chat service temporarily unavailable")
 
 @app.get("/api/issues/recent", response_model=List[IssueResponse])
 def get_recent_issues(db: Session = Depends(get_db)):
@@ -533,29 +478,22 @@ def get_recent_issues(db: Session = Depends(get_db)):
     # Convert to Pydantic models for validation and serialization
     data = []
     for i in issues:
-        data.append(
-            IssueResponse(
-                id=i.id,
-                category=i.category,
-                description=(
-                    i.description[:100] + "..."
-                    if len(i.description) > 100
-                    else i.description
-                ),
-                created_at=i.created_at,
-                image_path=i.image_path,
-                status=i.status,
-                upvotes=i.upvotes if i.upvotes is not None else 0,
-                location=i.location,
-                latitude=i.latitude,
-                longitude=i.longitude,
-                action_plan=i.action_plan,
-            ).model_dump(mode="json")
-        )
+        data.append(IssueResponse(
+            id=i.id,
+            category=i.category,
+            description=i.description[:100] + "..." if len(i.description) > 100 else i.description,
+            created_at=i.created_at,
+            image_path=i.image_path,
+            status=i.status,
+            upvotes=i.upvotes if i.upvotes is not None else 0,
+            location=i.location,
+            latitude=i.latitude,
+            longitude=i.longitude,
+            action_plan=i.action_plan
+        ).model_dump(mode='json'))
 
     recent_issues_cache.set(data)
     return data
-
 
 # FIXED: Standardized Detection Endpoints with Consistent Validation
 @app.post("/api/detect-pothole", response_model=DetectionResponse)
@@ -580,15 +518,10 @@ async def detect_pothole_endpoint(image: UploadFile = File(...)):
         return DetectionResponse(detections=detections)
     except Exception as e:
         logger.error(f"Pothole detection error: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=500, detail="Pothole detection service temporarily unavailable"
-        )
-
+        raise HTTPException(status_code=500, detail="Pothole detection service temporarily unavailable")
 
 @app.post("/api/detect-infrastructure", response_model=DetectionResponse)
-async def detect_infrastructure_endpoint(
-    request: Request, image: UploadFile = File(...)
-):
+async def detect_infrastructure_endpoint(request: Request, image: UploadFile = File(...)):
     # Validate uploaded file
     await validate_uploaded_file(image)
 
@@ -600,9 +533,7 @@ async def detect_infrastructure_endpoint(
     except HTTPException:
         raise  # Re-raise HTTP exceptions from validation
     except Exception as e:
-        logger.error(
-            f"Invalid image file for infrastructure detection: {e}", exc_info=True
-        )
+        logger.error(f"Invalid image file for infrastructure detection: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail="Invalid image file")
 
     # Run detection using unified service (local ML by default)
@@ -613,18 +544,14 @@ async def detect_infrastructure_endpoint(
         return DetectionResponse(detections=detections)
     except Exception as e:
         logger.error(f"Infrastructure detection error: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail="Infrastructure detection service temporarily unavailable",
-        )
-
+        raise HTTPException(status_code=500, detail="Infrastructure detection service temporarily unavailable")
 
 # FIXED: Single flooding detection endpoint with proper async validation
 @app.post("/api/detect-flooding", response_model=DetectionResponse)
 async def detect_flooding_endpoint(request: Request, image: UploadFile = File(...)):
     # Validate uploaded file
     await validate_uploaded_file(image)
-
+    
     # Convert to PIL Image directly from file object to save memory
     try:
         pil_image = await run_in_threadpool(Image.open, image.file)
@@ -644,16 +571,13 @@ async def detect_flooding_endpoint(request: Request, image: UploadFile = File(..
         return DetectionResponse(detections=detections)
     except Exception as e:
         logger.error(f"Flooding detection error: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=500, detail="Flooding detection service temporarily unavailable"
-        )
-
+        raise HTTPException(status_code=500, detail="Flooding detection service temporarily unavailable")
 
 @app.post("/api/detect-vandalism", response_model=DetectionResponse)
 async def detect_vandalism_endpoint(request: Request, image: UploadFile = File(...)):
     # Validate uploaded file
     await validate_uploaded_file(image)
-
+    
     # Convert to PIL Image directly from file object to save memory
     try:
         pil_image = await run_in_threadpool(Image.open, image.file)
@@ -673,16 +597,13 @@ async def detect_vandalism_endpoint(request: Request, image: UploadFile = File(.
         return DetectionResponse(detections=detections)
     except Exception as e:
         logger.error(f"Vandalism detection error: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=500, detail="Detection service temporarily unavailable"
-        )
-
+        raise HTTPException(status_code=500, detail="Detection service temporarily unavailable")
 
 @app.post("/api/detect-garbage", response_model=DetectionResponse)
 async def detect_garbage_endpoint(image: UploadFile = File(...)):
     # Validate uploaded file
     await validate_uploaded_file(image)
-
+    
     # Convert to PIL Image directly from file object to save memory
     try:
         pil_image = await run_in_threadpool(Image.open, image.file)
@@ -700,16 +621,11 @@ async def detect_garbage_endpoint(image: UploadFile = File(...)):
         return DetectionResponse(detections=detections)
     except Exception as e:
         logger.error(f"Garbage detection error: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=500, detail="Detection service temporarily unavailable"
-        )
-
+        raise HTTPException(status_code=500, detail="Detection service temporarily unavailable")
 
 # External API Detection Endpoints (HuggingFace CLIP-based)
 @app.post("/api/detect-illegal-parking")
-async def detect_illegal_parking_endpoint(
-    request: Request, image: UploadFile = File(...)
-):
+async def detect_illegal_parking_endpoint(request: Request, image: UploadFile = File(...)):
     try:
         image_bytes = await image.read()
     except Exception as e:
@@ -723,7 +639,6 @@ async def detect_illegal_parking_endpoint(
     except Exception as e:
         logger.error(f"Illegal parking detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
-
 
 @app.post("/api/detect-street-light")
 async def detect_street_light_endpoint(request: Request, image: UploadFile = File(...)):
@@ -741,7 +656,6 @@ async def detect_street_light_endpoint(request: Request, image: UploadFile = Fil
         logger.error(f"Street light detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
-
 @app.post("/api/detect-fire")
 async def detect_fire_endpoint(request: Request, image: UploadFile = File(...)):
     try:
@@ -757,7 +671,6 @@ async def detect_fire_endpoint(request: Request, image: UploadFile = File(...)):
     except Exception as e:
         logger.error(f"Fire detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
-
 
 @app.post("/api/detect-stray-animal")
 async def detect_stray_animal_endpoint(request: Request, image: UploadFile = File(...)):
@@ -775,7 +688,6 @@ async def detect_stray_animal_endpoint(request: Request, image: UploadFile = Fil
         logger.error(f"Stray animal detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
-
 @app.post("/api/detect-blocked-road")
 async def detect_blocked_road_endpoint(request: Request, image: UploadFile = File(...)):
     try:
@@ -791,7 +703,6 @@ async def detect_blocked_road_endpoint(request: Request, image: UploadFile = Fil
     except Exception as e:
         logger.error(f"Blocked road detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
-
 
 @app.post("/api/detect-tree-hazard")
 async def detect_tree_hazard_endpoint(request: Request, image: UploadFile = File(...)):
@@ -809,7 +720,6 @@ async def detect_tree_hazard_endpoint(request: Request, image: UploadFile = File
         logger.error(f"Tree hazard detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
-
 @app.post("/api/detect-pest")
 async def detect_pest_endpoint(request: Request, image: UploadFile = File(...)):
     try:
@@ -825,7 +735,6 @@ async def detect_pest_endpoint(request: Request, image: UploadFile = File(...)):
     except Exception as e:
         logger.error(f"Pest detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
-
 
 @app.post("/api/detect-severity")
 async def detect_severity_endpoint(request: Request, image: UploadFile = File(...)):
@@ -843,7 +752,6 @@ async def detect_severity_endpoint(request: Request, image: UploadFile = File(..
         logger.error(f"Severity detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
-
 @app.post("/api/detect-smart-scan")
 async def detect_smart_scan_endpoint(request: Request, image: UploadFile = File(...)):
     try:
@@ -860,11 +768,8 @@ async def detect_smart_scan_endpoint(request: Request, image: UploadFile = File(
         logger.error(f"Smart scan detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
-
 @app.post("/api/generate-description")
-async def generate_description_endpoint(
-    request: Request, image: UploadFile = File(...)
-):
+async def generate_description_endpoint(request: Request, image: UploadFile = File(...)):
     try:
         image_bytes = await image.read()
     except Exception as e:
@@ -881,36 +786,34 @@ async def generate_description_endpoint(
         logger.error(f"Description generation error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
-
 @app.get("/api/mh/rep-contacts")
-async def get_maharashtra_rep_contacts(
-    pincode: str = Query(..., min_length=6, max_length=6)
-):
+async def get_maharashtra_rep_contacts(pincode: str = Query(..., min_length=6, max_length=6)):
     """
     Get MLA and representative contact information for Maharashtra by pincode.
     """
     # Validate pincode format
     if not pincode.isdigit():
         raise HTTPException(
-            status_code=400, detail="Invalid pincode format. Must be 6 digits."
+            status_code=400,
+            detail="Invalid pincode format. Must be 6 digits."
         )
-
+    
     # Find constituency by pincode
     constituency_info = find_constituency_by_pincode(pincode)
-
+    
     if not constituency_info:
         raise HTTPException(
             status_code=404,
-            detail="Unknown pincode for Maharashtra MVP. Currently only supporting limited pincodes.",
+            detail="Unknown pincode for Maharashtra MVP. Currently only supporting limited pincodes."
         )
-
+    
     # Find MLA by constituency
     assembly_constituency = constituency_info.get("assembly_constituency")
     mla_info = None
 
     if assembly_constituency:
         mla_info = find_mla_by_constituency(assembly_constituency)
-
+    
     # If explicit MLA lookup failed or wasn't possible, create a generic placeholder
     if not mla_info:
         mla_info = {
@@ -918,12 +821,12 @@ async def get_maharashtra_rep_contacts(
             "party": "N/A",
             "phone": "N/A",
             "email": "N/A",
-            "twitter": "Not Available",
+            "twitter": "Not Available"
         }
         # If we have a district but no constituency, explain it
         if not assembly_constituency:
-            constituency_info["assembly_constituency"] = "Unknown (District Found)"
-
+             constituency_info["assembly_constituency"] = "Unknown (District Found)"
+    
     # Generate AI summary (optional)
     description = None
     try:
@@ -933,12 +836,12 @@ async def get_maharashtra_rep_contacts(
             description = await ai_services.mla_summary_service.generate_mla_summary(
                 district=constituency_info["district"],
                 assembly_constituency=assembly_constituency,
-                mla_name=mla_info["mla_name"],
+                mla_name=mla_info["mla_name"]
             )
     except Exception as e:
         logger.error(f"Error generating MLA summary: {e}")
         # Continue without description
-
+    
     # Build response
     response = {
         "pincode": pincode,
@@ -950,25 +853,22 @@ async def get_maharashtra_rep_contacts(
             "party": mla_info["party"],
             "phone": mla_info["phone"],
             "email": mla_info["email"],
-            "twitter": mla_info.get("twitter"),
+            "twitter": mla_info.get("twitter")
         },
         "grievance_links": {
             "central_cpgrams": "https://pgportal.gov.in/",
             "maharashtra_portal": "https://aaplesarkar.mahaonline.gov.in/en",
-            "note": "This is an MVP; data may not be fully accurate.",
-        },
+            "note": "This is an MVP; data may not be fully accurate."
+        }
     }
-
+    
     # Add description if generated
     if description:
         response["description"] = description
     elif mla_info["mla_name"] == "MLA Info Unavailable":
-        response["description"] = (
-            f"We found that {pincode} belongs to {constituency_info['district']} district, but we don't have the specific MLA details for this exact pincode yet."
-        )
+        response["description"] = f"We found that {pincode} belongs to {constituency_info['district']} district, but we don't have the specific MLA details for this exact pincode yet."
 
     return response
-
 
 # Note: Frontend serving code removed for separate deployment
 # The frontend will be deployed on Netlify and make API calls to this backend

@@ -1,7 +1,6 @@
 """
 Test script to verify AI service dependency injection works correctly.
 """
-
 import asyncio
 import pytest
 import os
@@ -17,7 +16,7 @@ from backend.ai_interfaces import initialize_ai_services, get_ai_services
 from backend.mock_services import (
     create_mock_action_plan_service,
     create_mock_chat_service,
-    create_mock_mla_summary_service,
+    create_mock_mla_summary_service
 )
 
 

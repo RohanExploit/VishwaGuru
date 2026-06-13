@@ -8,14 +8,8 @@ import json
 from backend.database import get_db
 from backend.models import Issue
 from backend.schemas import (
-    SuccessResponse,
-    HealthResponse,
-    StatsResponse,
-    MLStatusResponse,
-    ChatRequest,
-    ChatResponse,
-    LeaderboardResponse,
-    LeaderboardEntry,
+    SuccessResponse, HealthResponse, StatsResponse, MLStatusResponse,
+    ChatRequest, ChatResponse, LeaderboardResponse, LeaderboardEntry
 )
 from backend.cache import recent_issues_cache
 from backend.unified_detection_service import get_detection_status
@@ -24,21 +18,22 @@ from backend.gemini_services import get_ai_services
 from backend.maharashtra_locator import (
     find_constituency_by_pincode,
     find_mla_by_constituency,
-    find_mla_by_constituency,
+    find_mla_by_constituency
 )
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-
 @router.get("/", response_model=SuccessResponse)
 def root():
     return SuccessResponse(
         message="VishwaGuru API is running",
-        data={"service": "VishwaGuru API", "version": "1.0.0"},
+        data={
+            "service": "VishwaGuru API",
+            "version": "1.0.0"
+        }
     )
-
 
 @router.get("/health", response_model=HealthResponse)
 def health():
@@ -46,9 +41,11 @@ def health():
         status="healthy",
         timestamp=datetime.now(timezone.utc),
         version="1.0.0",
-        services={"database": "connected", "ai_services": "initialized"},
+        services={
+            "database": "connected",
+            "ai_services": "initialized"
+        }
     )
-
 
 @router.get("/stats", response_model=StatsResponse)
 def get_stats(db: Session = Depends(get_db)):
@@ -58,17 +55,11 @@ def get_stats(db: Session = Depends(get_db)):
 
     # Optimized: Single aggregate query for both category breakdowns and system-wide totals
     # This eliminates a redundant database roundtrip
-    cat_counts = (
-        db.query(
-            Issue.category,
-            func.count(Issue.id).label("total"),
-            func.sum(
-                case((Issue.status.in_(["resolved", "verified"]), 1), else_=0)
-            ).label("resolved"),
-        )
-        .group_by(Issue.category)
-        .all()
-    )
+    cat_counts = db.query(
+        Issue.category,
+        func.count(Issue.id).label("total"),
+        func.sum(case((Issue.status.in_(['resolved', 'verified']), 1), else_=0)).label("resolved")
+    ).group_by(Issue.category).all()
 
     total = 0
     resolved = 0
@@ -89,15 +80,14 @@ def get_stats(db: Session = Depends(get_db)):
         total_issues=total,
         resolved_issues=resolved,
         pending_issues=pending,
-        issues_by_category=issues_by_category,
+        issues_by_category=issues_by_category
     )
 
-    data = response.model_dump(mode="json")
+    data = response.model_dump(mode='json')
     json_data = json.dumps(data)
     recent_issues_cache.set(json_data, "stats")
 
     return Response(content=json_data, media_type="application/json")
-
 
 @router.get("/ml-status", response_model=MLStatusResponse)
 async def ml_status():
@@ -109,9 +99,8 @@ async def ml_status():
     return MLStatusResponse(
         status="ok",
         models_loaded=status.get("models_loaded", []),
-        memory_usage=status.get("memory_usage"),
+        memory_usage=status.get("memory_usage")
     )
-
 
 @router.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest):
@@ -120,10 +109,7 @@ async def chat_endpoint(request: ChatRequest):
         return ChatResponse(response=response)
     except Exception as e:
         logger.error(f"Chat service error: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=500, detail="Chat service temporarily unavailable"
-        )
-
+        raise HTTPException(status_code=500, detail="Chat service temporarily unavailable")
 
 @router.get("/leaderboard", response_model=LeaderboardResponse)
 def get_leaderboard(db: Session = Depends(get_db)):
@@ -135,25 +121,21 @@ def get_leaderboard(db: Session = Depends(get_db)):
 
     # Group by user_email, count issues, sum upvotes
     # Optimization: Only select needed columns and use aggregation
-    results = (
-        db.query(
-            Issue.user_email,
-            func.count(Issue.id).label("count"),
-            func.sum(Issue.upvotes).label("total_upvotes"),
-        )
-        .filter(Issue.user_email.isnot(None), Issue.user_email != "")
-        .group_by(Issue.user_email)
-        .order_by(func.count(Issue.id).desc())
-        .limit(10)
-        .all()
-    )
+    results = db.query(
+        Issue.user_email,
+        func.count(Issue.id).label('count'),
+        func.sum(Issue.upvotes).label('total_upvotes')
+    ).filter(
+        Issue.user_email.isnot(None),
+        Issue.user_email != ""
+    ).group_by(Issue.user_email).order_by(func.count(Issue.id).desc()).limit(10).all()
 
     leaderboard_data = []
     for idx, (email, count, upvotes) in enumerate(results):
         # Mask email for privacy
         try:
-            if "@" in email:
-                name, domain = email.split("@")
+            if '@' in email:
+                name, domain = email.split('@')
                 masked_email = f"{name[0]}***@{domain}"
             else:
                 masked_email = email[:3] + "***"
@@ -161,14 +143,12 @@ def get_leaderboard(db: Session = Depends(get_db)):
             masked_email = "User***"
 
         # Performance Boost: Use raw dict to bypass Pydantic instantiation and validation overhead
-        leaderboard_data.append(
-            {
-                "user_email": masked_email,
-                "reports_count": count,
-                "total_upvotes": upvotes or 0,
-                "rank": idx + 1,
-            }
-        )
+        leaderboard_data.append({
+            "user_email": masked_email,
+            "reports_count": count,
+            "total_upvotes": upvotes or 0,
+            "rank": idx + 1
+        })
 
     response_data = {"leaderboard": leaderboard_data}
     json_data = json.dumps(response_data)
@@ -179,9 +159,7 @@ def get_leaderboard(db: Session = Depends(get_db)):
 
 
 @router.get("/mh/rep-contacts")
-async def get_maharashtra_rep_contacts(
-    pincode: str = Query(..., min_length=6, max_length=6)
-):
+async def get_maharashtra_rep_contacts(pincode: str = Query(..., min_length=6, max_length=6)):
     """
     Get MLA and representative contact information for Maharashtra by pincode.
 
@@ -194,7 +172,8 @@ async def get_maharashtra_rep_contacts(
     # Validate pincode format
     if not pincode.isdigit():
         raise HTTPException(
-            status_code=400, detail="Invalid pincode format. Must be 6 digits."
+            status_code=400,
+            detail="Invalid pincode format. Must be 6 digits."
         )
 
     # Find constituency by pincode
@@ -203,7 +182,7 @@ async def get_maharashtra_rep_contacts(
     if not constituency_info:
         raise HTTPException(
             status_code=404,
-            detail="Unknown pincode for Maharashtra MVP. Currently only supporting limited pincodes.",
+            detail="Unknown pincode for Maharashtra MVP. Currently only supporting limited pincodes."
         )
 
     # Find MLA by constituency
@@ -221,11 +200,11 @@ async def get_maharashtra_rep_contacts(
             "party": "N/A",
             "phone": "N/A",
             "email": "N/A",
-            "twitter": "Not Available",
+            "twitter": "Not Available"
         }
         # If we have a district but no constituency, explain it
         if not assembly_constituency:
-            constituency_info["assembly_constituency"] = "Unknown (District Found)"
+             constituency_info["assembly_constituency"] = "Unknown (District Found)"
 
     # Generate AI summary (optional)
     description = None
@@ -236,7 +215,7 @@ async def get_maharashtra_rep_contacts(
             description = await ai_services.mla_summary_service.generate_mla_summary(
                 district=constituency_info["district"],
                 assembly_constituency=assembly_constituency,
-                mla_name=mla_info["mla_name"],
+                mla_name=mla_info["mla_name"]
             )
     except Exception as e:
         logger.error(f"Error generating MLA summary: {e}")
@@ -253,21 +232,19 @@ async def get_maharashtra_rep_contacts(
             "party": mla_info["party"],
             "phone": mla_info["phone"],
             "email": mla_info["email"],
-            "twitter": mla_info.get("twitter"),
+            "twitter": mla_info.get("twitter")
         },
         "grievance_links": {
             "central_cpgrams": "https://pgportal.gov.in/",
             "maharashtra_portal": "https://aaplesarkar.mahaonline.gov.in/en",
-            "note": "This is an MVP; data may not be fully accurate.",
-        },
+            "note": "This is an MVP; data may not be fully accurate."
+        }
     }
 
     # Add description if generated
     if description:
         response["description"] = description
     elif mla_info["mla_name"] == "MLA Info Unavailable":
-        response["description"] = (
-            f"We found that {pincode} belongs to {constituency_info['district']} district, but we don't have the specific MLA details for this exact pincode yet."
-        )
+        response["description"] = f"We found that {pincode} belongs to {constituency_info['district']} district, but we don't have the specific MLA details for this exact pincode yet."
 
     return response

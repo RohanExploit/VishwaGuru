@@ -21,29 +21,26 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 # Set environment variable
-os.environ["FRONTEND_URL"] = "http://localhost:5173"
+os.environ['FRONTEND_URL'] = 'http://localhost:5173'
 
 # Mock magic module
 mock_magic = MagicMock()
 mock_magic.from_buffer.return_value = "image/jpeg"
-sys.modules["magic"] = mock_magic
+sys.modules['magic'] = mock_magic
 
 # Mock telegram
 mock_telegram = MagicMock()
-sys.modules["telegram"] = mock_telegram
-sys.modules["telegram.ext"] = mock_telegram.ext
+sys.modules['telegram'] = mock_telegram
+sys.modules['telegram.ext'] = mock_telegram.ext
 
 from backend.main import app
-
 
 @pytest.mark.asyncio
 async def test_detect_severity_endpoint():
     # Mock AI services initialization to prevent startup failure
-    with patch("backend.main.create_all_ai_services") as mock_create_services, patch(
-        "backend.main.initialize_ai_services"
-    ) as mock_init_services, patch(
-        "backend.routers.detection.detect_severity_clip", new_callable=AsyncMock
-    ) as mock_detect:
+    with patch('backend.main.create_all_ai_services') as mock_create_services, \
+         patch('backend.main.initialize_ai_services') as mock_init_services, \
+         patch('backend.routers.detection.detect_severity_clip', new_callable=AsyncMock) as mock_detect:
 
         # Setup mocks
         mock_create_services.return_value = (MagicMock(), MagicMock(), MagicMock())
@@ -52,16 +49,15 @@ async def test_detect_severity_endpoint():
         mock_detect.return_value = {
             "level": "Critical",
             "raw_label": "critical emergency",
-            "confidence": 0.95,
+            "confidence": 0.95
         }
 
         # Create a dummy image file
         import io
         from PIL import Image
-
-        img = Image.new("RGB", (100, 100), color="white")
+        img = Image.new('RGB', (100, 100), color='white')
         img_byte_arr = io.BytesIO()
-        img.save(img_byte_arr, format="JPEG")
+        img.save(img_byte_arr, format='JPEG')
         file_content = img_byte_arr.getvalue()
 
         files = {"image": ("test.jpg", file_content, "image/jpeg")}
@@ -69,7 +65,7 @@ async def test_detect_severity_endpoint():
         # Use TestClient as context manager to trigger lifespan (startup/shutdown)
         with TestClient(app) as client:
             # Call the endpoint
-            with patch("backend.utils.validate_uploaded_file"):
+            with patch('backend.utils.validate_uploaded_file'):
                 response = client.post("/api/detect-severity", files=files)
 
             # Assertions

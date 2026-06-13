@@ -7,7 +7,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.
 
 from backend.rag_service import CivicRAG
 
-
 class TestCivicRAG(unittest.TestCase):
     def setUp(self):
         # Point to the data file we created
@@ -41,7 +40,6 @@ class TestCivicRAG(unittest.TestCase):
         query = "xzy qwe asd 123"
         result = self.rag.retrieve(query)
         self.assertIsNone(result)
-
 
 if __name__ == "__main__":
     unittest.main()

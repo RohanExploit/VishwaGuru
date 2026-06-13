@@ -516,11 +516,14 @@ def get_closure_status(grievance_id: int, db: Session = Depends(get_db)):
         ).filter(ClosureConfirmation.grievance_id == grievance_id).group_by(ClosureConfirmation.confirmation_type).all()
         
         counts_dict = dict(counts)
-        confirmations_count = counts_dict.get('confirmed', 0)
-        disputes_count = counts_dict.get('disputed', 0)
-        
-        required_confirmations = max(1, int(total_followers * ClosureService.CONFIRMATION_THRESHOLD))
-        
+
+        confirmations_count = counts_dict.get("confirmed", 0)
+        disputes_count = counts_dict.get("disputed", 0)
+
+        required_confirmations = max(
+            1, int(total_followers * ClosureService.CONFIRMATION_THRESHOLD)
+        )
+
         days_remaining = None
         if grievance.closure_confirmation_deadline:
             delta = grievance.closure_confirmation_deadline - datetime.now(timezone.utc)

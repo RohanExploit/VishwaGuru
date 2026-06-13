@@ -16,7 +16,6 @@ sample_text = (
     "No one has been injured, but we would like to avoid any accidents."
 ) * 10  # Make it reasonably long
 
-
 def benchmark(iterations=10000):
     start_time = time.perf_counter()
     for _ in range(iterations):
@@ -32,12 +31,10 @@ def benchmark(iterations=10000):
     print(f"Average time per call: {avg_time_ms:.4f} ms")
     return avg_time_ms
 
-
 if __name__ == "__main__":
     # Force the engine to clear its cache and simulate the old unoptimized behavior
     # where the keywords list is empty and regex.search is always called.
     from backend.adaptive_weights import adaptive_weights
-
     priority_engine._regex_cache = []
     for pattern, weight in adaptive_weights.get_urgency_patterns():
         priority_engine._regex_cache.append((re.compile(pattern), weight, pattern, []))
@@ -56,6 +53,6 @@ if __name__ == "__main__":
         priority_engine._calculate_urgency(sample_text, 10)
     pr.disable()
     s = io.StringIO()
-    ps = pstats.Stats(pr, stream=s).sort_stats("cumulative")
+    ps = pstats.Stats(pr, stream=s).sort_stats('cumulative')
     ps.print_stats(15)
     print(s.getvalue())

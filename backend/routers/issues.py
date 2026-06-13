@@ -1,17 +1,5 @@
 from __future__ import annotations
-from fastapi import (
-    APIRouter,
-    Depends,
-    HTTPException,
-    UploadFile,
-    File,
-    Form,
-    Query,
-    Request,
-    BackgroundTasks,
-    status,
-    Response,
-)
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query, Request, BackgroundTasks, status, Response
 from fastapi.responses import JSONResponse
 from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session, defer
@@ -27,39 +15,22 @@ from datetime import datetime, timezone
 from backend.database import get_db
 from backend.models import Issue, PushSubscription
 from backend.schemas import (
-    IssueCreateWithDeduplicationResponse,
-    IssueCategory,
-    NearbyIssueResponse,
-    DeduplicationCheckResponse,
-    IssueSummaryResponse,
-    VoteResponse,
-    IssueStatusUpdateRequest,
-    IssueStatusUpdateResponse,
-    PushSubscriptionRequest,
-    PushSubscriptionResponse,
-    BlockchainVerificationResponse,
+    IssueCreateWithDeduplicationResponse, IssueCategory, NearbyIssueResponse,
+    DeduplicationCheckResponse, IssueSummaryResponse, VoteResponse,
+    IssueStatusUpdateRequest, IssueStatusUpdateResponse, PushSubscriptionRequest,
+    PushSubscriptionResponse, BlockchainVerificationResponse
 )
 from backend.utils import (
-    check_upload_limits,
-    validate_uploaded_file,
-    save_file_blocking,
-    save_issue_db,
-    process_uploaded_image,
-    save_processed_image,
-    UPLOAD_LIMIT_PER_USER,
-    UPLOAD_LIMIT_PER_IP,
+    check_upload_limits, validate_uploaded_file, save_file_blocking, save_issue_db,
+    process_uploaded_image, save_processed_image,
+    UPLOAD_LIMIT_PER_USER, UPLOAD_LIMIT_PER_IP
 )
 from backend.tasks import (
-    process_action_plan_background,
-    create_grievance_from_issue_background,
-    send_status_notification,
+    process_action_plan_background, create_grievance_from_issue_background,
+    send_status_notification
 )
 from backend.spatial_utils import get_bounding_box, find_nearby_issues
-from backend.cache import (
-    recent_issues_cache,
-    nearby_issues_cache,
-    blockchain_last_hash_cache,
-)
+from backend.cache import recent_issues_cache, nearby_issues_cache, blockchain_last_hash_cache
 from backend.hf_api_service import verify_resolution_vqa
 from backend.dependencies import get_http_client
 from backend.rag_service import rag_service
@@ -68,24 +39,19 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-
-@router.post(
-    "/issues", response_model=IssueCreateWithDeduplicationResponse, status_code=201
-)
+@router.post("/issues", response_model=IssueCreateWithDeduplicationResponse, status_code=201)
 async def create_issue(
     request: Request,
     background_tasks: BackgroundTasks,
     description: str = Form(..., min_length=10, max_length=1000),
-    category: str = Form(
-        ..., pattern=f"^({'|'.join([cat.value for cat in IssueCategory])})$"
-    ),
-    language: str = Form("en"),
+    category: str = Form(..., pattern=f"^({'|'.join([cat.value for cat in IssueCategory])})$"),
+    language: str = Form('en'),
     user_email: str = Form(None),
     latitude: float = Form(None, ge=-90, le=90),
     longitude: float = Form(None, ge=-180, le=180),
     location: str = Form(None, max_length=200),
     image: UploadFile = File(None),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db)
 ):
     image_path = None
 
@@ -130,9 +96,7 @@ async def create_issue(
         try:
             # Find existing open issues within 50 meters
             # Optimization: Use bounding box to filter candidates in SQL
-            min_lat, max_lat, min_lon, max_lon = get_bounding_box(
-                latitude, longitude, 50.0
-            )
+            min_lat, max_lat, min_lon, max_lon = get_bounding_box(latitude, longitude, 50.0)
 
             # Performance Boost: Use column projection to avoid loading full model instances
             # Fix: Added category filter to prevent false positives across different categories (Issue #DEDUP-001)
@@ -145,19 +109,15 @@ async def create_issue(
                     Issue.longitude,
                     Issue.upvotes,
                     Issue.created_at,
-                    Issue.status,
-                )
-                .filter(
+                    Issue.status
+                ).filter(
                     Issue.status == "open",
                     Issue.category == category,
                     Issue.latitude >= min_lat,
                     Issue.latitude <= max_lat,
                     Issue.longitude >= min_lon,
-                    Issue.longitude <= max_lon,
-                )
-                .order_by(Issue.created_at.desc())
-                .limit(100)
-                .all()
+                    Issue.longitude <= max_lon
+                ).order_by(Issue.created_at.desc()).limit(100).all()
             )
 
             nearby_issues_with_distance = find_nearby_issues(
@@ -169,28 +129,22 @@ async def create_issue(
                 nearby_responses = [
                     NearbyIssueResponse(
                         id=issue.id,
-                        description=(
-                            issue.description[:100] + "..."
-                            if len(issue.description) > 100
-                            else issue.description
-                        ),
+                        description=issue.description[:100] + "..." if len(issue.description) > 100 else issue.description,
                         category=issue.category,
                         latitude=issue.latitude,
                         longitude=issue.longitude,
                         distance_meters=distance,
                         upvotes=issue.upvotes or 0,
                         created_at=issue.created_at,
-                        status=issue.status,
+                        status=issue.status
                     )
-                    for issue, distance in nearby_issues_with_distance[
-                        :3
-                    ]  # Limit to top 3 closest
+                    for issue, distance in nearby_issues_with_distance[:3]  # Limit to top 3 closest
                 ]
 
                 deduplication_info = DeduplicationCheckResponse(
                     has_nearby_issues=True,
                     nearby_issues=nearby_responses,
-                    recommended_action="upvote_existing",
+                    recommended_action="upvote_existing"
                 )
 
                 # Automatically upvote the closest issue and link this report to it
@@ -200,25 +154,18 @@ async def create_issue(
                 # Atomic update for upvotes to prevent race conditions
                 # Use query update to avoid fetching the full model instance
                 await run_in_threadpool(
-                    lambda: db.query(Issue)
-                    .filter(Issue.id == linked_issue_id)
-                    .update(
-                        {Issue.upvotes: func.coalesce(Issue.upvotes, 0) + 1},
-                        synchronize_session=False,
-                    )
+                    lambda: db.query(Issue).filter(Issue.id == linked_issue_id).update({
+                        Issue.upvotes: func.coalesce(Issue.upvotes, 0) + 1
+                    }, synchronize_session=False)
                 )
 
                 # Commit the upvote
                 await run_in_threadpool(db.commit)
 
-                logger.info(
-                    f"Spatial deduplication: Linked new report to existing issue {linked_issue_id}"
-                )
+                logger.info(f"Spatial deduplication: Linked new report to existing issue {linked_issue_id}")
 
         except Exception as e:
-            logger.error(
-                f"Error during spatial deduplication check: {e}", exc_info=True
-            )
+            logger.error(f"Error during spatial deduplication check: {e}", exc_info=True)
             # Continue with issue creation if deduplication fails
 
     try:
@@ -230,9 +177,7 @@ async def create_issue(
             if prev_hash is None:
                 # Cache miss: Fetch only the last hash from DB
                 prev_issue = await run_in_threadpool(
-                    lambda: db.query(Issue.integrity_hash)
-                    .order_by(Issue.id.desc())
-                    .first()
+                    lambda: db.query(Issue.integrity_hash).order_by(Issue.id.desc()).first()
                 )
                 prev_hash = prev_issue[0] if prev_issue and prev_issue[0] else ""
                 blockchain_last_hash_cache.set(data=prev_hash, key="last_hash")
@@ -259,7 +204,7 @@ async def create_issue(
                 location=location,
                 action_plan=initial_action_plan,
                 integrity_hash=integrity_hash,
-                previous_integrity_hash=prev_hash,
+                previous_integrity_hash=prev_hash
             )
 
             # Offload blocking DB operations to threadpool
@@ -283,14 +228,7 @@ async def create_issue(
 
     # Add background task for AI generation only if new issue was created
     if new_issue:
-        background_tasks.add_task(
-            process_action_plan_background,
-            new_issue.id,
-            description,
-            category,
-            language,
-            image_path,
-        )
+        background_tasks.add_task(process_action_plan_background, new_issue.id, description, category, language, image_path)
 
         # Create grievance for escalation management
         background_tasks.add_task(create_grievance_from_issue_background, new_issue.id)
@@ -305,7 +243,9 @@ async def create_issue(
     # Prepare deduplication info if not already set
     if deduplication_info is None:
         deduplication_info = DeduplicationCheckResponse(
-            has_nearby_issues=False, nearby_issues=[], recommended_action="create_new"
+            has_nearby_issues=False,
+            nearby_issues=[],
+            recommended_action="create_new"
         )
 
     # Return response with deduplication information
@@ -315,7 +255,7 @@ async def create_issue(
             message="Issue reported successfully. Action plan will be generated shortly.",
             action_plan=initial_action_plan,
             deduplication_info=deduplication_info,
-            linked_issue_id=linked_issue_id,
+            linked_issue_id=linked_issue_id
         )
     else:
         return IssueCreateWithDeduplicationResponse(
@@ -323,9 +263,8 @@ async def create_issue(
             message="Similar issue found nearby. Your report has been linked to the existing issue to increase its priority.",
             action_plan=None,
             deduplication_info=deduplication_info,
-            linked_issue_id=linked_issue_id,
+            linked_issue_id=linked_issue_id
         )
-
 
 @router.post("/issues/{issue_id}/vote", response_model=VoteResponse)
 async def upvote_issue(issue_id: int, db: Session = Depends(get_db)):
@@ -335,12 +274,9 @@ async def upvote_issue(issue_id: int, db: Session = Depends(get_db)):
     """
     # Use update() for atomic increment and to avoid full model overhead
     updated_count = await run_in_threadpool(
-        lambda: db.query(Issue)
-        .filter(Issue.id == issue_id)
-        .update(
-            {Issue.upvotes: func.coalesce(Issue.upvotes, 0) + 1},
-            synchronize_session=False,
-        )
+        lambda: db.query(Issue).filter(Issue.id == issue_id).update({
+            Issue.upvotes: func.coalesce(Issue.upvotes, 0) + 1
+        }, synchronize_session=False)
     )
 
     if not updated_count:
@@ -359,19 +295,18 @@ async def upvote_issue(issue_id: int, db: Session = Depends(get_db)):
     )
 
     return VoteResponse(
-        id=issue_id, upvotes=new_upvotes or 0, message="Issue upvoted successfully"
+        id=issue_id,
+        upvotes=new_upvotes or 0,
+        message="Issue upvoted successfully"
     )
-
 
 @router.get("/issues/nearby", response_model=List[NearbyIssueResponse])
 def get_nearby_issues(
     latitude: float = Query(..., ge=-90, le=90, description="Latitude of the location"),
-    longitude: float = Query(
-        ..., ge=-180, le=180, description="Longitude of the location"
-    ),
+    longitude: float = Query(..., ge=-180, le=180, description="Longitude of the location"),
     radius: float = Query(50.0, ge=10, le=500, description="Search radius in meters"),
     limit: int = Query(10, ge=1, le=50, description="Maximum number of results"),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db)
 ):
     """
     Get issues near a specific location for deduplication purposes.
@@ -386,33 +321,25 @@ def get_nearby_issues(
 
         # Query open issues with coordinates
         # Optimization: Use bounding box to filter candidates in SQL
-        min_lat, max_lat, min_lon, max_lon = get_bounding_box(
-            latitude, longitude, radius
-        )
+        min_lat, max_lat, min_lon, max_lon = get_bounding_box(latitude, longitude, radius)
 
         # Performance Boost: Use column projection to avoid loading full model instances
-        open_issues = (
-            db.query(
-                Issue.id,
-                Issue.description,
-                Issue.category,
-                Issue.latitude,
-                Issue.longitude,
-                Issue.upvotes,
-                Issue.created_at,
-                Issue.status,
-            )
-            .filter(
-                Issue.status == "open",
-                Issue.latitude >= min_lat,
-                Issue.latitude <= max_lat,
-                Issue.longitude >= min_lon,
-                Issue.longitude <= max_lon,
-            )
-            .order_by(Issue.created_at.desc())
-            .limit(100)
-            .all()
-        )
+        open_issues = db.query(
+            Issue.id,
+            Issue.description,
+            Issue.category,
+            Issue.latitude,
+            Issue.longitude,
+            Issue.upvotes,
+            Issue.created_at,
+            Issue.status
+        ).filter(
+            Issue.status == "open",
+            Issue.latitude >= min_lat,
+            Issue.latitude <= max_lat,
+            Issue.longitude >= min_lon,
+            Issue.longitude <= max_lon
+        ).order_by(Issue.created_at.desc()).limit(100).all()
 
         nearby_issues_with_distance = find_nearby_issues(
             open_issues, latitude, longitude, radius_meters=radius
@@ -425,21 +352,17 @@ def get_nearby_issues(
             desc = issue.description or ""
             short_desc = desc[:100] + "..." if len(desc) > 100 else desc
 
-            nearby_data.append(
-                {
-                    "id": issue.id,
-                    "description": short_desc,
-                    "category": issue.category,
-                    "latitude": issue.latitude,
-                    "longitude": issue.longitude,
-                    "distance_meters": distance,
-                    "upvotes": issue.upvotes or 0,
-                    "created_at": (
-                        issue.created_at.isoformat() if issue.created_at else None
-                    ),
-                    "status": issue.status,
-                }
-            )
+            nearby_data.append({
+                "id": issue.id,
+                "description": short_desc,
+                "category": issue.category,
+                "latitude": issue.latitude,
+                "longitude": issue.longitude,
+                "distance_meters": distance,
+                "upvotes": issue.upvotes or 0,
+                "created_at": issue.created_at.isoformat() if issue.created_at else None,
+                "status": issue.status
+            })
 
         # Performance Boost: Cache serialized JSON to bypass redundant Pydantic validation
         # and serialization on cache hits.
@@ -452,15 +375,12 @@ def get_nearby_issues(
         logger.error(f"Error getting nearby issues: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to retrieve nearby issues")
 
-
-@router.post(
-    "/issues/{issue_id}/verify", response_model=Union[VoteResponse, Dict[str, Any]]
-)
+@router.post("/issues/{issue_id}/verify", response_model=Union[VoteResponse, Dict[str, Any]])
 async def verify_issue_endpoint(
     issue_id: int,
     request: Request,
     image: UploadFile = File(None),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db)
 ):
     """
     Verify an issue manually or via AI.
@@ -468,9 +388,9 @@ async def verify_issue_endpoint(
     """
     # Performance Boost: Fetch only necessary columns
     issue_data = await run_in_threadpool(
-        lambda: db.query(Issue.id, Issue.category, Issue.status, Issue.upvotes)
-        .filter(Issue.id == issue_id)
-        .first()
+        lambda: db.query(
+            Issue.id, Issue.category, Issue.status, Issue.upvotes
+        ).filter(Issue.id == issue_id).first()
     )
 
     if not issue_data:
@@ -506,8 +426,8 @@ async def verify_issue_endpoint(
             client = request.app.state.http_client
             result = await verify_resolution_vqa(image_bytes, question, client)
 
-            answer = result.get("answer", "unknown")
-            confidence = result.get("confidence", 0)
+            answer = result.get('answer', 'unknown')
+            confidence = result.get('confidence', 0)
 
             is_resolved = False
             if answer.lower() in ["no", "none", "nothing"] and confidence > 0.5:
@@ -515,15 +435,10 @@ async def verify_issue_endpoint(
                 if issue_data.status != "resolved":
                     # Perform update using primary key
                     await run_in_threadpool(
-                        lambda: db.query(Issue)
-                        .filter(Issue.id == issue_id)
-                        .update(
-                            {
-                                Issue.status: "verified",
-                                Issue.verified_at: datetime.now(timezone.utc),
-                            },
-                            synchronize_session=False,
-                        )
+                        lambda: db.query(Issue).filter(Issue.id == issue_id).update({
+                            Issue.status: "verified",
+                            Issue.verified_at: datetime.now(timezone.utc)
+                        }, synchronize_session=False)
                     )
                     await run_in_threadpool(db.commit)
 
@@ -531,24 +446,19 @@ async def verify_issue_endpoint(
                 "is_resolved": is_resolved,
                 "ai_answer": answer,
                 "confidence": confidence,
-                "question_asked": question,
+                "question_asked": question
             }
         except Exception as e:
             logger.error(f"Resolution verification error: {e}", exc_info=True)
-            raise HTTPException(
-                status_code=500, detail="Verification service temporarily unavailable"
-            )
+            raise HTTPException(status_code=500, detail="Verification service temporarily unavailable")
     else:
         # Manual Verification Logic (Vote)
         # Atomic increment by 2 for verification
         # Optimized: Use a single transaction for all updates
         await run_in_threadpool(
-            lambda: db.query(Issue)
-            .filter(Issue.id == issue_id)
-            .update(
-                {Issue.upvotes: func.coalesce(Issue.upvotes, 0) + 2},
-                synchronize_session=False,
-            )
+            lambda: db.query(Issue).filter(Issue.id == issue_id).update({
+                Issue.upvotes: func.coalesce(Issue.upvotes, 0) + 2
+            }, synchronize_session=False)
         )
 
         # Flush to DB so we can query the updated value within the same transaction
@@ -557,42 +467,35 @@ async def verify_issue_endpoint(
         # Performance Boost: Fetch only needed fields to check auto-verification threshold
         # This query is performed within the same transaction after flush
         updated_issue = await run_in_threadpool(
-            lambda: db.query(Issue.upvotes, Issue.status)
-            .filter(Issue.id == issue_id)
-            .first()
+            lambda: db.query(Issue.upvotes, Issue.status).filter(Issue.id == issue_id).first()
         )
 
         final_status = updated_issue.status if updated_issue else "open"
         final_upvotes = updated_issue.upvotes if updated_issue else 0
 
-        if (
-            updated_issue
-            and updated_issue.upvotes >= 5
-            and updated_issue.status == "open"
-        ):
+        if updated_issue and updated_issue.upvotes >= 5 and updated_issue.status == "open":
             await run_in_threadpool(
-                lambda: db.query(Issue)
-                .filter(Issue.id == issue_id)
-                .update({Issue.status: "verified"}, synchronize_session=False)
+                lambda: db.query(Issue).filter(Issue.id == issue_id).update({
+                    Issue.status: "verified"
+                }, synchronize_session=False)
             )
-            logger.info(
-                f"Issue {issue_id} automatically verified due to {updated_issue.upvotes} upvotes"
-            )
+            logger.info(f"Issue {issue_id} automatically verified due to {updated_issue.upvotes} upvotes")
             final_status = "verified"
 
         # Final commit for all changes in the transaction
         await run_in_threadpool(db.commit)
 
         return VoteResponse(
-            id=issue_id, upvotes=final_upvotes, message="Issue verified successfully"
+            id=issue_id,
+            upvotes=final_upvotes,
+            message="Issue verified successfully"
         )
-
 
 @router.put("/issues/status", response_model=IssueStatusUpdateResponse)
 def update_issue_status(
     request: IssueStatusUpdateRequest,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db)
 ):
     """Update issue status via secure reference ID (for government portals)"""
     issue = db.query(Issue).filter(Issue.reference_id == request.reference_id).first()
@@ -605,13 +508,13 @@ def update_issue_status(
         "verified": ["assigned", "open"],
         "assigned": ["in_progress", "verified"],
         "in_progress": ["resolved", "assigned"],
-        "resolved": [],  # Terminal state
+        "resolved": []  # Terminal state
     }
 
     if request.status.value not in valid_transitions.get(issue.status, []):
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid status transition from {issue.status} to {request.status.value}",
+            detail=f"Invalid status transition from {issue.status} to {request.status.value}"
         )
 
     # Update issue
@@ -638,33 +541,25 @@ def update_issue_status(
         logger.error(f"Error clearing cache: {e}")
 
     # Send notification to citizen
-    background_tasks.add_task(
-        send_status_notification,
-        issue.id,
-        old_status,
-        request.status.value,
-        request.notes,
-    )
+    background_tasks.add_task(send_status_notification, issue.id, old_status, request.status.value, request.notes)
 
     return IssueStatusUpdateResponse(
         id=issue.id,
         reference_id=issue.reference_id,
         status=request.status,
-        message=f"Issue status updated to {request.status.value}",
+        message=f"Issue status updated to {request.status.value}"
     )
-
 
 @router.post("/push-subscription", response_model=PushSubscriptionResponse)
 def subscribe_push_notifications(
-    request: PushSubscriptionRequest, db: Session = Depends(get_db)
+    request: PushSubscriptionRequest,
+    db: Session = Depends(get_db)
 ):
     """Subscribe to push notifications for issue updates"""
     # Check if subscription already exists
-    existing = (
-        db.query(PushSubscription)
-        .filter(PushSubscription.endpoint == request.endpoint)
-        .first()
-    )
+    existing = db.query(PushSubscription).filter(
+        PushSubscription.endpoint == request.endpoint
+    ).first()
 
     if existing:
         # Update existing subscription
@@ -674,7 +569,8 @@ def subscribe_push_notifications(
         existing.issue_id = request.issue_id
         db.commit()
         return PushSubscriptionResponse(
-            id=existing.id, message="Push subscription updated"
+            id=existing.id,
+            message="Push subscription updated"
         )
 
     # Create new subscription
@@ -683,7 +579,7 @@ def subscribe_push_notifications(
         endpoint=request.endpoint,
         p256dh=request.p256dh,
         auth=request.auth,
-        issue_id=request.issue_id,
+        issue_id=request.issue_id
     )
 
     db.add(subscription)
@@ -691,19 +587,18 @@ def subscribe_push_notifications(
     db.refresh(subscription)
 
     return PushSubscriptionResponse(
-        id=subscription.id, message="Push subscription created"
+        id=subscription.id,
+        message="Push subscription created"
     )
 
-
 from backend.cache import user_issues_cache
-
 
 @router.get("/issues/user", response_model=List[IssueSummaryResponse])
 def get_user_issues(
     user_email: str = Query(..., description="Email of the user"),
     limit: int = Query(10, ge=1, le=50, description="Number of issues to return"),
     offset: int = Query(0, ge=0, description="Number of issues to skip"),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db)
 ):
     """
     Get issues reported by a specific user (identified by email).
@@ -714,25 +609,20 @@ def get_user_issues(
     if cached_json:
         return Response(content=cached_json, media_type="application/json")
 
-    results = (
-        db.query(
-            Issue.id,
-            Issue.category,
-            Issue.description,
-            Issue.created_at,
-            Issue.image_path,
-            Issue.status,
-            Issue.upvotes,
-            Issue.location,
-            Issue.latitude,
-            Issue.longitude,
-        )
-        .filter(Issue.user_email == user_email)
-        .order_by(Issue.created_at.desc())
-        .offset(offset)
-        .limit(limit)
-        .all()
-    )
+    results = db.query(
+        Issue.id,
+        Issue.category,
+        Issue.description,
+        Issue.created_at,
+        Issue.image_path,
+        Issue.status,
+        Issue.upvotes,
+        Issue.location,
+        Issue.latitude,
+        Issue.longitude
+    ).filter(Issue.user_email == user_email)\
+        .order_by(Issue.created_at.desc())\
+        .offset(offset).limit(limit).all()
 
     # Convert results to dictionaries for faster serialization and schema compliance
     data = []
@@ -740,30 +630,24 @@ def get_user_issues(
         desc = row.description or ""
         short_desc = desc[:100] + "..." if len(desc) > 100 else desc
 
-        data.append(
-            {
-                "id": row.id,
-                "category": row.category,
-                "description": short_desc,
-                "created_at": row.created_at.isoformat() if row.created_at else None,
-                "image_path": row.image_path,
-                "status": row.status,
-                "upvotes": row.upvotes if row.upvotes is not None else 0,
-                "location": row.location,
-                "latitude": row.latitude,
-                "longitude": row.longitude,
-            }
-        )
+        data.append({
+            "id": row.id,
+            "category": row.category,
+            "description": short_desc,
+            "created_at": row.created_at.isoformat() if row.created_at else None,
+            "image_path": row.image_path,
+            "status": row.status,
+            "upvotes": row.upvotes if row.upvotes is not None else 0,
+            "location": row.location,
+            "latitude": row.latitude,
+            "longitude": row.longitude
+        })
 
     json_data = json.dumps(data)
     user_issues_cache.set(data=json_data, key=cache_key)
     return Response(content=json_data, media_type="application/json")
 
-
-@router.get(
-    "/issues/{issue_id}/blockchain-verify",
-    response_model=BlockchainVerificationResponse,
-)
+@router.get("/issues/{issue_id}/blockchain-verify", response_model=BlockchainVerificationResponse)
 async def verify_blockchain_integrity(issue_id: int, db: Session = Depends(get_db)):
     """
     Verify the cryptographic integrity of a report using the blockchain-style chaining.
@@ -777,10 +661,8 @@ async def verify_blockchain_integrity(issue_id: int, db: Session = Depends(get_d
             Issue.description,
             Issue.category,
             Issue.integrity_hash,
-            Issue.previous_integrity_hash,
-        )
-        .filter(Issue.id == issue_id)
-        .first()
+            Issue.previous_integrity_hash
+        ).filter(Issue.id == issue_id).first()
     )
 
     if not current_issue:
@@ -792,10 +674,7 @@ async def verify_blockchain_integrity(issue_id: int, db: Session = Depends(get_d
     if prev_hash is None:
         # Fallback for legacy records created before O(1) optimization
         prev_issue_hash = await run_in_threadpool(
-            lambda: db.query(Issue.integrity_hash)
-            .filter(Issue.id < issue_id)
-            .order_by(Issue.id.desc())
-            .first()
+            lambda: db.query(Issue.integrity_hash).filter(Issue.id < issue_id).order_by(Issue.id.desc()).first()
         )
         prev_hash = prev_issue_hash[0] if prev_issue_hash and prev_issue_hash[0] else ""
 
@@ -804,7 +683,7 @@ async def verify_blockchain_integrity(issue_id: int, db: Session = Depends(get_d
     hash_content = f"{current_issue.description}|{current_issue.category}|{prev_hash}"
     computed_hash = hashlib.sha256(hash_content.encode()).hexdigest()
 
-    is_valid = computed_hash == current_issue.integrity_hash
+    is_valid = (computed_hash == current_issue.integrity_hash)
 
     if is_valid:
         message = "Integrity verified. This report is cryptographically sealed and has not been tampered with."
@@ -815,16 +694,15 @@ async def verify_blockchain_integrity(issue_id: int, db: Session = Depends(get_d
         is_valid=is_valid,
         current_hash=current_issue.integrity_hash,
         computed_hash=computed_hash,
-        message=message,
+        message=message
     )
-
 
 @router.get("/issues/recent", response_model=List[IssueSummaryResponse])
 def get_recent_issues(
     limit: int = Query(10, ge=1, le=50, description="Number of issues to return"),
     offset: int = Query(0, ge=0, description="Number of results to skip"),
     category: str = Query(None, description="Filter issues by category"),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db)
 ):
     # Added category to cache key to support filtering (Issue #FEAT-002)
     cache_key = f"v2_recent_issues_{limit}_{offset}_{category or 'all'}"
@@ -844,7 +722,7 @@ def get_recent_issues(
         Issue.upvotes,
         Issue.location,
         Issue.latitude,
-        Issue.longitude,
+        Issue.longitude
     )
 
     if category:
@@ -859,20 +737,18 @@ def get_recent_issues(
         desc = row.description or ""
         short_desc = desc[:100] + "..." if len(desc) > 100 else desc
 
-        data.append(
-            {
-                "id": row.id,
-                "category": row.category,
-                "description": short_desc,
-                "created_at": row.created_at.isoformat() if row.created_at else None,
-                "image_path": row.image_path,
-                "status": row.status,
-                "upvotes": row.upvotes if row.upvotes is not None else 0,
-                "location": row.location,
-                "latitude": row.latitude,
-                "longitude": row.longitude,
-            }
-        )
+        data.append({
+            "id": row.id,
+            "category": row.category,
+            "description": short_desc,
+            "created_at": row.created_at.isoformat() if row.created_at else None,
+            "image_path": row.image_path,
+            "status": row.status,
+            "upvotes": row.upvotes if row.upvotes is not None else 0,
+            "location": row.location,
+            "latitude": row.latitude,
+            "longitude": row.longitude
+        })
 
     # Performance Boost: Cache serialized JSON to bypass redundant Pydantic validation
     # and serialization on cache hits. Returning Response directly is ~2-3x faster.

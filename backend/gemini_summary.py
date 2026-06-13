@@ -3,7 +3,6 @@ Gemini Summary Service for Maharashtra MLA Information
 
 Uses Gemini AI to generate human-readable summaries about MLAs and their roles.
 """
-
 import os
 import google.generativeai as genai
 from typing import Dict, Optional, Callable, Any
@@ -31,18 +30,15 @@ else:
     # Gemini disabled (mock/local mode)
     genai = None
 
-
-def _get_fallback_summary(
-    mla_name: str, assembly_constituency: str, district: str
-) -> str:
+def _get_fallback_summary(mla_name: str, assembly_constituency: str, district: str) -> str:
     """
     Generate a fallback summary when Gemini is unavailable or fails.
-
+    
     Args:
         mla_name: Name of the MLA
         assembly_constituency: Assembly constituency name
         district: District name
-
+        
     Returns:
         A simple fallback description
     """
@@ -57,15 +53,13 @@ async def generate_mla_summary(
     district: str,
     assembly_constituency: str,
     mla_name: str,
-    issue_category: Optional[str] = None,
+    issue_category: Optional[str] = None
 ) -> str:
     """
     Generate a human-readable summary about an MLA using Gemini with retry logic.
     Uses a manual cache with 24h TTL.
     """
-    cache_key = (
-        f"{district}_{assembly_constituency}_{mla_name}_{issue_category or 'none'}"
-    )
+    cache_key = f"{district}_{assembly_constituency}_{mla_name}_{issue_category or 'none'}"
 
     # Check cache
     if cache_key in _summary_cache:
@@ -78,11 +72,9 @@ async def generate_mla_summary(
 
     async def _generate_mla_summary_with_gemini() -> str:
         """Inner function to generate MLA summary with Gemini"""
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel('gemini-1.5-flash')
 
-        issue_context = (
-            f" particularly regarding {issue_category} issues" if issue_category else ""
-        )
+        issue_context = f" particularly regarding {issue_category} issues" if issue_category else ""
 
         prompt = f"""
         You are helping an Indian citizen understand who represents them.
@@ -98,15 +90,10 @@ async def generate_mla_summary(
         return response.text.strip()
 
     try:
-        result = await retry_with_exponential_backoff(
-            _generate_mla_summary_with_gemini, max_retries=2
-        )
+        result = await retry_with_exponential_backoff(_generate_mla_summary_with_gemini, max_retries=2)
 
         # Update cache (24 hour TTL)
-        _summary_cache[cache_key] = (
-            result,
-            datetime.now(timezone.utc) + timedelta(hours=24),
-        )
+        _summary_cache[cache_key] = (result, datetime.now(timezone.utc) + timedelta(hours=24))
 
         return result
     except Exception as e:

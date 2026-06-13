@@ -1,14 +1,8 @@
 import pytest
 import math
 from unittest.mock import MagicMock, patch
-from backend.spatial_utils import (
-    haversine_distance,
-    equirectangular_distance,
-    find_nearby_issues,
-    cluster_issues_dbscan,
-)
+from backend.spatial_utils import haversine_distance, equirectangular_distance, find_nearby_issues, cluster_issues_dbscan
 from backend.models import Issue
-
 
 def test_haversine_vs_equirectangular_accuracy():
     """
@@ -16,7 +10,7 @@ def test_haversine_vs_equirectangular_accuracy():
     for short distances (e.g. < 1km).
     """
     lat1, lon1 = 18.5204, 73.8567
-    lat2, lon2 = 18.5205, 73.8568  # Very close ~15m
+    lat2, lon2 = 18.5205, 73.8568 # Very close ~15m
 
     d1 = haversine_distance(lat1, lon1, lat2, lon2)
     d2 = equirectangular_distance(lat1, lon1, lat2, lon2)
@@ -25,13 +19,12 @@ def test_haversine_vs_equirectangular_accuracy():
     assert abs(d1 - d2) < 0.1, f"Difference too large: {abs(d1 - d2)}"
 
     # Test slightly larger distance ~10km
-    lat3 = lat1 + 0.1  # approx 11km
+    lat3 = lat1 + 0.1 # approx 11km
     d3 = haversine_distance(lat1, lon1, lat3, lon1)
     d4 = equirectangular_distance(lat1, lon1, lat3, lon1)
 
     # Difference increases but should still be small relative to distance
     assert abs(d3 - d4) < 1.0, f"Difference too large at 10km: {abs(d3 - d4)}"
-
 
 def test_equirectangular_dateline_wrapping():
     """
@@ -50,10 +43,7 @@ def test_equirectangular_dateline_wrapping():
     R = 6371000.0
     expected = (0.2 * math.pi / 180) * R
 
-    assert (
-        abs(d - expected) < 100.0
-    ), f"Dateline calc failed. Got {d}, expected ~{expected}"
-
+    assert abs(d - expected) < 100.0, f"Dateline calc failed. Got {d}, expected ~{expected}"
 
 def test_find_nearby_issues_selection(monkeypatch):
     """
@@ -66,7 +56,7 @@ def test_find_nearby_issues_selection(monkeypatch):
 
     issues = [issue1]
     target_lat = 10.0
-    target_lon = 10.001  # slightly away
+    target_lon = 10.001 # slightly away
 
     # Mock the distance functions to verify which one is called
     mock_haversine = MagicMock(return_value=5.0)
@@ -81,9 +71,7 @@ def test_find_nearby_issues_selection(monkeypatch):
     # Case 1: Small radius (default 50m) -> Should use inlined equirectangular (NO haversine call)
     find_nearby_issues(issues, target_lat, target_lon, radius_meters=50.0)
 
-    assert (
-        not mock_haversine.called
-    ), "Should NOT have called haversine_distance for small radius"
+    assert not mock_haversine.called, "Should NOT have called haversine_distance for small radius"
 
     # Reset mocks
     mock_haversine.reset_mock()
@@ -91,10 +79,7 @@ def test_find_nearby_issues_selection(monkeypatch):
     # Case 2: Large radius (> 10km) -> Should use haversine
     find_nearby_issues(issues, target_lat, target_lon, radius_meters=15000.0)
 
-    assert (
-        mock_haversine.called
-    ), "Should have called haversine_distance for large radius"
-
+    assert mock_haversine.called, "Should have called haversine_distance for large radius"
 
 def test_missing_sklearn_handling(monkeypatch):
     """
@@ -109,7 +94,7 @@ def test_missing_sklearn_handling(monkeypatch):
     issue1.longitude = 10.0
 
     issue2 = MagicMock(spec=Issue)
-    issue2.latitude = None  # Invalid coordinate
+    issue2.latitude = None # Invalid coordinate
     issue2.longitude = 10.0
 
     issues = [issue1, issue2]
@@ -119,7 +104,6 @@ def test_missing_sklearn_handling(monkeypatch):
     assert len(clusters) == 1
     assert len(clusters[0]) == 1
     assert clusters[0][0] == issue1
-
 
 def test_find_nearby_issues_functional():
     """
@@ -143,8 +127,8 @@ def test_find_nearby_issues_functional():
     assert len(nearby) == 2
     assert nearby[0][0].id == 1
     assert nearby[1][0].id == 2
-    assert nearby[0][1] < 1.0  # Distance ~0
-    assert 90.0 < nearby[1][1] < 110.0  # Distance ~100m
+    assert nearby[0][1] < 1.0 # Distance ~0
+    assert 90.0 < nearby[1][1] < 110.0 # Distance ~100m
 
     # Radius 50km -> Should include all
     # This path uses Haversine

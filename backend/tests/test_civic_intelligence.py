@@ -17,49 +17,45 @@ MOCK_WEIGHTS = {
     "urgency_patterns": [],
     "category_keywords": {"Fire": ["fire"], "Water": ["water"]},
     "category_multipliers": {"Fire": 1.0, "Water": 1.0},
-    "duplicate_search_radius": 50.0,
+    "duplicate_search_radius": 50.0
 }
-
 
 @pytest.fixture
 def mock_adaptive_weights():
-    with patch("backend.adaptive_weights.DATA_FILE", "mock_weights.json"):
-        with patch("builtins.open", mock_open(read_data=json.dumps(MOCK_WEIGHTS))) as m:
-            with patch("os.path.exists", return_value=True):
-                with patch("os.path.getmtime", return_value=100):
+    with patch('backend.adaptive_weights.DATA_FILE', 'mock_weights.json'):
+        with patch('builtins.open', mock_open(read_data=json.dumps(MOCK_WEIGHTS))) as m:
+            with patch('os.path.exists', return_value=True):
+                with patch('os.path.getmtime', return_value=100):
                     # Reset singleton
                     AdaptiveWeights._instance = None
                     weights = AdaptiveWeights()
                     yield weights
                     AdaptiveWeights._instance = None
 
-
 def test_adaptive_weights_load(mock_adaptive_weights):
     assert mock_adaptive_weights.get_category_multipliers()["Fire"] == 1.0
     assert mock_adaptive_weights.get_severity_keywords()["critical"] == ["fire"]
 
-
 def test_adaptive_weights_update_category(mock_adaptive_weights):
-    with patch("builtins.open", mock_open(read_data=json.dumps(MOCK_WEIGHTS))) as m:
+    with patch('builtins.open', mock_open(read_data=json.dumps(MOCK_WEIGHTS))) as m:
         # We need to mock getmtime to allow save to proceed without reload override
-        with patch("os.path.getmtime", side_effect=[100, 200, 200, 200, 200]):
+        with patch('os.path.getmtime', side_effect=[100, 200, 200, 200, 200]):
             mock_adaptive_weights.update_category_weight("Fire", 1.5)
 
             assert mock_adaptive_weights.get_category_multipliers()["Fire"] == 1.5
             # Verify file write
             m().write.assert_called()
 
-
 def test_trend_analyzer_keywords():
     analyzer = TrendAnalyzer()
     issues = [
         Issue(description="Fire in the building help"),
         Issue(description="Big fire burning here"),
-        Issue(description="Building has a fire problem"),
+        Issue(description="Building has a fire problem")
     ]
 
     result = analyzer.analyze(issues)
-    keywords = dict(result["top_keywords"])
+    keywords = dict(result['top_keywords'])
 
     # "fire" should be top
     assert "fire" in keywords
@@ -68,20 +64,22 @@ def test_trend_analyzer_keywords():
     assert "building" in keywords
     assert keywords["building"] == 2
 
-
 def test_trend_analyzer_categories():
     analyzer = TrendAnalyzer()
-    issues = [Issue(category="Fire"), Issue(category="Fire"), Issue(category="Water")]
+    issues = [
+        Issue(category="Fire"),
+        Issue(category="Fire"),
+        Issue(category="Water")
+    ]
 
     result = analyzer.analyze(issues)
-    dist = result["category_distribution"]
+    dist = result['category_distribution']
 
     assert dist["Fire"] == 2
     assert dist["Water"] == 1
 
-
-@patch("backend.trend_analyzer.cluster_issues_dbscan")
-@patch("backend.trend_analyzer.get_cluster_representative")
+@patch('backend.trend_analyzer.cluster_issues_dbscan')
+@patch('backend.trend_analyzer.get_cluster_representative')
 def test_trend_analyzer_clusters(mock_get_rep, mock_dbscan):
     analyzer = TrendAnalyzer()
 
@@ -101,30 +99,20 @@ def test_trend_analyzer_clusters(mock_get_rep, mock_dbscan):
 
     mock_issue = MagicMock()
     mock_issue.description = "test"
-    result = analyzer.analyze([mock_issue])  # Input doesn't matter as we mock dbscan
+    result = analyzer.analyze([mock_issue]) # Input doesn't matter as we mock dbscan
 
-    clusters = result["clusters"]
-    assert (
-        len(clusters) == 1
-    )  # Only cluster1 (size 3) should be returned, cluster2 (size 2) filtered out
-    assert clusters[0]["count"] == 3
-    assert clusters[0]["latitude"] == 10.0
+    clusters = result['clusters']
+    assert len(clusters) == 1 # Only cluster1 (size 3) should be returned, cluster2 (size 2) filtered out
+    assert clusters[0]['count'] == 3
+    assert clusters[0]['latitude'] == 10.0
 
-
-@patch("backend.civic_intelligence.SessionLocal")
-@patch("backend.civic_intelligence.trend_analyzer")
-@patch("backend.civic_intelligence.adaptive_weights")
-@patch("builtins.open", new_callable=mock_open)
-@patch("json.dump")
-@patch("os.listdir")
-def test_civic_intelligence_run(
-    mock_listdir,
-    mock_json_dump,
-    mock_file_open,
-    mock_weights,
-    mock_trend_analyzer,
-    mock_db_session,
-):
+@patch('backend.civic_intelligence.SessionLocal')
+@patch('backend.civic_intelligence.trend_analyzer')
+@patch('backend.civic_intelligence.adaptive_weights')
+@patch('builtins.open', new_callable=mock_open)
+@patch('json.dump')
+@patch('os.listdir')
+def test_civic_intelligence_run(mock_listdir, mock_json_dump, mock_file_open, mock_weights, mock_trend_analyzer, mock_db_session):
     engine = CivicIntelligenceEngine()
 
     # Mock DB
@@ -132,24 +120,26 @@ def test_civic_intelligence_run(
     mock_db_session.return_value = mock_session
 
     # Mock previous snapshot file
-    mock_listdir.return_value = ["2023-01-01.json"]
+    mock_listdir.return_value = ['2023-01-01.json']
 
     # We need to simulate reading the previous snapshot
     # Since we use `open` for both reading previous snapshot and writing new one,
     # we need to be careful with side_effect.
 
-    previous_snapshot_content = json.dumps(
-        {"trends": {"category_distribution": {"Fire": 2, "Water": 5}}}
-    )
+    previous_snapshot_content = json.dumps({
+        "trends": {
+            "category_distribution": {"Fire": 2, "Water": 5}
+        }
+    })
 
     # Configure mock_open to return previous snapshot content when reading
     # and to provide a separate handle when writing the new snapshot.
     read_mock = mock_open(read_data=previous_snapshot_content)
     write_mock = mock_open()
 
-    def open_side_effect(file, mode="r", *args, **kwargs):
+    def open_side_effect(file, mode='r', *args, **kwargs):
         # Use the read_mock for reading the previous snapshot
-        if "r" in mode:
+        if 'r' in mode:
             return read_mock(file, mode, *args, **kwargs)
         # Use a separate mock for writing the new snapshot
         return write_mock(file, mode, *args, **kwargs)
@@ -164,23 +154,20 @@ def test_civic_intelligence_run(
     def query_side_effect(*args):
         if len(args) == 1:
             model = args[0]
-            if getattr(model, "__name__", "") == "Issue":
+            if getattr(model, '__name__', '') == 'Issue':
                 return mock_query_issues
-            elif hasattr(model, "name") and model.name == "count":
+            elif hasattr(model, 'name') and model.name == 'count':
                 return mock_query_issues
-            elif getattr(model, "__name__", "") == "EscalationAudit":
+            elif getattr(model, '__name__', '') == 'EscalationAudit':
                 return mock_query_upgrades
-            elif getattr(model, "__name__", "") == "Grievance":
+            elif getattr(model, '__name__', '') == 'Grievance':
                 return mock_query_grievance
         return MagicMock()
 
     mock_session.query.side_effect = query_side_effect
 
     # Setup results
-    issues_result = [
-        Issue(id=1, resolved_at=None),
-        Issue(id=2, resolved_at=datetime.now(timezone.utc)),
-    ]
+    issues_result = [Issue(id=1, resolved_at=None), Issue(id=2, resolved_at=datetime.now(timezone.utc))]
 
     # Issue Query Chain
     # First call is for fetching issues_24h, second for resolved_count?
@@ -189,8 +176,8 @@ def test_civic_intelligence_run(
 
     # To differentiate, we can check the filter call or just return appropriate mocks
     # Let's just make sure it returns something valid for both
-    mock_query_issues.filter.return_value.all.return_value = issues_result  # issues_24h
-    mock_query_issues.filter.return_value.scalar.return_value = 1  # resolved_count
+    mock_query_issues.filter.return_value.all.return_value = issues_result # issues_24h
+    mock_query_issues.filter.return_value.scalar.return_value = 1 # resolved_count
 
     # Upgrade Query Chain
     # We want to test weight update, so let's simulate upgrades
@@ -208,15 +195,13 @@ def test_civic_intelligence_run(
     # Setup Trend Analyzer
     mock_trend_analyzer.analyze.return_value = {
         "top_keywords": [],
-        "category_distribution": {"Fire": 10},  # Spiked from 2 (in previous snapshot)
-        "clusters": [],
+        "category_distribution": {"Fire": 10}, # Spiked from 2 (in previous snapshot)
+        "clusters": []
     }
 
     # Setup Adaptive Weights
     mock_weights.get_duplicate_search_radius.return_value = 50.0
-    mock_weights.update_category_weight.return_value = (
-        None  # It returns nothing currently
-    )
+    mock_weights.update_category_weight.return_value = None # It returns nothing currently
 
     # Run
     engine.run_daily_cycle()
@@ -235,7 +220,7 @@ def test_civic_intelligence_run(
     assert "date" in snapshot
     assert "civic_index" in snapshot
     assert "trends" in snapshot
-    assert "weight_changes" in snapshot  # Expect this new field
+    assert "weight_changes" in snapshot # Expect this new field
 
     # Check spike detection (if implemented)
     # We expect "Fire" to be marked as a spike because it went from 2 to 10

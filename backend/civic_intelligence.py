@@ -13,8 +13,7 @@ from backend.database import SessionLocal
 
 logger = logging.getLogger(__name__)
 
-SNAPSHOT_DIR = os.path.join(os.path.dirname(__file__), "data", "dailySnapshots")
-
+SNAPSHOT_DIR = os.path.join(os.path.dirname(__file__), 'data', 'dailySnapshots')
 
 class CivicIntelligenceEngine:
     def __init__(self):
@@ -25,13 +24,13 @@ class CivicIntelligenceEngine:
         Retrieves the most recent daily snapshot file, if available.
         """
         try:
-            files = sorted([f for f in os.listdir(SNAPSHOT_DIR) if f.endswith(".json")])
+            files = sorted([f for f in os.listdir(SNAPSHOT_DIR) if f.endswith('.json')])
             if not files:
                 return {}
 
             # Use the most recent file
             latest_file = files[-1]
-            with open(os.path.join(SNAPSHOT_DIR, latest_file), "r") as f:
+            with open(os.path.join(SNAPSHOT_DIR, latest_file), 'r') as f:
                 return json.load(f)
         except Exception as e:
             logger.warning(f"Failed to load previous snapshot: {e}")
@@ -44,7 +43,7 @@ class CivicIntelligenceEngine:
         """
         logger.info("Starting Daily Civic Intelligence Refinement...")
         db = SessionLocal()
-        weight_changes = []  # For auditability
+        weight_changes = [] # For auditability
 
         try:
             now = datetime.now(timezone.utc)
@@ -60,10 +59,8 @@ class CivicIntelligenceEngine:
 
             # 2a. Spike Detection
             previous_snapshot = self._get_previous_snapshot()
-            previous_dist = previous_snapshot.get("trends", {}).get(
-                "category_distribution", {}
-            )
-            current_dist = trends.get("category_distribution", {})
+            previous_dist = previous_snapshot.get('trends', {}).get('category_distribution', {})
+            current_dist = trends.get('category_distribution', {})
 
             spikes = []
             for category, count in current_dist.items():
@@ -74,20 +71,16 @@ class CivicIntelligenceEngine:
                     if increase > 0.5:
                         spikes.append(category)
                 elif prev_count == 0 and count > 5:
-                    spikes.append(category)  # New surge
+                     spikes.append(category) # New surge
 
-            trends["spikes"] = spikes
+            trends['spikes'] = spikes
 
             # 3. Adaptive Weight Optimization (Severity)
             # Find manual severity upgrades in the last 24h
-            upgrades = (
-                db.query(EscalationAudit)
-                .filter(
-                    EscalationAudit.timestamp >= last_24h,
-                    EscalationAudit.reason == EscalationReason.SEVERITY_UPGRADE,
-                )
-                .all()
-            )
+            upgrades = db.query(EscalationAudit).filter(
+                EscalationAudit.timestamp >= last_24h,
+                EscalationAudit.reason == EscalationReason.SEVERITY_UPGRADE
+            ).all()
 
             # Map upgrades to categories
             upgrade_counts = {}
@@ -95,9 +88,7 @@ class CivicIntelligenceEngine:
             # Optimization: Fetch all related grievances in one query to avoid N+1
             grievance_ids = [audit.grievance_id for audit in upgrades]
             if grievance_ids:
-                grievances = (
-                    db.query(Grievance).filter(Grievance.id.in_(grievance_ids)).all()
-                )
+                grievances = db.query(Grievance).filter(Grievance.id.in_(grievance_ids)).all()
                 grievance_map = {g.id: g for g in grievances}
             else:
                 grievance_map = {}
@@ -105,13 +96,11 @@ class CivicIntelligenceEngine:
             for audit in upgrades:
                 grievance = grievance_map.get(audit.grievance_id)
                 if grievance and grievance.category:
-                    upgrade_counts[grievance.category] = (
-                        upgrade_counts.get(grievance.category, 0) + 1
-                    )
+                    upgrade_counts[grievance.category] = upgrade_counts.get(grievance.category, 0) + 1
 
             # Update weights if threshold met
             for category, count in upgrade_counts.items():
-                if count >= 3:  # Threshold for auto-adjustment
+                if count >= 3: # Threshold for auto-adjustment
                     old_multipliers = adaptive_weights.get_category_multipliers()
                     old_weight = old_multipliers.get(category, 1.0)
 
@@ -122,22 +111,18 @@ class CivicIntelligenceEngine:
                     new_multipliers = adaptive_weights.get_category_multipliers()
                     new_weight = new_multipliers.get(category, 1.1)
 
-                    weight_changes.append(
-                        {
-                            "category": category,
-                            "old_weight": old_weight,
-                            "new_weight": new_weight,
-                            "reason": f"Manual severity upgrades count: {count}",
-                        }
-                    )
-                    logger.info(
-                        f"Increased severity weight for {category} due to {count} manual upgrades."
-                    )
+                    weight_changes.append({
+                        "category": category,
+                        "old_weight": old_weight,
+                        "new_weight": new_weight,
+                        "reason": f"Manual severity upgrades count: {count}"
+                    })
+                    logger.info(f"Increased severity weight for {category} due to {count} manual upgrades.")
 
             # 4. Duplicate Pattern Learning (Radius Adjustment)
             # Heuristic: High clustering density suggests we might need larger radius to group effectively
             # or if many duplicate/nearby issues are found.
-            clusters = trends.get("clusters", [])
+            clusters = trends.get('clusters', [])
             cluster_count = len(clusters)
 
             current_radius = adaptive_weights.get_duplicate_search_radius()
@@ -156,14 +141,12 @@ class CivicIntelligenceEngine:
             if radius_update_factor != 1.0:
                 adaptive_weights.update_duplicate_radius(radius_update_factor)
                 new_radius = adaptive_weights.get_duplicate_search_radius()
-                weight_changes.append(
-                    {
-                        "category": "GLOBAL_DUPLICATE_RADIUS",
-                        "old_weight": current_radius,
-                        "new_weight": new_radius,
-                        "reason": f"Cluster density analysis (clusters: {cluster_count}, issues: {len(issues_24h)})",
-                    }
-                )
+                weight_changes.append({
+                    "category": "GLOBAL_DUPLICATE_RADIUS",
+                    "old_weight": current_radius,
+                    "new_weight": new_radius,
+                    "reason": f"Cluster density analysis (clusters: {cluster_count}, issues: {len(issues_24h)})"
+                })
 
             # 5. Civic Intelligence Index
             index_data = self._calculate_index(db, issues_24h, trends)
@@ -175,9 +158,7 @@ class CivicIntelligenceEngine:
                 "civic_index": index_data,
                 "weight_updates": upgrade_counts,
                 "weight_changes": weight_changes,
-                "model_weights": (
-                    adaptive_weights._weights if adaptive_weights._weights else {}
-                ),
+                "model_weights": adaptive_weights._weights if adaptive_weights._weights else {}
             }
 
             filename = f"{now.strftime('%Y-%m-%d')}.json"
@@ -185,7 +166,7 @@ class CivicIntelligenceEngine:
 
             # Atomic write (write to temp then rename) not strictly necessary for this file but good practice
             # using simple write for now
-            with open(filepath, "w") as f:
+            with open(filepath, 'w') as f:
                 json.dump(snapshot, f, indent=2)
 
             logger.info(f"Daily snapshot saved to {filepath}")
@@ -195,9 +176,7 @@ class CivicIntelligenceEngine:
         finally:
             db.close()
 
-    def _calculate_index(
-        self, db: Session, issues_24h: List[Issue], trends: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def _calculate_index(self, db: Session, issues_24h: List[Issue], trends: Dict[str, Any]) -> Dict[str, Any]:
         """
         Generates a daily 'Civic Intelligence Index' score.
         """
@@ -208,49 +187,43 @@ class CivicIntelligenceEngine:
 
         # Count resolutions in last 24h
         # Optimized: Use func.count() and .scalar() to avoid ORM overhead
-        resolved_count = (
-            db.query(func.count(Issue.id))
-            .filter(Issue.resolved_at >= last_24h)
-            .scalar()
-            or 0
-        )
+        resolved_count = db.query(func.count(Issue.id)).filter(
+            Issue.resolved_at >= last_24h
+        ).scalar() or 0
 
         # Score Calculation
         # Base: 70
         # +2 per resolution
         # -0.5 per new issue (burden)
         score = 70.0
-        score += resolved_count * 2.0
-        score -= total_new * 0.5
+        score += (resolved_count * 2.0)
+        score -= (total_new * 0.5)
 
         # Clamp 0-100
         score = max(0.0, min(100.0, score))
 
         # Top emerging concern
         top_cat = "None"
-        category_dist = trends.get("category_distribution", {})
+        category_dist = trends.get('category_distribution', {})
         if category_dist:
             top_cat = max(category_dist, key=category_dist.get)
 
         # Highest severity region (from clusters)
         highest_severity_region = "None"
-        clusters = trends.get("clusters", [])
+        clusters = trends.get('clusters', [])
         if clusters:
             # Assume first cluster is largest/most significant
             # In real app, we would reverse geocode the lat/lon to get Ward/Area name
             # For now, just return lat/lon
             top_cluster = clusters[0]
-            highest_severity_region = (
-                f"Lat {top_cluster['latitude']:.4f}, Lon {top_cluster['longitude']:.4f}"
-            )
+            highest_severity_region = f"Lat {top_cluster['latitude']:.4f}, Lon {top_cluster['longitude']:.4f}"
 
         return {
             "score": round(score, 1),
             "new_issues_count": total_new,
             "resolved_issues_count": resolved_count,
             "top_emerging_concern": top_cat,
-            "highest_severity_region": highest_severity_region,
+            "highest_severity_region": highest_severity_region
         }
-
 
 civic_intelligence_engine = CivicIntelligenceEngine()

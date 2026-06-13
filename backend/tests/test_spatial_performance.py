@@ -1,10 +1,10 @@
+
 import pytest
 import time
 import math
 import random
 from typing import List, Tuple
 from backend.spatial_utils import find_nearby_issues, equirectangular_distance
-
 
 class MockIssue:
     def __init__(self, id, lat, lon):
@@ -17,12 +17,11 @@ class MockIssue:
     def __repr__(self):
         return f"Issue(id={self.id}, lat={self.latitude:.5f}, lon={self.longitude:.5f})"
 
-
 def reference_find_nearby_issues(
     issues: List[MockIssue],
     target_lat: float,
     target_lon: float,
-    radius_meters: float = 50.0,
+    radius_meters: float = 50.0
 ) -> List[Tuple[MockIssue, float]]:
     """
     Reference implementation of find_nearby_issues using the original loop logic.
@@ -34,7 +33,8 @@ def reference_find_nearby_issues(
             continue
 
         distance = equirectangular_distance(
-            target_lat, target_lon, issue.latitude, issue.longitude
+            target_lat, target_lon,
+            issue.latitude, issue.longitude
         )
 
         if distance <= radius_meters:
@@ -42,7 +42,6 @@ def reference_find_nearby_issues(
 
     nearby_issues.sort(key=lambda x: x[1])
     return nearby_issues
-
 
 def test_find_nearby_issues_correctness_and_performance():
     """
@@ -54,7 +53,7 @@ def test_find_nearby_issues_correctness_and_performance():
 
     # Generate 5000 issues for performance measurement
     issues = []
-    random.seed(42)  # Deterministic seed
+    random.seed(42) # Deterministic seed
     for i in range(5000):
         # Random offset roughly within 0.02 degrees (~2km)
         lat = target_lat + (random.random() - 0.5) * 0.04
@@ -87,9 +86,7 @@ def test_find_nearby_issues_correctness_and_performance():
             issue = next(item[0] for item in result_curr if item[0].id == i)
             dist = next(item[1] for item in result_curr if item[0].id == i)
             # Check reference distance
-            dist_ref = equirectangular_distance(
-                target_lat, target_lon, issue.latitude, issue.longitude
-            )
+            dist_ref = equirectangular_distance(target_lat, target_lon, issue.latitude, issue.longitude)
             print(f"Issue {i}: Dist calc={dist}, Ref calc={dist_ref}, Radius={radius}")
 
     if only_in_ref:
@@ -124,10 +121,7 @@ def test_find_nearby_issues_correctness_and_performance():
     if ratio < 0.8:
         print("PASS: Significant performance improvement detected")
     else:
-        print(
-            "WARN: No significant performance improvement yet (expected before optimization)"
-        )
-
+        print("WARN: No significant performance improvement yet (expected before optimization)")
 
 if __name__ == "__main__":
     test_find_nearby_issues_correctness_and_performance()

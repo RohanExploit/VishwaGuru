@@ -30,47 +30,30 @@ from backend.ai_interfaces import initialize_ai_services
 from backend.bot import start_bot_thread, stop_bot_thread
 from backend.init_db import migrate_db
 from backend.scheduler import start_scheduler
-from backend.maharashtra_locator import (
-    load_maharashtra_pincode_data,
-    load_maharashtra_mla_data,
-)
+from backend.maharashtra_locator import load_maharashtra_pincode_data, load_maharashtra_mla_data
 from backend.exceptions import EXCEPTION_HANDLERS
-from backend.routers import (
-    issues,
-    detection,
-    grievances,
-    utility,
-    auth,
-    admin,
-    analysis,
-    voice,
-    field_officer,
-    hf,
-    resolution_proof,
-)
+from backend.routers import issues, detection, grievances, utility, auth, admin, analysis, voice, field_officer, hf, resolution_proof
 from backend.grievance_service import GrievanceService
 import backend.dependencies
 
 # Configure structured logging
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
-
 
 async def background_initialization(app: FastAPI):
     """Perform non-critical startup tasks in background to speed up app availability"""
     try:
         # 1. AI Services initialization
         # These can take a few seconds due to imports and configuration
-        action_plan_service, chat_service, mla_summary_service = (
-            await run_in_threadpool(create_all_ai_services)
-        )
+        action_plan_service, chat_service, mla_summary_service = await run_in_threadpool(create_all_ai_services)
 
         initialize_ai_services(
             action_plan_service=action_plan_service,
             chat_service=chat_service,
-            mla_summary_service=mla_summary_service,
+            mla_summary_service=mla_summary_service
         )
         logger.info("AI services initialized successfully.")
 
@@ -89,7 +72,6 @@ async def background_initialization(app: FastAPI):
     except Exception as e:
         logger.error(f"Error during background initialization: {e}", exc_info=True)
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: Initialize Shared HTTP Client for external APIs (Connection Pooling)
@@ -105,9 +87,7 @@ async def lifespan(app: FastAPI):
         logger.info("Base.metadata.create_all completed.")
         # Temporarily disabled - comment out to debug startup issues
         # await run_in_threadpool(migrate_db)
-        logger.info(
-            "Database initialized successfully (migrations skipped for local dev)."
-        )
+        logger.info("Database initialized successfully (migrations skipped for local dev).")
     except Exception as e:
         logger.error(f"Database initialization failed: {e}", exc_info=True)
         # We continue to allow health checks even if DB has issues (for debugging)
@@ -130,7 +110,7 @@ async def lifespan(app: FastAPI):
     logger.info("Scheduler skipped for local development")
 
     yield
-
+    
     # Shutdown: Close Shared HTTP Client
     if app.state.http_client:
         await app.state.http_client.aclose()
@@ -143,12 +123,11 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Error stopping bot thread: {e}")
 
-
 app = FastAPI(
     title="VishwaGuru Backend",
     description="AI-powered civic issue reporting and resolution platform",
     version="1.0.0",
-    lifespan=lifespan,
+    lifespan=lifespan
 )
 
 # Add centralized exception handlers
@@ -166,9 +145,7 @@ if not frontend_url:
             "Set it to your frontend URL (e.g., https://your-app.netlify.app)."
         )
     else:
-        logger.warning(
-            "FRONTEND_URL not set. Defaulting to http://localhost:5173 for development."
-        )
+        logger.warning("FRONTEND_URL not set. Defaulting to http://localhost:5173 for development.")
         frontend_url = "http://localhost:5173"
 
 if not (frontend_url.startswith("http://") or frontend_url.startswith("https://")):
@@ -221,12 +198,14 @@ app.include_router(field_officer.router, prefix="/api", tags=["Field Officer Che
 app.include_router(hf.router, prefix="/api", tags=["Hugging Face"])
 app.include_router(resolution_proof.router, prefix="/api", tags=["Resolution Proof"])
 
-
 @app.get("/health")
 def health():
     return {"status": "healthy"}
 
-
 @app.get("/")
 def root():
-    return {"status": "ok", "service": "VishwaGuru API", "version": "1.0.0"}
+    return {
+        "status": "ok",
+        "service": "VishwaGuru API",
+        "version": "1.0.0"
+    }

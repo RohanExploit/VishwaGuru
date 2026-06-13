@@ -12,7 +12,6 @@ from pathlib import Path
 # Load environment variables from .env file
 try:
     from dotenv import load_dotenv
-
     load_dotenv()
 except ImportError:
     pass  # dotenv not installed, rely on system env vars
@@ -24,28 +23,28 @@ class Config:
     Application configuration class with validation.
     Loads and validates all required environment variables.
     """
-
+    
     # API Keys
     gemini_api_key: Optional[str]
     telegram_bot_token: str
-
+    
     # Hugging Face
     hf_token: Optional[str]
     hf_text_api_url: str
     hf_text_model: str
-
+    
     # Database
     database_url: str
-
+    
     # Application Settings
     environment: str
     debug: bool
     cors_origins: list[str]
-
+    
     # File Upload Settings
     max_upload_size_mb: int
     allowed_file_types: list[str]
-
+    
     # Rate Limiting
     rate_limit_enabled: bool
     max_requests_per_minute: int
@@ -54,7 +53,7 @@ class Config:
     secret_key: str
     algorithm: str
     access_token_expire_minutes: int
-
+    
     @classmethod
     def from_env(cls) -> "Config":
         """
@@ -62,52 +61,58 @@ class Config:
         Raises ValueError if required variables are missing.
         """
         errors = []
-
+        
         # Required variables
         gemini_api_key = os.getenv("GEMINI_API_KEY")
         # Gemini key is optional (we can fallback to mock services)
         # if not gemini_api_key:
         #    errors.append("GEMINI_API_KEY is required")
-
+        
         telegram_bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
         if not telegram_bot_token:
             errors.append("TELEGRAM_BOT_TOKEN is required")
-
+        
         # Database with default
-        database_url = os.getenv("DATABASE_URL", "sqlite:///./data/issues.db")
-
+        database_url = os.getenv(
+            "DATABASE_URL", 
+            "sqlite:///./data/issues.db"
+        )
+        
         # Hugging Face text generation settings
         hf_token = os.getenv("HF_TOKEN")
         hf_text_api_url = os.getenv(
             "HF_TEXT_API_URL",
-            "https://router.huggingface.co/featherless-ai/v1/completions",
+            "https://router.huggingface.co/featherless-ai/v1/completions"
         )
         hf_text_model = os.getenv(
-            "HF_TEXT_MODEL", "meta-llama/Meta-Llama-3-8B-Instruct"
+            "HF_TEXT_MODEL",
+            "meta-llama/Meta-Llama-3-8B-Instruct"
         )
-
+        
         # Ensure data directory exists for SQLite
         if database_url.startswith("sqlite"):
             db_path = Path(database_url.replace("sqlite:///", ""))
             db_path.parent.mkdir(parents=True, exist_ok=True)
-
+        
         # Optional settings with defaults
         environment = os.getenv("ENVIRONMENT", "development")
         debug = os.getenv("DEBUG", "false").lower() == "true"
-
+        
         # CORS settings
         cors_origins_str = os.getenv(
-            "CORS_ORIGINS", "http://localhost:5173,http://localhost:3000"
+            "CORS_ORIGINS", 
+            "http://localhost:5173,http://localhost:3000"
         )
         cors_origins = [origin.strip() for origin in cors_origins_str.split(",")]
-
+        
         # File upload settings
         max_upload_size_mb = int(os.getenv("MAX_UPLOAD_SIZE_MB", "10"))
         allowed_file_types_str = os.getenv(
-            "ALLOWED_FILE_TYPES", "image/jpeg,image/png,image/jpg,video/mp4"
+            "ALLOWED_FILE_TYPES",
+            "image/jpeg,image/png,image/jpg,video/mp4"
         )
         allowed_file_types = [ft.strip() for ft in allowed_file_types_str.split(",")]
-
+        
         # Rate limiting
         rate_limit_enabled = os.getenv("RATE_LIMIT_ENABLED", "true").lower() == "true"
         max_requests_per_minute = int(os.getenv("MAX_REQUESTS_PER_MINUTE", "60"))
@@ -118,22 +123,18 @@ class Config:
             if environment.lower() == "production":
                 errors.append("SECRET_KEY is required in production environment")
             else:
-                secret_key = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"  # Fallback for dev only
+                secret_key = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7" # Fallback for dev only
                 # logger.warning("Using default SECRET_KEY - not safe for production")
 
         algorithm = os.getenv("ALGORITHM", "HS256")
-        access_token_expire_minutes = int(
-            os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
-        )
-
+        access_token_expire_minutes = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+        
         # If there are errors, raise with all missing variables
         if errors:
-            error_message = "Missing required environment variables:\n" + "\n".join(
-                f"  - {err}" for err in errors
-            )
+            error_message = "Missing required environment variables:\n" + "\n".join(f"  - {err}" for err in errors)
             error_message += "\n\nPlease create a .env file with required variables. See .env.example for reference."
             raise ValueError(error_message)
-
+        
         return cls(
             gemini_api_key=gemini_api_key,
             telegram_bot_token=telegram_bot_token,
@@ -152,15 +153,15 @@ class Config:
             algorithm=algorithm,
             access_token_expire_minutes=access_token_expire_minutes,
         )
-
+    
     def is_production(self) -> bool:
         """Check if running in production environment."""
         return self.environment.lower() == "production"
-
+    
     def is_development(self) -> bool:
         """Check if running in development environment."""
         return self.environment.lower() == "development"
-
+    
     def get_database_type(self) -> str:
         """Get the type of database being used."""
         if self.database_url.startswith("postgresql"):
@@ -169,22 +170,19 @@ class Config:
             return "sqlite"
         else:
             return "unknown"
-
+    
     def validate_api_keys(self) -> dict[str, bool]:
         """
         Validate that API keys are properly formatted.
         Returns dict with validation status for each key.
         """
         validations = {
-            "gemini_api_key": (
-                len(self.gemini_api_key) > 20 if self.gemini_api_key else True
-            ),
-            "telegram_bot_token": ":" in self.telegram_bot_token
-            and len(self.telegram_bot_token) > 40,
+            "gemini_api_key": len(self.gemini_api_key) > 20 if self.gemini_api_key else True,
+            "telegram_bot_token": ":" in self.telegram_bot_token and len(self.telegram_bot_token) > 40,
             "hf_token": self.hf_token.startswith("hf_") if self.hf_token else True,
         }
         return validations
-
+    
     def __repr__(self) -> str:
         """Safe representation hiding sensitive data."""
         return (
@@ -203,7 +201,6 @@ class Config:
 @dataclass
 class AuthConfig:
     """Lightweight auth-only configuration that doesn't require external API keys."""
-
     secret_key: str
     algorithm: str
     access_token_expire_minutes: int
@@ -216,13 +213,9 @@ class AuthConfig:
             if environment.lower() == "production":
                 raise ValueError("SECRET_KEY is required in production environment")
             else:
-                secret_key = (
-                    "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
-                )
+                secret_key = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
         algorithm = os.getenv("ALGORITHM", "HS256")
-        access_token_expire_minutes = int(
-            os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
-        )
+        access_token_expire_minutes = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
         return cls(
             secret_key=secret_key,
             algorithm=algorithm,
@@ -268,26 +261,26 @@ def validate_startup_config() -> bool:
     """
     try:
         config = get_config()
-
+        
         print("\n✅ Configuration loaded successfully!")
         print(f"   Environment: {config.environment}")
         print(f"   Database: {config.get_database_type()}")
         print(f"   Debug Mode: {config.debug}")
-
+        
         # Validate API keys format
         validations = config.validate_api_keys()
-
+        
         if not all(validations.values()):
             print("\n⚠️  Warning: Some API keys may be incorrectly formatted:")
             for key, is_valid in validations.items():
                 if not is_valid:
                     print(f"   - {key}: Invalid format")
             return False
-
+        
         print("   API Keys: ✓ Valid format")
         print()
         return True
-
+        
     except Exception as e:
         print(f"\n❌ Configuration validation failed: {e}\n", file=sys.stderr)
         return False

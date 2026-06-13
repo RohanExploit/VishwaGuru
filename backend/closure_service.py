@@ -174,11 +174,14 @@ class ClosureService:
         ).filter(ClosureConfirmation.grievance_id == grievance_id).group_by(ClosureConfirmation.confirmation_type).all()
         
         counts_dict = dict(counts)
-        confirmations_count = counts_dict.get('confirmed', 0)
-        disputes_count = counts_dict.get('disputed', 0)
-        
-        required_confirmations = max(1, int(total_followers * ClosureService.CONFIRMATION_THRESHOLD))
-        
+
+        confirmations_count = counts_dict.get("confirmed", 0)
+        disputes_count = counts_dict.get("disputed", 0)
+
+        required_confirmations = max(
+            1, int(total_followers * ClosureService.CONFIRMATION_THRESHOLD)
+        )
+
         # Check if threshold is met
         if confirmations_count >= required_confirmations:
             grievance.status = GrievanceStatus.RESOLVED

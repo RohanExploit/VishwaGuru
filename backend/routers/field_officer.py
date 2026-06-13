@@ -23,14 +23,14 @@ from backend.schemas import (
     PublicFieldOfficerVisitResponse,
     VisitHistoryResponse,
     VisitStatsResponse,
-    VisitImageUploadResponse,
+    VisitImageUploadResponse
 )
 from backend.geofencing_service import (
     is_within_geofence,
     generate_visit_hash,
     verify_visit_integrity,
     calculate_visit_metrics,
-    get_geofencing_service,
+    get_geofencing_service
 )
 from backend.cache import visit_last_hash_cache, visit_stats_cache
 from backend.schemas import BlockchainVerificationResponse
@@ -45,14 +45,14 @@ os.makedirs(VISIT_IMAGES_DIR, exist_ok=True)
 
 # File upload constraints
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10 MB per image
-ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "gif", "webp"}
+ALLOWED_IMAGE_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
 
 
 @router.post("/field-officer/check-in", response_model=FieldOfficerVisitResponse)
 def officer_check_in(request: OfficerCheckInRequest, db: Session = Depends(get_db)):
     """
     Field officer check-in at a grievance site with GPS verification
-
+    
     - **issue_id**: ID of the issue being visited
     - **officer_email**: Officer's email
     - **officer_name**: Officer's name
@@ -60,81 +60,68 @@ def officer_check_in(request: OfficerCheckInRequest, db: Session = Depends(get_d
     - **check_in_longitude**: GPS longitude of check-in location
     - **visit_notes**: Optional notes about the visit
     - **geofence_radius_meters**: Acceptable distance from site (default: 100m)
-
+    
     **Geo-Fencing**: Automatically verifies if officer is within acceptable radius of issue location
     """
     try:
         # Validate issue exists
         issue = db.query(Issue).filter(Issue.id == request.issue_id).first()
         if not issue:
-            raise HTTPException(
-                status_code=404, detail=f"Issue {request.issue_id} not found"
-            )
-
+            raise HTTPException(status_code=404, detail=f"Issue {request.issue_id} not found")
+        
         # Validate grievance if provided
         if request.grievance_id:
-            grievance = (
-                db.query(Grievance).filter(Grievance.id == request.grievance_id).first()
-            )
+            grievance = db.query(Grievance).filter(Grievance.id == request.grievance_id).first()
             if not grievance:
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"Grievance {request.grievance_id} not found",
-                )
-
+                raise HTTPException(status_code=404, detail=f"Grievance {request.grievance_id} not found")
+        
         # Validate GPS coordinates
         geofencing = get_geofencing_service()
-        if not geofencing.validate_coordinates(
-            request.check_in_latitude, request.check_in_longitude
-        ):
+        if not geofencing.validate_coordinates(request.check_in_latitude, request.check_in_longitude):
             raise HTTPException(status_code=400, detail="Invalid GPS coordinates")
-
+        
         # Check if issue has location data (use 'is None' to allow 0.0 coordinates)
         if issue.latitude is None or issue.longitude is None:
             raise HTTPException(
                 status_code=400,
-                detail="Issue does not have location data. Cannot verify geo-fence.",
+                detail="Issue does not have location data. Cannot verify geo-fence."
             )
-
+        
         # Calculate distance and verify geo-fence
         within_fence, distance = is_within_geofence(
             check_in_lat=request.check_in_latitude,
             check_in_lon=request.check_in_longitude,
             site_lat=issue.latitude,
             site_lon=issue.longitude,
-            radius_meters=request.geofence_radius_meters or 100.0,
+            radius_meters=request.geofence_radius_meters or 100.0
         )
-
+        
         # Create visit record
         # Normalize check_in_time: strip microseconds for deterministic hashing across DBs
         check_in_time = datetime.now(timezone.utc).replace(microsecond=0)
-
+        
         # Blockchain feature: calculate integrity hash for the visit
         # Performance Boost: Use thread-safe cache to eliminate DB query for last hash
         prev_hash = visit_last_hash_cache.get("last_hash")
         if prev_hash is None:
             # Cache miss: Fetch only the last hash from DB
-            prev_visit = (
-                db.query(FieldOfficerVisit.visit_hash)
-                .order_by(FieldOfficerVisit.id.desc())
-                .first()
-            )
+            prev_visit = db.query(FieldOfficerVisit.visit_hash).order_by(FieldOfficerVisit.id.desc()).first()
             prev_hash = prev_visit[0] if prev_visit and prev_visit[0] else ""
             visit_last_hash_cache.set(data=prev_hash, key="last_hash")
 
         visit_data = {
-            "issue_id": request.issue_id,
-            "officer_email": request.officer_email,
-            "check_in_latitude": request.check_in_latitude,
-            "check_in_longitude": request.check_in_longitude,
-            "check_in_time": check_in_time,
-            "visit_notes": request.visit_notes or "",
-            "previous_visit_hash": prev_hash,
+            'issue_id': request.issue_id,
+            'officer_email': request.officer_email,
+            'check_in_latitude': request.check_in_latitude,
+            'check_in_longitude': request.check_in_longitude,
+            'check_in_time': check_in_time,
+            'visit_notes': request.visit_notes or '',
+            'previous_visit_hash': prev_hash
         }
-
+        
         # Generate immutable hash
         visit_hash = generate_visit_hash(visit_data)
-
+        
         new_visit = FieldOfficerVisit(
             issue_id=request.issue_id,
             grievance_id=request.grievance_id,
@@ -149,16 +136,16 @@ def officer_check_in(request: OfficerCheckInRequest, db: Session = Depends(get_d
             within_geofence=within_fence,
             geofence_radius_meters=request.geofence_radius_meters or 100.0,
             visit_notes=request.visit_notes,
-            status="checked_in",
+            status='checked_in',
             visit_hash=visit_hash,
             previous_visit_hash=prev_hash,
-            is_public=True,
+            is_public=True
         )
-
+        
         db.add(new_visit)
         db.commit()
         db.refresh(new_visit)
-
+        
         # Update cache for next visit AFTER successful DB commit
         visit_last_hash_cache.set(data=visit_hash, key="last_hash")
 
@@ -169,7 +156,7 @@ def officer_check_in(request: OfficerCheckInRequest, db: Session = Depends(get_d
             f"Officer {request.officer_name} checked in at issue {request.issue_id}. "
             f"Distance: {distance:.2f}m, Within fence: {within_fence}"
         )
-
+        
         return FieldOfficerVisitResponse(
             id=new_visit.id,
             issue_id=new_visit.issue_id,
@@ -191,23 +178,21 @@ def officer_check_in(request: OfficerCheckInRequest, db: Session = Depends(get_d
             verified_by=new_visit.verified_by,
             verified_at=new_visit.verified_at,
             is_public=new_visit.is_public,
-            created_at=new_visit.created_at,
+            created_at=new_visit.created_at
         )
-
+        
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error during officer check-in: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=500, detail="Check-in failed. Please try again."
-        )
+        raise HTTPException(status_code=500, detail="Check-in failed. Please try again.")
 
 
 @router.post("/field-officer/check-out", response_model=FieldOfficerVisitResponse)
 def officer_check_out(request: OfficerCheckOutRequest, db: Session = Depends(get_db)):
     """
     Field officer check-out from a visit
-
+    
     - **visit_id**: ID of the visit to check out from
     - **check_out_latitude**: GPS latitude at check-out
     - **check_out_longitude**: GPS longitude at check-out
@@ -215,55 +200,41 @@ def officer_check_out(request: OfficerCheckOutRequest, db: Session = Depends(get
     - **additional_notes**: Any additional notes
     """
     try:
-        visit = (
-            db.query(FieldOfficerVisit)
-            .filter(FieldOfficerVisit.id == request.visit_id)
-            .first()
-        )
-
+        visit = db.query(FieldOfficerVisit).filter(FieldOfficerVisit.id == request.visit_id).first()
+        
         if not visit:
-            raise HTTPException(
-                status_code=404, detail=f"Visit {request.visit_id} not found"
-            )
-
-        if visit.status == "checked_out":
-            raise HTTPException(
-                status_code=400, detail="Already checked out from this visit"
-            )
-
+            raise HTTPException(status_code=404, detail=f"Visit {request.visit_id} not found")
+        
+        if visit.status == 'checked_out':
+            raise HTTPException(status_code=400, detail="Already checked out from this visit")
+        
         # Validate GPS coordinates
         geofencing = get_geofencing_service()
-        if not geofencing.validate_coordinates(
-            request.check_out_latitude, request.check_out_longitude
-        ):
-            raise HTTPException(
-                status_code=400, detail="Invalid check-out GPS coordinates"
-            )
-
+        if not geofencing.validate_coordinates(request.check_out_latitude, request.check_out_longitude):
+            raise HTTPException(status_code=400, detail="Invalid check-out GPS coordinates")
+        
         # Update visit with check-out data
         visit.check_out_time = datetime.now(timezone.utc)
         visit.check_out_latitude = request.check_out_latitude
         visit.check_out_longitude = request.check_out_longitude
         visit.visit_duration_minutes = request.visit_duration_minutes
-
+        
         # Append additional notes if provided
         if request.additional_notes:
             existing_notes = visit.visit_notes or ""
-            visit.visit_notes = (
-                f"{existing_notes}\n\n[Check-out notes]: {request.additional_notes}"
-            )
-
-        visit.status = "checked_out"
+            visit.visit_notes = f"{existing_notes}\n\n[Check-out notes]: {request.additional_notes}"
+        
+        visit.status = 'checked_out'
         visit.updated_at = datetime.now(timezone.utc)
-
+        
         db.commit()
         db.refresh(visit)
-
+        
         # Invalidate visit stats cache
         visit_stats_cache.clear()
 
         logger.info(f"Officer checked out from visit {request.visit_id}")
-
+        
         return FieldOfficerVisitResponse(
             id=visit.id,
             issue_id=visit.issue_id,
@@ -285,164 +256,138 @@ def officer_check_out(request: OfficerCheckOutRequest, db: Session = Depends(get
             verified_by=visit.verified_by,
             verified_at=visit.verified_at,
             is_public=visit.is_public,
-            created_at=visit.created_at,
+            created_at=visit.created_at
         )
-
+        
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error during officer check-out: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=500, detail="Check-out failed. Please try again."
-        )
+        raise HTTPException(status_code=500, detail="Check-out failed. Please try again.")
 
 
-@router.post(
-    "/field-officer/visit/{visit_id}/upload-images",
-    response_model=VisitImageUploadResponse,
-)
+@router.post("/field-officer/visit/{visit_id}/upload-images", response_model=VisitImageUploadResponse)
 async def upload_visit_images(
     visit_id: int,
     images: List[UploadFile] = File(..., description="Visit images"),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db)
 ):
     """
     Upload images for a field officer visit
-
+    
     - **visit_id**: ID of the visit
     - **images**: List of image files
-
+    
     Maximum 10 images per visit
     """
     try:
-        visit = (
-            db.query(FieldOfficerVisit).filter(FieldOfficerVisit.id == visit_id).first()
-        )
-
+        visit = db.query(FieldOfficerVisit).filter(FieldOfficerVisit.id == visit_id).first()
+        
         if not visit:
             raise HTTPException(status_code=404, detail=f"Visit {visit_id} not found")
-
+        
         if len(images) > 10:
-            raise HTTPException(
-                status_code=400, detail="Maximum 10 images allowed per visit"
-            )
-
+            raise HTTPException(status_code=400, detail="Maximum 10 images allowed per visit")
+        
         # Check cumulative image count
         existing_images = visit.visit_images or []
         if not isinstance(existing_images, list):
             existing_images = []
-
+        
         if len(existing_images) + len(images) > 10:
             raise HTTPException(
                 status_code=400,
-                detail=f"Total images would exceed limit. Current: {len(existing_images)}, attempting to add: {len(images)}",
+                detail=f"Total images would exceed limit. Current: {len(existing_images)}, attempting to add: {len(images)}"
             )
-
+        
         image_paths = []
-
+        
         for idx, image in enumerate(images):
             # Validate content_type is present
             if not image.content_type:
-                raise HTTPException(
-                    status_code=400, detail="File must have a content type"
-                )
-
+                raise HTTPException(status_code=400, detail="File must have a content type")
+            
             # Validate file type
-            if not image.content_type.startswith("image/"):
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"File must be an image, got {image.content_type}",
-                )
-
+            if not image.content_type.startswith('image/'):
+                raise HTTPException(status_code=400, detail=f"File must be an image, got {image.content_type}")
+            
             # Validate filename is present
             if not image.filename:
                 raise HTTPException(status_code=400, detail="File must have a filename")
-
+            
             # Validate extension
-            extension = (
-                image.filename.split(".")[-1].lower() if "." in image.filename else ""
-            )
+            extension = image.filename.split('.')[-1].lower() if '.' in image.filename else ''
             if extension not in ALLOWED_IMAGE_EXTENSIONS:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"File extension '{extension}' not allowed. Allowed: {', '.join(ALLOWED_IMAGE_EXTENSIONS)}",
+                    detail=f"File extension '{extension}' not allowed. Allowed: {', '.join(ALLOWED_IMAGE_EXTENSIONS)}"
                 )
-
-            # Sanitize extension completely to prevent any path traversal via extension injection
-            safe_extension = "".join([c for c in extension if c.isalnum()])
-
+            
             # Read and validate file size
             content = await image.read()
             if len(content) > MAX_UPLOAD_SIZE:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"File {image.filename} exceeds maximum size of {MAX_UPLOAD_SIZE / 1024 / 1024:.1f} MB",
+                    detail=f"File {image.filename} exceeds maximum size of {MAX_UPLOAD_SIZE / 1024 / 1024:.1f} MB"
                 )
-
+            
             # Generate secure filename
-            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')
             safe_filename = f"visit_{visit_id}_{timestamp}_{idx}.{extension}"
-
-            # Ensure safe_filename doesn't contain path traversal characters
-            safe_filename = os.path.basename(safe_filename)
             file_path = os.path.join(VISIT_IMAGES_DIR, safe_filename)
-
+            
             # Save file
-            with open(file_path, "wb") as f:
+            with open(file_path, 'wb') as f:
                 f.write(content)
-
+            
             # Store relative path
             relative_path = os.path.join("data", "visit_images", safe_filename)
             image_paths.append(relative_path)
-
+        
         # Update visit with image paths
         existing_images.extend(image_paths)
         visit.visit_images = existing_images
         visit.updated_at = datetime.now(timezone.utc)
-
+        
         db.commit()
-
+        
         logger.info(f"Uploaded {len(images)} images for visit {visit_id}")
-
+        
         return VisitImageUploadResponse(
             visit_id=visit_id,
             image_paths=image_paths,
-            message=f"Successfully uploaded {len(images)} images",
+            message=f"Successfully uploaded {len(images)} images"
         )
-
+        
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error uploading visit images: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=500, detail="Image upload failed. Please try again."
-        )
+        raise HTTPException(status_code=500, detail="Image upload failed. Please try again.")
 
 
-@router.get(
-    "/field-officer/issue/{issue_id}/visit-history", response_model=VisitHistoryResponse
-)
+@router.get("/field-officer/issue/{issue_id}/visit-history", response_model=VisitHistoryResponse)
 def get_issue_visit_history(
-    issue_id: int, public_only: bool = True, db: Session = Depends(get_db)
+    issue_id: int,
+    public_only: bool = True,
+    db: Session = Depends(get_db)
 ):
     """
     Get visit history for an issue (public read-only access for transparency)
-
+    
     - **issue_id**: ID of the issue
     - **public_only**: Only return public visits (default: True)
-
+    
     Returns chronological list of all officer visits to the site
     """
     try:
-        query = db.query(FieldOfficerVisit).filter(
-            FieldOfficerVisit.issue_id == issue_id
-        )
-
+        query = db.query(FieldOfficerVisit).filter(FieldOfficerVisit.issue_id == issue_id)
+        
         if public_only:
             query = query.filter(FieldOfficerVisit.is_public == True)
-
+        
         visits = query.order_by(FieldOfficerVisit.check_in_time.desc()).all()
-
+        
         visit_responses = [
             PublicFieldOfficerVisitResponse(
                 id=v.id,
@@ -464,19 +409,19 @@ def get_issue_visit_history(
                 verified_by=v.verified_by,
                 verified_at=v.verified_at,
                 is_public=v.is_public,
-                created_at=v.created_at,
+                created_at=v.created_at
             )
             for v in visits
         ]
-
+        
         return VisitHistoryResponse(
-            issue_id=issue_id, total_visits=len(visits), visits=visit_responses
+            issue_id=issue_id,
+            total_visits=len(visits),
+            visits=visit_responses
         )
-
+        
     except Exception as e:
-        logger.error(
-            f"Error getting visit history for issue {issue_id}: {e}", exc_info=True
-        )
+        logger.error(f"Error getting visit history for issue {issue_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to retrieve visit history")
 
 
@@ -494,20 +439,12 @@ def get_visit_statistics(db: Session = Depends(get_db)):
 
         # Optimized: Use a single aggregate query to fetch multiple statistics in one database roundtrip
         stats = db.query(
-            func.count(FieldOfficerVisit.id).label("total"),
-            func.sum(
-                case((FieldOfficerVisit.verified_at.isnot(None), 1), else_=0)
-            ).label("verified"),
-            func.sum(
-                case((FieldOfficerVisit.within_geofence == True, 1), else_=0)
-            ).label("within_geofence"),
-            func.sum(
-                case((FieldOfficerVisit.within_geofence == False, 1), else_=0)
-            ).label("outside_geofence"),
-            func.count(func.distinct(FieldOfficerVisit.officer_email)).label(
-                "unique_officers"
-            ),
-            func.avg(FieldOfficerVisit.distance_from_site).label("avg_distance"),
+            func.count(FieldOfficerVisit.id).label('total'),
+            func.sum(case((FieldOfficerVisit.verified_at.isnot(None), 1), else_=0)).label('verified'),
+            func.sum(case((FieldOfficerVisit.within_geofence == True, 1), else_=0)).label('within_geofence'),
+            func.sum(case((FieldOfficerVisit.within_geofence == False, 1), else_=0)).label('outside_geofence'),
+            func.count(func.distinct(FieldOfficerVisit.officer_email)).label('unique_officers'),
+            func.avg(FieldOfficerVisit.distance_from_site).label('avg_distance')
         ).first()
 
         total_visits = stats.total or 0
@@ -516,20 +453,20 @@ def get_visit_statistics(db: Session = Depends(get_db)):
         outside_geofence_count = int(stats.outside_geofence or 0)
         unique_officers = stats.unique_officers or 0
         average_distance = stats.avg_distance
-
+        
         # Round to 2 decimals if not None
         if average_distance is not None:
             average_distance = round(float(average_distance), 2)
         else:
             average_distance = 0.0
-
+        
         result_data = {
             "total_visits": total_visits,
             "verified_visits": verified_visits,
             "within_geofence_count": within_geofence_count,
             "outside_geofence_count": outside_geofence_count,
             "unique_officers": unique_officers,
-            "average_distance_from_site": average_distance,
+            "average_distance_from_site": average_distance
         }
 
         # Cache serialized JSON
@@ -537,7 +474,7 @@ def get_visit_statistics(db: Session = Depends(get_db)):
         visit_stats_cache.set(data=json_data, key=cache_key)
 
         return Response(content=json_data, media_type="application/json")
-
+        
     except Exception as e:
         logger.error(f"Error calculating visit statistics: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to calculate statistics")
@@ -547,41 +484,39 @@ def get_visit_statistics(db: Session = Depends(get_db)):
 def verify_visit(
     visit_id: int,
     verifier_email: str = Form(..., description="Email of verifying admin/supervisor"),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db)
 ):
     """
     Admin/supervisor verification of a field officer visit
-
+    
     - **visit_id**: ID of the visit to verify
     - **verifier_email**: Email of the person verifying
-
+    
     Marks visit as officially verified
     """
     try:
-        visit = (
-            db.query(FieldOfficerVisit).filter(FieldOfficerVisit.id == visit_id).first()
-        )
-
+        visit = db.query(FieldOfficerVisit).filter(FieldOfficerVisit.id == visit_id).first()
+        
         if not visit:
             raise HTTPException(status_code=404, detail=f"Visit {visit_id} not found")
-
+        
         if visit.verified_at:
             raise HTTPException(status_code=400, detail="Visit already verified")
-
+        
         visit.verified_by = verifier_email
         visit.verified_at = datetime.now(timezone.utc)
-        visit.status = "verified"
+        visit.status = 'verified'
         visit.updated_at = datetime.now(timezone.utc)
-
+        
         db.commit()
-
+        
         # Invalidate visit stats cache
         visit_stats_cache.clear()
 
         logger.info(f"Visit {visit_id} verified by {verifier_email}")
-
+        
         return {"message": "Visit verified successfully", "visit_id": visit_id}
-
+        
     except HTTPException:
         raise
     except Exception as e:
@@ -589,19 +524,14 @@ def verify_visit(
         raise HTTPException(status_code=500, detail="Verification failed")
 
 
-@router.get(
-    "/field-officer/{visit_id}/blockchain-verify",
-    response_model=BlockchainVerificationResponse,
-)
+@router.get("/field-officer/{visit_id}/blockchain-verify", response_model=BlockchainVerificationResponse)
 def verify_visit_blockchain(visit_id: int, db: Session = Depends(get_db)):
     """
     Verify the cryptographic integrity of a field officer visit using blockchain-style chaining.
     Optimized: Uses previous_visit_hash column for O(1) verification.
     """
     try:
-        visit = (
-            db.query(FieldOfficerVisit).filter(FieldOfficerVisit.id == visit_id).first()
-        )
+        visit = db.query(FieldOfficerVisit).filter(FieldOfficerVisit.id == visit_id).first()
 
         if not visit:
             raise HTTPException(status_code=404, detail=f"Visit {visit_id} not found")
@@ -611,13 +541,13 @@ def verify_visit_blockchain(visit_id: int, db: Session = Depends(get_db)):
 
         # Chaining logic: rebuild the dictionary for verification
         visit_data = {
-            "issue_id": visit.issue_id,
-            "officer_email": visit.officer_email,
-            "check_in_latitude": visit.check_in_latitude,
-            "check_in_longitude": visit.check_in_longitude,
-            "check_in_time": visit.check_in_time,
-            "visit_notes": visit.visit_notes or "",
-            "previous_visit_hash": prev_hash,
+            'issue_id': visit.issue_id,
+            'officer_email': visit.officer_email,
+            'check_in_latitude': visit.check_in_latitude,
+            'check_in_longitude': visit.check_in_longitude,
+            'check_in_time': visit.check_in_time,
+            'visit_notes': visit.visit_notes or '',
+            'previous_visit_hash': prev_hash
         }
 
         # Use helper for verification
@@ -635,13 +565,11 @@ def verify_visit_blockchain(visit_id: int, db: Session = Depends(get_db)):
             is_valid=is_valid,
             current_hash=visit.visit_hash,
             computed_hash=computed_hash,
-            message=message,
+            message=message
         )
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(
-            f"Error verifying visit blockchain for {visit_id}: {e}", exc_info=True
-        )
+        logger.error(f"Error verifying visit blockchain for {visit_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to verify visit integrity")

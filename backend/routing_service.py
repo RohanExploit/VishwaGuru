@@ -9,7 +9,6 @@ from sqlalchemy.orm import Session
 from backend.models import Jurisdiction, JurisdictionLevel, Grievance
 from backend.database import SessionLocal
 
-
 class RoutingService:
     """
     Service for determining jurisdiction and authority assignment for grievances.
@@ -25,9 +24,7 @@ class RoutingService:
         """
         self.rules_config = rules_config
 
-    def determine_initial_jurisdiction(
-        self, grievance_data: Dict[str, Any], db: Session
-    ) -> Optional[Jurisdiction]:
+    def determine_initial_jurisdiction(self, grievance_data: Dict[str, Any], db: Session) -> Optional[Jurisdiction]:
         """
         Determine the initial jurisdiction for a grievance based on geography and department.
 
@@ -43,34 +40,30 @@ class RoutingService:
         Returns:
             Jurisdiction object or None if no match found
         """
-        category = grievance_data.get("category")
-        pincode = grievance_data.get("pincode")
-        city = grievance_data.get("city")
-        district = grievance_data.get("district")
-        state = grievance_data.get("state")
+        category = grievance_data.get('category')
+        pincode = grievance_data.get('pincode')
+        city = grievance_data.get('city')
+        district = grievance_data.get('district')
+        state = grievance_data.get('state')
 
         # Get routing rules for the category
-        category_rules = self.rules_config.get("categories", {}).get(category, {})
-        geographic_rules = self.rules_config.get("geographic_rules", {})
+        category_rules = self.rules_config.get('categories', {}).get(category, {})
+        geographic_rules = self.rules_config.get('geographic_rules', {})
 
         # Check for state-level rules
-        if state and state in geographic_rules.get("states", {}):
-            state_config = geographic_rules["states"][state]
-            if category in state_config.get("departments", []):
+        if state and state in geographic_rules.get('states', {}):
+            state_config = geographic_rules['states'][state]
+            if category in state_config.get('departments', []):
                 jurisdiction_level = JurisdictionLevel.STATE
             else:
-                jurisdiction_level = state_config.get(
-                    "default_level", JurisdictionLevel.DISTRICT
-                )
+                jurisdiction_level = state_config.get('default_level', JurisdictionLevel.DISTRICT)
         else:
             # Default to district level for known states, local for others
-            jurisdiction_level = (
-                JurisdictionLevel.DISTRICT if state else JurisdictionLevel.LOCAL
-            )
+            jurisdiction_level = JurisdictionLevel.DISTRICT if state else JurisdictionLevel.LOCAL
 
         # Override based on category-specific rules
-        if "jurisdiction_level" in category_rules:
-            jurisdiction_level = JurisdictionLevel(category_rules["jurisdiction_level"])
+        if 'jurisdiction_level' in category_rules:
+            jurisdiction_level = JurisdictionLevel(category_rules['jurisdiction_level'])
 
         # Find the specific jurisdiction
         jurisdiction = self._find_jurisdiction(
@@ -78,7 +71,7 @@ class RoutingService:
             state=state,
             district=district,
             city=city,
-            db=db,
+            db=db
         )
 
         return jurisdiction
@@ -95,21 +88,16 @@ class RoutingService:
             Authority name
         """
         # Check category-specific authority overrides
-        category_rules = self.rules_config.get("categories", {}).get(category, {})
-        if "authority" in category_rules:
-            return category_rules["authority"]
+        category_rules = self.rules_config.get('categories', {}).get(category, {})
+        if 'authority' in category_rules:
+            return category_rules['authority']
 
         # Use jurisdiction's default authority
         return jurisdiction.responsible_authority
 
-    def _find_jurisdiction(
-        self,
-        jurisdiction_level: JurisdictionLevel,
-        state: Optional[str] = None,
-        district: Optional[str] = None,
-        city: Optional[str] = None,
-        db: Session = None,
-    ) -> Optional[Jurisdiction]:
+    def _find_jurisdiction(self, jurisdiction_level: JurisdictionLevel, state: Optional[str] = None,
+                          district: Optional[str] = None, city: Optional[str] = None,
+                          db: Session = None) -> Optional[Jurisdiction]:
         """
         Find the most specific jurisdiction matching the given criteria.
 
@@ -130,9 +118,7 @@ class RoutingService:
 
         try:
             # Query for jurisdictions matching the criteria
-            query = db.query(Jurisdiction).filter(
-                Jurisdiction.level == jurisdiction_level
-            )
+            query = db.query(Jurisdiction).filter(Jurisdiction.level == jurisdiction_level)
 
             jurisdictions = query.all()
 
@@ -144,11 +130,11 @@ class RoutingService:
                 coverage = jur.geographic_coverage
                 score = 0
 
-                if state and state in coverage.get("states", []):
+                if state and state in coverage.get('states', []):
                     score += 3
-                if district and district in coverage.get("districts", []):
+                if district and district in coverage.get('districts', []):
                     score += 2
-                if city and city in coverage.get("cities", []):
+                if city and city in coverage.get('cities', []):
                     score += 1
 
                 if score > best_match_score:
@@ -161,9 +147,7 @@ class RoutingService:
             if should_close:
                 db.close()
 
-    def get_next_jurisdiction_level(
-        self, current_level: JurisdictionLevel
-    ) -> Optional[JurisdictionLevel]:
+    def get_next_jurisdiction_level(self, current_level: JurisdictionLevel) -> Optional[JurisdictionLevel]:
         """
         Get the next higher jurisdiction level for escalation.
 
@@ -177,7 +161,7 @@ class RoutingService:
             JurisdictionLevel.LOCAL: JurisdictionLevel.DISTRICT,
             JurisdictionLevel.DISTRICT: JurisdictionLevel.STATE,
             JurisdictionLevel.STATE: JurisdictionLevel.NATIONAL,
-            JurisdictionLevel.NATIONAL: None,
+            JurisdictionLevel.NATIONAL: None
         }
 
         return level_hierarchy.get(current_level)

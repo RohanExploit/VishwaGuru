@@ -2,7 +2,6 @@
 Concrete implementations of AI service interfaces using Hugging Face Text Generation.
 Drop-in replacement for GeminiServices — uses Featherless AI via HF Router.
 """
-
 from typing import Dict, Optional
 from backend.ai_interfaces import ActionPlanService, ChatService, MLASummaryService
 from backend.hf_text_service import (

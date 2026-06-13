@@ -2,7 +2,6 @@
 Centralized exception handling for FastAPI application.
 Provides consistent error responses and logging.
 """
-
 import logging
 import traceback
 from typing import Any, Dict, Optional
@@ -17,7 +16,6 @@ from backend.schemas import ErrorResponse
 
 logger = logging.getLogger(__name__)
 
-
 class VishwaGuruException(Exception):
     """Base exception for VishwaGuru application"""
 
@@ -26,14 +24,13 @@ class VishwaGuruException(Exception):
         message: str,
         error_code: str = "INTERNAL_ERROR",
         status_code: int = status.HTTP_500_INTERNAL_SERVER_ERROR,
-        details: Optional[Dict[str, Any]] = None,
+        details: Optional[Dict[str, Any]] = None
     ):
         self.message = message
         self.error_code = error_code
         self.status_code = status_code
         self.details = details or {}
         super().__init__(self.message)
-
 
 class ValidationException(VishwaGuruException):
     """Exception for validation errors"""
@@ -43,9 +40,8 @@ class ValidationException(VishwaGuruException):
             message=message,
             error_code="VALIDATION_ERROR",
             status_code=status.HTTP_400_BAD_REQUEST,
-            details=details,
+            details=details
         )
-
 
 class NotFoundException(VishwaGuruException):
     """Exception for resource not found"""
@@ -58,9 +54,8 @@ class NotFoundException(VishwaGuruException):
             message=message,
             error_code="NOT_FOUND",
             status_code=status.HTTP_404_NOT_FOUND,
-            details={"resource": resource, "resource_id": resource_id},
+            details={"resource": resource, "resource_id": resource_id}
         )
-
 
 class ServiceUnavailableException(VishwaGuruException):
     """Exception for service unavailability"""
@@ -70,9 +65,8 @@ class ServiceUnavailableException(VishwaGuruException):
             message=f"{service} service is temporarily unavailable",
             error_code="SERVICE_UNAVAILABLE",
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            details=details or {"service": service},
+            details=details or {"service": service}
         )
-
 
 class FileUploadException(VishwaGuruException):
     """Exception for file upload errors"""
@@ -82,26 +76,19 @@ class FileUploadException(VishwaGuruException):
             message=message,
             error_code="FILE_UPLOAD_ERROR",
             status_code=status.HTTP_400_BAD_REQUEST,
-            details=details,
+            details=details
         )
-
 
 class AIServiceException(VishwaGuruException):
     """Exception for AI service errors"""
 
-    def __init__(
-        self,
-        message: str,
-        service: str = "AI",
-        details: Optional[Dict[str, Any]] = None,
-    ):
+    def __init__(self, message: str, service: str = "AI", details: Optional[Dict[str, Any]] = None):
         super().__init__(
             message=message,
             error_code="AI_SERVICE_ERROR",
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            details=details or {"service": service},
+            details=details or {"service": service}
         )
-
 
 class ModelLoadException(VishwaGuruException):
     """Exception for ML model loading errors"""
@@ -111,44 +98,32 @@ class ModelLoadException(VishwaGuruException):
             message=f"Failed to load ML model: {model_name}",
             error_code="MODEL_LOAD_ERROR",
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            details=details or {"model": model_name},
+            details=details or {"model": model_name}
         )
-
 
 class DetectionException(VishwaGuruException):
     """Exception for image detection errors"""
 
-    def __init__(
-        self,
-        message: str,
-        detection_type: str,
-        details: Optional[Dict[str, Any]] = None,
-    ):
+    def __init__(self, message: str, detection_type: str, details: Optional[Dict[str, Any]] = None):
         super().__init__(
             message=message,
             error_code="DETECTION_ERROR",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details=details or {"detection_type": detection_type},
+            details=details or {"detection_type": detection_type}
         )
-
 
 class ExternalAPIException(VishwaGuruException):
     """Exception for external API failures"""
 
-    def __init__(
-        self, api_name: str, message: str, details: Optional[Dict[str, Any]] = None
-    ):
+    def __init__(self, api_name: str, message: str, details: Optional[Dict[str, Any]] = None):
         super().__init__(
             message=message,
             error_code="EXTERNAL_API_ERROR",
             status_code=status.HTTP_502_BAD_GATEWAY,
-            details=details or {"api": api_name},
+            details=details or {"api": api_name}
         )
 
-
-async def vishwaguru_exception_handler(
-    request: Request, exc: VishwaGuruException
-) -> JSONResponse:
+async def vishwaguru_exception_handler(request: Request, exc: VishwaGuruException) -> JSONResponse:
     """Handle VishwaGuru custom exceptions"""
     logger.error(
         f"VishwaGuruException: {exc.message} (code: {exc.error_code})",
@@ -157,17 +132,18 @@ async def vishwaguru_exception_handler(
             "status_code": exc.status_code,
             "details": exc.details,
             "path": request.url.path,
-            "method": request.method,
-        },
+            "method": request.method
+        }
     )
 
     return JSONResponse(
         status_code=exc.status_code,
         content=ErrorResponse(
-            error=exc.message, error_code=exc.error_code, details=exc.details
-        ).model_dump(mode="json"),
+            error=exc.message,
+            error_code=exc.error_code,
+            details=exc.details
+        ).model_dump(mode='json')
     )
-
 
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
     """Handle FastAPI HTTP exceptions"""
@@ -177,8 +153,8 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
             "status_code": exc.status_code,
             "detail": exc.detail,
             "path": request.url.path,
-            "method": request.method,
-        },
+            "method": request.method
+        }
     )
 
     return JSONResponse(
@@ -186,22 +162,19 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
         content=ErrorResponse(
             error=exc.detail,
             error_code=f"HTTP_{exc.status_code}",
-            details={"status_code": exc.status_code},
-        ).model_dump(mode="json"),
+            details={"status_code": exc.status_code}
+        ).model_dump(mode='json')
     )
 
-
-async def validation_exception_handler(
-    request: Request, exc: RequestValidationError
-) -> JSONResponse:
+async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
     """Handle Pydantic validation errors"""
     logger.warning(
         f"ValidationError: {exc.errors()}",
         extra={
             "errors": exc.errors(),
             "path": request.url.path,
-            "method": request.method,
-        },
+            "method": request.method
+        }
     )
 
     # Extract field-specific errors
@@ -216,22 +189,22 @@ async def validation_exception_handler(
         content=ErrorResponse(
             error="Request validation failed",
             error_code="VALIDATION_ERROR",
-            details={"field_errors": field_errors, "validation_errors": exc.errors()},
-        ).model_dump(mode="json"),
+            details={
+                "field_errors": field_errors,
+                "validation_errors": exc.errors()
+            }
+        ).model_dump(mode='json')
     )
 
-
-async def pydantic_validation_exception_handler(
-    request: Request, exc: ValidationError
-) -> JSONResponse:
+async def pydantic_validation_exception_handler(request: Request, exc: ValidationError) -> JSONResponse:
     """Handle Pydantic ValidationError (different from RequestValidationError)"""
     logger.warning(
         f"Pydantic ValidationError: {exc.errors()}",
         extra={
             "errors": exc.errors(),
             "path": request.url.path,
-            "method": request.method,
-        },
+            "method": request.method
+        }
     )
 
     return JSONResponse(
@@ -239,14 +212,11 @@ async def pydantic_validation_exception_handler(
         content=ErrorResponse(
             error="Data validation failed",
             error_code="VALIDATION_ERROR",
-            details={"validation_errors": exc.errors()},
-        ).model_dump(mode="json"),
+            details={"validation_errors": exc.errors()}
+        ).model_dump(mode='json')
     )
 
-
-async def sqlalchemy_exception_handler(
-    request: Request, exc: SQLAlchemyError
-) -> JSONResponse:
+async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError) -> JSONResponse:
     """Handle SQLAlchemy database errors"""
     logger.error(
         f"SQLAlchemyError: {str(exc)}",
@@ -254,8 +224,8 @@ async def sqlalchemy_exception_handler(
         extra={
             "exception_type": type(exc).__name__,
             "path": request.url.path,
-            "method": request.method,
-        },
+            "method": request.method
+        }
     )
 
     # Handle specific SQLAlchemy errors
@@ -265,8 +235,8 @@ async def sqlalchemy_exception_handler(
             content=ErrorResponse(
                 error="Database constraint violation",
                 error_code="DATABASE_CONSTRAINT_ERROR",
-                details={"constraint_error": str(exc)},
-            ).model_dump(mode="json"),
+                details={"constraint_error": str(exc)}
+            ).model_dump(mode='json')
         )
 
     return JSONResponse(
@@ -274,14 +244,11 @@ async def sqlalchemy_exception_handler(
         content=ErrorResponse(
             error="Database operation failed",
             error_code="DATABASE_ERROR",
-            details={"db_error": str(exc)},
-        ).model_dump(mode="json"),
+            details={"db_error": str(exc)}
+        ).model_dump(mode='json')
     )
 
-
-async def httpx_exception_handler(
-    request: Request, exc: httpx.HTTPError
-) -> JSONResponse:
+async def httpx_exception_handler(request: Request, exc: httpx.HTTPError) -> JSONResponse:
     """Handle HTTP client errors (external API calls)"""
     logger.error(
         f"HTTPError: {str(exc)}",
@@ -289,8 +256,8 @@ async def httpx_exception_handler(
         extra={
             "exception_type": type(exc).__name__,
             "path": request.url.path,
-            "method": request.method,
-        },
+            "method": request.method
+        }
     )
 
     return JSONResponse(
@@ -298,10 +265,9 @@ async def httpx_exception_handler(
         content=ErrorResponse(
             error="External service communication failed",
             error_code="EXTERNAL_SERVICE_ERROR",
-            details={"http_error": str(exc)},
-        ).model_dump(mode="json"),
+            details={"http_error": str(exc)}
+        ).model_dump(mode='json')
     )
-
 
 async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Handle any unhandled exceptions"""
@@ -312,8 +278,8 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
             "exception_type": type(exc).__name__,
             "path": request.url.path,
             "method": request.method,
-            "traceback": traceback.format_exc(),
-        },
+            "traceback": traceback.format_exc()
+        }
     )
 
     return JSONResponse(
@@ -321,10 +287,9 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
         content=ErrorResponse(
             error="An unexpected error occurred",
             error_code="INTERNAL_SERVER_ERROR",
-            details={"exception_type": type(exc).__name__},
-        ).model_dump(mode="json"),
+            details={"exception_type": type(exc).__name__}
+        ).model_dump(mode='json')
     )
-
 
 # Exception handlers mapping for easy registration
 EXCEPTION_HANDLERS = {

@@ -5,10 +5,9 @@ import sys
 import os
 
 # Add parent directory to path to import backend.cache
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from backend.cache import ThreadSafeCache
-
 
 def benchmark_cache(cache_size, num_ops):
     cache = ThreadSafeCache(ttl=300, max_size=cache_size)
@@ -24,7 +23,6 @@ def benchmark_cache(cache_size, num_ops):
     end_time = time.time()
 
     return end_time - start_time
-
 
 if __name__ == "__main__":
     size = 1000
