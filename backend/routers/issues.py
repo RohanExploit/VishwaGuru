@@ -33,6 +33,7 @@ from backend.cache import recent_issues_cache, nearby_issues_cache
 from backend.hf_api_service import verify_resolution_vqa
 from backend.dependencies import get_http_client
 from backend.rag_service import rag_service
+from backend.adaptive_weights import adaptive_weights
 
 logger = logging.getLogger(__name__)
 
@@ -93,9 +94,11 @@ async def create_issue(
 
     if latitude is not None and longitude is not None:
         try:
-            # Find existing open issues within 50 meters
+            # Find existing open issues within dynamic radius (adaptive)
+            search_radius = adaptive_weights.get_duplicate_search_radius()
+
             # Optimization: Use bounding box to filter candidates in SQL
-            min_lat, max_lat, min_lon, max_lon = get_bounding_box(latitude, longitude, 50.0)
+            min_lat, max_lat, min_lon, max_lon = get_bounding_box(latitude, longitude, search_radius)
 
             # Performance Boost: Use column projection to avoid loading full model instances
             open_issues = await run_in_threadpool(
@@ -118,7 +121,7 @@ async def create_issue(
             )
 
             nearby_issues_with_distance = find_nearby_issues(
-                open_issues, latitude, longitude, radius_meters=50.0
+                open_issues, latitude, longitude, radius_meters=search_radius
             )
 
             if nearby_issues_with_distance:

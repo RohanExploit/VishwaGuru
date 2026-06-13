@@ -1,0 +1,25 @@
+{
+    "date": "2026-02-18",
+    "timestamp": "2026-02-18T18:48:28.012456",
+    "civic_intelligence_index": 40,
+    "trends": {
+        "period_hours": 24,
+        "total_issues": 0,
+        "previous_period_issues": 0,
+        "growth_rate_percent": 0,
+        "top_keywords": [],
+        "category_stats": {
+            "distribution": {},
+            "spikes": []
+        },
+        "spatial_stats": {
+            "clusters": [],
+            "avg_neighbor_dist": null
+        },
+        "timestamp": "2026-02-18T18:48:27.976420+00:00"
+    },
+    "optimizations": {
+        "weights": [],
+        "duplicate_detection": []
+    }
+}
