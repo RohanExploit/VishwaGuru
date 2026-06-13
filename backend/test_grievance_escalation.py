@@ -7,6 +7,7 @@ from backend.grievance_service import GrievanceService
 from backend.models import SeverityLevel
 from datetime import datetime, timezone, timedelta
 
+
 def test_escalation():
     """Test the escalation engine functionality."""
     service = GrievanceService()
@@ -20,7 +21,7 @@ def test_escalation():
         "city": "Mumbai",
         "district": "Mumbai",
         "state": "Maharashtra",
-        "description": "Medical emergency response needed"
+        "description": "Medical emergency response needed",
     }
 
     grievance = service.create_grievance(grievance_data)
@@ -43,9 +44,7 @@ def test_escalation():
     # Test severity escalation
     print("Testing severity escalation...")
     success = service.escalate_grievance_severity(
-        grievance.id,
-        SeverityLevel.CRITICAL,
-        "Emergency situation escalated"
+        grievance.id, SeverityLevel.CRITICAL, "Emergency situation escalated"
     )
 
     if success:
@@ -76,7 +75,9 @@ def test_escalation():
     print("Audit Trail:")
     audit_trail = service.get_grievance_audit_trail(grievance.id)
     for i, entry in enumerate(audit_trail, 1):
-        print(f"{i}. {entry['timestamp'][:19]}: {entry['previous_authority']} → {entry['new_authority']}")
+        print(
+            f"{i}. {entry['timestamp'][:19]}: {entry['previous_authority']} → {entry['new_authority']}"
+        )
         print(f"   Reason: {entry['reason']}, Notes: {entry.get('notes', 'N/A')}")
 
     print()
@@ -86,9 +87,12 @@ def test_escalation():
     # Note: In real scenario, this would be done by the periodic escalation check
     # For demo, we'll manually trigger escalation check
     stats = service.run_escalation_check()
-    print(f"Escalation check results: Evaluated {stats['evaluated']}, Escalated {stats['escalated']}")
+    print(
+        f"Escalation check results: Evaluated {stats['evaluated']}, Escalated {stats['escalated']}"
+    )
 
     print("\n=== Test Complete ===")
+
 
 if __name__ == "__main__":
     test_escalation()

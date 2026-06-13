@@ -8,15 +8,65 @@ from backend.spatial_utils import cluster_issues_dbscan, get_cluster_representat
 
 logger = logging.getLogger(__name__)
 
+
 class TrendAnalyzer:
     def __init__(self):
         self.stop_words = {
-            "the", "a", "an", "in", "on", "at", "to", "for", "of", "and", "is", "are",
-            "was", "were", "this", "that", "it", "with", "from", "by", "as", "be",
-            "or", "not", "but", "if", "so", "my", "your", "its", "their", "there",
-            "here", "when", "where", "why", "how", "all", "any", "some", "no",
-            "issue", "problem", "complaint", "regarding", "please", "help", "fix",
-            "near", "opposite", "behind", "front", "road", "street", "lane"
+            "the",
+            "a",
+            "an",
+            "in",
+            "on",
+            "at",
+            "to",
+            "for",
+            "of",
+            "and",
+            "is",
+            "are",
+            "was",
+            "were",
+            "this",
+            "that",
+            "it",
+            "with",
+            "from",
+            "by",
+            "as",
+            "be",
+            "or",
+            "not",
+            "but",
+            "if",
+            "so",
+            "my",
+            "your",
+            "its",
+            "their",
+            "there",
+            "here",
+            "when",
+            "where",
+            "why",
+            "how",
+            "all",
+            "any",
+            "some",
+            "no",
+            "issue",
+            "problem",
+            "complaint",
+            "regarding",
+            "please",
+            "help",
+            "fix",
+            "near",
+            "opposite",
+            "behind",
+            "front",
+            "road",
+            "street",
+            "lane",
         }
 
     def analyze(self, issues: List[Issue]) -> Dict[str, Any]:
@@ -28,7 +78,7 @@ class TrendAnalyzer:
                 "top_keywords": [],
                 "category_distribution": {},
                 "clusters": [],
-                "total_issues": 0
+                "total_issues": 0,
             }
 
         keywords = self._extract_keywords(issues)
@@ -39,17 +89,23 @@ class TrendAnalyzer:
             "top_keywords": keywords,
             "category_distribution": categories,
             "clusters": clusters,
-            "total_issues": len(issues)
+            "total_issues": len(issues),
         }
 
     def _extract_keywords(self, issues: List[Issue]) -> List[Tuple[str, int]]:
         """
         Extract top 5 most common keywords from issue descriptions.
         """
-        text = " ".join([issue.description.lower() for issue in issues if issue.description])
+        text = " ".join(
+            [issue.description.lower() for issue in issues if issue.description]
+        )
         # Simple tokenization: remove punctuation and split by whitespace
-        words = re.findall(r'\b\w+\b', text)
-        filtered_words = [w for w in words if w not in self.stop_words and len(w) > 2 and not w.isdigit()]
+        words = re.findall(r"\b\w+\b", text)
+        filtered_words = [
+            w
+            for w in words
+            if w not in self.stop_words and len(w) > 2 and not w.isdigit()
+        ]
 
         counter = Counter(filtered_words)
         return counter.most_common(5)
@@ -76,18 +132,25 @@ class TrendAnalyzer:
 
             try:
                 representative = get_cluster_representative(cluster)
-                results.append({
-                    "count": len(cluster),
-                    "latitude": representative.latitude,
-                    "longitude": representative.longitude,
-                    "representative_category": representative.category,
-                    "representative_desc": representative.description[:50] + "..." if representative.description else ""
-                })
+                results.append(
+                    {
+                        "count": len(cluster),
+                        "latitude": representative.latitude,
+                        "longitude": representative.longitude,
+                        "representative_category": representative.category,
+                        "representative_desc": (
+                            representative.description[:50] + "..."
+                            if representative.description
+                            else ""
+                        ),
+                    }
+                )
             except Exception as e:
                 logger.error(f"Error processing cluster: {e}")
 
         # Sort by cluster size descending
-        results.sort(key=lambda x: x['count'], reverse=True)
+        results.sort(key=lambda x: x["count"], reverse=True)
         return results
+
 
 trend_analyzer = TrendAnalyzer()
