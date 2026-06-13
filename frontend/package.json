@@ -17,8 +17,6 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.95.3",
-    "@tensorflow-models/mobilenet": "^2.1.1",
-    "@tensorflow/tfjs": "^4.22.0",
     "dexie": "^4.2.1",
     "framer-motion": "^12.29.2",
     "i18next": "^25.8.0",

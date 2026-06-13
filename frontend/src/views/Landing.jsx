@@ -4,17 +4,15 @@ import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import {
     Building2, MessageCircle, Users, Shield, Star, FileText,
-    Search, ArrowRight, Sun, Moon
+    Search, ArrowRight, CheckCircle2, Globe, Heart, Zap
 } from 'lucide-react';
-import { useDarkMode } from '../contexts/DarkModeContext';
-import LanguageSelector from '../components/LanguageSelector';
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 
 const Landing = () => {
     const navigate = useNavigate();
     const { t } = useTranslation();
-    const { isDarkMode, toggleDarkMode } = useDarkMode();
 
-    // Animation variants
     const containerVariants = {
         hidden: { opacity: 0 },
         visible: {
@@ -39,391 +37,357 @@ const Landing = () => {
         }
     };
 
-    const slideInLeft = {
-        hidden: { x: -50, opacity: 0 },
-        visible: {
-            x: 0,
-            opacity: 1,
-            transition: {
-                type: 'spring',
-                stiffness: 80,
-                damping: 20
-            }
-        }
-    };
-
-    const slideInRight = {
-        hidden: { x: 50, opacity: 0 },
-        visible: {
-            x: 0,
-            opacity: 1,
-            transition: {
-                type: 'spring',
-                stiffness: 80,
-                damping: 20
-            }
-        }
-    };
-
     return (
-        <div className="min-h-screen relative overflow-hidden font-sans bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 selection:bg-blue-200 dark:selection:bg-blue-800 transition-colors duration-300">
-            {/* Animated Gradient Background */}
+        <div className="min-h-screen relative overflow-x-hidden font-sans bg-white dark:bg-gray-950 selection:bg-blue-200 dark:selection:bg-blue-800 transition-colors duration-300">
+            <Navbar />
 
-            {/* Top Left - Blue Gradient with Animation */}
-            <motion.div
-                animate={{
-                    scale: [1, 1.1, 1],
-                    opacity: [0.5, 0.6, 0.5]
-                }}
-                transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute top-[-20%] left-[-20%] w-[70%] h-[90%] rounded-full bg-gradient-to-br from-blue-500/50 via-blue-400/40 to-blue-300/30 blur-[100px] -z-10 will-change-transform"
-            />
+            {/* Hero Section */}
+            <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
+                {/* Background Blobs */}
+                <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl animate-pulse"></div>
+                <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-96 h-96 bg-purple-400/10 rounded-full blur-3xl animate-pulse"></div>
 
-            {/* Top Right - Purple/Pink Gradient with Animation */}
-            <motion.div
-                animate={{
-                    scale: [1, 1.15, 1],
-                    opacity: [0.5, 0.55, 0.5]
-                }}
-                transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-                className="absolute top-[-15%] right-[-20%] w-[65%] h-[85%] rounded-full bg-gradient-to-bl from-purple-500/50 via-pink-500/40 to-rose-400/30 blur-[100px] -z-10 will-change-transform"
-            />
-
-            {/* Bottom Left - Orange Gradient with Animation */}
-            <motion.div
-                animate={{
-                    scale: [1, 1.12, 1],
-                    opacity: [0.45, 0.5, 0.45]
-                }}
-                transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-                className="absolute bottom-[-15%] left-[-15%] w-[60%] h-[70%] rounded-full bg-gradient-to-tr from-orange-500/45 via-amber-400/35 to-yellow-300/25 blur-[90px] -z-10 will-change-transform"
-            />
-
-            {/* Bottom Right - Indigo/Violet Gradient with Animation */}
-            <motion.div
-                animate={{
-                    scale: [1, 1.08, 1],
-                    opacity: [0.45, 0.52, 0.45]
-                }}
-                transition={{ duration: 11, repeat: Infinity, ease: "easeInOut", delay: 3 }}
-                className="absolute bottom-[-20%] right-[-15%] w-[55%] h-[75%] rounded-full bg-gradient-to-tl from-indigo-500/45 via-violet-500/35 to-purple-400/25 blur-[95px] -z-10 will-change-transform"
-            />
-
-
-
-
-            {/* Header - Fixed and Stable */}
-            <header
-                className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100 dark:border-gray-800 shadow-sm transition-colors duration-300"
-            >
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between h-20">
-                        {/* Logo */}
-                        <div className="flex items-center gap-3 cursor-pointer group" onClick={() => navigate('/')}>
-                            {/* Programmatic Logo - Magnifying Glass with Growth Chart */}
-                            <div className="w-10 h-10 relative flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                                <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-sm" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    {/* Glass Circle - Perfectly Centered */}
-                                    <circle cx="50" cy="50" r="38" stroke="#2D60FF" strokeWidth="8" fill="white" className="dark:fill-gray-800" />
-
-                                    {/* Handle */}
-                                    <path d="M77 77L92 92" stroke="#2D60FF" strokeWidth="10" strokeLinecap="round" />
-
-                                    {/* Centered Bar Chart - Scaled to fit safely inside */}
-                                    <path d="M32 62V52" stroke="#60A5FA" strokeWidth="6" strokeLinecap="round" />
-                                    <path d="M44 62V42" stroke="#2D60FF" strokeWidth="6" strokeLinecap="round" />
-                                    <path d="M56 62V33" stroke="#4ADE80" strokeWidth="6" strokeLinecap="round" />
-                                    <path d="M68 62V48" stroke="#60A5FA" strokeWidth="6" strokeLinecap="round" />
-
-                                    {/* Growth Arrow - Fully contained */}
-                                    <path d="M28 58L42 45L52 50L70 28" stroke="#16A34A" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
-                                    <path d="M70 28H58M70 28V40" stroke="#16A34A" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                            </div>
-                            <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100 tracking-tight transition-colors duration-200">
-                                FixMyIndia / <span className="text-blue-600 dark:text-blue-400">VishwaGuru</span>
-                            </h1>
-                        </div>
-
-                        <div className="flex items-center gap-4">
-                            <LanguageSelector />
-                            {/* Dark Mode Toggle */}
-                            <button
-                                onClick={toggleDarkMode}
-                                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
-                                title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-                            >
-                                {isDarkMode ? (
-                                    <Sun size={20} className="text-yellow-400" />
-                                ) : (
-                                    <Moon size={20} className="text-gray-700" />
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </header>
-
-            {/* Main Content */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
-                {/* Hero Section */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 mb-24 items-center">
-                    {/* Left Content (5 cols) */}
-                    <motion.div
-                        variants={slideInLeft}
-                        initial="hidden"
-                        animate="visible"
-                        className="lg:col-span-10 xl:col-span-5 space-y-8"
-                    >
-                        <div className="space-y-6">
-                            <motion.h1
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.3, delay: 0.1 }}
-                                className="text-4xl md:text-5xl lg:text-6xl font-black text-gray-900 dark:text-white leading-[1.1] tracking-tight transition-colors duration-300"
-                            >
-                                <motion.span
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ duration: 0.3, delay: 0.2 }}
-                                    className="inline-block"
-                                >
-                                    {t('home.landing.empowering')}
-                                </motion.span>
-                                <br />
-                                <motion.span
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ duration: 0.3, delay: 0.3 }}
-                                    className="text-gray-400 dark:text-gray-500 font-bold inline-block transition-colors duration-300"
-                                >
-                                    {t('home.landing.governance')}
-                                </motion.span>
-                            </motion.h1>
-                            <motion.p
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.3, delay: 0.4 }}
-                                className="text-lg text-gray-600 dark:text-gray-300 leading-relaxed max-w-lg transition-colors duration-300"
-                            >
-                                {t('home.landing.subtitle')}
-                            </motion.p>
-                        </div>
-
-                        <motion.button
-                            whileHover={{ scale: 1.05, translateY: -3 }}
-                            whileTap={{ scale: 0.95 }}
-                            transition={{ duration: 0.15 }}
-                            onClick={() => navigate('/login')}
-                            className="bg-[#2D60FF] hover:bg-blue-700 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-[0_10px_20px_-5px_rgba(37,99,235,0.3)] hover:shadow-[0_15px_30px_-5px_rgba(37,99,235,0.5)] transition-all duration-150 flex items-center gap-2 group"
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
+                        <motion.div
+                            initial={{ opacity: 0, x: -50 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.6 }}
+                            className="lg:col-span-12 xl:col-span-6 space-y-10"
                         >
-                            {t('home.landing.cta')}
-                            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                        </motion.button>
-                    </motion.div>
+                            <div className="space-y-6">
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 text-blue-600 dark:text-blue-400 text-sm font-bold"
+                                >
+                                    <Zap size={16} />
+                                    <span>{t('home.smartScanner') || 'Next Gen Civic Platform'}</span>
+                                </motion.div>
+                                <h1 className="text-5xl md:text-6xl lg:text-7xl font-black text-gray-900 dark:text-white leading-[1.05] tracking-tight">
+                                    {t('home.landing.empowering')} <br />
+                                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400">
+                                        {t('home.landing.governance')}
+                                    </span>
+                                </h1>
+                                <p className="text-xl text-gray-500 dark:text-gray-400 leading-relaxed max-w-xl">
+                                    {t('home.landing.subtitle')}
+                                </p>
+                            </div>
 
-                    {/* Right Content (7 cols) */}
-                    <motion.div
-                        variants={slideInRight}
-                        initial="hidden"
-                        animate="visible"
-                        className="lg:col-span-12 xl:col-span-7 grid grid-cols-1 md:grid-cols-2 gap-6 relative"
-                    >
-                        {/* Decorative background blur */}
-                        <div className="absolute -inset-10 bg-blue-50 dark:bg-blue-900/20 rounded-full blur-3xl -z-10 transition-colors duration-300" />
+                            <div className="flex flex-col sm:flex-row gap-4">
+                                <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => navigate('/login')}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white px-10 py-5 rounded-2xl font-bold text-lg shadow-xl shadow-blue-600/20 transition-all flex items-center justify-center gap-2 group"
+                                >
+                                    {t('home.landing.cta.button') || t('home.landing.cta')}
+                                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                </motion.button>
+                                <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    className="bg-white dark:bg-gray-900 border-2 border-gray-100 dark:border-gray-800 text-gray-900 dark:text-white px-10 py-5 rounded-2xl font-bold text-lg hover:border-blue-600 transition-all flex items-center justify-center gap-2"
+                                >
+                                    {t('nav.about')}
+                                </motion.button>
+                            </div>
 
-                        <div className="space-y-6">
-                            {/* DepMyIndia Card */}
-                            <motion.div
-                                initial={{ opacity: 0, y: 30 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.3, delay: 0.5 }}
-                                whileHover={{ y: -8, scale: 1.02 }}
-                                className="bg-gradient-to-r from-[#2D60FF] to-[#1E40AF] rounded-3xl p-6 text-white shadow-xl hover:shadow-2xl border-2 border-transparent hover:border-blue-300 relative overflow-hidden group transition-all duration-150"
-                            >
-                                <div className="absolute top-0 right-0 p-4 opacity-20">
-                                    <Search className="w-8 h-8" />
+                            <div className="flex items-center gap-6 pt-4">
+                                <div className="flex -space-x-3">
+                                    {[1, 2, 3, 4].map((i) => (
+                                        <div key={i} className="w-10 h-10 rounded-full border-2 border-white dark:border-gray-950 bg-gray-200 dark:bg-gray-800 flex items-center justify-center overflow-hidden">
+                                            <img src={`https://i.pravatar.cc/100?img=${i + 10}`} alt="User" />
+                                        </div>
+                                    ))}
                                 </div>
-                                <div className="flex items-start gap-4 mb-4 md:mb-8">
-                                    <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                                        <Building2 className="w-6 h-6" />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-bold text-lg">FixMyIndia</h3>
-                                        <p className="text-blue-100 text-sm opacity-90">{t('home.landing.cards.reportCitizens')} <br /> {t('home.landing.cards.generatedCivic')}</p>
-                                    </div>
-                                </div>
-                                <div className="h-1 w-full bg-white/20 rounded-full overflow-hidden">
-                                    <div className="h-full w-2/3 bg-white/40 rounded-full"></div>
-                                </div>
-                            </motion.div>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+                                    <span className="text-gray-900 dark:text-white font-bold">10k+</span> {t('home.landing.features.citizenCount')}
+                                </p>
+                            </div>
+                        </motion.div>
 
-                            {/* Government Services Card */}
-                            <motion.div
-                                whileHover={{ y: -8, scale: 1.02 }}
-                                transition={{ duration: 0.15 }}
-                                className="bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.05)] dark:shadow-[0_10px_30px_-5px_rgba(0,0,0,0.3)] hover:shadow-xl border-2 border-gray-100 dark:border-gray-700 hover:border-orange-400 dark:hover:border-orange-500 group transition-all duration-150"
-                            >
-                                <div className="flex justify-between items-center mb-6">
-                                    <h3 className="font-bold text-gray-800 dark:text-gray-100">{t('home.landing.cards.govServices')}</h3>
-                                    <div className="text-gray-400 dark:text-gray-500">•••</div>
-                                </div>
-                                <div className="bg-gradient-to-br from-orange-50 dark:from-orange-900/30 to-white dark:to-gray-800 border border-orange-100 dark:border-orange-800 rounded-2xl p-5 group-hover:border-orange-200 dark:group-hover:border-orange-600 transition-colors">
-                                    <div className="flex items-start gap-4">
-                                        <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900 text-orange-600 dark:text-orange-400 rounded-full flex items-center justify-center flex-shrink-0">
-                                            <MessageCircle className="w-5 h-5" />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.6, delay: 0.2 }}
+                            className="lg:col-span-12 xl:col-span-6 relative"
+                        >
+                            <div className="relative z-10 rounded-3xl overflow-hidden shadow-2xl border-8 border-white dark:border-gray-900">
+                                <img
+                                    src="https://images.unsplash.com/photo-1573164713988-8665fc963095?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80"
+                                    alt="Platform Demo"
+                                    className="w-full h-auto object-cover"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 to-transparent flex items-end p-8">
+                                    <div className="flex items-center gap-4 bg-white/10 backdrop-blur-md rounded-2xl p-4 w-full">
+                                        <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center text-white shadow-lg">
+                                            <CheckCircle2 />
                                         </div>
                                         <div>
-                                            <h4 className="font-bold text-gray-900 dark:text-white mb-1">{t('home.landing.cards.questionGov')}</h4>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400 leading-snug">{t('home.landing.cards.govDesc')}</p>
+                                            <p className="text-white font-bold text-sm">Issue #3928 Resolved</p>
+                                            <p className="text-gray-300 text-xs text-blue-400">Pothole fixed in 48 hours</p>
                                         </div>
                                     </div>
                                 </div>
-                            </motion.div>
-                        </div>
-
-                        {/* Community Image Card */}
-                        <motion.div
-                            whileHover={{ y: -5 }}
-                            className="bg-gray-900 dark:bg-gray-800 rounded-3xl overflow-hidden shadow-xl h-full min-h-[300px] relative group"
-                        >
-                            <img
-                                src="https://images.unsplash.com/photo-1557804506-669a67965ba0?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
-                                alt="Community"
-                                className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-60 transition-opacity duration-500"
-                            />
-                            <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/80 dark:from-black/90 to-transparent">
-                                <p className="text-white font-medium mb-1">{t('home.landing.cards.communityAction')}</p>
-                                <p className="text-gray-300 dark:text-gray-400 text-sm">{t('home.landing.cards.joinMovement')}</p>
                             </div>
+
+                            {/* Decorative elements */}
+                            <div className="absolute -top-10 -right-10 w-40 h-40 bg-orange-400/20 rounded-full blur-2xl"></div>
+                            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-blue-400/20 rounded-full blur-2xl"></div>
                         </motion.div>
-                    </motion.div>
+                    </div>
                 </div>
+            </section>
 
-                {/* Bottom Features Section */}
-                <motion.div
-                    variants={containerVariants}
-                    initial="hidden"
-                    animate="visible"
-                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-20"
-                >
-                    {/* Feature 1 */}
-                    <motion.div
-                        variants={itemVariants}
-                        whileHover={{ y: -8, scale: 1.02 }}
-                        transition={{ duration: 0.15 }}
-                        className="bg-white dark:bg-gray-800 p-8 rounded-3xl border-2 border-gray-100 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.02)] dark:shadow-[0_4px_20px_-2px_rgba(0,0,0,0.2)] hover:shadow-xl text-center group transition-all duration-150"
-                    >
-                        <div className="w-16 h-16 mx-auto mb-6 relative">
-                            <div className="absolute inset-0 bg-gray-100 dark:bg-gray-700 rounded-2xl transform rotate-3 group-hover:rotate-12 transition-transform"></div>
-                            <div className="absolute inset-0 bg-white dark:bg-gray-700 border-2 border-gray-100 dark:border-gray-600 rounded-2xl flex items-center justify-center relative z-10">
-                                <Building2 className="w-8 h-8 text-gray-700 dark:text-gray-300" />
-                            </div>
-                        </div>
-                        <h3 className="font-bold text-gray-900 dark:text-white mb-1">{t('home.landing.features.publicTrust')}</h3>
-                        <p className="text-gray-500 dark:text-gray-400 text-sm">{t('home.landing.features.ethics')}</p>
-                    </motion.div>
+            {/* Services Section */}
+            <section id="services" className="py-32 relative overflow-hidden transition-colors duration-300">
+                {/* Visual Background Elements */}
+                <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-gray-800 to-transparent"></div>
+                <div className="absolute -top-24 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-[120px] pointer-events-none"></div>
+                <div className="absolute top-1/2 right-0 w-80 h-80 bg-purple-500/5 rounded-full blur-[100px] pointer-events-none"></div>
 
-                    {/* Feature 2 (Green Accent) */}
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                     <motion.div
-                        variants={itemVariants}
-                        whileHover={{ y: -8, scale: 1.02 }}
-                        transition={{ duration: 0.15 }}
-                        className="bg-white dark:bg-gray-800 p-8 rounded-3xl border-2 border-gray-100 dark:border-gray-700 hover:border-green-400 dark:hover:border-green-500 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.02)] dark:shadow-[0_4px_20px_-2px_rgba(0,0,0,0.2)] hover:shadow-xl text-center group transition-all duration-150"
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        className="text-center max-w-3xl mx-auto mb-24 space-y-6"
                     >
-                        <div className="w-16 h-16 mx-auto mb-6 bg-green-50 dark:bg-green-900/30 border border-green-100 dark:border-green-800 rounded-2xl flex items-center justify-center">
-                            <MessageCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
-                        </div>
-                        <h3 className="font-bold text-gray-900 dark:text-white mb-1">{t('home.landing.features.civicIssues')}</h3>
-                        <p className="text-gray-500 dark:text-gray-400 text-sm">{t('home.landing.features.reportProblems')}</p>
-                    </motion.div>
-
-                    {/* Feature 3 */}
-                    <motion.div
-                        variants={itemVariants}
-                        whileHover={{ y: -8, scale: 1.02 }}
-                        transition={{ duration: 0.15 }}
-                        className="bg-white dark:bg-gray-800 p-8 rounded-3xl border-2 border-gray-100 dark:border-gray-700 hover:border-purple-400 dark:hover:border-purple-500 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.02)] dark:shadow-[0_4px_20px_-2px_rgba(0,0,0,0.2)] hover:shadow-xl text-center transition-all duration-150"
-                    >
-                        <div className="w-16 h-16 mx-auto mb-6 bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 rounded-2xl flex items-center justify-center">
-                            <Star className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-                        </div>
-                        <h3 className="font-bold text-gray-900 dark:text-white mb-1">{t('home.landing.features.voiceVote')}</h3>
-                        <p className="text-gray-500 dark:text-gray-400 text-xs">{t('home.landing.features.shareIdeas')}</p>
-                    </motion.div>
-
-                    {/* AI Header (Span 4th col) */}
-                    <motion.div
-                        variants={itemVariants}
-                        className="space-y-4 flex flex-col justify-center pl-4"
-                    >
-                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white leading-tight transition-colors duration-300">
-                            {t('home.landing.features.aiDemocracy')} <br /> {t('home.landing.features.civicActions')}
+                        <h2 className="text-blue-600 dark:text-blue-400 font-black tracking-[0.2em] uppercase text-xs">
+                            {t('nav.services')}
                         </h2>
-                        <p className="text-gray-500 dark:text-gray-400 text-sm transition-colors duration-300">
-                            {t('home.landing.features.aiDesc')}
+                        <h3 className="text-4xl md:text-5xl lg:text-6xl font-black text-gray-900 dark:text-white leading-[1.1]">
+                            {t('home.landing.aiDemocracy') || 'AI-Powered Digital Democracy'}
+                        </h3>
+                        <div className="h-1.5 w-24 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full mx-auto mt-4"></div>
+                        <p className="text-gray-500 dark:text-gray-400 text-lg md:text-xl font-medium pt-2">
+                            {t('home.landing.features.aiDesc') || 'State-of-the-art tools for the modern citizen.'}
                         </p>
                     </motion.div>
-                </motion.div>
 
-                {/* AI Features Grid */}
-                {/* Professional Stats/Features Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mt-16">
-                    {[
-                        {
-                            icon: <Star className="w-6 h-6" />,
-                            title: t('home.landing.features.smartAnalysis'),
-                            subtitle: t('home.landing.features.aiInsights'),
-                            bg: "bg-blue-50 dark:bg-blue-900/30",
-                            color: "text-blue-600 dark:text-blue-400",
-                            border: "hover:border-blue-200 dark:hover:border-blue-600"
-                        },
-                        {
-                            icon: <Users className="w-6 h-6" />,
-                            title: t('home.landing.cards.communityAction'),
-                            subtitle: t('home.landing.features.citizenCount'),
-                            bg: "bg-purple-50 dark:bg-purple-900/30",
-                            color: "text-purple-600 dark:text-purple-400",
-                            border: "hover:border-purple-200 dark:hover:border-purple-600"
-                        },
-                        {
-                            icon: <Shield className="w-6 h-6" />,
-                            title: t('home.landing.features.secureSafe'),
-                            subtitle: t('home.landing.features.verifiedReports'),
-                            bg: "bg-emerald-50 dark:bg-emerald-900/30",
-                            color: "text-emerald-600 dark:text-emerald-400",
-                            border: "hover:border-emerald-200 dark:hover:border-emerald-600"
-                        },
-                        {
-                            icon: <FileText className="w-6 h-6" />,
-                            title: t('home.landing.features.quickAction'),
-                            subtitle: t('home.landing.features.responseTime'),
-                            bg: "bg-orange-50 dark:bg-orange-900/30",
-                            color: "text-orange-600 dark:text-orange-400",
-                            border: "hover:border-orange-200 dark:hover:border-orange-600"
-                        }
-                    ].map((item, index) => (
-                        <motion.div
-                            key={index}
-                            whileHover={{ y: -5 }}
-                            className={`bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-xl transition-all duration-300 group ${item.border}`}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {[
+                            {
+                                icon: <Zap size={28} />,
+                                title: t('home.smartScanner') || 'Real-time Detection',
+                                desc: 'AI-powered detection for potholes, garbage, and more.',
+                                color: "blue",
+                                tag: "AI Feature"
+                            },
+                            {
+                                icon: <Globe size={28} />,
+                                title: t('home.landing.features.publicTrust') || 'Global Transparency',
+                                desc: 'Every report is tracked and verified for absolute accountability.',
+                                color: "emerald",
+                                tag: "Platform"
+                            },
+                            {
+                                icon: <Shield size={28} />,
+                                title: t('home.landing.features.secureSafe') || 'Secure Escapes',
+                                desc: 'End-to-end encrypted reporting and privacy-first data handling.',
+                                color: "indigo",
+                                tag: "Security"
+                            },
+                            {
+                                icon: <Star size={28} />,
+                                title: t('home.landing.features.smartAnalysis') || 'Data Insights',
+                                desc: 'Advanced heatmaps and trend analysis for civic planning.',
+                                color: "purple",
+                                tag: "Analysis"
+                            },
+                            {
+                                icon: <Users size={28} />,
+                                title: t('home.landing.cards.communityAction') || 'Social Impact',
+                                desc: 'Collaborate with fellow citizens and organize local cleanups.',
+                                color: "orange",
+                                tag: "Community"
+                            },
+                            {
+                                icon: <FileText size={28} />,
+                                title: t('home.landing.features.quickAction') || 'Resolution Hub',
+                                desc: 'Direct escalation to relevant authorities with automated tracking.',
+                                color: "rose",
+                                tag: "Action"
+                            }
+                        ].map((service, index) => (
+                            <motion.div
+                                key={index}
+                                initial={{ opacity: 0, y: 30 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ delay: index * 0.1 }}
+                                className="group relative"
+                                onClick={() => navigate('/report')}
+                            >
+                                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent dark:from-white/5 dark:to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-[2.5rem] blur-xl -z-10"></div>
+                                <div className="h-full bg-white/40 dark:bg-gray-950/40 backdrop-blur-xl p-10 rounded-[2.5rem] border border-white/20 dark:border-gray-800/50 shadow-[0_8px_32px_rgba(0,0,0,0.05)] hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-500 hover:-translate-y-2 flex flex-col items-start text-left cursor-pointer">
+                                    <div className={`p-4 rounded-2xl bg-gradient-to-br from-${service.color}-500 to-${service.color}-600 text-white mb-8 shadow-lg shadow-${service.color}-500/20 group-hover:scale-110 transition-transform duration-500`}>
+                                        {service.icon}
+                                    </div>
+                                    <div className={`px-3 py-1 bg-${service.color}-100/50 dark:bg-${service.color}-900/20 text-${service.color}-600 dark:text-${service.color}-400 text-[10px] font-black uppercase tracking-widest rounded-full mb-4`}>
+                                        {service.tag}
+                                    </div>
+                                    <h4 className="text-2xl font-black text-gray-900 dark:text-white mb-4 leading-tight">{service.title}</h4>
+                                    <p className="text-gray-500 dark:text-gray-400 leading-relaxed font-medium">
+                                        {service.desc}
+                                    </p>
+                                    <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800/50 w-full">
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); navigate('/report'); }}
+                                            className="text-sm font-black text-blue-600 dark:text-blue-400 flex items-center gap-2 group/btn transition-all"
+                                        >
+                                            Learn More
+                                            <ArrowRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </div>
+
+                    {/* Secondary Services/Demos CTA */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: 0.5 }}
+                        className="mt-24 p-8 md:p-12 rounded-[3.5rem] bg-gray-900 dark:bg-blue-600 flex flex-col md:flex-row items-center justify-between gap-10 shadow-2xl relative overflow-hidden"
+                    >
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -mr-20 -mt-20"></div>
+                        <div className="relative z-10">
+                            <h4 className="text-3xl font-black text-white mb-4">Want to see it in action?</h4>
+                            <p className="text-gray-400 dark:text-blue-100 text-lg">Explore our live demo with interactive reporting tools.</p>
+                        </div>
+                        <button
+                            onClick={() => navigate('/login')}
+                            className="relative z-10 bg-white dark:bg-gray-950 text-gray-900 dark:text-white px-10 py-5 rounded-2xl font-black shadow-xl hover:scale-105 transition-transform"
                         >
-                            <div className="flex items-center justify-between mb-4">
-                                <div className={`w-12 h-12 ${item.bg} ${item.color} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
-                                    {item.icon}
+                            Get Started Now
+                        </button>
+                    </motion.div>
+                </div>
+            </section>
+
+            {/* About Section */}
+            <section id="about" className="py-24 overflow-hidden">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            whileInView={{ opacity: 1, scale: 1 }}
+                            viewport={{ once: true }}
+                            className="relative"
+                        >
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-4 pt-12">
+                                    <div className="rounded-3xl overflow-hidden shadow-lg h-64 bg-blue-600 flex flex-col items-center justify-center text-white p-6 text-center">
+                                        <Globe size={48} className="mb-4" />
+                                        <h5 className="text-4xl font-black">150+</h5>
+                                        <p className="text-sm opacity-80">Cities Covered</p>
+                                    </div>
+                                    <div className="rounded-3xl overflow-hidden shadow-lg h-48">
+                                        <img src="https://images.unsplash.com/photo-1449824913935-59a10b8d2000?auto=format&fit=crop&w=400&q=80" alt="About 1" className="w-full h-full object-cover" />
+                                    </div>
+                                </div>
+                                <div className="space-y-4">
+                                    <div className="rounded-3xl overflow-hidden shadow-lg h-48">
+                                        <img src="https://images.unsplash.com/photo-1541810270633-93720766f628?auto=format&fit=crop&w=400&q=80" alt="About 2" className="w-full h-full object-cover" />
+                                    </div>
+                                    <div className="rounded-3xl overflow-hidden shadow-lg h-64 bg-indigo-600 flex flex-col items-center justify-center text-white p-6 text-center">
+                                        <Heart size={48} className="mb-4" />
+                                        <h5 className="text-4xl font-black">98%</h5>
+                                        <p className="text-sm opacity-80">Satisfaction Rate</p>
+                                    </div>
                                 </div>
                             </div>
-                            <h3 className="font-bold text-gray-900 dark:text-white text-lg">{item.title}</h3>
-                            <p className="text-gray-500 dark:text-gray-400 text-sm font-medium mt-1">{item.subtitle}</p>
+                            <div className="absolute -z-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-blue-600/10 rounded-full blur-[100px]"></div>
                         </motion.div>
-                    ))}
-                </div>
-            </div>
 
-            {/* Simple Footer */}
-            <div className="text-center py-8 bg-black dark:bg-gray-950 text-white text-sm border-t border-gray-800 dark:border-gray-700 mt-12 transition-colors duration-300">
-                © {new Date().getFullYear()} VishwaGuru. All rights reserved.
-            </div>        </div>
+                        <motion.div
+                            initial={{ opacity: 0, x: 50 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true }}
+                            className="space-y-8"
+                        >
+                            <div className="space-y-4">
+                                <h2 className="text-blue-600 dark:text-blue-400 font-black tracking-widest uppercase text-sm">{t('nav.about')}</h2>
+                                <h3 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white leading-tight">
+                                    {t('home.landing.about.title').split('Authority')[0]} <span className="text-blue-600">Citizens</span> & <span className="text-indigo-600">Authority</span>
+                                </h3>
+                                <p className="text-gray-500 dark:text-gray-400 text-lg leading-relaxed">
+                                    {t('home.landing.about.subtitle')}
+                                </p>
+                            </div>
+
+                            <ul className="space-y-4">
+                                {[
+                                    t('home.landing.about.feature1'),
+                                    t('home.landing.about.feature2'),
+                                    t('home.landing.about.feature3'),
+                                    t('home.landing.about.feature4')
+                                ].map((item, i) => (
+                                    <li key={i} className="flex items-center gap-3 text-gray-700 dark:text-gray-300 font-bold">
+                                        <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+                                            <CheckCircle2 size={16} />
+                                        </div>
+                                        {item}
+                                    </li>
+                                ))}
+                            </ul>
+
+                            <button className="text-blue-600 font-black flex items-center gap-2 group">
+                                {t('home.landing.about.mission')}
+                                <ArrowRight className="group-hover:translate-x-1 transition-transform" />
+                            </button>
+                        </motion.div>
+                    </div>
+                </div>
+            </section>
+
+            {/* CTA Section */}
+            <section id="contact" className="py-24">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <motion.div
+                        whileHover={{ scale: 1.01 }}
+                        className="relative rounded-[40px] bg-gradient-to-tr from-blue-700 via-blue-600 to-indigo-700 p-12 lg:p-24 overflow-hidden shadow-2xl shadow-blue-600/30"
+                    >
+                        {/* Decorative Circles */}
+                        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
+                        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-indigo-400/20 rounded-full blur-3xl"></div>
+
+                        <div className="relative z-10 text-center space-y-10">
+                            <h2 className="text-4xl md:text-6xl font-black text-white leading-tight">
+                                {t('home.landing.cta.title')}
+                            </h2>
+                            <p className="text-blue-100 text-xl max-w-2xl mx-auto opacity-90">
+                                {t('home.landing.cta.subtitle')}
+                            </p>
+                            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                                <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => navigate('/signup')}
+                                    className="bg-white text-blue-600 px-10 py-5 rounded-2xl font-black text-lg transition-all shadow-xl shadow-black/10"
+                                >
+                                    {t('home.landing.cta.button')}
+                                </motion.button>
+                                <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    className="bg-blue-800/40 backdrop-blur-md border border-white/20 text-white px-10 py-5 rounded-2xl font-black text-lg hover:bg-blue-800/60 transition-all"
+                                >
+                                    {t('home.landing.cta.support')}
+                                </motion.button>
+                            </div>
+                        </div>
+                    </motion.div>
+                </div>
+            </section>
+
+            <Footer />
+        </div>
     );
 };
 

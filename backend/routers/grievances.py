@@ -137,12 +137,24 @@ def get_grievance(grievance_id: int, db: Session = Depends(get_db)):
 
 @router.get("/api/escalation-stats", response_model=EscalationStatsResponse)
 def get_escalation_stats(db: Session = Depends(get_db)):
-    """Get escalation statistics"""
+    """
+    Get escalation statistics.
+    Optimized: Uses a single GROUP BY query instead of 4 separate count queries.
+    """
     try:
-        total_grievances = db.query(func.count(Grievance.id)).scalar()
-        escalated_grievances = db.query(func.count(Grievance.id)).filter(Grievance.status == "escalated").scalar()
-        active_grievances = db.query(func.count(Grievance.id)).filter(Grievance.status.in_(["open", "in_progress"])).scalar()
-        resolved_grievances = db.query(func.count(Grievance.id)).filter(Grievance.status == "resolved").scalar()
+        # Perform aggregation in a single query for performance
+        status_counts = db.query(
+            Grievance.status,
+            func.count(Grievance.id)
+        ).group_by(Grievance.status).all()
+
+        # Process results into a dictionary for easy lookup
+        counts_dict = {status.value if hasattr(status, 'value') else status: count for status, count in status_counts}
+
+        total_grievances = sum(counts_dict.values())
+        escalated_grievances = counts_dict.get("escalated", 0)
+        active_grievances = counts_dict.get("open", 0) + counts_dict.get("in_progress", 0)
+        resolved_grievances = counts_dict.get("resolved", 0)
 
         escalation_rate = (escalated_grievances / total_grievances * 100) if total_grievances > 0 else 0
 
