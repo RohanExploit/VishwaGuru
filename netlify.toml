@@ -8,9 +8,9 @@
   # Build command
   command = "npm install && npm run build"
 
-# Build environment
 [build.environment]
   NODE_VERSION = "20"
+  CI = "false"
 
 # Redirects for SPA
 [[redirects]]

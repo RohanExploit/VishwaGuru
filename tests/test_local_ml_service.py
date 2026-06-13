@@ -265,16 +265,16 @@ class TestIntegrationWithMain:
         img_byte_arr.seek(0)
         return img_byte_arr.getvalue()
     
-    def test_main_imports_unified_service(self):
-        """Test that main.py correctly imports the unified detection service."""
+    def test_detection_router_imports_unified_service(self):
+        """Test that detection router correctly imports the unified detection service."""
         try:
             # This should not raise an ImportError
-            from main import detect_vandalism_local, detect_flooding_local, detect_infrastructure_local
-            assert callable(detect_vandalism_local)
-            assert callable(detect_flooding_local)
-            assert callable(detect_infrastructure_local)
+            from backend.routers.detection import detect_vandalism_unified, detect_flooding_unified, detect_infrastructure_unified
+            assert callable(detect_vandalism_unified)
+            assert callable(detect_flooding_unified)
+            assert callable(detect_infrastructure_unified)
         except ImportError as e:
-            pytest.fail(f"Failed to import detection functions from main: {e}")
+            pytest.fail(f"Failed to import detection functions from detection router: {e}")
 
 
 if __name__ == "__main__":

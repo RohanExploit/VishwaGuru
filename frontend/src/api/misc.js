@@ -4,7 +4,7 @@ import { fakeResponsibilityMap } from '../fakeData';
 export const miscApi = {
   getResponsibilityMap: async () => {
     try {
-      return await apiClient.get('/api/responsibility-map');
+      return await apiClient.get('/responsibility-map');
     } catch (error) {
       console.warn('Failed to fetch responsibility map, using fake data', error);
       return fakeResponsibilityMap;
@@ -12,18 +12,18 @@ export const miscApi = {
   },
 
   chat: async (message) => {
-      return await apiClient.post('/api/chat', { query: message });
+    return await apiClient.post('/chat', { query: message });
   },
 
   getRepContact: async (pincode) => {
-      return await apiClient.get(`/api/mh/rep-contacts?pincode=${pincode}`);
+    return await apiClient.get(`/mh/rep-contacts?pincode=${pincode}`);
   },
 
   getStats: async () => {
-      return await apiClient.get('/api/stats');
+    return await apiClient.get('/stats');
   },
 
   getLeaderboard: async () => {
-      return await apiClient.get('/api/leaderboard');
+    return await apiClient.get('/leaderboard');
   }
 };

@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - Akıllı Sivil Sorun Bildirici",
+        "subtitle": "Topluluğunuzdaki sivil sorunları bildirin ve takip edin",
+        "privacyActive": "Yapay Zeka Destekli Gizlilik Koruması Aktif",
+        "communityImpact": "Topluluk Etkisi",
+        "makingChange": "Birlikte değişim yaratıyoruz!",
+        "issuesSolved": "Çözülen Sorunlar",
+        "smartScanner": "Akıllı Şehir Tarayıcısı",
+        "aiPoweredDetection": "Yapay Zeka Destekli Anında Tespit",
+        "categories": {
+            "roadTraffic": "Yol & Trafik",
+            "environmentSafety": "Çevre & Güvenlik",
+            "civicServices": "Sivil Hizmetler",
+            "management": "Yönetim"
+        },
+        "issues": {
+            "pothole": "Çukur",
+            "blockedRoad": "Kapalı Yol",
+            "illegalParking": "Hatalı Park",
+            "darkStreet": "Karanlık Sokak",
+            "trafficSign": "Trafik İşareti",
+            "abandonedVehicle": "Terk Edilmiş Araç",
+            "garbage": "Çöp",
+            "flood": "Su Baskını",
+            "fireSmoke": "Yangın/Duman",
+            "treeHazard": "Ağaç Tehlikesi",
+            "strayAnimal": "Sokak Hayvanı",
+            "pestControl": "Haşere Kontrolü",
+            "reportIssue": "Sorun Bildir",
+            "brokenInfra": "Bozuk Altyapı",
+            "graffiti": "Grafiti",
+            "findMLA": "Temsilci Bul",
+            "grievanceManagement": "Şikayet Yönetimi",
+            "viewStats": "İstatistikleri Gör",
+            "leaderboard": "Liderlik Tablosu",
+            "responsibilityMap": "Sorumluluk Haritası",
+            "noise": "Gürültü",
+            "crowd": "Kalabalık",
+            "waterLeak": "Su Sızıntısı",
+            "waste": "Atık Ayıştırıcı",
+            "civicEye": "Sivil Göz",
+            "myReports": "Raporlarım",
+            "analyzeGrievance": "Şikayeti Analiz Et"
+        },
+        "tools": {
+            "whoIsResponsible": "Kim Sorumlu?",
+            "topReporters": "En Çok Bildirenler",
+            "cameraCheck": "Kamera Kontrolü"
+        },
+        "activity": {
+            "communityActivity": "Topluluk Etkinliği",
+            "liveFeed": "Canlı Akış",
+            "noActivity": "Gösterilecek yeni etkinlik yok.",
+            "loadMore": "Daha Fazla Yükle",
+            "verify": "Doğrula"
+        },
+        "stats": {
+            "totalImpact": "Toplam Etki",
+            "issuesResolved": "Çözülen Sorunlar",
+            "activeUsers": "Aktif Kullanıcılar"
+        },
+        "landing": {
+            "empowering": "Vatandaşları Güçlendirme",
+            "governance": "Daha İyi Yönetişim İçin",
+            "subtitle": "Sivil sorunları bildirin ve Yapay Zeka tarafından oluşturulan çözümler alın. Yönetişime aktif olarak katılmak için yetkililerle Telegram üzerinden bağlantı kurun.",
+            "cta": "Sorun Bildir",
+            "cards": {
+                "reportCitizens": "Vatandaşlarla Bildir",
+                "generatedCivic": "oluşturulan sivil yönetişim",
+                "govServices": "Kamu Hizmetleri",
+                "questionGov": "Hükümeti Sorgulayın",
+                "govDesc": "Soru sorun, şeffaflık talep edin ve yetkilileri sorumlu tutun",
+                "communityAction": "Topluluk Eylemi",
+                "joinMovement": "Harekete katılın"
+            },
+            "features": {
+                "publicTrust": "Kamu Güveni",
+                "ethics": "& Etik",
+                "civicIssues": "Sivil Sorunlar",
+                "reportProblems": "Sorunları bildirin",
+                "voiceVote": "Sesinizi Duyurun",
+                "shareIdeas": "Daha iyi politikalar için fikirlerinizi paylaşın",
+                "aiDemocracy": "Demokrasi İçin Yapay Zeka",
+                "civicActions": "& Sivil Eylemler",
+                "aiDesc": "Şeffaf yönetişim ve daha hızlı çözümler için teknolojiden yararlanma.",
+                "smartAnalysis": "Akıllı Analiz",
+                "aiInsights": "Yapay Zeka Destekli İçgörüler",
+                "citizenCount": "10 bin+ Aktif Vatandaş",
+                "secureSafe": "Güvenli & Emniyetli",
+                "verifiedReports": "Doğrulanmış Raporlar",
+                "quickAction": "Hızlı Eylem",
+                "responseTime": "24 Saat Yanıt Süresi"
+            }
+        }
+    },
+    "common": {
+        "loading": "Yükleniyor...",
+        "error": "Hata",
+        "submit": "Gönder",
+        "cancel": "İptal",
+        "yes": "Evet",
+        "no": "Hayır",
+        "back": "Geri"
+    }
+}

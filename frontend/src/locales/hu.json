@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - Okos Állampolgári Bejelentő",
+        "subtitle": "Jelentse be és kövesse nyomon a közösségi problémákat",
+        "privacyActive": "AI-alapú adatvédelem aktív",
+        "communityImpact": "Közösségi hatás",
+        "makingChange": "Együtt változást hozunk!",
+        "issuesSolved": "Megoldott problémák",
+        "smartScanner": "Smart City Szkenner",
+        "aiPoweredDetection": "Azonnali AI-észlelés",
+        "categories": {
+            "roadTraffic": "Út és forgalom",
+            "environmentSafety": "Környezet és biztonság",
+            "civicServices": "Közszolgáltatások",
+            "management": "Menedzsment"
+        },
+        "issues": {
+            "pothole": "Kátyú",
+            "blockedRoad": "Lezárt út",
+            "illegalParking": "Szabálytalan parkolás",
+            "darkStreet": "Sötét utca",
+            "trafficSign": "Közlekedési tábla",
+            "abandonedVehicle": "Elhagyott jármű",
+            "garbage": "Szemét",
+            "flood": "Árvíz",
+            "fireSmoke": "Tűz/Füst",
+            "treeHazard": "Veszélyes fa",
+            "strayAnimal": "Kóbor állat",
+            "pestControl": "Rágcsálóirtás",
+            "reportIssue": "Probléma bejelentése",
+            "brokenInfra": "Sérült infrastruktúra",
+            "graffiti": "Graffiti",
+            "findMLA": "Képviselő keresése",
+            "grievanceManagement": "Panaszkezelés",
+            "viewStats": "Statisztikák megtekintése",
+            "leaderboard": "Ranglista",
+            "responsibilityMap": "Felelősségi térkép",
+            "noise": "Zaj",
+            "crowd": "Tömeg",
+            "waterLeak": "Vízszivárgás",
+            "waste": "Hulladékválogató",
+            "civicEye": "Polgári szem",
+            "myReports": "Saját jelentéseim",
+            "analyzeGrievance": "Panasz elemzése"
+        },
+        "tools": {
+            "whoIsResponsible": "Ki a felelős?",
+            "topReporters": "Legjobb bejelentők",
+            "cameraCheck": "Kamera ellenőrzése"
+        },
+        "activity": {
+            "communityActivity": "Közösségi aktivitás",
+            "liveFeed": "Élő hírfolyam",
+            "noActivity": "Nincs megjeleníthető friss aktivitás.",
+            "loadMore": "Továbbiak betöltése",
+            "verify": "Ellenőrzés"
+        },
+        "stats": {
+            "totalImpact": "Teljes hatás",
+            "issuesResolved": "Megoldott problémák",
+            "activeUsers": "Aktív felhasználók"
+        },
+        "landing": {
+            "empowering": "Állampolgárok felhatalmazása",
+            "governance": "a jobb kormányzásért",
+            "subtitle": "Jelentse be a problémákat és kapjon AI által generált megoldásokat. Lépjen kapcsolatba a tisztviselőkkel Telegramon.",
+            "cta": "Probléma bejelentése",
+            "cards": {
+                "reportCitizens": "Bejelentés polgárokkal",
+                "generatedCivic": "generált polgári kormányzás",
+                "govServices": "Kormányzati szolgáltatások",
+                "questionGov": "Kérdezze a kormányt",
+                "govDesc": "Küldjön be kérdéseket, követeljen átláthatóságot és kérje számon a tisztviselőket",
+                "communityAction": "Közösségi fellépés",
+                "joinMovement": "Csatlakozzon a mozgalomhoz"
+            },
+            "features": {
+                "publicTrust": "Közbizalom",
+                "ethics": "& Etika",
+                "civicIssues": "Állampolgári ügyek",
+                "reportProblems": "Problémák bejelentése",
+                "voiceVote": "Hallassa a hangját",
+                "shareIdeas": "Ossza meg ötleteit a jobb politikákért",
+                "aiDemocracy": "AI a demokráciáért",
+                "civicActions": "& Polgári akciók",
+                "aiDesc": "Technológia alkalmazása az átlátható kormányzásért és a gyorsabb megoldásokért.",
+                "smartAnalysis": "Intelligens elemzés",
+                "aiInsights": "AI-alapú betekintések",
+                "citizenCount": "10k+ aktív állampolgár",
+                "secureSafe": "Biztonságos és megbízható",
+                "verifiedReports": "Ellenőrzött jelentések",
+                "quickAction": "Gyors intézkedés",
+                "responseTime": "24 órás válaszidő"
+            }
+        }
+    },
+    "common": {
+        "loading": "Betöltés...",
+        "error": "Hiba",
+        "submit": "Küldés",
+        "cancel": "Mégse",
+        "yes": "Igen",
+        "no": "Nem",
+        "back": "Vissza"
+    }
+}

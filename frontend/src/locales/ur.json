@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "وشو گرو - اسمارٹ شہری مسائل کا رپورٹر",
+        "subtitle": "اپنی کمیونٹی میں شہری مسائل کی اطلاع دیں اور ان پر نظر رکھیں",
+        "privacyActive": "اے آئی سے چلنے والا رازداری کا تحفظ فعال ہے",
+        "communityImpact": "کمیونٹی کا اثر",
+        "makingChange": "ہم مل کر تبدیلی لا رہے ہیں!",
+        "issuesSolved": "حل شدہ مسائل",
+        "smartScanner": "اسمارٹ سٹی اسکینر",
+        "aiPoweredDetection": "اے آئی پر مبنی فوری شناخت",
+        "categories": {
+            "roadTraffic": "سڑک اور ٹریفک",
+            "environmentSafety": "ماحول اور حفاظت",
+            "civicServices": "شہری خدمات",
+            "management": "انتظامیہ"
+        },
+        "issues": {
+            "pothole": "گڑھا",
+            "blockedRoad": "بند سڑک",
+            "illegalParking": "غیر قانونی پارکنگ",
+            "darkStreet": "اندھیری سڑک",
+            "trafficSign": "ٹریفک سائن",
+            "abandonedVehicle": "لاوارث گاڑی",
+            "garbage": "کچرا",
+            "flood": "سیلاب",
+            "fireSmoke": "آگ/دھواں",
+            "treeHazard": "درخت کا خطرہ",
+            "strayAnimal": "آوارہ جانور",
+            "pestControl": "کاؤنٹرول آف پیسٹس",
+            "reportIssue": "مسئلے کی اطلاع دیں",
+            "brokenInfra": "ٹوٹا ہوا بنیادی ڈھانچہ",
+            "graffiti": "دیواری تحریر",
+            "findMLA": "نمائندہ تلاش کریں",
+            "grievanceManagement": "شکایات کا انتظام",
+            "viewStats": "اعداد و شمار دیکھیں",
+            "leaderboard": "لیڈر بورڈ",
+            "responsibilityMap": "ذمہ داری کا نقشہ",
+            "noise": "شور",
+            "crowd": "ہجوم",
+            "waterLeak": "پانی کا رساؤ",
+            "waste": "کچرا چھانٹنے والا",
+            "civicEye": "شہری آنکھ",
+            "myReports": "میری رپورٹس",
+            "analyzeGrievance": "شکایت کا تجزیہ کریں"
+        },
+        "tools": {
+            "whoIsResponsible": "ذمہ دار کون ہے؟",
+            "topReporters": "اعلیٰ رپورٹرز",
+            "cameraCheck": "کیمرہ چیک"
+        },
+        "activity": {
+            "communityActivity": "کمیونٹی کی سرگرمی",
+            "liveFeed": "لائیو فیڈ",
+            "noActivity": "دکھانے کے لیے کوئی حالیہ سرگرمی نہیں ہے۔",
+            "loadMore": "مزید سرگرمیاں لوڈ کریں",
+            "verify": "تصدیق کریں"
+        },
+        "stats": {
+            "totalImpact": "کل اثر",
+            "issuesResolved": "حل شدہ مسائل",
+            "activeUsers": "سرگرم صارفین"
+        },
+        "landing": {
+            "empowering": "شہریوں کو بااختیار بنانا",
+            "governance": "بہتر گورننس کے لیے",
+            "subtitle": "شہری مسائل کی اطلاع دیں اور اے آئی سے تیار کردہ حل حاصل کریں۔ گورننس میں فعال طور پر حصہ لینے کے لیے ٹیلی گرام کے ذریعے عہدیداروں سے رابطہ کریں۔",
+            "cta": "مسئلے کی اطلاع دیں",
+            "cards": {
+                "reportCitizens": "شہریوں کے ساتھ اطلاع دیں",
+                "generatedCivic": "تیار کردہ شہری گورننس",
+                "govServices": "سرکاری خدمات",
+                "questionGov": "حکومت سے سوال کریں",
+                "govDesc": "سوالات جمع کرائیں، شفافیت کا مطالبہ کریں، اور عہدیداروں کو جوابدہ ٹھہرائیں",
+                "communityAction": "کمیونٹی ایکشن",
+                "joinMovement": "تحریک میں شامل ہوں"
+            },
+            "features": {
+                "publicTrust": "عوامی اعتماد",
+                "ethics": "& اخلاقیات",
+                "civicIssues": "شہری مسائل",
+                "reportProblems": "مسائل کی اطلاع دیں",
+                "voiceVote": "اپنی آواز اٹھائیں",
+                "shareIdeas": "بہتر پالیسیوں کے لیے خیالات شیئر کریں",
+                "aiDemocracy": "جمہوریت کے لیے اے آئی",
+                "civicActions": "& شہری اقدامات",
+                "aiDesc": "شفاف گورننس اور تیز تر حل کے لیے ٹیکنالوجی کا استعمال۔",
+                "smartAnalysis": "اسمارٹ تجزیہ",
+                "aiInsights": "اے آئی پر مبنی بصیرت",
+                "citizenCount": "10 ہزار سے زیادہ سرگرم شہری",
+                "secureSafe": "محفوظ اور مامون",
+                "verifiedReports": "تصدیق شدہ رپورٹس",
+                "quickAction": "فوری کارروائی",
+                "responseTime": "24 گھنٹے جوابی وقت"
+            }
+        }
+    },
+    "common": {
+        "loading": "لوڈ ہو رہا ہے...",
+        "error": "غلطی",
+        "submit": "جمع کرائیں",
+        "cancel": "منسوخ کریں",
+        "yes": "جی ہاں",
+        "no": "نہیں",
+        "back": "پیچھے"
+    }
+}
