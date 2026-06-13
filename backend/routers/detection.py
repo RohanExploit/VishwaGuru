@@ -5,9 +5,9 @@ import logging
 import time
 import hashlib
 
-from backend.utils import process_and_detect, validate_uploaded_file, process_uploaded_image
+from backend.utils import process_and_detect, validate_uploaded_file, process_uploaded_image, validate_image_for_processing
 from backend.schemas import DetectionResponse, UrgencyAnalysisRequest, UrgencyAnalysisResponse
-from backend.pothole_detection import detect_potholes, validate_image_for_processing
+from backend.pothole_detection import detect_potholes
 from backend.unified_detection_service import (
     detect_vandalism as detect_vandalism_unified,
     detect_infrastructure as detect_infrastructure_unified,
@@ -36,7 +36,9 @@ from backend.hf_api_service import (
     detect_civic_eye_clip,
     detect_graffiti_art_clip,
     detect_traffic_sign_clip,
-    detect_abandoned_vehicle_clip
+    detect_abandoned_vehicle_clip,
+    detect_facial_emotion,
+
 )
 from backend.dependencies import get_http_client
 from backend.cache import ThreadSafeCache
@@ -463,3 +465,23 @@ async def detect_abandoned_vehicle_endpoint(image: UploadFile = File(...)):
     except Exception as e:
         logger.error(f"Abandoned vehicle detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.post("/api/detect-emotion")
+async def detect_emotion_endpoint(
+    image: UploadFile = File(...),
+    client = backend.dependencies.Depends(get_http_client)
+):
+    """
+    Analyze facial emotions in the image using Hugging Face inference.
+    """
+    img_data = await validate_uploaded_file(image)
+    if "error" in img_data:
+        raise HTTPException(status_code=400, detail=img_data["error"])
+
+    processed_bytes = await run_in_threadpool(process_uploaded_image, img_data["bytes"])
+    result = await detect_facial_emotion(processed_bytes, client)
+
+    if "error" in result:
+        raise HTTPException(status_code=500, detail=result["error"])
+
+    return result

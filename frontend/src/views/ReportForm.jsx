@@ -5,6 +5,8 @@ import { Camera, Image as ImageIcon, CheckCircle2, AlertTriangle, Loader2, Layer
 import { useLocation } from 'react-router-dom';
 import { saveReportOffline, registerBackgroundSync } from '../offlineQueue';
 import VoiceInput from '../components/VoiceInput';
+import Webcam from 'react-webcam';
+
 import { detectorsApi } from '../api';
 
 // Get API URL from environment variable, fallback to relative URL for local dev
@@ -39,6 +41,26 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
   const [nearbyIssues, setNearbyIssues] = useState([]);
   const [checkingNearby, setCheckingNearby] = useState(false);
   const [showNearbyModal, setShowNearbyModal] = useState(false);
+  const [showWebcam, setShowWebcam] = useState(false);
+  const webcamRef = React.useRef(null);
+
+  const captureWebcam = React.useCallback(() => {
+    const imageSrc = webcamRef.current.getScreenshot();
+    if (imageSrc) {
+      // Convert base64 to File object
+      fetch(imageSrc)
+        .then(res => res.blob())
+        .then(blob => {
+          const file = new File([blob], "camera_capture.jpg", { type: "image/jpeg" });
+          setFormData(prev => ({ ...prev, image: file }));
+          setDepthMap(null);
+          setSeverity(null);
+          setAnalysisErrors(prev => ({ ...prev, severity: null }));
+          setShowWebcam(false);
+          analyzeImage(file);
+        });
+    }
+  }, [webcamRef]);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -614,14 +636,43 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
                   <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
                 </label>
 
-                <label className="group cursor-pointer bg-blue-50/50 dark:bg-blue-900/20 rounded-3xl border-2 border-dashed border-blue-200 dark:border-blue-800 p-6 text-center hover:border-blue-600 dark:hover:border-blue-400 transition-all flex flex-col items-center justify-center gap-3">
+                <button type="button" onClick={() => setShowWebcam(true)} className="group cursor-pointer bg-blue-50/50 dark:bg-blue-900/20 rounded-3xl border-2 border-dashed border-blue-200 dark:border-blue-800 p-6 text-center hover:border-blue-600 dark:hover:border-blue-400 transition-all flex flex-col items-center justify-center gap-3 w-full h-full">
                   <div className="p-4 bg-blue-100 dark:bg-blue-900 rounded-2xl group-hover:scale-110 transition-transform text-blue-600">
                     <Camera size={32} />
                   </div>
                   <span className="font-black text-sm text-blue-800 dark:text-blue-200">Snap Photo</span>
-                  <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageChange} />
-                </label>
+                </button>
               </div>
+
+              {showWebcam && (
+                <div className="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center p-4">
+                  <div className="relative w-full max-w-md bg-black rounded-3xl overflow-hidden border border-gray-800">
+                    <Webcam
+                      audio={false}
+                      ref={webcamRef}
+                      screenshotFormat="image/jpeg"
+                      videoConstraints={{ facingMode: "environment" }}
+                      className="w-full object-cover aspect-[3/4]"
+                    />
+                    <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent flex justify-center gap-6">
+                      <button
+                        type="button"
+                        onClick={() => setShowWebcam(false)}
+                        className="p-4 bg-gray-800 text-white rounded-full hover:bg-gray-700 transition"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={captureWebcam}
+                        className="p-4 bg-blue-600 text-white rounded-full hover:bg-blue-500 transition shadow-lg shadow-blue-500/50"
+                      >
+                        <Camera size={24} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Image Preview & Analysis Hub */}
               <AnimatePresence>
