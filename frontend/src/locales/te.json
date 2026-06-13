@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - స్మార్ట్ పౌర సమస్యల రిపోర్టర్",
+        "subtitle": "మీ సంఘంలోని పౌర సమస్యలను నివేదించండి మరియు ట్రాక్ చేయండి",
+        "privacyActive": "AI-ఆధారిత గోప్యతా రక్షణ క్రియాశీలంగా ఉంది",
+        "communityImpact": "కమ్యూనిటీ ప్రభావం",
+        "makingChange": "కలిసి మనం మార్పు తెస్తున్నాం!",
+        "issuesSolved": "పరిష్కరించబడిన సమస్యలు",
+        "smartScanner": "స్మార్ట్ సిటీ స్కానర్",
+        "aiPoweredDetection": "AI-ఆధారిత తక్షణ గుర్తింపు",
+        "categories": {
+            "roadTraffic": "రోడ్డు & ట్రాఫిక్",
+            "environmentSafety": "పర్యావరణం & భద్రత",
+            "civicServices": "పౌర సేవలు",
+            "management": "నిర్వహణ"
+        },
+        "issues": {
+            "pothole": "గుంత",
+            "blockedRoad": "రోడ్డు మూసివేత",
+            "illegalParking": "అక్రమ పార్కింగ్",
+            "darkStreet": "చీకటి వీధి",
+            "trafficSign": "ట్రాఫిక్ సంకేతాలు",
+            "abandonedVehicle": "వదిలివేసిన వాహనం",
+            "garbage": "చెత్త",
+            "flood": "వరద",
+            "fireSmoke": "అగ్ని/పొగ",
+            "treeHazard": "చెట్టు ప్రమాదం",
+            "strayAnimal": "వీధి జంతువులు",
+            "pestControl": "కీటకాల నియంత్రణ",
+            "reportIssue": "సమస్యను నివేదించండి",
+            "brokenInfra": "దెబ్బతిన్న మౌలిక సదుపాయాలు",
+            "graffiti": "గోడ రాతలు",
+            "findMLA": "ఎమ్మెల్యేని కనుగొనండి",
+            "grievanceManagement": "ఫిర్యాదుల నిర్వహణ",
+            "viewStats": "గణాంకాలను చూడండి",
+            "leaderboard": "లీడర్‌బోర్డ్",
+            "responsibilityMap": "బాధ్యత మ్యాప్",
+            "noise": "శబ్దం",
+            "crowd": "జనం",
+            "waterLeak": "నీటి లీకేజీ",
+            "waste": "చెత్త వర్గీకరణ",
+            "civicEye": "పౌర కన్ను",
+            "myReports": "నా నివేదికలు",
+            "analyzeGrievance": "ఫిర్యాదును విశ్లేషించండి"
+        },
+        "tools": {
+            "whoIsResponsible": "ఎవరు బాధ్యులు?",
+            "topReporters": "టాప్ రిపోర్టర్లు",
+            "cameraCheck": "కెమెరా తనిఖీ"
+        },
+        "activity": {
+            "communityActivity": "కమ్యూనిటీ కార్యకలాపాలు",
+            "liveFeed": "లైవ్ ఫీడ్",
+            "noActivity": "చూపించడానికి ఇటీవలి కార్యకలాపాలు లేవు.",
+            "loadMore": "మరిన్ని కార్యకలాపాలను లోడ్ చేయండి",
+            "verify": "ధృవీకరించండి"
+        },
+        "stats": {
+            "totalImpact": "మొత్తం ప్రభావం",
+            "issuesResolved": "పరిష్కరించబడిన సమస్యలు",
+            "activeUsers": "క్రియాశీల వినియోగదారులు"
+        },
+        "landing": {
+            "empowering": "పౌరుల సాధికారత",
+            "governance": "మెరుగైన పాలన కోసం",
+            "subtitle": "పౌర సమస్యలను నివేదించండి మరియు AI-సృష్టించిన పరిష్కారాలను పొందండి. పాలనలో చురుకుగా పాల్గొనడానికి టెలిగ్రామ్ ద్వారా అధికారులతో కనెక్ట్ అవ్వండి.",
+            "cta": "సమస్యను నివేదించండి",
+            "cards": {
+                "reportCitizens": "పౌరులతో నివేదించండి",
+                "generatedCivic": "సృష్టించబడిన పౌర పాలన",
+                "govServices": "ప్రభుత్వ సేవలు",
+                "questionGov": "ప్రభుత్వాన్ని ప్రశ్నించండి",
+                "govDesc": "ప్రశ్నలను సమర్పించండి, పారదర్శకతను కోరండి మరియు అధికారులను బాధ్యులను చేయండి",
+                "communityAction": "కమ్యూనిటీ యాక్షన్",
+                "joinMovement": "ఉద్యమంలో చేరండి"
+            },
+            "features": {
+                "publicTrust": "ప్రజల నమ్మకం",
+                "ethics": "& నైతికత",
+                "civicIssues": "పౌర సమస్యలు",
+                "reportProblems": "సమస్యలను నివేదించండి",
+                "voiceVote": "మీ గొంతును వినిపించండి",
+                "shareIdeas": "మెరుగైన విధానాల కోసం ఆలోచనలను పంచుకోండి",
+                "aiDemocracy": "ప్రజాస్వామ్యం కోసం AI",
+                "civicActions": "& పౌర చర్యలు",
+                "aiDesc": "పారదర్శక పాలన మరియు వేగవంతమైన పరిష్కారాల కోసం సాంకేతికతను ఉపయోగించడం.",
+                "smartAnalysis": "స్మార్ట్ విశ్లేషణ",
+                "aiInsights": "AI-ఆధారిత అంతర్దృష్టులు",
+                "citizenCount": "10k+ క్రియాశీల పౌరులు",
+                "secureSafe": "సురక్షితమైనది",
+                "verifiedReports": "ధృవీకరించబడిన నివేదికలు",
+                "quickAction": "వేగవంతమైన చర్య",
+                "responseTime": "24గం ప్రతిస్పందన సమయం"
+            }
+        }
+    },
+    "common": {
+        "loading": "లోడ్ అవుతోంది...",
+        "error": "లోపం",
+        "submit": "సమర్పించు",
+        "cancel": "రద్దు చేయి",
+        "yes": "అవును",
+        "no": "కాదు",
+        "back": "వెనుకకు"
+    }
+}

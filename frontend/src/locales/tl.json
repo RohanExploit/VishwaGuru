@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - Matalinong Tagapag-ulat ng Isyung Sibil",
+        "subtitle": "Iulat at subaybayan ang mga isyung sibil sa iyong komunidad",
+        "privacyActive": "Aktibo ang Proteksyon sa Privacy na Pinapagana ng AI",
+        "communityImpact": "Epekto sa Komunidad",
+        "makingChange": "Magkasama tayong gumagawa ng pagbabago!",
+        "issuesSolved": "Mga Isyung Nalutas",
+        "smartScanner": "Smart City Scanner",
+        "aiPoweredDetection": "Instant Detection na Pinapagana ng AI",
+        "categories": {
+            "roadTraffic": "Daan & Trapiko",
+            "environmentSafety": "Kapaligiran & Kaligtasan",
+            "civicServices": "Serbisyong Sibil",
+            "management": "Pamamahala"
+        },
+        "issues": {
+            "pothole": "Lubak",
+            "blockedRoad": "Harang sa Daan",
+            "illegalParking": "Iligal na Paradahan",
+            "darkStreet": "Madilim na Kalye",
+            "trafficSign": "Babala sa Trapiko",
+            "abandonedVehicle": "Inabandonang Sasakyan",
+            "garbage": "Basura",
+            "flood": "Baha",
+            "fireSmoke": "Sunog/Usok",
+            "treeHazard": "Panganib sa Puno",
+            "strayAnimal": "Ligaw na Hayop",
+            "pestControl": "Pagkontrol sa Peste",
+            "reportIssue": "Iulat ang Isyu",
+            "brokenInfra": "Sira-sirang Imprastraktura",
+            "graffiti": "Graffiti",
+            "findMLA": "Humanap ng Kinatawan",
+            "grievanceManagement": "Pamamahala ng Karaingan",
+            "viewStats": "Tingnan ang Stats",
+            "leaderboard": "Leaderboard",
+            "responsibilityMap": "Responsibility Map",
+            "noise": "Ingay",
+            "crowd": "Maraming Tao",
+            "waterLeak": "Leak ng Tubig",
+            "waste": "Tagapagsuri ng Basura",
+            "civicEye": "Civic Eye",
+            "myReports": "Aking mga Ulat",
+            "analyzeGrievance": "Suriin ang Karaingan"
+        },
+        "tools": {
+            "whoIsResponsible": "Sino ang Responsable?",
+            "topReporters": "Nangungunang Tagapag-ulat",
+            "cameraCheck": "Check ng Camera"
+        },
+        "activity": {
+            "communityActivity": "Aktibidad sa Komunidad",
+            "liveFeed": "Live Feed",
+            "noActivity": "Walang kamakailang aktibidad na maipakita.",
+            "loadMore": "Mag-load pa ng Aktibidad",
+            "verify": "I-verify"
+        },
+        "stats": {
+            "totalImpact": "Kabuuang Epekto",
+            "issuesResolved": "Mga Isyung Nalutas",
+            "activeUsers": "Aktibong Gumagamit"
+        },
+        "landing": {
+            "empowering": "Pagpapalakas sa mga Mamamayan",
+            "governance": "para sa Mas Mahusay na Pamamahala",
+            "subtitle": "Iulat ang mga isyung sibil at kumuha ng mga solusyong gawa ng AI. Kumonekta sa mga opisyal sa pamamagitan ng Telegram.",
+            "cta": "Iulat ang Isyu",
+            "cards": {
+                "reportCitizens": "Iulat kasama ang mga Mamamayan",
+                "generatedCivic": "nabuong pamamahalang sibil",
+                "govServices": "Serbisyo ng Gobyerno",
+                "questionGov": "Tanungin ang Gobyerno",
+                "govDesc": "Magsumite ng mga katanungan, humingi ng transparency, at panagutin ang mga opisyal",
+                "communityAction": "Aksyon ng Komunidad",
+                "joinMovement": "Sumali sa kilusan"
+            },
+            "features": {
+                "publicTrust": "Tiwala ng Publiko",
+                "ethics": "& Etika",
+                "civicIssues": "Mga Isyung Sibil",
+                "reportProblems": "Iulat ang mga problema",
+                "voiceVote": "Iparinig ang iyong Boses",
+                "shareIdeas": "Magbahagi ng mga ideya para sa mas magandang patakaran",
+                "aiDemocracy": "AI para sa Demokrasya",
+                "civicActions": "& Aksyong Sibil",
+                "aiDesc": "Paggamit ng teknolohiya para sa transparent na pamamahala at mas mabilis na resolusyon.",
+                "smartAnalysis": "Matalinong Pagsusuri",
+                "aiInsights": "AI-Powered Insights",
+                "citizenCount": "10k+ Aktibong Mamamayan",
+                "secureSafe": "Ligtas & Secure",
+                "verifiedReports": "Beripikadong mga Ulat",
+                "quickAction": "Mabilis na Aksyon",
+                "responseTime": "24h Response Time"
+            }
+        }
+    },
+    "common": {
+        "loading": "Naglo-load...",
+        "error": "Error",
+        "submit": "Isumite",
+        "cancel": "Ikansela",
+        "yes": "Oo",
+        "no": "Hindi",
+        "back": "Bumalik"
+    }
+}

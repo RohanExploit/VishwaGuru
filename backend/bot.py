@@ -1,10 +1,13 @@
 import os
 import logging
 import asyncio
+import threading
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters, ConversationHandler
-from database import engine, SessionLocal
-from models import Base, Issue
+from backend.database import engine, SessionLocal
+
+from backend.models import Base, Issue
+
 
 # Enable logging
 logging.basicConfig(
@@ -15,8 +18,11 @@ logging.basicConfig(
 # States for ConversationHandler
 PHOTO, DESCRIPTION, CATEGORY = range(3)
 
-# Initialize Database
-Base.metadata.create_all(bind=engine)
+# Global variables for bot management
+_bot_application = None
+_bot_thread = None
+_bot_loop = None
+_shutdown_event = threading.Event()
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
@@ -109,11 +115,14 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return ConversationHandler.END
 
-async def run_bot():
+async def _run_bot_async():
+    """Internal async function to run the bot polling loop"""
+    global _bot_application
+
     token = os.environ.get("TELEGRAM_BOT_TOKEN")
     if not token:
-        print("Warning: TELEGRAM_BOT_TOKEN environment variable not set. Bot will not start.")
-        return None
+        logging.warning("TELEGRAM_BOT_TOKEN environment variable not set. Bot will not start.")
+        return
 
     try:
         application = ApplicationBuilder().token(token).build()
@@ -130,22 +139,107 @@ async def run_bot():
 
         application.add_handler(conv_handler)
 
-        print("Bot is starting...")
+        logging.info("Bot is starting...")
         # Initialize and start the application
         await application.initialize()
         await application.start()
+
+        _bot_application = application
+
+        # Run polling with shutdown check
         await application.updater.start_polling()
 
-        print("Bot started successfully and is polling for updates.")
-        
-        # Return application so we can stop it later
-        return application
+        # Keep the polling alive until shutdown is requested
+        while not _shutdown_event.is_set():
+            await asyncio.sleep(1)
+
+        logging.info("Bot polling loop ended.")
+
     except Exception as e:
-        print(f"Error initializing bot: {e}")
-        logging.error(f"Bot initialization failed: {e}")
-        return None
+        logging.error(f"Error in bot polling loop: {e}")
+    finally:
+        if _bot_application:
+            try:
+                await _bot_application.updater.stop()
+                await _bot_application.stop()
+                await _bot_application.shutdown()
+                logging.info("Bot shut down gracefully.")
+            except Exception as e:
+                logging.error(f"Error shutting down bot: {e}")
+
+def _bot_worker():
+    """Worker function that runs in a separate thread"""
+    global _bot_loop
+    try:
+        # Create a new event loop for this thread
+        _bot_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(_bot_loop)
+
+        # Run the bot in the new loop
+        _bot_loop.run_until_complete(_run_bot_async())
+    except Exception as e:
+        logging.error(f"Error in bot worker thread: {e}")
+    finally:
+        if _bot_loop:
+            _bot_loop.close()
+
+def start_bot_thread():
+    """Start the bot in a separate thread to avoid blocking FastAPI's event loop"""
+    global _bot_thread, _shutdown_event
+
+    if _bot_thread and _bot_thread.is_alive():
+        logging.warning("Bot thread is already running")
+        return
+
+    _shutdown_event.clear()
+
+    _bot_thread = threading.Thread(target=_bot_worker, daemon=True, name="TelegramBot")
+    _bot_thread.start()
+    logging.info("Bot thread started successfully")
+
+def stop_bot_thread():
+    """Stop the bot thread gracefully"""
+    global _bot_thread, _shutdown_event, _bot_application
+
+    if not _bot_thread:
+        logging.info("Bot thread is not initialized")
+        return
+
+    if _bot_thread.is_alive():
+        logging.info("Stopping bot thread...")
+        # Signal shutdown
+        _shutdown_event.set()
+        # Wait for thread to finish (with timeout)
+        _bot_thread.join(timeout=10)
+        if _bot_thread.is_alive():
+            logging.warning("Bot thread did not stop gracefully within timeout")
+    else:
+        logging.info("Bot thread is already stopped")
+
+    _bot_thread = None
+    _bot_application = None
+    logging.info("Bot thread cleanup complete")
+
+async def run_bot():
+    """
+    Legacy function for backward compatibility.
+    Now starts the bot in a separate thread instead of blocking the event loop.
+    """
+    start_bot_thread()
+    return _bot_application
 
 if __name__ == '__main__':
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(run_bot())
-    loop.run_forever()
+    # For standalone bot testing
+    start_bot_thread()
+
+    # Keep main thread alive
+    try:
+        while True:
+            if not _bot_thread or not _bot_thread.is_alive():
+                logging.error("Bot thread died unexpectedly")
+                break
+            asyncio.sleep(5)
+    except KeyboardInterrupt:
+        logging.info("Received interrupt signal")
+    finally:
+        stop_bot_thread()
