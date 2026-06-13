@@ -3,11 +3,17 @@ import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-do
 import ChatWidget from './components/ChatWidget';
 
 // Lazy Load Views
+const Landing = React.lazy(() => import('./views/Landing'));
 const Home = React.lazy(() => import('./views/Home'));
 const MapView = React.lazy(() => import('./views/MapView'));
 const ReportForm = React.lazy(() => import('./views/ReportForm'));
 const ActionView = React.lazy(() => import('./views/ActionView'));
 const MaharashtraRepView = React.lazy(() => import('./views/MaharashtraRepView'));
+const VerifyView = React.lazy(() => import('./views/VerifyView'));
+const StatsView = React.lazy(() => import('./views/StatsView'));
+const LeaderboardView = React.lazy(() => import('./views/LeaderboardView'));
+const GrievanceView = React.lazy(() => import('./views/GrievanceView'));
+const NotFound = React.lazy(() => import('./views/NotFound'));
 
 // Lazy Load Detectors
 const PotholeDetector = React.lazy(() => import('./PotholeDetector'));
@@ -15,9 +21,27 @@ const GarbageDetector = React.lazy(() => import('./GarbageDetector'));
 const VandalismDetector = React.lazy(() => import('./VandalismDetector'));
 const FloodDetector = React.lazy(() => import('./FloodDetector'));
 const InfrastructureDetector = React.lazy(() => import('./InfrastructureDetector'));
+const IllegalParkingDetector = React.lazy(() => import('./IllegalParkingDetector'));
+const StreetLightDetector = React.lazy(() => import('./StreetLightDetector'));
+const FireDetector = React.lazy(() => import('./FireDetector'));
+const StrayAnimalDetector = React.lazy(() => import('./StrayAnimalDetector'));
+const BlockedRoadDetector = React.lazy(() => import('./BlockedRoadDetector'));
+const TreeDetector = React.lazy(() => import('./TreeDetector'));
+const PestDetector = React.lazy(() => import('./PestDetector'));
+const SmartScanner = React.lazy(() => import('./SmartScanner'));
+const GrievanceAnalysis = React.lazy(() => import('./views/GrievanceAnalysis'));
+const NoiseDetector = React.lazy(() => import('./NoiseDetector'));
+const CivicEyeDetector = React.lazy(() => import('./CivicEyeDetector'));
+const CivicInsight = React.lazy(() => import('./views/CivicInsight'));
+const MyReportsView = React.lazy(() => import('./views/MyReportsView'));
+const TrafficSignDetector = React.lazy(() => import('./TrafficSignDetector'));
+const AbandonedVehicleDetector = React.lazy(() => import('./AbandonedVehicleDetector'));
 
-// Get API URL from environment variable, fallback to relative URL for local dev
-const API_URL = import.meta.env.VITE_API_URL || '';
+// Auth Components
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import Login from './views/Login';
+import ProtectedRoute from './components/ProtectedRoute';
+import AdminDashboard from './views/AdminDashboard';
 
 function Layout({ children }) {
     return (
@@ -43,18 +67,16 @@ function Layout({ children }) {
 function App() {
   const [recentIssues, setRecentIssues] = useState([]);
 
-  // Fetch recent issues on mount
-  const fetchRecentIssues = async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/issues/recent`);
-      if (response.ok) {
-        const data = await response.json();
-        setRecentIssues(data);
-      }
-    } catch (e) {
-      console.error("Failed to fetch recent issues", e);
+  // Safe navigation helper
+  const navigateToView = useCallback((view) => {
+    const validViews = ['home', 'map', 'report', 'action', 'mh-rep', 'pothole', 'garbage', 'vandalism', 'flood', 'infrastructure', 'parking', 'streetlight', 'fire', 'animal', 'blocked', 'tree', 'pest', 'smart-scan', 'grievance-analysis', 'noise', 'safety-check', 'insight', 'my-reports', 'grievance', 'login', 'signup', 'traffic-sign', 'abandoned-vehicle'];
+    if (validViews.includes(view)) {
+      navigate(view === 'home' ? '/' : `/${view}`);
+    } else {
+      console.warn(`Attempted to navigate to invalid view: ${view}`);
+      navigate('/');
     }
-  };
+  }, [navigate]);
 
   useEffect(() => {
     fetchRecentIssues();
@@ -99,6 +121,19 @@ function App() {
             </Suspense>
         </Layout>
     </BrowserRouter>
+  );
+}
+
+// Main App Component
+function App() {
+  return (
+    <Router>
+      <DarkModeProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </DarkModeProvider>
+    </Router>
   );
 }
 

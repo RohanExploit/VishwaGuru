@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "ବିଶ୍ୱଗୁରୁ - ସ୍ମାର୍ଟ ନାଗରିକ ସମସ୍ୟା ରିପୋର୍ଟର",
+        "subtitle": "ଆପଣଙ୍କ ସମ୍ପ୍ରଦାୟର ନାଗରିକ ସମସ୍ୟାଗୁଡ଼ିକର ରିପୋର୍ଟ କରନ୍ତୁ ଏବଂ ଟ୍ରାକ୍ କରନ୍ତୁ",
+        "privacyActive": "AI-ଚାଳିତ ଗୋପନୀୟତା ସୁରକ୍ଷା ସକ୍ରିୟ ଅଛି",
+        "communityImpact": "ସମ୍ପ୍ରଦାୟ ପ୍ରଭାବ",
+        "makingChange": "ଏକାଠି ଆମେ ପରିବର୍ତ୍ତନ କରୁଛୁ!",
+        "issuesSolved": "ସମସ୍ୟା ସମାଧାନ ହୋଇଛି",
+        "smartScanner": "ସ୍ମାର୍ଟ ସିଟି ସ୍କାନର୍",
+        "aiPoweredDetection": "AI-ଚାଳିତ ତତକ୍ଷଣାତ୍ ଚିହ୍ନଟ",
+        "categories": {
+            "roadTraffic": "ରାସ୍ତା ଏବଂ ଟ୍ରାଫିକ୍",
+            "environmentSafety": "ପରିବେଶ ଏବଂ ସୁରକ୍ଷା",
+            "civicServices": "ନାଗରିକ ସେବା",
+            "management": "ପରିଚାଳନା"
+        },
+        "issues": {
+            "pothole": "ଖାଲ",
+            "blockedRoad": "ଅବରୋଧିତ ରାସ୍ତା",
+            "illegalParking": "ବେଆଇନ ପାର୍କିଂ",
+            "darkStreet": "ଅନ୍ଧକାର ଗଳି",
+            "trafficSign": "ଟ୍ରାଫିକ୍ ସଙ୍କେତ",
+            "abandonedVehicle": "ପରିତ୍ୟକ୍ତ ଯାନ",
+            "garbage": "ଆବର୍ଜନା",
+            "flood": "ବନ୍ୟା",
+            "fireSmoke": "ନିଆଁ/ଧୂଆଁ",
+            "treeHazard": "ଗଛ ବିପଦ",
+            "strayAnimal": "ବୁଲା ପଶୁ",
+            "pestControl": "ପୋକ ମରା",
+            "reportIssue": "ସମସ୍ୟା ରିପୋର୍ଟ କରନ୍ତୁ",
+            "brokenInfra": "ଭଙ୍ଗା ଭିତ୍ତିଭୂମି",
+            "graffiti": "ଗ୍ରାଫିଟି",
+            "findMLA": "ବିଧାୟକ ଖୋଜନ୍ତୁ",
+            "grievanceManagement": "ଅଭିଯୋଗ ପରିଚାଳନା",
+            "viewStats": "ପରିସଂଖ୍ୟାନ ଦେଖନ୍ତୁ",
+            "leaderboard": "ଲିଡରବୋର୍ଡ",
+            "responsibilityMap": "ଦାୟିତ୍ୱ ମାନଚିତ୍ର",
+            "noise": "ଶବ୍ଦ",
+            "crowd": "ଭିଡ଼",
+            "waterLeak": "ଜଳ ଲିକେଜ୍",
+            "waste": "ଆବର୍ଜନା ପୃଥକୀକରଣ",
+            "civicEye": "ନାଗରିକ ଆଖି",
+            "myReports": "ମୋର ରିପୋର୍ଟ",
+            "analyzeGrievance": "ଅଭିଯୋଗ ବିଶ୍ଳେଷଣ କରନ୍ତୁ"
+        },
+        "tools": {
+            "whoIsResponsible": "କିଏ ଦାୟୀ?",
+            "topReporters": "ଶୀର୍ଷ ରିପୋର୍ଟର",
+            "cameraCheck": "କ୍ୟାମେରା ଯାଞ୍ଚ"
+        },
+        "activity": {
+            "communityActivity": "ସମ୍ପ୍ରଦାୟ କାର୍ଯ୍ୟକଳାପ",
+            "liveFeed": "ଲାଇଭ୍ ଫିଡ୍",
+            "noActivity": "ଦେଖାଇବା ପାଇଁ କୌଣସି ସମ୍ପ୍ରତି କାର୍ଯ୍ୟକଳାପ ନାହିଁ।",
+            "loadMore": "ଅଧିକ ଲୋଡ୍ କରନ୍ତୁ",
+            "verify": "ଯାଞ୍ଚ କରନ୍ତୁ"
+        },
+        "stats": {
+            "totalImpact": "ମୋଟ ପ୍ରଭାବ",
+            "issuesResolved": "ସମସ୍ୟା ସମାଧାନ ହୋଇଛି",
+            "activeUsers": "ସକ୍ରିୟ ବ୍ୟବହାରକାରୀ"
+        },
+        "landing": {
+            "empowering": "ନାଗରିକଙ୍କ ସଶକ୍ତିକରଣ",
+            "governance": "ଉତ୍ତମ ଶାସନ ପାଇଁ",
+            "subtitle": "ନାଗରିକ ସମସ୍ୟା ରିପୋର୍ଟ କରନ୍ତୁ ଏବଂ AI-ଉତ୍ପାଦିତ ସମାଧାନ ପାଆନ୍ତୁ। ଶାସନରେ ସକ୍ରିୟ ଭାବରେ ଅଂଶଗ୍ରହଣ କରିବାକୁ ଟେଲିଗ୍ରାମ ମାଧ୍ୟମରେ ଅଧିକାରୀଙ୍କ ସହିତ ସଂଯୋଗ ହୁଅନ୍ତୁ।",
+            "cta": "ସମସ୍ୟା ରିପୋର୍ଟ କରନ୍ତୁ",
+            "cards": {
+                "reportCitizens": "ନାଗରିକଙ୍କ ସହିତ ରିପୋର୍ଟ କରନ୍ତୁ",
+                "generatedCivic": "ଉତ୍ପାଦିତ ନାଗରିକ ଶାସନ",
+                "govServices": "ସରକାରୀ ସେବା",
+                "questionGov": "ସରକାରଙ୍କୁ ପ୍ରଶ୍ନ କରନ୍ତୁ",
+                "govDesc": "ପ୍ରଶ୍ନ ଦାଖଲ କରନ୍ତୁ, ସ୍ୱଚ୍ଛତା ଦାବି କରନ୍ତୁ ଏବଂ ଅଧିକାରୀଙ୍କୁ ଦାୟୀ କରନ୍ତୁ",
+                "communityAction": "ସମ୍ପ୍ରଦାୟ କାର୍ଯ୍ୟ",
+                "joinMovement": "ଆନ୍ଦୋଳନରେ ଯୋଗ ଦିଅନ୍ତୁ"
+            },
+            "features": {
+                "publicTrust": "ଜନସାଧାରଣଙ୍କ ବିଶ୍ୱାସ",
+                "ethics": "& ନୈତିକତା",
+                "civicIssues": "ନାଗରିକ ସମସ୍ୟା",
+                "reportProblems": "ସମସ୍ୟା ରିପୋର୍ଟ କରନ୍ତୁ",
+                "voiceVote": "ଆପଣଙ୍କ ସ୍ୱର ଉତ୍ତୋଳନ କରନ୍ତୁ",
+                "shareIdeas": "ଉତ୍ତମ ନୀତି ପାଇଁ ଚିନ୍ତାଧାରା ଶେୟାର କରନ୍ତୁ",
+                "aiDemocracy": "ଗଣତନ୍ତ୍ର ପାଇଁ AI",
+                "civicActions": "& ନାଗରିକ କାର୍ଯ୍ୟ",
+                "aiDesc": "ସ୍ୱଚ୍ଛ ଶାସନ ଏବଂ ଦ୍ରୁତ ସମାଧାନ ପାଇଁ ବୈଷୟିକ ଜ୍ଞାନକୌଶଳର ଉପଯୋଗ।",
+                "smartAnalysis": "ସ୍ମାର୍ଟ ବିଶ୍ଳେଷଣ",
+                "aiInsights": "AI-ଚାଳିତ ଅନ୍ତର୍ଦୃଷ୍ଟି",
+                "citizenCount": "୧୦ ହଜାରରୁ ଅଧିକ ସକ୍ରିୟ ନାଗରିକ",
+                "secureSafe": "ସୁରକ୍ଷିତ ଏବଂ ନିରାପଦ",
+                "verifiedReports": "ଯାଞ୍ଚ ହୋଇଥିବା ରିପୋର୍ଟ",
+                "quickAction": "ଦ୍ରୁତ କାର୍ଯ୍ୟାନୁଷ୍ଠାନ",
+                "responseTime": "୨୪ ଘଣ୍ଟା ମଧ୍ୟରେ ପ୍ରତିକ୍ରିୟା"
+            }
+        }
+    },
+    "common": {
+        "loading": "ଲୋଡ୍ ହେଉଛି...",
+        "error": "ତ୍ରୁଟି",
+        "submit": "ଦାଖଲ କରନ୍ତୁ",
+        "cancel": "ବାତିଲ କରନ୍ତୁ",
+        "yes": "ହଁ",
+        "no": "ନା",
+        "back": "ପଛକୁ"
+    }
+}

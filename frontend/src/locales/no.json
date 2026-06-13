@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - Smart Innbyggerrapportering",
+        "subtitle": "Rapporter og følg innbyggersaker i lokalsamfunnet ditt",
+        "privacyActive": "AI-drevet personvern aktivt",
+        "communityImpact": "Samfunnspåvirkning",
+        "makingChange": "Sammen skaper vi endring!",
+        "issuesSolved": "Løste problemer",
+        "smartScanner": "Smart City Scanner",
+        "aiPoweredDetection": "Umiddelbar AI-deteksjon",
+        "categories": {
+            "roadTraffic": "Vei & Trafikk",
+            "environmentSafety": "Miljø & Sikkerhet",
+            "civicServices": "Innbyggertjenester",
+            "management": "Forvaltning"
+        },
+        "issues": {
+            "pothole": "Hull i veien",
+            "blockedRoad": "Sperret vei",
+            "illegalParking": "Feilparkering",
+            "darkStreet": "Mørk gate",
+            "trafficSign": "Trafikkskilt",
+            "abandonedVehicle": "Forlatt kjøretøy",
+            "garbage": "Søppel",
+            "flood": "Oversvømmelse",
+            "fireSmoke": "Brann/Røyk",
+            "treeHazard": "Trefare",
+            "strayAnimal": "Løshund/-katt",
+            "pestControl": "Skadedyrkontroll",
+            "reportIssue": "Rapporter sak",
+            "brokenInfra": "Ødelagt infrastruktur",
+            "graffiti": "Graffiti",
+            "findMLA": "Finn representant",
+            "grievanceManagement": "Klagesaksbehandling",
+            "viewStats": "Se statistikk",
+            "leaderboard": "Toppliste",
+            "responsibilityMap": "Ansvarskart",
+            "noise": "Støy",
+            "crowd": "Trengsel",
+            "waterLeak": "Vannlekkasje",
+            "waste": "Avfallssortering",
+            "civicEye": "Innbyggerøyet",
+            "myReports": "Mine rapporter",
+            "analyzeGrievance": "Analyser klage"
+        },
+        "tools": {
+            "whoIsResponsible": "Hvem er ansvarlig?",
+            "topReporters": "Topprapportører",
+            "cameraCheck": "Kamerasjekk"
+        },
+        "activity": {
+            "communityActivity": "Samfunnsaktivitet",
+            "liveFeed": "Live-feed",
+            "noActivity": "Ingen nylig aktivitet å vise.",
+            "loadMore": "Last mer aktivitet",
+            "verify": "Verifiser"
+        },
+        "stats": {
+            "totalImpact": "Total påvirkning",
+            "issuesResolved": "Løste problemer",
+            "activeUsers": "Aktive brukere"
+        },
+        "landing": {
+            "empowering": "Styrke innbyggerne",
+            "governance": "for bedre styresett",
+            "subtitle": "Rapporter innbyggersaker og få AI-genererte løsninger. Kontakt tjenestepersoner via Telegram.",
+            "cta": "Rapporter sak",
+            "cards": {
+                "reportCitizens": "Rapporter med innbyggere",
+                "generatedCivic": "generert innbyggerstyring",
+                "govServices": "Offentlige tjenester",
+                "questionGov": "Spør myndighetene",
+                "govDesc": "Send inn spørsmål, krev åpenhet og hold tjenestepersoner ansvarlige",
+                "communityAction": "Samfunnstiltak",
+                "joinMovement": "Bli med i bevegelsen"
+            },
+            "features": {
+                "publicTrust": "Offentlig tillit",
+                "ethics": "& Etikk",
+                "civicIssues": "Innbyggersaker",
+                "reportProblems": "Rapporter problemer",
+                "voiceVote": "Gjør din stemme hørt",
+                "shareIdeas": "Del ideer for bedre politikk",
+                "aiDemocracy": "AI for demokrati",
+                "civicActions": "& Innbyggertiltak",
+                "aiDesc": "Bruke teknologi for åpent styresett og raskere løsninger.",
+                "smartAnalysis": "Smart analyse",
+                "aiInsights": "AI-drevet innsikt",
+                "citizenCount": "10k+ aktive innbyggere",
+                "secureSafe": "Trygt & Sikkert",
+                "verifiedReports": "Verifiserte rapporter",
+                "quickAction": "Rask handling",
+                "responseTime": "24t svartid"
+            }
+        }
+    },
+    "common": {
+        "loading": "Laster...",
+        "error": "Feil",
+        "submit": "Send inn",
+        "cancel": "Avbryt",
+        "yes": "Ja",
+        "no": "Nei",
+        "back": "Tilbake"
+    }
+}

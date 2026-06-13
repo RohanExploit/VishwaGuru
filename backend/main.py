@@ -1,35 +1,36 @@
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query
+import os
+import sys
+from pathlib import Path
+
+# Add project root to sys.path to ensure 'backend.*' imports work
+# This handles cases where PYTHONPATH is set to 'backend' (e.g. on Render)
+current_file = Path(__file__).resolve()
+backend_dir = current_file.parent
+repo_root = backend_dir.parent
+
+if str(repo_root) not in sys.path:
+    sys.path.insert(0, str(repo_root))
+
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.concurrency import run_in_threadpool
-from sqlalchemy.orm import Session
-from database import engine, get_db
-from models import Base, Issue
-from ai_service import generate_action_plan, chat_with_civic_assistant
-from maharashtra_locator import (
-    find_constituency_by_pincode,
-    find_mla_by_constituency,
-    load_maharashtra_pincode_data,
-    load_maharashtra_mla_data
-)
-from pydantic import BaseModel
-from gemini_summary import generate_mla_summary
-import json
-import os
-import shutil
-from functools import lru_cache
-import uuid
-import asyncio
-from fastapi import Depends
 from contextlib import asynccontextmanager
-from bot import run_bot
-from pothole_detection import detect_potholes
-from garbage_detection import detect_garbage
-from hf_service import detect_vandalism_clip, detect_flooding_clip, detect_infrastructure_clip
-from PIL import Image
-from init_db import migrate_db
+import httpx
 import logging
-import time
+import asyncio
+
+from backend.database import Base, engine
+from backend.ai_factory import create_all_ai_services
+from backend.ai_interfaces import initialize_ai_services
+from backend.bot import start_bot_thread, stop_bot_thread
+from backend.init_db import migrate_db
+from backend.scheduler import start_scheduler
+from backend.maharashtra_locator import load_maharashtra_pincode_data, load_maharashtra_mla_data
+from backend.exceptions import EXCEPTION_HANDLERS
+from backend.routers import issues, detection, grievances, utility, auth, admin, analysis, voice, field_officer
+from backend.grievance_service import GrievanceService
+import backend.dependencies
 
 # Configure structured logging
 logging.basicConfig(
@@ -38,85 +39,151 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Simple in-memory cache
-RECENT_ISSUES_CACHE = {
-    "data": None,
-    "timestamp": 0,
-    "ttl": 60  # seconds
-}
+async def background_initialization(app: FastAPI):
+    """Perform non-critical startup tasks in background to speed up app availability"""
+    try:
+        # 1. AI Services initialization
+        # These can take a few seconds due to imports and configuration
+        action_plan_service, chat_service, mla_summary_service = await run_in_threadpool(create_all_ai_services)
 
-# Create tables if they don't exist
-Base.metadata.create_all(bind=engine)
+        initialize_ai_services(
+            action_plan_service=action_plan_service,
+            chat_service=chat_service,
+            mla_summary_service=mla_summary_service
+        )
+        logger.info("AI services initialized successfully.")
+
+        # 2. Static data pre-loading (loads large JSONs into memory)
+        await run_in_threadpool(load_maharashtra_pincode_data)
+        await run_in_threadpool(load_maharashtra_mla_data)
+        logger.info("Maharashtra data pre-loaded successfully.")
+
+        # 3. Start Telegram Bot in separate thread
+        # Temporarily disabled for local testing
+        # await run_in_threadpool(start_bot_thread)
+        logger.info("Telegram bot initialization skipped for local testing.")
+    except Exception as e:
+        logger.error(f"Error during background initialization: {e}", exc_info=True)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Migrate DB
-    migrate_db()
+    # Startup: Initialize Shared HTTP Client for external APIs (Connection Pooling)
+    app.state.http_client = httpx.AsyncClient()
+    # Set global shared client in dependencies for cached functions
+    backend.dependencies.SHARED_HTTP_CLIENT = app.state.http_client
+    logger.info("Shared HTTP Client initialized.")
 
-    # Startup: Load static data to avoid first-request latency
+    # Startup: Database setup (Blocking but necessary for app consistency)
     try:
-        # These functions use lru_cache, so calling them once loads the data into memory
-        load_maharashtra_pincode_data()
-        load_maharashtra_mla_data()
-        print("Maharashtra data pre-loaded successfully.")
+        logger.info("Starting database initialization...")
+        await run_in_threadpool(Base.metadata.create_all, bind=engine)
+        logger.info("Base.metadata.create_all completed.")
+        await run_in_threadpool(migrate_db)
+        logger.info("migrate_db completed. Database initialized successfully.")
     except Exception as e:
-        print(f"Error pre-loading Maharashtra data: {e}")
+        logger.error(f"Database initialization failed: {e}", exc_info=True)
+        # We continue to allow health checks even if DB has issues (for debugging)
 
-    # Startup: Start Telegram Bot in background (non-blocking)
-    bot_task = None
-    bot_app = None
+    # Startup: Initialize Grievance Service (needed for escalation engine)
+    try:
+        logger.info("Initializing grievance service...")
+        grievance_service = GrievanceService()
+        app.state.grievance_service = grievance_service
+        logger.info("Grievance service initialized successfully.")
+    except Exception as e:
+        logger.error(f"Error initializing grievance service: {e}", exc_info=True)
+
+    # Launch background tasks that are non-blocking for startup/health-check
+    asyncio.create_task(background_initialization(app))
     
-    # Start bot initialization in background to avoid blocking port binding
-    async def start_bot_background():
-        nonlocal bot_app
-        try:
-            bot_app = await run_bot()
-        except Exception as e:
-            print(f"Error starting bot: {e}")
-    
-    # Create background task for bot initialization
-    bot_task = asyncio.create_task(start_bot_background())
-    
+    # Start the daily civic intelligence refinement scheduler
+    start_scheduler()
+
     yield
     
-    # Shutdown: Stop Telegram Bot
-    if bot_task and not bot_task.done():
-        try:
-            bot_task.cancel()
-            await bot_task
-        except asyncio.CancelledError:
-            pass  # Expected when cancelling
-        except Exception as e:
-            print(f"Error cancelling bot task: {e}")
-    
-    if bot_app:
-        try:
-            await bot_app.updater.stop()
-            await bot_app.stop()
-            await bot_app.shutdown()
-        except Exception as e:
-            print(f"Error stopping bot: {e}")
+    # Shutdown: Close Shared HTTP Client
+    if app.state.http_client:
+        await app.state.http_client.aclose()
+    logger.info("Shared HTTP Client closed.")
 
-app = FastAPI(title="VishwaGuru Backend", lifespan=lifespan)
+    # Shutdown: Stop Telegram Bot thread
+    try:
+        await run_in_threadpool(stop_bot_thread)
+        logger.info("Telegram bot thread stopped.")
+    except Exception as e:
+        logger.error(f"Error stopping bot thread: {e}")
 
-# CORS Configuration
-# For separate frontend/backend deployment (e.g., Netlify + Render)
-# Set FRONTEND_URL environment variable to your Netlify URL
-# Example: https://your-app.netlify.app
-frontend_url = os.environ.get("FRONTEND_URL", "*")
-allowed_origins = [frontend_url] if frontend_url != "*" else ["*"]
+app = FastAPI(
+    title="VishwaGuru Backend",
+    description="AI-powered civic issue reporting and resolution platform",
+    version="1.0.0",
+    lifespan=lifespan
+)
 
-# Allow CORS for frontend
+# Add centralized exception handlers
+for exception_type, handler in EXCEPTION_HANDLERS.items():
+    app.add_exception_handler(exception_type, handler)
+
+# CORS Configuration - Security Enhanced
+frontend_url = os.environ.get("FRONTEND_URL")
+is_production = os.environ.get("ENVIRONMENT", "").lower() == "production"
+
+if not frontend_url:
+    if is_production:
+        raise ValueError(
+            "FRONTEND_URL environment variable is required for security in production. "
+            "Set it to your frontend URL (e.g., https://your-app.netlify.app)."
+        )
+    else:
+        logger.warning("FRONTEND_URL not set. Defaulting to http://localhost:5173 for development.")
+        frontend_url = "http://localhost:5173"
+
+if not (frontend_url.startswith("http://") or frontend_url.startswith("https://")):
+    raise ValueError(
+        f"FRONTEND_URL must be a valid HTTP/HTTPS URL. Got: {frontend_url}"
+    )
+
+allowed_origins = [frontend_url]
+
+if not is_production:
+    dev_origins = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
+        "http://localhost:8080",
+    ]
+    allowed_origins.extend(dev_origins)
+    # Also add the one from .env if it's different
+    if frontend_url not in allowed_origins:
+        allowed_origins.append(frontend_url)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
-# Enable Gzip compression
 app.add_middleware(GZipMiddleware, minimum_size=500)
+
+# Include Modular Routers
+app.include_router(issues.router, tags=["Issues"])
+app.include_router(detection.router, tags=["Detection"])
+app.include_router(grievances.router, tags=["Grievances"])
+app.include_router(utility.router, tags=["Utility"])
+app.include_router(auth.router, tags=["Authentication"])
+app.include_router(admin.router)
+app.include_router(analysis.router, tags=["Analysis"])
+app.include_router(voice.router, tags=["Voice & Language"])
+app.include_router(field_officer.router, tags=["Field Officer Check-In"])
+
+@app.get("/health")
+def health():
+    return {"status": "healthy"}
 
 @app.get("/")
 def root():

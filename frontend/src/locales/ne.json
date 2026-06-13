@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - स्मार्ट नागरिक समस्या रिपোর্টার",
+        "subtitle": "तपाईंको समुदायमा नागरिक समस्याहरू रिपोर्ट र ट्र्याक गर्नुहोस्",
+        "privacyActive": "AI-संचालित गोपनीयता सुरक्षा सक्रिय छ",
+        "communityImpact": "सामुदायिक प्रभाव",
+        "makingChange": "सँगै हामी परिवर्तन ल्याउँदैछौं!",
+        "issuesSolved": "समस्या समाधान भयो",
+        "smartScanner": "स्मार्ट सिटी स्क्यानर",
+        "aiPoweredDetection": "AI-संचालित तत्काल पहिचान",
+        "categories": {
+            "roadTraffic": "सडक र ट्राफिक",
+            "environmentSafety": "वातावरण र सुरक्षा",
+            "civicServices": "नागरिक सेवा",
+            "management": "व्यवस्थापन"
+        },
+        "issues": {
+            "pothole": "खाल्डो",
+            "blockedRoad": "बन्द सडक",
+            "illegalParking": "अवैध पार्किङ",
+            "darkStreet": "अँध्यारो सडक",
+            "trafficSign": "ट्राफिक संकेत",
+            "abandonedVehicle": "बेवारिसे सवारी",
+            "garbage": "फोहोर",
+            "flood": "बाढी",
+            "fireSmoke": "आगो/धुवाँ",
+            "treeHazard": "रुखको खतरा",
+            "strayAnimal": "छाडा पशु",
+            "pestControl": "कीट नियन्त्रण",
+            "reportIssue": "समस्या रिपोर्ट गर्नुहोस्",
+            "brokenInfra": "भत्किएको पूर्वाधार",
+            "graffiti": "ग्राफिटी",
+            "findMLA": "प्रतिनिधि खोज्नुहोस्",
+            "grievanceManagement": "गुनासो व्यवस्थापन",
+            "viewStats": "तथ्याङ्क हेर्नुहोस्",
+            "leaderboard": "लिडरबोर्ड",
+            "responsibilityMap": "जिम्मेवारी नक्सा",
+            "noise": "हल्ला",
+            "crowd": "भीड",
+            "waterLeak": "पानी रिसावट",
+            "waste": "फोहोर वर्गीकरण",
+            "civicEye": "नागरिक आँखा",
+            "myReports": "मेरो रिपोर्ट",
+            "analyzeGrievance": "गुनासो विश्लेषण गर्नुहोस्"
+        },
+        "tools": {
+            "whoIsResponsible": "को जिम्मेवार छ?",
+            "topReporters": "शीर्ष रिपोर्टर",
+            "cameraCheck": "क्यामेरा जाँच"
+        },
+        "activity": {
+            "communityActivity": "सामुदायिक गतिविधि",
+            "liveFeed": "लाइभ फीड",
+            "noActivity": "देखाउनको लागि कुनै भर्खरको गतिविधि छैन।",
+            "loadMore": "थप गतिविधि लोड गर्नुहोस्",
+            "verify": "प्रमाणित गर्नुहोस्"
+        },
+        "stats": {
+            "totalImpact": "कुल प्रभाव",
+            "issuesResolved": "समस्या समाधान भयो",
+            "activeUsers": "सक्रिय प्रयोगकर्ता"
+        },
+        "landing": {
+            "empowering": "नागरिकको सशक्तिकरण",
+            "governance": "राम्रो शासनको लागि",
+            "subtitle": "नागरिक समस्या रिपोर्ट गर्नुहोस् र AI-जेनरेटेड समाधान पाउनुहोस्। शासनमा सक्रिय रूपमा सहभागी हुन टेलिग्राम मार्फत अधिकारीहरूसँग जोडिनुहोस्।",
+            "cta": "समस्या रिपोर्ट गर्नुहोस्",
+            "cards": {
+                "reportCitizens": "नागरिकसँग रिपोर्ट गर्नुहोस्",
+                "generatedCivic": "जेनरेटेड नागरिक शासन",
+                "govServices": "सरकारी सेवा",
+                "questionGov": "सरकारलाई प्रश्न गर्नुहोस्",
+                "govDesc": "प्रश्नहरू पेश गर्नुहोस्, पारदर्शिताको माग गर्नुहोस् र अधिकारीहरूलाई जिम्मेवार ठहराउनुहोस्",
+                "communityAction": "सामुदायिक क्रिया",
+                "joinMovement": "आन्दोलनमा सामेल हुनुहोस्"
+            },
+            "features": {
+                "publicTrust": "सार्वजनिक विश्वास",
+                "ethics": "& नैतिकता",
+                "civicIssues": "नागरिक समस्या",
+                "reportProblems": "समस्या रिपोर्ट गर्नुहोस्",
+                "voiceVote": "आफ्नो आवाज उठाउनुहोस्",
+                "shareIdeas": "राम्रो नीतिको लागि विचार साझा गर्नुहोस्",
+                "aiDemocracy": "लोकतन्त्रको लागि AI",
+                "civicActions": "& नागरिक क्रिया",
+                "aiDesc": "पारदर्शी शासन र छिटो समाधानको लागि प्रविधिको प्रयोग।",
+                "smartAnalysis": "स्मार्ट विश्लेषण",
+                "aiInsights": "AI-संचालित अन्तर्दृष्टि",
+                "citizenCount": "१० हजार+ सक्रिय नागरिक",
+                "secureSafe": "सुरक्षित र निश्चित",
+                "verifiedReports": "प्रमाणित रिपोर्ट",
+                "quickAction": "छिटो कदम",
+                "responseTime": "२४ घण्टा रेस्पॉन्स टाइम"
+            }
+        }
+    },
+    "common": {
+        "loading": "लोड हुँदैछ...",
+        "error": "त्रुटि",
+        "submit": "पेश गर्नुहोस्",
+        "cancel": "रद्द गर्नुहोस्",
+        "yes": "हो",
+        "no": "होइन",
+        "back": "पछि"
+    }
+}

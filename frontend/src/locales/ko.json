@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - 스마트 시민 문제 보고기",
+        "subtitle": "지역 사회의 시민 문제를 보고하고 추적하세요",
+        "privacyActive": "AI 기반 개인정보 보호 활성화됨",
+        "communityImpact": "커뮤니티 영향",
+        "makingChange": "우리는 함께 변화를 만들고 있습니다!",
+        "issuesSolved": "해결된 문제",
+        "smartScanner": "스마트 시티 스캐너",
+        "aiPoweredDetection": "AI 기반 즉시 감지",
+        "categories": {
+            "roadTraffic": "도로 및 교통",
+            "environmentSafety": "환경 및 안전",
+            "civicServices": "시민 서비스",
+            "management": "관리"
+        },
+        "issues": {
+            "pothole": "포트홀",
+            "blockedRoad": "도로 전면 차단",
+            "illegalParking": "불법 주차",
+            "darkStreet": "어두운 거리",
+            "trafficSign": "교통 표지판",
+            "abandonedVehicle": "방치 차량",
+            "garbage": "쓰레기",
+            "flood": "홍수",
+            "fireSmoke": "화재/연기",
+            "treeHazard": "수목 위험",
+            "strayAnimal": "유기 동물",
+            "pestControl": "해충 방제",
+            "reportIssue": "문제 보고",
+            "brokenInfra": "파손된 인프라",
+            "graffiti": "낙서",
+            "findMLA": "의원 찾기",
+            "grievanceManagement": "민원 관리",
+            "viewStats": "통계 보기",
+            "leaderboard": "리더보드",
+            "responsibilityMap": "책임 지도로",
+            "noise": "소음",
+            "crowd": "군중",
+            "waterLeak": "누수",
+            "waste": "쓰레기 분리수거",
+            "civicEye": "시민의 눈",
+            "myReports": "내 보고서",
+            "analyzeGrievance": "민원 분석"
+        },
+        "tools": {
+            "whoIsResponsible": "누구의 책임인가요?",
+            "topReporters": "최고 보고자",
+            "cameraCheck": "카메라 점검"
+        },
+        "activity": {
+            "communityActivity": "커뮤니티 활동",
+            "liveFeed": "실시간 피드",
+            "noActivity": "표시할 최근 활동이 없습니다.",
+            "loadMore": "활동 더 불러오기",
+            "verify": "확인"
+        },
+        "stats": {
+            "totalImpact": "총 영향",
+            "issuesResolved": "해결된 문제",
+            "activeUsers": "활성 사용자"
+        },
+        "landing": {
+            "empowering": "시민의 역량 강화",
+            "governance": "더 나은 거버넌스를 위해",
+            "subtitle": "시민 문제를 보고하고 AI가 생성한 솔루션을 받으세요. 텔레그램을 통해 공무원과 연결되어 거버넌스에 적극적으로 참여하세요.",
+            "cta": "문제 보고",
+            "cards": {
+                "reportCitizens": "시민과 함께 보고",
+                "generatedCivic": "생성된 시민 거버넌스",
+                "govServices": "정부 서비스",
+                "questionGov": "정부에 질문하기",
+                "govDesc": "질의를 제출하고 투명성을 요구하며 공무원에게 책임을 묻습니다",
+                "communityAction": "커뮤니티 행동",
+                "joinMovement": "운동에 참여하세요"
+            },
+            "features": {
+                "publicTrust": "대중의 신뢰",
+                "ethics": "& 윤리",
+                "civicIssues": "시민 문제",
+                "reportProblems": "문제 보고",
+                "voiceVote": "당신의 목소리를 내세요",
+                "shareIdeas": "더 나은 정책을 위한 아이디어 공유",
+                "aiDemocracy": "민주주의를 위한 AI",
+                "civicActions": "& 시민 행동",
+                "aiDesc": "투명한 거버넌스와 빠른 해결을 위해 기술 활용.",
+                "smartAnalysis": "스마트 분석",
+                "aiInsights": "AI 기반 인사이트",
+                "citizenCount": "1만 명 이상의 활성 시민",
+                "secureSafe": "안전 및 보안",
+                "verifiedReports": "검증된 보고서",
+                "quickAction": "빠른 행동",
+                "responseTime": "24시간 응답 시간"
+            }
+        }
+    },
+    "common": {
+        "loading": "불러오는 중...",
+        "error": "오류",
+        "submit": "제출",
+        "cancel": "취소",
+        "yes": "예",
+        "no": "아니요",
+        "back": "뒤로"
+    }
+}
