@@ -24,6 +24,7 @@ const NotFound = React.lazy(() => import('./views/NotFound'));
 
 // Lazy Load Detectors
 const PotholeDetector = React.lazy(() => import('./PotholeDetector'));
+const EmotionDetector = React.lazy(() => import('./EmotionDetector'));
 const GarbageDetector = React.lazy(() => import('./GarbageDetector'));
 const VandalismDetector = React.lazy(() => import('./VandalismDetector'));
 const FloodDetector = React.lazy(() => import('./FloodDetector'));
@@ -297,6 +298,7 @@ function AppContent() {
               />
               <Route path="/verify/:id" element={<VerifyView />} />
               <Route path="/pothole" element={<PotholeDetector onBack={() => navigate('/')} />} />
+              <Route path="/emotion" element={<EmotionDetector onBack={() => navigate('/')} />} />
               <Route path="/garbage" element={<GarbageDetector onBack={() => navigate('/')} />} />
               <Route
                 path="/vandalism"
