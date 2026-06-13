@@ -193,14 +193,12 @@ class PriorityEngine:
                         f"Urgency increased by context matching pattern: '{original_pattern}'"
                     )
             else:
-                for k in keywords:
-                    if k in text:
-                        if regex.search(text):
-                            urgency += weight
-                            reasons.append(
-                                f"Urgency increased by context matching pattern: '{original_pattern}'"
-                            )
-                        break
+                if any(k in text for k in keywords):
+                    if regex.search(text):
+                        urgency += weight
+                        reasons.append(
+                            f"Urgency increased by context matching pattern: '{original_pattern}'"
+                        )
 
         # Cap at 100
         urgency = min(100, urgency)
