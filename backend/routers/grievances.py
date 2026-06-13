@@ -34,7 +34,7 @@ follower_blockchain_lock = threading.Lock()
 
 router = APIRouter()
 
-# Thread lock for synchronizing blockchain operations
+# Global lock for follower blockchain operations to prevent race conditions during hash chaining
 follower_blockchain_lock = threading.Lock()
 
 @router.get("/grievances", response_model=List[GrievanceSummaryResponse])
@@ -687,7 +687,7 @@ def verify_follower_blockchain(
 ):
     """
     Verify the cryptographic integrity of a grievance follower record using blockchain-style chaining.
-    Optimized: Uses previous_integrity_hash column for O(1) verification.
+    Optimized: Uses previous_integrity_hash column for O(1) verification and column projection.
     """
     try:
         follower = db.query(

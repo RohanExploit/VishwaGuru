@@ -48,8 +48,6 @@ class CivicRAG:
             content = f"{title} {text}"
             content_tokens = self._tokenize(content)
 
-            content_tokens = self._tokenize(content)
-
             self._prepared_policies.append({
                 'title_tokens': self._tokenize(title),
                 'content_tokens': content_tokens,
@@ -96,7 +94,7 @@ class CivicRAG:
                 continue
 
             # Jaccard Similarity
-            # Optimization 2: Calculate intersection using bitwise &
+            # Optimization 2: Calculate intersection
             intersection_len = len(query_tokens & policy_tokens)
 
             # Optimization 3: Calculate union length mathematically (O(1))
