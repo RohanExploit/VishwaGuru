@@ -51,7 +51,12 @@ class CivicIntelligenceEngine:
 
             # 1. Fetch Data
             # Get issues created in the last 24 hours
-            issues_24h = db.query(Issue).filter(Issue.created_at >= last_24h).all()
+            # Performance Optimization: Use column projection to avoid loading full ORM models,
+            # since trend analyzer only needs specific attributes (id, description, category, lat, lon, upvotes, created_at)
+            issues_24h = db.query(
+                Issue.id, Issue.description, Issue.category,
+                Issue.latitude, Issue.longitude, Issue.upvotes, Issue.created_at
+            ).filter(Issue.created_at >= last_24h).all()
 
             # 2. Trend Analysis
             trends = trend_analyzer.analyze(issues_24h)

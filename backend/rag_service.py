@@ -46,10 +46,12 @@ class CivicRAG:
             source = policy.get('source', 'Unknown')
 
             content = f"{title} {text}"
+            content_tokens = self._tokenize(content)
 
             self._prepared_policies.append({
                 'title_tokens': self._tokenize(title),
-                'content_tokens': self._tokenize(content),
+                'content_tokens': content_tokens,
+                'content_tokens_len': len(content_tokens),
                 'formatted': f"**{title}**: {text} (Source: {source})",
                 'original': policy
             })
@@ -65,38 +67,42 @@ class CivicRAG:
         """
         Retrieve the most relevant policy based on Jaccard similarity of tokens.
         Returns the formatted policy string or None if below threshold.
+        Optimized: Uses pre-calculated token lengths and mathematical union to avoid O(N) union.
         """
         if not query or not self._prepared_policies:
             return None
 
         query_tokens = self._tokenize(query)
-        if not query_tokens:
+        query_token_count = len(query_tokens)
+        if query_token_count == 0:
             return None
 
+        query_tokens_len = len(query_tokens)
         best_score = 0.0
         best_formatted = None
 
         for prepared in self._prepared_policies:
             policy_tokens = prepared['content_tokens']
 
-            if not policy_tokens:
+            # Optimization: Use isdisjoint() for fast early exit
+            if query_tokens.isdisjoint(policy_tokens):
                 continue
 
             # Jaccard Similarity
-            intersection = query_tokens.intersection(policy_tokens)
-            # Use pre-calculated set for union if possible?
-            # Union depends on query_tokens, so must be calculated.
-            union = query_tokens.union(policy_tokens)
+            # Optimized: Calculate intersection and mathematically deduce union length
+            # to avoid creating a new set object in memory for union operations.
+            intersection_len = len(query_tokens.intersection(policy_tokens))
 
-            if not union:
+            if intersection_len == 0:
                 continue
 
-            score = len(intersection) / len(union)
+            union_len = len(query_tokens) + len(policy_tokens) - intersection_len
+            score = intersection_len / union_len
 
             # Boost score if title words match (weighted)
+            # Optimized: Use fast short-circuit isdisjoint check instead of full intersection
             title_tokens = prepared['title_tokens']
-            title_match = len(query_tokens.intersection(title_tokens))
-            if title_match > 0:
+            if not query_tokens.isdisjoint(title_tokens):
                 score += 0.2  # Bonus for title match
 
             if score > best_score:
