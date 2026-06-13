@@ -6,6 +6,7 @@ from backend.civic_intelligence import civic_intelligence_engine
 
 logger = logging.getLogger(__name__)
 
+
 async def run_daily_scheduler():
     """
     Runs a loop that executes the daily civic intelligence refinement at midnight UTC.
@@ -16,11 +17,15 @@ async def run_daily_scheduler():
         now = datetime.now(timezone.utc)
 
         # Calculate next run time (next midnight)
-        next_run = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        next_run = (now + timedelta(days=1)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
 
         sleep_seconds = (next_run - now).total_seconds()
 
-        logger.info(f"Next daily refinement scheduled in {sleep_seconds/3600:.1f} hours ({next_run} UTC).")
+        logger.info(
+            f"Next daily refinement scheduled in {sleep_seconds/3600:.1f} hours ({next_run} UTC)."
+        )
 
         try:
             await asyncio.sleep(sleep_seconds)
@@ -37,6 +42,7 @@ async def run_daily_scheduler():
             logger.error(f"Error in scheduler loop: {e}", exc_info=True)
             # Sleep a bit before retrying to avoid tight loop on persistent error
             await asyncio.sleep(60)
+
 
 def start_scheduler():
     """

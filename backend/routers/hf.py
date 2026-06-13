@@ -3,6 +3,7 @@ Router for Hugging Face text generation API endpoints.
 
 Provides direct access to HF LLM text generation for civic use cases.
 """
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from typing import Optional
@@ -18,6 +19,7 @@ router = APIRouter()
 
 
 # ── Request / Response Models ────────────────────────────────────────────────
+
 
 class HFGenerateRequest(BaseModel):
     prompt: str = Field(..., min_length=1, max_length=4000)
@@ -42,6 +44,7 @@ class HFChatRequest(BaseModel):
 
 
 # ── Endpoints ────────────────────────────────────────────────────────────────
+
 
 @router.post("/hf/generate", response_model=HFGenerateResponse, tags=["Hugging Face"])
 async def hf_generate(req: HFGenerateRequest):

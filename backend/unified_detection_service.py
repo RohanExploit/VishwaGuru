@@ -26,6 +26,7 @@ ENABLE_HF_FALLBACK = os.environ.get("ENABLE_HF_FALLBACK", "true").lower() == "tr
 
 class DetectionBackend(Enum):
     """Available detection backends."""
+
     LOCAL = "local"
     HUGGINGFACE = "huggingface"
     AUTO = "auto"  # Try local first, fallback to HF
@@ -34,28 +35,29 @@ class DetectionBackend(Enum):
 class UnifiedDetectionService:
     """
     Unified service for civic issue detection.
-    
+
     This service provides:
     - Automatic backend selection (local or HF API)
     - Graceful fallback when local model fails
     - Consistent interface for all detection types
     - Performance monitoring and logging
     """
-    
+
     def __init__(self, backend: DetectionBackend = DetectionBackend.AUTO):
         self.backend = backend
         self._local_available = None
         self._hf_available = None
-    
+
     async def _check_local_available(self) -> bool:
         """Check if local ML service is available."""
         if self._local_available is not None:
             return self._local_available
-        
+
         try:
             from local_ml_service import get_general_model
+
             model = get_general_model()
-            
+
             # Check if model is loaded
             if model is None:
                 self._local_available = False
@@ -64,22 +66,23 @@ class UnifiedDetectionService:
             # Try a simple prediction to verify
             # Run in threadpool as it might be blocking
             from fastapi.concurrency import run_in_threadpool
+
             test_image = Image.new("RGB", (224, 224), color="white")
             await run_in_threadpool(model.predict, test_image, verbose=False)
-            
+
             self._local_available = True
             return True
-            
+
         except Exception as e:
             logger.warning(f"Local ML service unavailable: {e}")
             self._local_available = False
             return False
-    
+
     async def _check_hf_available(self) -> bool:
         """Check if Hugging Face API is available."""
         if self._hf_available is not None:
             return self._hf_available
-        
+
         try:
             # HF token present indicates API might be available
             token = os.environ.get("HF_TOKEN")
@@ -88,15 +91,15 @@ class UnifiedDetectionService:
         except Exception:
             self._hf_available = False
             return False
-    
+
     async def _get_detection_backend(self) -> str:
         """Determine which backend to use based on configuration and availability."""
         if self.backend == DetectionBackend.LOCAL:
             return "local" if await self._check_local_available() else None
-        
+
         elif self.backend == DetectionBackend.HUGGINGFACE:
             return "huggingface" if await self._check_hf_available() else None
-        
+
         else:  # AUTO
             if USE_LOCAL_MODEL and await self._check_local_available():
                 return "local"
@@ -105,90 +108,102 @@ class UnifiedDetectionService:
                 return "huggingface"
             else:
                 return None
-    
+
     async def detect_vandalism(self, image: Image.Image) -> List[Dict]:
         """
         Detect vandalism in an image.
-        
+
         Args:
             image: PIL Image to analyze
-            
+
         Returns:
             List of detections with 'label', 'confidence', and 'box' keys
-            
+
         Raises:
             ServiceUnavailableException: If no detection backend is available
             DetectionException: If detection fails
         """
         backend = await self._get_detection_backend()
-        
+
         if backend == "local":
             from local_ml_service import detect_vandalism_local
+
             return await detect_vandalism_local(image)
-        
+
         elif backend == "huggingface":
             from hf_service import detect_vandalism_clip
+
             return await detect_vandalism_clip(image)
-        
+
         else:
             logger.error("No detection backend available")
-            raise ServiceUnavailableException("Detection service", details={"detection_type": "vandalism"})
-    
+            raise ServiceUnavailableException(
+                "Detection service", details={"detection_type": "vandalism"}
+            )
+
     async def detect_infrastructure(self, image: Image.Image) -> List[Dict]:
         """
         Detect infrastructure damage in an image.
-        
+
         Args:
             image: PIL Image to analyze
-            
+
         Returns:
             List of detections with 'label', 'confidence', and 'box' keys
-            
+
         Raises:
             ServiceUnavailableException: If no detection backend is available
             DetectionException: If detection fails
         """
         backend = await self._get_detection_backend()
-        
+
         if backend == "local":
             from local_ml_service import detect_infrastructure_local
+
             return await detect_infrastructure_local(image)
-        
+
         elif backend == "huggingface":
             from hf_service import detect_infrastructure_clip
+
             return await detect_infrastructure_clip(image)
-        
+
         else:
             logger.error("No detection backend available")
-            raise ServiceUnavailableException("Detection service", details={"detection_type": "infrastructure"})
-    
+            raise ServiceUnavailableException(
+                "Detection service", details={"detection_type": "infrastructure"}
+            )
+
     async def detect_flooding(self, image: Image.Image) -> List[Dict]:
         """
         Detect flooding/waterlogging in an image.
-        
+
         Args:
             image: PIL Image to analyze
-            
+
         Returns:
             List of detections with 'label', 'confidence', and 'box' keys
-            
+
         Raises:
             ServiceUnavailableException: If no detection backend is available
             DetectionException: If detection fails
         """
         backend = await self._get_detection_backend()
-        
+
         if backend == "local":
             from local_ml_service import detect_flooding_local
+
             return await detect_flooding_local(image)
-        
+
         elif backend == "huggingface":
             from hf_service import detect_flooding_clip
+
             return await detect_flooding_clip(image)
-        
+
         else:
             logger.error("No detection backend available")
-            raise ServiceUnavailableException("Detection service", details={"detection_type": "flooding"})
+            raise ServiceUnavailableException(
+                "Detection service", details={"detection_type": "flooding"}
+            )
 
     async def detect_garbage(self, image: Image.Image) -> List[Dict]:
         """
@@ -205,28 +220,35 @@ class UnifiedDetectionService:
 
         if backend == "local":
             from backend.garbage_detection import detect_garbage
+
             # Local model expects image source, but PIL image works if model supports it
             # The existing detect_garbage uses model.predict(image_source)
             # Ultralytics YOLO supports PIL Image directly
             from fastapi.concurrency import run_in_threadpool
+
             return await run_in_threadpool(detect_garbage, image)
 
         elif backend == "huggingface":
             from backend.hf_api_service import detect_waste_clip
+
             result = await detect_waste_clip(image)
 
             # Map classification to detection format
             if result and result.get("waste_type") != "unknown":
-                return [{
-                    "label": result["waste_type"],
-                    "confidence": result.get("confidence", 0.0),
-                    "box": [] # No bounding box for classification
-                }]
+                return [
+                    {
+                        "label": result["waste_type"],
+                        "confidence": result.get("confidence", 0.0),
+                        "box": [],  # No bounding box for classification
+                    }
+                ]
             return []
 
         else:
             logger.error("No detection backend available")
-            raise ServiceUnavailableException("Detection service", details={"detection_type": "garbage"})
+            raise ServiceUnavailableException(
+                "Detection service", details={"detection_type": "garbage"}
+            )
 
     async def detect_fire(self, image: Image.Image) -> List[Dict]:
         """
@@ -246,9 +268,10 @@ class UnifiedDetectionService:
         backend = await self._get_detection_backend()
 
         if backend == "huggingface" or backend == "auto":
-             # Even in auto, if we don't have local fire model, we fallback or use HF if enabled
-             if await self._check_hf_available():
+            # Even in auto, if we don't have local fire model, we fallback or use HF if enabled
+            if await self._check_hf_available():
                 from backend.hf_api_service import detect_fire_clip
+
                 # Clip returns dict, we need list of dicts
                 # detect_fire_clip returns {"fire_detected": bool, "confidence": float} or similar dict
                 # Wait, I need to check detect_fire_clip return type.
@@ -261,15 +284,15 @@ class UnifiedDetectionService:
                 if isinstance(result, dict) and "detections" in result:
                     return result["detections"]
                 if isinstance(result, dict):
-                     # Wrap in list if it's a single detection dict
-                     return [result]
+                    # Wrap in list if it's a single detection dict
+                    return [result]
                 return []
 
         # If we reached here, no suitable backend found
         if backend == "local":
-             # Placeholder for local fire detection
-             logger.warning("Local fire detection not yet implemented")
-             return []
+            # Placeholder for local fire detection
+            logger.warning("Local fire detection not yet implemented")
+            return []
 
         logger.error("No detection backend available for fire detection")
         # Don't raise exception to avoid failing detect_all, just return empty
@@ -278,10 +301,10 @@ class UnifiedDetectionService:
     async def detect_all(self, image: Image.Image) -> Dict[str, List[Dict]]:
         """
         Run all detection types on an image.
-        
+
         Args:
             image: PIL Image to analyze
-            
+
         Returns:
             Dictionary mapping detection type to list of results
         """
@@ -292,7 +315,7 @@ class UnifiedDetectionService:
             self.detect_infrastructure(image),
             self.detect_flooding(image),
             self.detect_garbage(image),
-            self.detect_fire(image)
+            self.detect_fire(image),
         )
 
         return {
@@ -300,41 +323,42 @@ class UnifiedDetectionService:
             "infrastructure": results[1],
             "flooding": results[2],
             "garbage": results[3],
-            "fire": results[4]
+            "fire": results[4],
         }
-    
+
     async def get_status(self) -> Dict:
         """
         Get the current status of the detection service.
-        
+
         Returns:
             Dictionary with service status information
         """
         local_available = await self._check_local_available()
         hf_available = await self._check_hf_available()
-        
+
         status = {
             "use_local_model": USE_LOCAL_MODEL,
             "enable_hf_fallback": ENABLE_HF_FALLBACK,
             "local_backend": {
                 "available": local_available,
-                "status": "ready" if local_available else "unavailable"
+                "status": "ready" if local_available else "unavailable",
             },
             "huggingface_backend": {
                 "available": hf_available,
-                "status": "ready" if hf_available else "unavailable"
+                "status": "ready" if hf_available else "unavailable",
             },
-            "active_backend": await self._get_detection_backend()
+            "active_backend": await self._get_detection_backend(),
         }
-        
+
         # Add local model details if available
         if local_available:
             try:
                 from local_ml_service import get_detection_status
+
                 status["local_backend"]["details"] = await get_detection_status()
             except Exception:
                 pass
-        
+
         return status
 
 

@@ -6,10 +6,12 @@ from backend.priority_engine import priority_engine
 
 router = APIRouter()
 
+
 class AnalyzeIssueRequest(BaseModel):
     description: str
     image_labels: Optional[List[str]] = None
     category: Optional[str] = None
+
 
 class AnalyzeIssueResponse(BaseModel):
     severity: str
@@ -17,6 +19,7 @@ class AnalyzeIssueResponse(BaseModel):
     urgency_score: int
     suggested_categories: List[str]
     reasoning: List[str]
+
 
 @router.post("/analyze-issue", response_model=AnalyzeIssueResponse)
 def analyze_issue(request: AnalyzeIssueRequest):
@@ -34,5 +37,5 @@ def analyze_issue(request: AnalyzeIssueRequest):
         severity_score=result["severity_score"],
         urgency_score=result["urgency_score"],
         suggested_categories=result["suggested_categories"],
-        reasoning=result["reasoning"]
+        reasoning=result["reasoning"],
     )

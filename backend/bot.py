@@ -3,16 +3,21 @@ import logging
 import asyncio
 import threading
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
-from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters, ConversationHandler
+from telegram.ext import (
+    ApplicationBuilder,
+    ContextTypes,
+    CommandHandler,
+    MessageHandler,
+    filters,
+    ConversationHandler,
+)
 from backend.database import engine, SessionLocal
 
 from backend.models import Base, Issue
 
-
 # Enable logging
 logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 
 # States for ConversationHandler
@@ -24,6 +29,7 @@ _bot_thread = None
 _bot_loop = None
 _shutdown_event = threading.Event()
 
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Namaste! Welcome to VishwaGuru.\n"
@@ -31,6 +37,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Please send me a photo of the issue you want to report."
     )
     return PHOTO
+
 
 async def receive_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.message.from_user
@@ -45,24 +52,32 @@ async def receive_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await photo_file.download_to_drive(filename)
 
     # Store filename in context to save later
-    context.user_data['photo_path'] = filename
+    context.user_data["photo_path"] = filename
 
     await update.message.reply_text(
         "Photo received! Now, please describe the issue in a few words."
     )
     return DESCRIPTION
 
+
 async def receive_description(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
-    context.user_data['description'] = text
+    context.user_data["description"] = text
 
-    categories = [["Road", "Water"], ["Streetlight", "Garbage"], ["College Infra", "Women Safety"]]
+    categories = [
+        ["Road", "Water"],
+        ["Streetlight", "Garbage"],
+        ["College Infra", "Women Safety"],
+    ]
 
     await update.message.reply_text(
         "Got it. Which category does this belong to?",
-        reply_markup=ReplyKeyboardMarkup(categories, one_time_keyboard=True, resize_keyboard=True)
+        reply_markup=ReplyKeyboardMarkup(
+            categories, one_time_keyboard=True, resize_keyboard=True
+        ),
     )
     return CATEGORY
+
 
 def save_issue_to_db(description, category, photo_path):
     """
@@ -75,7 +90,7 @@ def save_issue_to_db(description, category, photo_path):
             description=description,
             category=category,
             image_path=photo_path,
-            source='telegram'
+            source="telegram",
         )
         db.add(new_issue)
         db.commit()
@@ -87,27 +102,33 @@ def save_issue_to_db(description, category, photo_path):
     finally:
         db.close()
 
+
 async def receive_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
     category = update.message.text
-    photo_path = context.user_data.get('photo_path')
-    description = context.user_data.get('description')
+    photo_path = context.user_data.get("photo_path")
+    description = context.user_data.get("description")
 
     try:
         # Save to Database using threadpool to prevent blocking the event loop
         # asyncio.to_thread runs the synchronous function in a separate thread (Python 3.9+)
-        issue_id = await asyncio.to_thread(save_issue_to_db, description, category, photo_path)
+        issue_id = await asyncio.to_thread(
+            save_issue_to_db, description, category, photo_path
+        )
 
         await update.message.reply_text(
             f"Thank you! Your issue has been reported.\n"
             f"Reference ID: #{issue_id}\n\n"
             f"We will generate an action plan for you soon.",
-            reply_markup=ReplyKeyboardRemove()
+            reply_markup=ReplyKeyboardRemove(),
         )
     except Exception:
-        await update.message.reply_text("Sorry, something went wrong while saving your issue.")
+        await update.message.reply_text(
+            "Sorry, something went wrong while saving your issue."
+        )
         return ConversationHandler.END
 
     return ConversationHandler.END
+
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
@@ -115,13 +136,16 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return ConversationHandler.END
 
+
 async def _run_bot_async():
     """Internal async function to run the bot polling loop"""
     global _bot_application
 
     token = os.environ.get("TELEGRAM_BOT_TOKEN")
     if not token:
-        logging.warning("TELEGRAM_BOT_TOKEN environment variable not set. Bot will not start.")
+        logging.warning(
+            "TELEGRAM_BOT_TOKEN environment variable not set. Bot will not start."
+        )
         return
 
     try:
@@ -131,8 +155,12 @@ async def _run_bot_async():
             entry_points=[CommandHandler("start", start)],
             states={
                 PHOTO: [MessageHandler(filters.PHOTO, receive_photo)],
-                DESCRIPTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_description)],
-                CATEGORY: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_category)],
+                DESCRIPTION: [
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, receive_description)
+                ],
+                CATEGORY: [
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, receive_category)
+                ],
             },
             fallbacks=[CommandHandler("cancel", cancel)],
         )
@@ -167,6 +195,7 @@ async def _run_bot_async():
             except Exception as e:
                 logging.error(f"Error shutting down bot: {e}")
 
+
 def _bot_worker():
     """Worker function that runs in a separate thread"""
     global _bot_loop
@@ -183,6 +212,7 @@ def _bot_worker():
         if _bot_loop:
             _bot_loop.close()
 
+
 def start_bot_thread():
     """Start the bot in a separate thread to avoid blocking FastAPI's event loop"""
     global _bot_thread, _shutdown_event
@@ -196,6 +226,7 @@ def start_bot_thread():
     _bot_thread = threading.Thread(target=_bot_worker, daemon=True, name="TelegramBot")
     _bot_thread.start()
     logging.info("Bot thread started successfully")
+
 
 def stop_bot_thread():
     """Stop the bot thread gracefully"""
@@ -220,6 +251,7 @@ def stop_bot_thread():
     _bot_application = None
     logging.info("Bot thread cleanup complete")
 
+
 async def run_bot():
     """
     Legacy function for backward compatibility.
@@ -228,7 +260,8 @@ async def run_bot():
     start_bot_thread()
     return _bot_application
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # For standalone bot testing
     start_bot_thread()
 
