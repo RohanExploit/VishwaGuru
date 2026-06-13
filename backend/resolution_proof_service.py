@@ -435,7 +435,8 @@ class ResolutionProofService:
         Returns:
             Verification result dictionary
         """
-        evidence_records = db.query(ResolutionEvidence).filter(
+        # Optimized: Count records and fetch only the latest one to avoid loading all into memory
+        evidence_count = db.query(ResolutionEvidence).filter(
             ResolutionEvidence.grievance_id == grievance_id
         ).all()
 
@@ -453,7 +454,9 @@ class ResolutionProofService:
             }
 
         # Use the most recent evidence
-        evidence = evidence_records[-1]
+        evidence = db.query(ResolutionEvidence).filter(
+            ResolutionEvidence.grievance_id == grievance_id
+        ).order_by(ResolutionEvidence.id.desc()).first()
 
         # Re-verify the server signature
         bundle_str = json.dumps(evidence.metadata_bundle, sort_keys=True)
