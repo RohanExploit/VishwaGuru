@@ -1,5 +1,5 @@
 {
   "projects": {
-    "default": "vishwaguru-app"
+    "default": "your-firebase-project-id"
   }
 }
