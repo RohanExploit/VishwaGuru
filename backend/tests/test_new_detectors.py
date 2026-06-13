@@ -56,8 +56,7 @@ def create_test_image():
     img.save(img_byte_arr, format='JPEG')
     return img_byte_arr.getvalue()
 
-@pytest.mark.asyncio
-async def test_detect_traffic_sign_damaged(client):
+def test_detect_traffic_sign_damaged(client):
     # Mock the HF API response at the lower level (_make_request or query_hf_api)
     # Since we are mocking the client, we mock the client.post response
 
@@ -86,8 +85,7 @@ async def test_detect_traffic_sign_damaged(client):
     assert len(data["detections"]) == 1
     assert data["detections"][0]["label"] == "damaged traffic sign"
 
-@pytest.mark.asyncio
-async def test_detect_traffic_sign_clear(client):
+def test_detect_traffic_sign_clear(client):
     img_bytes = create_test_image()
 
     with patch('backend.utils.validate_uploaded_file'), \
@@ -102,8 +100,7 @@ async def test_detect_traffic_sign_clear(client):
     # Should be empty because 'clear traffic sign' is not in targets
     assert len(data["detections"]) == 0
 
-@pytest.mark.asyncio
-async def test_detect_abandoned_vehicle_found(client):
+def test_detect_abandoned_vehicle_found(client):
     img_bytes = create_test_image()
 
     with patch('backend.utils.validate_uploaded_file'), \
