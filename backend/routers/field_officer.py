@@ -408,30 +408,28 @@ def get_visit_statistics(db: Session = Depends(get_db)):
     Returns metrics like total visits, verification status, geo-fence compliance, etc.
     """
     try:
-        # Use SQL aggregates instead of loading all visits into memory
-        total_visits = db.query(func.count(FieldOfficerVisit.id)).scalar() or 0
-        
-        verified_visits = db.query(func.count(FieldOfficerVisit.id)).filter(
-            FieldOfficerVisit.verified_at.isnot(None)
-        ).scalar() or 0
-        
-        within_geofence_count = db.query(func.count(FieldOfficerVisit.id)).filter(
-            FieldOfficerVisit.within_geofence == True
-        ).scalar() or 0
-        
-        outside_geofence_count = db.query(func.count(FieldOfficerVisit.id)).filter(
-            FieldOfficerVisit.within_geofence == False
-        ).scalar() or 0
-        
-        unique_officers = db.query(func.count(func.distinct(FieldOfficerVisit.officer_email))).scalar() or 0
-        
-        average_distance = db.query(func.avg(FieldOfficerVisit.distance_from_site)).filter(
-            FieldOfficerVisit.distance_from_site.isnot(None)
-        ).scalar()
+        # Optimized: Use a single aggregate query to fetch multiple statistics in one database roundtrip
+        stats = db.query(
+            func.count(FieldOfficerVisit.id).label('total'),
+            func.sum(case((FieldOfficerVisit.verified_at.isnot(None), 1), else_=0)).label('verified'),
+            func.sum(case((FieldOfficerVisit.within_geofence == True, 1), else_=0)).label('within_geofence'),
+            func.sum(case((FieldOfficerVisit.within_geofence == False, 1), else_=0)).label('outside_geofence'),
+            func.count(func.distinct(FieldOfficerVisit.officer_email)).label('unique_officers'),
+            func.avg(FieldOfficerVisit.distance_from_site).label('avg_distance')
+        ).first()
+
+        total_visits = stats.total or 0
+        verified_visits = int(stats.verified or 0)
+        within_geofence_count = int(stats.within_geofence or 0)
+        outside_geofence_count = int(stats.outside_geofence or 0)
+        unique_officers = stats.unique_officers or 0
+        average_distance = stats.avg_distance
         
         # Round to 2 decimals if not None
         if average_distance is not None:
             average_distance = round(float(average_distance), 2)
+        else:
+            average_distance = 0.0
         
         return VisitStatsResponse(
             total_visits=total_visits,

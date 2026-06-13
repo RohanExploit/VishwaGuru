@@ -11,8 +11,10 @@ import {
 } from 'lucide-react';
 
 const CameraCheckModal = ({ onClose }) => {
-  const videoRef = React.useRef(null);
-  const [status, setStatus] = React.useState('requesting');
+    const videoRef = React.useRef(null);
+    const canvasRef = React.useRef(null);
+    const [status, setStatus] = React.useState('requesting');
+    const [snapshot, setSnapshot] = React.useState(null);
 
   React.useEffect(() => {
     let stream = null;
@@ -36,14 +38,58 @@ const CameraCheckModal = ({ onClose }) => {
     };
   }, []);
 
-  return (
-    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center">
-        <h3 className="text-lg font-bold mb-4">Camera Diagnostics</h3>
-        <div className="bg-gray-100 rounded-lg h-48 mb-4 flex items-center justify-center overflow-hidden relative">
-          {status === 'requesting' && <span className="text-gray-500 animate-pulse">Requesting access...</span>}
-          {status === 'error' && <span className="text-red-500 font-medium">Camera access failed. Check permissions.</span>}
-          <video ref={videoRef} autoPlay playsInline className={`w-full h-full object-cover ${status === 'active' ? 'block' : 'hidden'}`} />
+    const takeSnapshot = () => {
+        if (videoRef.current && canvasRef.current) {
+            const video = videoRef.current;
+            const canvas = canvasRef.current;
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            setSnapshot(canvas.toDataURL('image/jpeg'));
+        }
+    };
+
+    const retake = () => {
+        setSnapshot(null);
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center">
+                <h3 className="text-lg font-bold mb-4">Camera Diagnostics</h3>
+
+                <div className="bg-gray-100 rounded-lg h-48 mb-4 flex items-center justify-center overflow-hidden relative border border-gray-200">
+                    {status === 'requesting' && <span className="text-gray-500 animate-pulse">Requesting access...</span>}
+                    {status === 'error' && <span className="text-red-500 font-medium">Camera access failed. Check permissions.</span>}
+
+                    {!snapshot ? (
+                        <video ref={videoRef} autoPlay playsInline className={`w-full h-full object-cover ${status === 'active' ? 'block' : 'hidden'}`} />
+                    ) : (
+                        <img src={snapshot} alt="Test capture" className="w-full h-full object-cover" />
+                    )}
+                    <canvas ref={canvasRef} className="hidden" />
+                </div>
+
+                {status === 'active' && !snapshot && (
+                    <div className="mb-4">
+                        <p className="text-green-600 font-medium text-sm mb-2">Camera is working correctly!</p>
+                        <button onClick={takeSnapshot} className="px-4 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition">
+                            Test Snapshot
+                        </button>
+                    </div>
+                )}
+
+                {snapshot && (
+                    <div className="mb-4">
+                         <p className="text-blue-600 font-medium text-sm mb-2">Snapshot Captured!</p>
+                         <button onClick={retake} className="px-4 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition">
+                            Retake
+                        </button>
+                    </div>
+                )}
+
+                <button onClick={onClose} className="w-full bg-blue-600 text-white py-2 rounded-lg font-bold">Close</button>
+            </div>
         </div>
         {status === 'active' && <p className="text-green-600 font-medium text-sm mb-4">Camera is working correctly!</p>}
         <button onClick={onClose} className="w-full bg-blue-600 text-white py-2 rounded-lg font-bold">Close</button>

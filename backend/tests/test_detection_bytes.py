@@ -33,14 +33,9 @@ mock_telegram = MagicMock()
 sys.modules['telegram'] = mock_telegram
 sys.modules['telegram.ext'] = mock_telegram.ext
 
-# Mock dependencies before importing app
-with patch("backend.main.create_all_ai_services") as mock_create_ai:
-    mock_action = AsyncMock()
-    mock_chat = AsyncMock()
-    mock_summary = AsyncMock()
-    mock_create_ai.return_value = (mock_action, mock_chat, mock_summary)
-
-    from backend.main import app
+# Import main (will trigger app creation)
+import backend.main
+from backend.main import app
 
 @pytest.fixture
 def client():
@@ -65,6 +60,9 @@ def client():
     # Let's rely on patching httpx.AsyncClient class constructor
     with patch("httpx.AsyncClient", return_value=mock_client):
          with TestClient(app) as c:
+            c.app.state.http_client = mock_client
+            import backend.dependencies
+            backend.dependencies.SHARED_HTTP_CLIENT = mock_client
             yield c
 
 @pytest.mark.asyncio
@@ -91,10 +89,10 @@ async def test_detect_vandalism_with_bytes(client):
 
     # Send request
     with patch('backend.utils.validate_uploaded_file'), \
-         patch('backend.pothole_detection.validate_image_for_processing'), \
+         patch('backend.utils.validate_image_for_processing'), \
          patch('backend.routers.detection.detect_vandalism_unified', AsyncMock(return_value=[{"label": "graffiti", "score": 0.95}])):
         response = client.post(
-            "/api/detect-vandalism",
+            "/detect-vandalism",
             files={"image": ("test.jpg", img_bytes, "image/jpeg")}
         )
 
@@ -129,10 +127,10 @@ async def test_detect_infrastructure_with_bytes(client):
     img_bytes = img_byte_arr.getvalue()
 
     with patch('backend.utils.validate_uploaded_file'), \
-         patch('backend.pothole_detection.validate_image_for_processing'), \
+         patch('backend.utils.validate_image_for_processing'), \
          patch('backend.routers.detection.detect_infrastructure_unified', AsyncMock(return_value=[{"label": "fallen tree", "score": 0.8}])):
         response = client.post(
-            "/api/detect-infrastructure",
+            "/detect-infrastructure",
             files={"image": ("test.jpg", img_bytes, "image/jpeg")}
         )
 
