@@ -175,8 +175,45 @@ class Config:
         )
 
 
-# Global config instance
+@dataclass
+class AuthConfig:
+    """Lightweight auth-only configuration that doesn't require external API keys."""
+    secret_key: str
+    algorithm: str
+    access_token_expire_minutes: int
+
+    @classmethod
+    def from_env(cls) -> "AuthConfig":
+        environment = os.getenv("ENVIRONMENT", "development")
+        secret_key = os.getenv("SECRET_KEY")
+        if not secret_key:
+            if environment.lower() == "production":
+                raise ValueError("SECRET_KEY is required in production environment")
+            else:
+                secret_key = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
+        algorithm = os.getenv("ALGORITHM", "HS256")
+        access_token_expire_minutes = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+        return cls(
+            secret_key=secret_key,
+            algorithm=algorithm,
+            access_token_expire_minutes=access_token_expire_minutes,
+        )
+
+
+# Global config instances
 _config: Optional[Config] = None
+_auth_config: Optional[AuthConfig] = None
+
+
+def get_auth_config() -> AuthConfig:
+    """
+    Get auth-only configuration. Does NOT require GEMINI_API_KEY or TELEGRAM_BOT_TOKEN.
+    Safe to use in auth endpoints.
+    """
+    global _auth_config
+    if _auth_config is None:
+        _auth_config = AuthConfig.from_env()
+    return _auth_config
 
 
 def get_config() -> Config:

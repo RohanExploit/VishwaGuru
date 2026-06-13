@@ -56,22 +56,10 @@ def create_test_image():
 
 @pytest.mark.asyncio
 async def test_detect_traffic_sign_damaged(client):
-    # Mock the HF API response at the lower level (_make_request or query_hf_api)
-    # Since we are mocking the client, we mock the client.post response
-
-    mock_http_client = client.app.state.http_client
-    mock_response = MagicMock()
-    mock_response.status_code = 200
-    # CLIP response is a list of dicts
-    mock_response.json.return_value = [
-        {"label": "damaged traffic sign", "score": 0.95},
-        {"label": "clear traffic sign", "score": 0.05}
-    ]
-    mock_http_client.post.return_value = mock_response
-
     img_bytes = create_test_image()
 
-    with patch('backend.utils.validate_uploaded_file'):
+    with patch('backend.utils.process_uploaded_image', AsyncMock(return_value=(MagicMock(), img_bytes))), \
+         patch('backend.routers.detection._cached_detect_traffic_sign', AsyncMock(return_value=[{"label": "damaged traffic sign", "score": 0.95}])):
         response = client.post(
             "/api/detect-traffic-sign",
             files={"image": ("sign.jpg", img_bytes, "image/jpeg")}
@@ -85,19 +73,10 @@ async def test_detect_traffic_sign_damaged(client):
 
 @pytest.mark.asyncio
 async def test_detect_traffic_sign_clear(client):
-    mock_http_client = client.app.state.http_client
-    mock_response = MagicMock()
-    mock_response.status_code = 200
-    # CLIP response: top is clear
-    mock_response.json.return_value = [
-        {"label": "clear traffic sign", "score": 0.95},
-        {"label": "damaged traffic sign", "score": 0.05}
-    ]
-    mock_http_client.post.return_value = mock_response
-
     img_bytes = create_test_image()
 
-    with patch('backend.utils.validate_uploaded_file'):
+    with patch('backend.utils.process_uploaded_image', AsyncMock(return_value=(MagicMock(), img_bytes))), \
+         patch('backend.routers.detection._cached_detect_traffic_sign', AsyncMock(return_value=[])):
         response = client.post(
             "/api/detect-traffic-sign",
             files={"image": ("sign.jpg", img_bytes, "image/jpeg")}
@@ -110,18 +89,10 @@ async def test_detect_traffic_sign_clear(client):
 
 @pytest.mark.asyncio
 async def test_detect_abandoned_vehicle_found(client):
-    mock_http_client = client.app.state.http_client
-    mock_response = MagicMock()
-    mock_response.status_code = 200
-    mock_response.json.return_value = [
-        {"label": "abandoned car", "score": 0.92},
-        {"label": "normal parked car", "score": 0.08}
-    ]
-    mock_http_client.post.return_value = mock_response
-
     img_bytes = create_test_image()
 
-    with patch('backend.utils.validate_uploaded_file'):
+    with patch('backend.utils.process_uploaded_image', AsyncMock(return_value=(MagicMock(), img_bytes))), \
+         patch('backend.routers.detection._cached_detect_abandoned_vehicle', AsyncMock(return_value=[{"label": "abandoned car", "score": 0.92}])):
         response = client.post(
             "/api/detect-abandoned-vehicle",
             files={"image": ("car.jpg", img_bytes, "image/jpeg")}

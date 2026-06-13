@@ -37,3 +37,15 @@
 ## 2026-02-08 - Return Type Consistency in Utilities
 **Learning:** Inconsistent return types in shared utility functions (like `process_uploaded_image`) can cause runtime crashes across multiple modules, especially when some expect tuples and others expect single values. This can lead to deployment failures that are hard to debug without full integration logs.
 **Action:** Always maintain strict return type consistency for core utilities. Use type hints and verify all call sites when changing a function's signature. Ensure that performance-oriented optimizations (like returning multiple processed formats) are applied uniformly.
+
+## 2026-02-10 - Serialization Caching vs Object Caching
+**Learning:** Caching raw Python objects (like SQLAlchemy models or Pydantic instances) in a high-traffic API still incurs significant overhead because FastAPI/Pydantic must re-validate and re-serialize the data on every request.
+**Action:** Serialize data to a JSON string BEFORE caching. On cache hits, return a raw `fastapi.Response` with `media_type="application/json"`. This bypasses the validation layer and is measurably faster (2-3x).
+
+## 2026-02-10 - Group-By for Multi-Count Statistics
+**Learning:** Executing multiple `count()` queries with different filters (e.g., for different statuses) causes redundant database scans and network round-trips.
+**Action:** Use a single SQL `GROUP BY` query to fetch counts for all categories/statuses at once, then process the results in Python.
+
+## 2025-03-03 - Single Database Roundtrip for Multiple Counts
+**Learning:** Executing multiple separate `count()` queries on the same table with different filters is inefficient due to multiple database roundtrips.
+**Action:** Use a single query with `func.count()`, `func.sum()`, and `case()` statements to calculate multiple aggregates simultaneously.

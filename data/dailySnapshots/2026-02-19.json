@@ -1,0 +1,33 @@
+{
+    "date": "2026-02-19T18:54:17.186933+00:00",
+    "civic_intelligence_index": {
+        "score": 35.6,
+        "components": {
+            "volume": 2,
+            "severity": 50.0,
+            "efficiency": 50.0
+        },
+        "top_concern": "pothole"
+    },
+    "trends": {
+        "top_keywords": [
+            [
+                "pothole",
+                2
+            ]
+        ],
+        "category_distribution": {
+            "Pothole": 2
+        },
+        "clusters": []
+    },
+    "weight_adjustments": [],
+    "duplicate_stats": {
+        "old_radius": 50.0,
+        "new_radius": 50.0,
+        "reason": "No change",
+        "close_pairs_detected": 0
+    },
+    "issue_count": 2,
+    "grievance_count": 2
+}

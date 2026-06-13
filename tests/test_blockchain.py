@@ -91,6 +91,41 @@ def test_blockchain_verification_success(client, db_session):
     assert data["is_valid"] == True
     assert data["current_hash"] == hash2
 
+def test_blockchain_previous_hash_stored(client, db_session):
+    # Create first issue
+    hash1 = hashlib.sha256(b"First").hexdigest()
+    issue1 = Issue(description="First", category="Road", integrity_hash=hash1)
+    db_session.add(issue1)
+    db_session.commit()
+
+    # Create second issue via API (to test logic in create_issue)
+    # Mocking background tasks to avoid errors
+    from unittest.mock import patch
+    with patch("backend.routers.issues.process_action_plan_background"), \
+         patch("backend.routers.issues.create_grievance_from_issue_background"):
+        response = client.post(
+            "/api/issues",
+            data={
+                "description": "Second issue description",
+                "category": "Garbage",
+                "latitude": 10.0,
+                "longitude": 20.0
+            }
+        )
+
+    assert response.status_code == 201
+    issue_id = response.json()["id"]
+
+    # Verify issue in DB has previous_integrity_hash
+    issue2 = db_session.query(Issue).filter(Issue.id == issue_id).first()
+    assert issue2.previous_integrity_hash == hash1
+
+    # Verify blockchain-verify endpoint uses the stored hash
+    # (Implicitly tested if it returns is_valid=True and we know we didn't mock the internal DB query in the router)
+    response = client.get(f"/api/issues/{issue_id}/blockchain-verify")
+    assert response.status_code == 200
+    assert response.json()["is_valid"] == True
+
 def test_blockchain_verification_failure(client, db_session):
     # Create issue with tampered hash
     issue = Issue(
