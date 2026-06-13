@@ -25,6 +25,7 @@ from backend.models import (
     EvidenceAuditLog, VerificationStatus, GrievanceStatus
 )
 from backend.config import get_config
+from backend.cache import resolution_last_hash_cache
 
 logger = logging.getLogger(__name__)
 
@@ -368,6 +369,19 @@ class ResolutionProofService:
         bundle_str = json.dumps(metadata_bundle, sort_keys=True)
         server_signature = ResolutionProofService._sign_payload(bundle_str)
 
+        # 5a. Blockchain feature: calculate integrity hash for the evidence record
+        # Performance Boost: Use thread-safe cache to eliminate DB query for last hash
+        prev_hash = resolution_last_hash_cache.get("last_hash")
+        if prev_hash is None:
+            # Cache miss: Fetch only the last hash from DB
+            prev_record = db.query(ResolutionEvidence.integrity_hash).order_by(ResolutionEvidence.id.desc()).first()
+            prev_hash = prev_record[0] if prev_record and prev_record[0] else ""
+            resolution_last_hash_cache.set(data=prev_hash, key="last_hash")
+
+        # Chaining logic: HMAC-SHA256(evidence_hash|gps_lat|gps_lon|prev_hash)
+        hash_content = f"{evidence_hash}|{gps_latitude}|{gps_longitude}|{prev_hash}"
+        integrity_hash = ResolutionProofService._sign_payload(hash_content)
+
         # 6. Create evidence record
         evidence = ResolutionEvidence(
             grievance_id=token.grievance_id,
@@ -380,6 +394,8 @@ class ResolutionProofService:
             metadata_bundle=metadata_bundle,
             server_signature=server_signature,
             verification_status=VerificationStatus.VERIFIED,
+            integrity_hash=integrity_hash,
+            previous_integrity_hash=prev_hash
         )
 
         db.add(evidence)
@@ -390,6 +406,9 @@ class ResolutionProofService:
 
         db.commit()
         db.refresh(evidence)
+
+        # Update cache for next evidence entry - ONLY after successful commit to prevent cache poisoning
+        resolution_last_hash_cache.set(data=integrity_hash, key="last_hash")
 
         # 8. Create audit log
         ResolutionProofService._create_audit_log(
