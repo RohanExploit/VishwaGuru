@@ -45,18 +45,14 @@ def get_system_stats(db: Session = Depends(get_db)):
     Optimized: Uses a single aggregate query to calculate multiple metrics simultaneously,
     reducing database round-trips and scan overhead.
     """
-    counts = db.query(
-        User.role,
-        User.is_active,
-        func.count(User.id)
-    ).group_by(User.role, User.is_active).all()
-
-    total = sum(c for r, a, c in counts)
-    admins = sum(c for r, a, c in counts if r == UserRole.ADMIN)
-    active = sum(c for r, a, c in counts if a)
+    result = db.query(
+        func.count(User.id).label('total'),
+        func.sum(case((User.role == UserRole.ADMIN, 1), else_=0)).label('admins'),
+        func.sum(case((User.is_active == True, 1), else_=0)).label('active')
+    ).first()
 
     return {
-        "total_users": total,
-        "admin_count": admins,
-        "active_users": active,
+        "total_users": int(result.total or 0),
+        "admin_count": int(result.admins or 0),
+        "active_users": int(result.active or 0),
     }
