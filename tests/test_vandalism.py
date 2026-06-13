@@ -13,12 +13,18 @@ def client():
 def test_read_main(client):
     response = client.get("/")
     assert response.status_code == 200
-    assert response.json()["service"] == "VishwaGuru API"
+    json_response = response.json()
+    assert "data" in json_response
+    assert json_response["data"]["service"] == "VishwaGuru API"
 
+@patch("backend.main.magic.from_buffer")
 @patch("backend.main.detect_vandalism_clip", new_callable=AsyncMock)
 @patch("backend.main.run_in_threadpool")
 @patch("backend.main.Image.open")
-def test_detect_vandalism_new(mock_image_open, mock_run, mock_detect_vandalism, client):
+def test_detect_vandalism(mock_image_open, mock_run, mock_detect_vandalism, mock_magic, client):
+    # Mock magic to return image/jpeg
+    mock_magic.return_value = "image/jpeg"
+
     # Mock Image.open to return a valid object (mock)
     mock_image = MagicMock()
     mock_image_open.return_value = mock_image
@@ -31,8 +37,11 @@ def test_detect_vandalism_new(mock_image_open, mock_run, mock_detect_vandalism, 
     mock_detect_vandalism.return_value = mock_result
 
     # Note: run_in_threadpool is still used for Image.open, so we mock it
-    # But for detection it is NOT used.
+    # But for detection it is NOT used directly in the test scope but inside utils
     async def async_mock_run_img(*args, **kwargs):
+        # Return whatever was passed if it's the function, or mock image if it's open
+        if args and args[0] == mock_image.verify:
+             return None
         return mock_image
 
     mock_run.side_effect = async_mock_run_img

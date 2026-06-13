@@ -1,0 +1,44 @@
+name: ✨ Feature Request
+description: Suggest a new feature or enhancement
+title: "[Feature]: "
+labels: ["enhancement"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: "## 🚀 Suggest a new idea for VishwaGuru"
+
+  - type: textarea
+    id: feature
+    attributes:
+      label: Feature description
+      placeholder: Describe the feature clearly.
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem it solves
+      placeholder: What problem does this feature solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      placeholder: How should this feature work?
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      placeholder: Any other ideas or approaches?
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      placeholder: Screenshots, links, or references.

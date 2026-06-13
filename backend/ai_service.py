@@ -1,24 +1,22 @@
 import json
 import os
 import warnings
+from typing import Optional, Callable, Any
 from functools import lru_cache
-from typing import Optional
 import logging
+import asyncio
+import time
 
-import google.generativeai as genai
-from async_lru import alru_cache
+# Suppress deprecation warnings from google.generativeai
+# We use a context manager to ensure we only suppress warnings for this specific import
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    import google.generativeai as genai
+
+from backend.exceptions import AIServiceException
 
 # Configure logger
 logger = logging.getLogger(__name__)
-
-# Suppress deprecation warnings from google.generativeai
-warnings.filterwarnings("ignore", category=FutureWarning, module="google.generativeai")
-
-RESPONSIBILITY_MAP_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(__file__)),
-    "data",
-    "responsibility_map.json",
-)
 
 # Configure Gemini
 api_key = os.environ.get("GEMINI_API_KEY")
@@ -53,22 +51,23 @@ def build_x_post(issue_description: str, category: str) -> str:
     return f"{base_message} #CivicIssue #VishwaGuru"
 
 
-async def generate_action_plan(issue_description: str, category: str, image_path: Optional[str] = None) -> dict:
+async def generate_action_plan(issue_description: str, category: str, language: str = 'en', image_path: Optional[str] = None) -> dict:
     """
-    Generates an action plan (WhatsApp message, Email draft, X.com post) using Gemini.
+    Generates an action plan (WhatsApp message, Email draft) using Gemini with retry logic.
     """
-    x_post = build_x_post(issue_description, category)
+    # Generate X post content first using the logic
+    x_post_text = build_x_post(issue_description, category)
 
-    if not api_key:
-        return {
-            "whatsapp": f"Hello, I would like to report a {category} issue: {issue_description}",
-            "email_subject": f"Complaint regarding {category}",
-            "email_body": f"Respected Authority,\n\nI am writing to bring to your attention a {category} issue: {issue_description}.\n\nPlease take necessary action.\n\nSincerely,\nCitizen",
-            "x_post": x_post,
-        }
+    # Fallback response for when AI is unavailable
+    fallback_response = {
+        "whatsapp": f"Hello, I would like to report a {category} issue: {issue_description}",
+        "email_subject": f"Complaint regarding {category}",
+        "email_body": f"Respected Authority,\n\nI am writing to bring to your attention a {category} issue: {issue_description}.\n\nPlease take necessary action.\n\nSincerely,\nCitizen",
+        "x_post": x_post_text
+    }
 
-    try:
-        # Use Gemini 1.5 Flash for faster response times
+    async def _generate_with_gemini() -> dict:
+        """Inner function to generate action plan with Gemini"""
         model = genai.GenerativeModel('gemini-1.5-flash')
 
         prompt = f"""
@@ -76,11 +75,11 @@ async def generate_action_plan(issue_description: str, category: str, image_path
         Category: {category}
         Description: {issue_description}
 
-        Please generate:
+        Please generate the following messages in {language} language:
         1. A concise WhatsApp message (max 200 chars) that can be sent to authorities.
         2. A formal but firm email subject.
         3. A formal email body (max 150 words) addressed to the relevant authority (e.g., Municipal Commissioner, Police, etc. based on category).
-        4. A concise X.com post text (max 240 chars). If provided, prefer this authority handle for tagging: {x_post}
+        4. A concise X.com post text (max 240 chars). If provided, prefer this authority handle for tagging: {x_post_text}
 
         Return the response in strictly valid JSON format with keys: "whatsapp", "email_subject", "email_body", "x_post".
         Do not use markdown code blocks. Just the raw JSON string.
@@ -116,28 +115,44 @@ async def generate_action_plan(issue_description: str, category: str, image_path
                  raise Exception("Invalid JSON from AI")
 
         if "x_post" not in plan or not plan.get("x_post"):
-            plan["x_post"] = x_post
+            plan["x_post"] = x_post_text
         return plan
 
+    try:
+        return await retry_with_exponential_backoff(_generate_with_gemini, max_retries=3)
+    except AIServiceException:
+        # Already properly wrapped, re-raise
+        raise
     except Exception as e:
-        logger.error(f"Gemini Error: {e}")
-        # Fallback
-        return {
-            "whatsapp": f"Hello, I would like to report a {category} issue: {issue_description}",
-            "email_subject": f"Complaint regarding {category}",
-            "email_body": f"Respected Authority,\n\nI am writing to bring to your attention a {category} issue: {issue_description}.\n\nPlease take necessary action.\n\nSincerely,\nCitizen",
-            "x_post": x_post,
-        }
+        logger.error(f"Gemini action plan generation failed after retries: {e}")
+        raise AIServiceException(
+            "Failed to generate action plan",
+            service="Gemini",
+            details={"error": str(e)}
+        ) from e
 
-@alru_cache(maxsize=100)
+# Manual cache for chat
+_chat_cache = {}
+CHAT_CACHE_TTL = 3600 # 1 hour
+MAX_CHAT_CACHE_SIZE = 100
+
 async def chat_with_civic_assistant(query: str) -> str:
     """
-    Chat with the civic assistant.
+    Chat with the civic assistant using Gemini with retry logic.
     """
-    if not api_key:
-        return "I am currently offline. Please try again later."
+    # Check cache
+    cache_key = f"chat_{hash(query)}"
+    current_time = time.time()
 
-    try:
+    if cache_key in _chat_cache:
+        result, timestamp = _chat_cache[cache_key]
+        if current_time - timestamp < CHAT_CACHE_TTL:
+            return result
+        else:
+            del _chat_cache[cache_key]
+
+    async def _chat_with_gemini() -> str:
+        """Inner function to chat with Gemini"""
         model = genai.GenerativeModel('gemini-1.5-flash')
 
         prompt = f"""
@@ -151,6 +166,27 @@ async def chat_with_civic_assistant(query: str) -> str:
 
         response = await model.generate_content_async(prompt)
         return response.text.strip()
+
+    try:
+        result = await retry_with_exponential_backoff(_chat_with_gemini, max_retries=2)
+
+        # Update cache
+        if len(_chat_cache) > MAX_CHAT_CACHE_SIZE:
+            # Prune oldest 20%
+            keys_to_remove = list(_chat_cache.keys())[:int(MAX_CHAT_CACHE_SIZE * 0.2)]
+            for k in keys_to_remove:
+                del _chat_cache[k]
+
+        _chat_cache[cache_key] = (result, current_time)
+        return result
+
+    except AIServiceException:
+        # Already properly wrapped, re-raise
+        raise
     except Exception as e:
-        logger.error(f"Gemini Chat Error: {e}")
-        return "I encountered an error processing your request."
+        logger.error(f"Gemini chat failed after retries: {e}")
+        raise AIServiceException(
+            "Failed to process chat request",
+            service="Gemini",
+            details={"error": str(e)}
+        ) from e

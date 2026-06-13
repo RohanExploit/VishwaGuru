@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - Smart Borgerindberetning",
+        "subtitle": "Indberet og følg borgersager i dit lokalsamfund",
+        "privacyActive": "AI-drevet privatlivsbeskyttelse aktiv",
+        "communityImpact": "Lokalsamfundets indvirkning",
+        "makingChange": "Sammen skaber vi forandring!",
+        "issuesSolved": "Løste problemer",
+        "smartScanner": "Smart City Scanner",
+        "aiPoweredDetection": "Øjeblikkelig AI-detektion",
+        "categories": {
+            "roadTraffic": "Vej & Trafik",
+            "environmentSafety": "Miljø & Sikkerhed",
+            "civicServices": "Borgerservice",
+            "management": "Forvaltning"
+        },
+        "issues": {
+            "pothole": "Hul i vejen",
+            "blockedRoad": "Spærret vej",
+            "illegalParking": "Ulovlig parkering",
+            "darkStreet": "Mørk gade",
+            "trafficSign": "Trafikskilt",
+            "abandonedVehicle": "Efterladt køretøj",
+            "garbage": "Affald",
+            "flood": "Oversvømmelse",
+            "fireSmoke": "Brand/Røg",
+            "treeHazard": "Farligt træ",
+            "strayAnimal": "Løsgående dyr",
+            "pestControl": "Skadedyrsbekæmpelse",
+            "reportIssue": "Indberet sag",
+            "brokenInfra": "Ødelagt infrastruktur",
+            "graffiti": "Graffiti",
+            "findMLA": "Find repræsentant",
+            "grievanceManagement": "Klagehåndtering",
+            "viewStats": "Se statistik",
+            "leaderboard": "Rangliste",
+            "responsibilityMap": "Ansvarskort",
+            "noise": "Støj",
+            "crowd": "Trængsel",
+            "waterLeak": "Vandlækage",
+            "waste": "Affaldssortering",
+            "civicEye": "Borgerøjet",
+            "myReports": "Mine indberetninger",
+            "analyzeGrievance": "Analyser klage"
+        },
+        "tools": {
+            "whoIsResponsible": "Hvem er ansvarlig?",
+            "topReporters": "Topindberettere",
+            "cameraCheck": "Kameratjek"
+        },
+        "activity": {
+            "communityActivity": "Samfundsaktivitet",
+            "liveFeed": "Live Feed",
+            "noActivity": "Ingen nylig aktivitet at vise.",
+            "loadMore": "Indlæs mere aktivitet",
+            "verify": "Verificer"
+        },
+        "stats": {
+            "totalImpact": "Samlet indvirkning",
+            "issuesResolved": "Løste problemer",
+            "activeUsers": "Aktive brugere"
+        },
+        "landing": {
+            "empowering": "Styrkelse af borgerne",
+            "governance": "for bedre styring",
+            "subtitle": "Indberet borgersager og få AI-genererede løsninger. Kontakt embedsmænd via Telegram.",
+            "cta": "Indberet sag",
+            "cards": {
+                "reportCitizens": "Indberet med borgere",
+                "generatedCivic": "genereret borgerstyring",
+                "govServices": "Offentlige tjenester",
+                "questionGov": "Spørg regeringen",
+                "govDesc": "Indsend forespørgsler, kræv gennemsigtighed og hold embedsmænd ansvarlige",
+                "communityAction": "Samfundshandling",
+                "joinMovement": "Deltag i bevægelsen"
+            },
+            "features": {
+                "publicTrust": "Offentlig tillid",
+                "ethics": "& Etik",
+                "civicIssues": "Borgersager",
+                "reportProblems": "Indberet problemer",
+                "voiceVote": "Gør din stemme hørt",
+                "shareIdeas": "Del idéer til bedre politikker",
+                "aiDemocracy": "AI til demokrati",
+                "civicActions": "& Borgerhandlinger",
+                "aiDesc": "Brug af teknologi til gennemsigtig styring og hurtigere løsninger.",
+                "smartAnalysis": "Smart analyse",
+                "aiInsights": "AI-drevne indsigter",
+                "citizenCount": "10k+ aktive borgere",
+                "secureSafe": "Sikkert & Trygt",
+                "verifiedReports": "Verificerede indberetninger",
+                "quickAction": "Hurtig handling",
+                "responseTime": "24t svartid"
+            }
+        }
+    },
+    "common": {
+        "loading": "Indlæser...",
+        "error": "Fejl",
+        "submit": "Indsend",
+        "cancel": "Annuller",
+        "yes": "Ja",
+        "no": "Nej",
+        "back": "Tilbage"
+    }
+}

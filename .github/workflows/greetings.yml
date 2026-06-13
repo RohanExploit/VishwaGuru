@@ -15,43 +15,69 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Greet New Contributors
-        uses: actions/first-interaction@v1
+        uses: actions/github-script@v7
         with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          issue-message: |
-            👋 Hello @${{ github.actor }}! Thank you for opening your first issue on **VishwaGuru**! 🎉
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          retries: 3
+          script: |
+            const isPullRequest = !!context.payload.pull_request;
+            const author = context.actor;
+            const issue_number = isPullRequest ? context.payload.pull_request.number : context.payload.issue.number;
             
-            We're excited to have your contribution to this open source platform empowering India's youth to engage with democracy.
+            // Check if this is the user's first contribution to the repo
+            const response = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              creator: author,
+              state: 'all',
+              per_page: 2
+            });
             
-            **What happens next?**
-            - A maintainer will review your issue soon
-            - Please provide as much detail as possible to help us understand the problem or suggestion
-            - Feel free to ask questions if you need clarification
-            
-            **While you wait:**
-            - Check out our [README](https://github.com/RohanExploit/VishwaGuru/blob/main/README.md) to learn more about the project
-            - Review our [Code of Conduct](https://github.com/RohanExploit/VishwaGuru/blob/main/CODE_OF_CODUCT.md)
-            
-            Thank you for helping make VishwaGuru better! 🚀
-          pr-message: |
-            👋 Hello @${{ github.actor }}! Thank you for your first Pull Request to **VishwaGuru**! 🎉
-            
-            We appreciate your contribution to this open source platform empowering India's youth to engage with democracy.
-            
-            **What happens next?**
-            - A maintainer will review your PR soon
-            - Please ensure all tests pass and the code follows our style guidelines
-            - Be ready to address any feedback or requested changes
-            
-            **Before your PR is merged:**
-            - [ ] Ensure your code follows the project's coding standards
-            - [ ] All tests should pass
-            - [ ] Update documentation if needed
-            - [ ] Make sure your commits are clear and descriptive
-            
-            **Resources:**
-            - [Architecture Guide](https://github.com/RohanExploit/VishwaGuru/blob/main/ARCHITECTURE.md)
-            - [Deployment Guide](https://github.com/RohanExploit/VishwaGuru/blob/main/DEPLOYMENT_GUIDE.md)
-            - [Code of Conduct](https://github.com/RohanExploit/VishwaGuru/blob/main/CODE_OF_CODUCT.md)
-            
-            Thank you for contributing! 🚀
+            if (response.data.length === 1) {
+              let message = "";
+              if (isPullRequest) {
+                message = `👋 Hello @${author}! Thank you for your first Pull Request to **VishwaGuru**! 🎉
+
+                We appreciate your contribution to this open source platform empowering India's youth to engage with democracy.
+
+                **What happens next?**
+                - A maintainer will review your PR soon
+                - Please ensure all tests pass and the code follows our style guidelines
+                - Be ready to address any feedback or requested changes
+
+                **Before your PR is merged:**
+                - [ ] Ensure your code follows the project's coding standards
+                - [ ] All tests should pass
+                - [ ] Update documentation if needed
+                - [ ] Make sure your commits are clear and descriptive
+
+                **Resources:**
+                - [Architecture Guide](https://github.com/RohanExploit/VishwaGuru/blob/main/ARCHITECTURE.md)
+                - [Deployment Guide](https://github.com/RohanExploit/VishwaGuru/blob/main/DEPLOYMENT_GUIDE.md)
+                - [Code of Conduct](https://github.com/RohanExploit/VishwaGuru/blob/main/CONTRIBUTING.md#-code-of-conduct)
+
+                Thank you for contributing! 🚀`;
+              } else {
+                message = `👋 Hello @${author}! Thank you for opening your first issue on **VishwaGuru**! 🎉
+
+                We're excited to have your contribution to this open source platform empowering India's youth to engage with democracy.
+
+                **What happens next?**
+                - A maintainer will review your issue soon
+                - Please provide as much detail as possible to help us understand the problem or suggestion
+                - Feel free to ask questions if you need clarification
+
+                **While you wait:**
+                - Check out our [README](https://github.com/RohanExploit/VishwaGuru/blob/main/README.md) to learn more about the project
+                - Review our [Code of Conduct](https://github.com/RohanExploit/VishwaGuru/blob/main/CONTRIBUTING.md#-code-of-conduct)
+
+                Thank you for helping make VishwaGuru better! 🚀`;
+              }
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue_number,
+                body: message
+              });
+            }

@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - ສະຫຼາດ ລາຍງານບັນຫາພົນລະເມືອງ",
+        "subtitle": "ລາຍງານ ແລະ ຕິດຕາມບັນຫາພົນລະເມືອງໃນຊຸມຊົນຂອງທ່ານ",
+        "privacyActive": "ການປົກປ້ອງຄວາມເປັນສ່ວນຕົວດ້ວຍ AI ເປີດໃຊ້ງານແລ້ວ",
+        "communityImpact": "ຜົນກະທົບຕໍ່ຊຸມຊົນ",
+        "makingChange": "ພວກເຮົາຮ່ວມກັນສ້າງການປ່ຽນແປງ!",
+        "issuesSolved": "ບັນຫາທີ່ໄດ້ຮັບການແກ້ໄຂ",
+        "smartScanner": "ເຄື່ອງສະແກນເມືອງອັດສະລິຍະ",
+        "aiPoweredDetection": "ການກວດຫາທັນທີດ້ວຍ AI",
+        "categories": {
+            "roadTraffic": "ຖະໜົນ ແລະ ການຈະລາຈອນ",
+            "environmentSafety": "ສິ່ງແວດລ້ອມ ແລະ ຄວາມປອດໄພ",
+            "civicServices": "ບໍລິການພົນລະເມືອງ",
+            "management": "ການຈັດການ"
+        },
+        "issues": {
+            "pothole": "ຂຸມໃນຖະໜົນ",
+            "blockedRoad": "ຖະໜົນຖືກປິດ",
+            "illegalParking": "ຈອດລົດຜິດກົດໝາຍ",
+            "darkStreet": "ຖະໜົນມືດ",
+            "trafficSign": "ປ້າຍຈະລາຈອນ",
+            "abandonedVehicle": "ລົດຖືກຖິ້ມ",
+            "garbage": "ຂີ້ເຫຍື້ອ",
+            "flood": "ນ້ຳຖ້ວມ",
+            "fireSmoke": "ໄຟໄໝ້/ຄວັນ",
+            "treeHazard": "ອັນຕະລາຍຈາກຕົ້ນໄມ້",
+            "strayAnimal": "ສັດທີ່ບໍ່ມີເຈົ້າຂອງ",
+            "pestControl": "ການຄວບຄຸມສັດຕູພືດ",
+            "reportIssue": "ລາຍງານບັນຫາ",
+            "brokenInfra": "ໂຄງສ້າງພື້ນຖານທີ່ຊຸດໂຊມ",
+            "graffiti": "ຮູບແຕ້ມຝາ",
+            "findMLA": "ຄົ້ນຫາຕົວແທນ",
+            "grievanceManagement": "ການຈັດການຄຳຮ້ອງທຸກ",
+            "viewStats": "ເບິ່ງສະຖິຕິ",
+            "leaderboard": "ກະດານຜູ້ນຳ",
+            "responsibilityMap": "ແຜນທີ່ຄວາມຮັບຜິດຊອບ",
+            "noise": "ສຽງລົບກວນ",
+            "crowd": "ຝູງຊົນ",
+            "waterLeak": "ນ້ຳຮົ່ວ",
+            "waste": "ເຄື່ອງແຍກຂີ້ເຫຍື້ອ",
+            "civicEye": "ສາຍຕາພົນລະເມືອງ",
+            "myReports": "ລາຍງານຂອງຂ້ອຍ",
+            "analyzeGrievance": "ວິເຄາະຄຳຮ້ອງທຸກ"
+        },
+        "tools": {
+            "whoIsResponsible": "ໃຜເປັນຜູ້ຮັບຜິດຊອບ?",
+            "topReporters": "ຜູ້ລາຍງານສູງສຸດ",
+            "cameraCheck": "ກວດສອບກ້ອງ"
+        },
+        "activity": {
+            "communityActivity": "ກິດຈະກຳຊຸມຊົນ",
+            "liveFeed": "ຟີດສົດ",
+            "noActivity": "ບໍ່ມີກິດຈະກຳຫຼ້າສຸດທີ່ຈະສະແດງ.",
+            "loadMore": "ໂຫຼດກິດຈະກຳເພີ່ມເຕີມ",
+            "verify": "ຢືນຢັນ"
+        },
+        "stats": {
+            "totalImpact": "ຜົນກະທົບລວມ",
+            "issuesResolved": "ບັນຫາທີ່ໄດ້ຮັບການແກ້ໄຂ",
+            "activeUsers": "ຜູ້ໃຊ້ງານທີ່ເຄື່ອນໄຫວ"
+        },
+        "landing": {
+            "empowering": "ການເສີມສ້າງພະລັງໃຫ້ພົນລະເມືອງ",
+            "governance": "ເພື່ອການປົກຄອງທີ່ດີຂຶ້ນ",
+            "subtitle": "ລາຍງານບັນຫາພົນລະເມືອງ ແລະ ຮັບການແກ້ໄຂໂດຍ AI. ເຊື່ອມຕໍ່ກັບເຈົ້າໜ້າທີ່ຜ່ານ Telegram.",
+            "cta": "ລາຍງານບັນຫາ",
+            "cards": {
+                "reportCitizens": "ລາຍງານຮ່ວມກັບພົນລະເມືອງ",
+                "generatedCivic": "ການປົກຄອງພົນລະເມືອງທີ່ຖືກສ້າງຂຶ້ນ",
+                "govServices": "ບໍລິການຂອງລັດຖະບານ",
+                "questionGov": "ຕັ້ງຄຳຖາມກັບລັດຖະບານ",
+                "govDesc": "ສົ່ງຄຳຖາມ, ຮຽກຮ້ອງຄວາມໂປ່ງໃສ ແລະ ໃຫ້ເຈົ້າໜ້າທີ່ຮັບຜິດຊອບ",
+                "communityAction": "ການດຳເນີນການຂອງຊຸມຊົນ",
+                "joinMovement": "ເຂົ້າຮ່ວມຂະບວນການ"
+            },
+            "features": {
+                "publicTrust": "ຄວາມເຊື່ອໝັ້ນຂອງສາທາລະນະ",
+                "ethics": "& ຈັນຍາບັນ",
+                "civicIssues": "ບັນຫາພົນລະເມືອງ",
+                "reportProblems": "ລາຍງານບັນຫາ",
+                "voiceVote": "ສະແດງສຽງຂອງທ່ານ",
+                "shareIdeas": "ແລກປ່ຽນຄວາມຄິດເຫັນເພື່ອນະໂຍບາຍທີ່ດີຂຶ້ນ",
+                "aiDemocracy": "AI ເພື່ອປະຊາທິປະໄຕ",
+                "civicActions": "& ການດຳເນີນການຂອງພົນລະເມືອງ",
+                "aiDesc": "ການນຳໃຊ້ເຕັກໂນໂລຊີເພື່ອການປົກຄອງທີ່ໂປ່ງໃສ ແລະ ການແກ້ໄຂທີ່ໄວກວ່າ.",
+                "smartAnalysis": "ການວິເຄາະອັດສະລິຍະ",
+                "aiInsights": "ຂໍ້ມູນເຊີງເລິກຈາກ AI",
+                "citizenCount": "ພົນລະເມືອງທີ່ເຄື່ອນໄຫວ 10k+",
+                "secureSafe": "ປອດໄພ & ໜັ້ນໃຈ",
+                "verifiedReports": "ລາຍງານທີ່ໄດ້ຮັບການຢືນຢັນ",
+                "quickAction": "ການດຳເນີນການທີ່ໄວ",
+                "responseTime": "ເວລາຕອບສະໜອງ 24 ຊົ່ວໂມງ"
+            }
+        }
+    },
+    "common": {
+        "loading": "ກຳລັງໂຫຼດ...",
+        "error": "ຂໍ້ຜິດພາດ",
+        "submit": "ສົ່ງ",
+        "cancel": "ຍົກເລີກ",
+        "yes": "ແມ່ນ",
+        "no": "ບໍ່",
+        "back": "ກັບຄືນ"
+    }
+}

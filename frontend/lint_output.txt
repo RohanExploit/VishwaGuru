@@ -1,0 +1,229 @@
+
+> frontend@0.0.0 lint
+> eslint .
+
+
+/app/frontend/src/BlockedRoadDetector.jsx
+   1:28  error  'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  78:38  error  'err' is defined but never used                                                   no-unused-vars
+
+/app/frontend/src/FireDetector.jsx
+   1:28  error  'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  78:38  error  'err' is defined but never used                                                   no-unused-vars
+
+/app/frontend/src/GarbageDetector.jsx
+   9:12  error    'detections' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                no-unused-vars
+   9:24  error    'setDetections' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             no-unused-vars
+  15:13  error    Error: Cannot access variable before it is declared
+
+`startCamera` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  13 |         let interval;
+  14 |         if (isDetecting) {
+> 15 |             startCamera();
+     |             ^^^^^^^^^^^ `startCamera` accessed before it is declared
+  16 |             interval = setInterval(detectFrame, 2000); // Check every 2 seconds
+  17 |         } else {
+  18 |             stopCamera();
+
+  30 |     }, [isDetecting]);
+  31 |
+> 32 |     const startCamera = async () => {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 33 |         setError(null);
+     | ^^^^^^^^^^^^^^^^^^^^^^^
+> 34 |         try {
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^
+> 48 |         }
+     | ^^^^^^^^^^^^^^^^^^^^^^^
+> 49 |     };
+     | ^^^^^^^ `startCamera` is declared here
+  50 |
+  51 |     const stopCamera = () => {
+  52 |         if (videoRef.current && videoRef.current.srcObject) {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             react-hooks/immutability
+  16:36  error    Error: Cannot access variable before it is declared
+
+`detectFrame` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  14 |         if (isDetecting) {
+  15 |             startCamera();
+> 16 |             interval = setInterval(detectFrame, 2000); // Check every 2 seconds
+     |                                    ^^^^^^^^^^^ `detectFrame` accessed before it is declared
+  17 |         } else {
+  18 |             stopCamera();
+  19 |             if (interval) clearInterval(interval);
+
+   80 |     };
+   81 |
+>  82 |     const detectFrame = async () => {
+      |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  83 |         if (!videoRef.current || !canvasRef.current || !isDetecting) return;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  84 |
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 129 |         }, 'image/jpeg', 0.8);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 130 |     };
+      | ^^^^^^^ `detectFrame` is declared here
+  131 |
+  132 |     return (
+  133 |         <div className="mt-6 flex flex-col items-center w-full">                                                                                                                                                                                                                                                             react-hooks/immutability
+  18:13  error    Error: Cannot access variable before it is declared
+
+`stopCamera` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  16 |             interval = setInterval(detectFrame, 2000); // Check every 2 seconds
+  17 |         } else {
+> 18 |             stopCamera();
+     |             ^^^^^^^^^^ `stopCamera` accessed before it is declared
+  19 |             if (interval) clearInterval(interval);
+  20 |             // Clear canvas when stopping
+  21 |             if (canvasRef.current) {
+
+  49 |     };
+  50 |
+> 51 |     const stopCamera = () => {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 52 |         if (videoRef.current && videoRef.current.srcObject) {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 53 |             const tracks = videoRef.current.srcObject.getTracks();
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 54 |             tracks.forEach(track => track.stop());
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 55 |             videoRef.current.srcObject = null;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 56 |         }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 57 |     };
+     | ^^^^^^^ `stopCamera` is declared here
+  58 |
+  59 |     const drawDetections = (detections, context) => {
+  60 |         context.clearRect(0, 0, context.canvas.width, context.canvas.height);  react-hooks/immutability
+  30:8   warning  React Hook useEffect has a missing dependency: 'detectFrame'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            react-hooks/exhaustive-deps
+
+/app/frontend/src/IllegalParkingDetector.jsx
+   1:28  error  'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  80:38  error  'err' is defined but never used                                                   no-unused-vars
+
+/app/frontend/src/PestDetector.jsx
+   1:28  error  'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  80:36  error  'err' is defined but never used                                                   no-unused-vars
+
+/app/frontend/src/PotholeDetector.jsx
+    9:12  error    'detections' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               no-unused-vars
+    9:24  error    'setDetections' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            no-unused-vars
+   15:13  error    Error: Cannot access variable before it is declared
+
+`startCamera` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  13 |         let interval;
+  14 |         if (isDetecting) {
+> 15 |             startCamera();
+     |             ^^^^^^^^^^^ `startCamera` accessed before it is declared
+  16 |             interval = setInterval(detectFrame, 2000); // Check every 2 seconds
+  17 |         } else {
+  18 |             stopCamera();
+
+  30 |     }, [isDetecting]);
+  31 |
+> 32 |     const startCamera = async () => {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 33 |         setError(null);
+     | ^^^^^^^^^^^^^^^^^^^^^^^
+> 34 |         try {
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^
+> 48 |         }
+     | ^^^^^^^^^^^^^^^^^^^^^^^
+> 49 |     };
+     | ^^^^^^^ `startCamera` is declared here
+  50 |
+  51 |     const stopCamera = () => {
+  52 |         if (videoRef.current && videoRef.current.srcObject) {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            react-hooks/immutability
+   16:36  error    Error: Cannot access variable before it is declared
+
+`detectFrame` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  14 |         if (isDetecting) {
+  15 |             startCamera();
+> 16 |             interval = setInterval(detectFrame, 2000); // Check every 2 seconds
+     |                                    ^^^^^^^^^^^ `detectFrame` accessed before it is declared
+  17 |         } else {
+  18 |             stopCamera();
+  19 |             if (interval) clearInterval(interval);
+
+   57 |     };
+   58 |
+>  59 |     const detectFrame = async () => {
+      |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  60 |         if (!videoRef.current || !canvasRef.current || !isDetecting) return;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  61 |
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 106 |         }, 'image/jpeg', 0.8);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 107 |     };
+      | ^^^^^^^ `detectFrame` is declared here
+  108 |
+  109 |     const drawDetections = (detections, context, video) => {
+  110 |         // Redraw current video frame so boxes are on top of *latest* video?                                                                                                                                                                                react-hooks/immutability
+   18:13  error    Error: Cannot access variable before it is declared
+
+`stopCamera` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  16 |             interval = setInterval(detectFrame, 2000); // Check every 2 seconds
+  17 |         } else {
+> 18 |             stopCamera();
+     |             ^^^^^^^^^^ `stopCamera` accessed before it is declared
+  19 |             if (interval) clearInterval(interval);
+  20 |             // Clear canvas when stopping
+  21 |             if (canvasRef.current) {
+
+  49 |     };
+  50 |
+> 51 |     const stopCamera = () => {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 52 |         if (videoRef.current && videoRef.current.srcObject) {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 53 |             const tracks = videoRef.current.srcObject.getTracks();
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 54 |             tracks.forEach(track => track.stop());
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 55 |             videoRef.current.srcObject = null;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 56 |         }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 57 |     };
+     | ^^^^^^^ `stopCamera` is declared here
+  58 |
+  59 |     const detectFrame = async () => {
+  60 |         if (!videoRef.current || !canvasRef.current || !isDetecting) return;  react-hooks/immutability
+   30:8   warning  React Hook useEffect has a missing dependency: 'detectFrame'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react-hooks/exhaustive-deps
+  109:50  error    'video' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        no-unused-vars
+
+/app/frontend/src/StrayAnimalDetector.jsx
+   1:28  error  'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  78:38  error  'err' is defined but never used                                                   no-unused-vars
+
+/app/frontend/src/StreetLightDetector.jsx
+   1:28  error  'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  78:38  error  'err' is defined but never used                                                   no-unused-vars
+
+/app/frontend/src/TreeDetector.jsx
+   1:28  error  'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  80:36  error  'err' is defined but never used                                                   no-unused-vars
+
+/app/frontend/src/VandalismDetector.jsx
+   1:28  error  'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  76:36  error  'err' is defined but never used                                                   no-unused-vars
+
+/app/frontend/src/api/detectors.js
+  1:21  error  'getApiUrl' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/app/frontend/src/views/ActionView.jsx
+  10:3  error  React Hook "useEffect" is called conditionally. React Hooks must be called in the exact same order in every component render  react-hooks/rules-of-hooks
+
+✖ 31 problems (29 errors, 2 warnings)

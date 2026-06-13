@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import Webcam from 'react-webcam';
 
 const TreeDetector = ({ onBack }) => {
@@ -46,8 +46,8 @@ const TreeDetector = ({ onBack }) => {
             console.error("Detection failed");
             alert("Detection failed. Please try again.");
         }
-    } catch (error) {
-        console.error("Error:", error);
+    } catch (error) { // eslint-disable-line no-unused-vars
+        console.error("Detection error");
         alert("An error occurred during detection.");
     } finally {
         setLoading(false);
@@ -77,7 +77,7 @@ const TreeDetector = ({ onBack }) => {
                 ref={webcamRef}
                 screenshotFormat="image/jpeg"
                 className="w-full h-full object-cover"
-                onUserMediaError={(err) => setCameraError("Could not access camera. Please check permissions.")}
+                onUserMediaError={() => setCameraError("Could not access camera. Please check permissions.")}
               />
             ) : (
               <div className="relative">

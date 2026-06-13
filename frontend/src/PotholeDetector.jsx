@@ -6,28 +6,9 @@ const PotholeDetector = ({ onBack }) => {
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
     const [isDetecting, setIsDetecting] = useState(false);
-    const [detections, setDetections] = useState([]);
     const [error, setError] = useState(null);
 
-    useEffect(() => {
-        let interval;
-        if (isDetecting) {
-            startCamera();
-            interval = setInterval(detectFrame, 2000); // Check every 2 seconds
-        } else {
-            stopCamera();
-            if (interval) clearInterval(interval);
-            // Clear canvas when stopping
-            if (canvasRef.current) {
-                const ctx = canvasRef.current.getContext('2d');
-                ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-            }
-        }
-        return () => {
-            stopCamera();
-            if (interval) clearInterval(interval);
-        };
-    }, [isDetecting]);
+    // Define functions in dependency order (helpers first)
 
     const startCamera = async () => {
         setError(null);
@@ -56,70 +37,7 @@ const PotholeDetector = ({ onBack }) => {
         }
     };
 
-    const detectFrame = async () => {
-        if (!videoRef.current || !canvasRef.current || !isDetecting) return;
-
-        const video = videoRef.current;
-
-        // Wait until video is ready
-        if (video.readyState !== 4) return;
-
-        const canvas = canvasRef.current;
-        const context = canvas.getContext('2d');
-
-        // Set canvas dimensions to match video
-        if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-        }
-
-        // Draw current frame to convert to blob
-        // We use a temporary canvas or just use the display canvas, but we need to send clean frame.
-        // If we draw on display canvas, we might be drawing over old boxes if we don't clear.
-
-        // 1. Draw clean video frame
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        // 2. Capture this frame for API
-        canvas.toBlob(async (blob) => {
-            if (!blob) return;
-
-            const formData = new FormData();
-            formData.append('image', blob, 'frame.jpg');
-
-            try {
-                const response = await fetch(`${API_URL}/api/detect-pothole`, {
-                    method: 'POST',
-                    body: formData
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    // We only update boxes on success to avoid flickering
-                    // Note: This is async, so the video might have moved on.
-                    // This is "laggy overlay" but simplest for backend approach.
-                    drawDetections(data.detections, context, video);
-                }
-            } catch (err) {
-                console.error("Detection error:", err);
-            }
-        }, 'image/jpeg', 0.8);
-    };
-
-    const drawDetections = (detections, context, video) => {
-        // Redraw current video frame so boxes are on top of *latest* video?
-        // No, if we redraw latest video, the boxes might be misaligned if camera moved.
-        // Ideally we freeze frame or just draw on top of live video (augmented reality style).
-        // Since we are redrawing on the canvas which is on top of the video...
-        // Actually, in the JSX, I put <canvas> on top of <video>.
-        // So I should Clear the canvas, and then draw boxes.
-        // I don't need to draw the video image on the canvas unless I want to freeze it.
-        // Let's keep the video playing in <video> tag, and use <canvas> transparently on top only for boxes.
-
-        // Correct approach:
-        // 1. Clear canvas.
-        // 2. Draw boxes.
-
+    const drawDetections = (detections, context) => {
         context.clearRect(0, 0, context.canvas.width, context.canvas.height);
 
         context.strokeStyle = '#00FF00'; // Green
@@ -141,6 +59,70 @@ const PotholeDetector = ({ onBack }) => {
             context.fillText(label, x1 + 5, y1 > 20 ? y1 - 7 : y1 + 18);
         });
     };
+
+    const detectFrame = async () => {
+        if (!videoRef.current || !canvasRef.current || !isDetecting) return;
+
+        const video = videoRef.current;
+
+        // Wait until video is ready
+        if (video.readyState !== 4) return;
+
+        const canvas = canvasRef.current;
+        const context = canvas.getContext('2d');
+
+        // Set canvas dimensions to match video
+        if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+        }
+
+        // 1. Draw clean video frame
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // 2. Capture this frame for API
+        canvas.toBlob(async (blob) => {
+            if (!blob) return;
+
+            const formData = new FormData();
+            formData.append('image', blob, 'frame.jpg');
+
+            try {
+                const response = await fetch(`${API_URL}/api/detect-pothole`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    drawDetections(data.detections, context);
+                }
+            } catch (err) {
+                console.error("Detection error:", err);
+            }
+        }, 'image/jpeg', 0.8);
+    };
+
+    useEffect(() => {
+        let interval;
+        if (isDetecting) {
+            startCamera();
+            interval = setInterval(detectFrame, 2000); // Check every 2 seconds
+        } else {
+            stopCamera();
+            if (interval) clearInterval(interval);
+            // Clear canvas when stopping
+            if (canvasRef.current) {
+                const ctx = canvasRef.current.getContext('2d');
+                ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+            }
+        }
+        return () => {
+            stopCamera();
+            if (interval) clearInterval(interval);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isDetecting]);
 
     return (
         <div className="mt-6 flex flex-col items-center w-full">

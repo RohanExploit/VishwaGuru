@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - ಸ್ಮಾರ್ಟ್ ನಾಗರಿಕ ಸಮಸ್ಯೆ ವರದಿಗಾರ",
+        "subtitle": "ನಿಮ್ಮ ಸಮುದಾಯದಲ್ಲಿ ನಾಗರಿಕ ಸಮಸ್ಯೆಗಳನ್ನು ವರದಿ ಮಾಡಿ ಮತ್ತು ಟ್ರ್ಯಾಕ್ ಮಾಡಿ",
+        "privacyActive": "AI-ಚಾಲಿತ ಗೌಪ್ಯತೆ ರಕ್ಷಣೆ ಸಕ್ರಿಯವಾಗಿದೆ",
+        "communityImpact": "ಸಮುದಾಯದ ಮೇಲೆ ಪ್ರಭಾವ",
+        "makingChange": "ನಾವು ಒಟ್ಟಾಗಿ ಬದಲಾವಣೆಯನ್ನು ಮಾಡುತ್ತಿದ್ದೇವೆ!",
+        "issuesSolved": "ಪರಿಹರಿಸಲಾದ ಸಮಸ್ಯೆಗಳು",
+        "smartScanner": "ಸ್ಮಾರ್ಟ್ ಸಿಟಿ ಸ್ಕ್ಯಾನರ್",
+        "aiPoweredDetection": "AI-ಚಾಲಿತ ತ್ವರಿತ ಪತ್ತೆ",
+        "categories": {
+            "roadTraffic": "ರಸ್ತೆ ಮತ್ತು ಸಂಚಾರ",
+            "environmentSafety": "ಪರಿಸರ ಮತ್ತು ಸುರಕ್ಷತೆ",
+            "civicServices": "ನಾಗರಿಕ ಸೇವೆಗಳು",
+            "management": "ನಿರ್ವಹಣೆ"
+        },
+        "issues": {
+            "pothole": "ಗುಂಡಿ",
+            "blockedRoad": "ರಸ್ತೆ ತಡೆ",
+            "illegalParking": "ಅಕ್ರಮ ಪಾರ್ಕಿಂಗ್",
+            "darkStreet": "ಕತ್ತಲೆ ರಸ್ತೆ",
+            "trafficSign": "ಸಂಚಾರ ಚಿಹ್ನೆ",
+            "abandonedVehicle": "ಬಿಡಲ್ಪಟ್ಟ ವಾಹನ",
+            "garbage": "ಕಸ",
+            "flood": "ಪ್ರವಾಹ",
+            "fireSmoke": "ಬೆಂಕಿ/ಹೊಗೆ",
+            "treeHazard": "ಮರ ಅಪಾಯ",
+            "strayAnimal": "ಬೀದಿ ಪ್ರಾಣಿಗಳು",
+            "pestControl": "ಕೀಟ ನಿಯಂತ್ರಣ",
+            "reportIssue": "ಸಮಸ್ಯೆಯನ್ನು ವರದಿ ಮಾಡಿ",
+            "brokenInfra": "ಸಡಿಲವಾದ ಮೂಲಸೌಕರ್ಯ",
+            "graffiti": "ಗೋಡೆ ಬರಹ",
+            "findMLA": "ಎಂಎಲ್‌ಎ ಹುಡುಕಿ",
+            "grievanceManagement": "ದೂರು ನಿರ್ವಹಣೆ",
+            "viewStats": "ಅಂಕಿಅಂಶಗಳನ್ನು ನೋಡಿ",
+            "leaderboard": "ಲೀಡರ್‌ಬೋರ್ಡ್",
+            "responsibilityMap": "ಜವಾಬ್ದಾರಿ ನಕ್ಷೆ",
+            "noise": "ಶಬ್ದ",
+            "crowd": "ಜನಸಂದಣಿ",
+            "waterLeak": "ನೀರು ಸೋರಿಕೆ",
+            "waste": "ಕಸ ವಿಂಗಡಣೆ",
+            "civicEye": "ನಾಗರಿಕ ಕಣ್ಣು",
+            "myReports": "ನನ್ನ ವರದಿಗಳು",
+            "analyzeGrievance": "ದೂರನ್ನು ವಿಶ್ಲೇಷಿಸಿ"
+        },
+        "tools": {
+            "whoIsResponsible": "ಯಾರು ಜವಾಬ್ದಾರರು?",
+            "topReporters": "ಟಾಪ್ ವರದಿಗಾರರು",
+            "cameraCheck": "ಕ್ಯಾಮರಾ ತಪಾಸಣೆ"
+        },
+        "activity": {
+            "communityActivity": "ಸಮುದಾಯ ಚಟುವಟಿಕೆ",
+            "liveFeed": "ಲೈವ್ ಫೀಡ್",
+            "noActivity": "ತೋರಿಸಲು ಯಾವುದೇ ಇತ್ತೀಚಿನ ಚಟುವಟಿಕೆಗಳಿಲ್ಲ.",
+            "loadMore": "ಹೆಚ್ಚಿನ ಚಟುವಟಿಕೆಯನ್ನು ಲೋಡ್ ಮಾಡಿ",
+            "verify": "ಪರಿಶೀಲಿಸಿ"
+        },
+        "stats": {
+            "totalImpact": "ಒಟ್ಟು ಪ್ರಭಾವ",
+            "issuesResolved": "ಪರಿಹರಿಸಲಾದ ಸಮಸ್ಯೆಗಳು",
+            "activeUsers": "ಸಕ್ರಿಯ ಬಳಕೆದಾರರು"
+        },
+        "landing": {
+            "empowering": "ನಾಗರಿಕರ ಸಬಲೀಕರಣ",
+            "governance": "ಉತ್ತಮ ಆಡಳಿತಕ್ಕಾಗಿ",
+            "subtitle": "ನಾಗರಿಕ ಸಮಸ್ಯೆಗಳನ್ನು ವರದಿ ಮಾಡಿ ಮತ್ತು AI-ನಿರ್ಮಿತ ಪರಿಹಾರಗಳನ್ನು ಪಡೆಯಿರಿ. ಆಡಳಿತದಲ್ಲಿ ಸಕ್ರಿಯವಾಗಿ ಭಾಗವಹಿಸಲು ಟೆಲಿಗ್ರಾಮ್ ಮೂಲಕ ಅಧಿಕಾರಿಗಳೊಂದಿಗೆ ಸಂಪರ್ಕ ಸಾಧಿಸಿ.",
+            "cta": "ಸಮಸ್ಯೆಯನ್ನು ವರದಿ ಮಾಡಿ",
+            "cards": {
+                "reportCitizens": "ನಾಗರಿಕರೊಂದಿಗೆ ವರದಿ ಮಾಡಿ",
+                "generatedCivic": "ನಾಗರಿಕ ಆಡಳಿತ",
+                "govServices": "ಸರ್ಕಾರಿ ಸೇವೆಗಳು",
+                "questionGov": "ಸರ್ಕಾರವನ್ನು ಪ್ರಶ್ನಿಸಿ",
+                "govDesc": "ಪ್ರಶ್ನೆಗಳನ್ನು ಸಲ್ಲಿಸಿ, ಪಾರದರ್ಶಕತೆಯನ್ನು ಕೋರಿ ಮತ್ತು ಅಧಿಕಾರಿಗಳನ್ನು ಹೊಣೆಗಾರರನ್ನಾಗಿ ಮಾಡಿ",
+                "communityAction": "ಸಮುದಾಯ ಕ್ರಮ",
+                "joinMovement": "ಚಳುವಳಿಗೆ ಸೇರಿ"
+            },
+            "features": {
+                "publicTrust": "ಜನರ ನಂಬಿಕೆ",
+                "ethics": "& ನೈತಿಕತೆ",
+                "civicIssues": "ನಾಗರಿಕ ಸಮಸ್ಯೆಗಳು",
+                "reportProblems": "ಸಮಸ್ಯೆಗಳನ್ನು ವರದಿ ಮಾಡಿ",
+                "voiceVote": "ನಿಮ್ಮ ಧ್ವನಿಯನ್ನು ದಾಖಲಿಸಿ",
+                "shareIdeas": "ಉತ್ತಮ ನೀತಿಗಳಿಗಾಗಿ ಆಲೋಚನೆಗಳನ್ನು ಹಂಚಿಕೊಳ್ಳಿ",
+                "aiDemocracy": "ಪ್ರಜಾಪ್ರಭುತ್ವಕ್ಕಾಗಿ AI",
+                "civicActions": "& ನಾಗರಿಕ ಕ್ರಮಗಳು",
+                "aiDesc": "ಪಾರದರ್ಶಕ ಆಡಳಿತ ಮತ್ತು ವೇಗವಾದ ಪರಿಹಾರಗಳಿಗಾಗಿ ತಂತ್ರಜ್ಞಾನವನ್ನು ಬಳಸುವುದು.",
+                "smartAnalysis": "ಸ್ಮಾರ್ಟ್ ವಿಶ್ಲೇಷಣೆ",
+                "aiInsights": "AI-ಆಧಾರಿತ ಒಳನೋಟಗಳು",
+                "citizenCount": "10k+ ಸಕ್ರಿಯ ನಾಗರಿಕರು",
+                "secureSafe": "ಸುರಕ್ಷಿತವಾಗಿದೆ",
+                "verifiedReports": "ಪರಿಶೀಲಿಸಿದ ವರದಿಗಳು",
+                "quickAction": "ತ್ವರಿತ ಕ್ರಮ",
+                "responseTime": "24ಗಂ ಪ್ರತಿಕ್ರಿಯೆ ಸಮಯ"
+            }
+        }
+    },
+    "common": {
+        "loading": "ಲೋಡ್ ಆಗುತ್ತಿದೆ...",
+        "error": "ದೋಷ",
+        "submit": "ಸಲ್ಲಿಸು",
+        "cancel": "ರದ್ದುಮಾಡು",
+        "yes": "ಹೌದು",
+        "no": "ಇಲ್ಲ",
+        "back": "ಹಿಂದಕ್ಕೆ"
+    }
+}
