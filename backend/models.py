@@ -84,13 +84,6 @@ class Grievance(Base):
     created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc), index=True)
     updated_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc), onupdate=lambda: datetime.datetime.now(datetime.timezone.utc))
     resolved_at = Column(DateTime, nullable=True)
-    
-    # Closure confirmation fields
-    closure_requested_at = Column(DateTime, nullable=True)
-    closure_confirmation_deadline = Column(DateTime, nullable=True)
-    closure_approved = Column(Boolean, default=False)
-    pending_closure = Column(Boolean, default=False, index=True)
-    
     issue_id = Column(Integer, ForeignKey("issues.id"), nullable=True, index=True)
 
     # Relationships
@@ -158,6 +151,9 @@ class Issue(Base):
     transcription_confidence = Column(Float, nullable=True)  # Confidence score for voice transcriptions
     manual_correction_applied = Column(Boolean, default=False)  # Flag for manual corrections
     audio_file_path = Column(String, nullable=True)  # Path to stored audio file
+
+    # Relationships
+    grievances = relationship("Grievance", backref="issue")
 
 class PushSubscription(Base):
     __tablename__ = "push_subscriptions"

@@ -4,10 +4,9 @@ from PIL import Image
 import logging
 import time
 
-from backend.utils import process_and_detect, validate_uploaded_file, process_uploaded_image
+from backend.utils import process_and_detect, validate_uploaded_file, process_uploaded_image, validate_image_for_processing
 from backend.schemas import DetectionResponse, UrgencyAnalysisRequest, UrgencyAnalysisResponse
-from backend.cache import ThreadSafeCache
-from backend.pothole_detection import detect_potholes, validate_image_for_processing
+from backend.pothole_detection import detect_potholes
 from backend.unified_detection_service import (
     detect_vandalism as detect_vandalism_unified,
     detect_infrastructure as detect_infrastructure_unified,
@@ -459,7 +458,7 @@ async def detect_abandoned_vehicle_endpoint(image: UploadFile = File(...)):
 @router.post("/api/detect-emotion")
 async def detect_emotion_endpoint(
     image: UploadFile = File(...),
-    client: httpx.AsyncClient = backend.dependencies.Depends(get_http_client)
+    client = backend.dependencies.Depends(get_http_client)
 ):
     """
     Analyze facial emotions in the image using Hugging Face inference.

@@ -15,7 +15,6 @@ from typing import Optional
 from backend.cache import user_upload_cache
 from backend.models import Issue
 from backend.schemas import DetectionResponse
-from backend.pothole_detection import validate_image_for_processing
 
 # Handle python-magic gracefully
 HAS_MAGIC = False
@@ -26,6 +25,11 @@ except ImportError:
     HAS_MAGIC = False
 
 logger = logging.getLogger(__name__)
+
+def validate_image_for_processing(image):
+    """Validate image before processing."""
+    if not image:
+        raise HTTPException(status_code=400, detail="No image provided")
 
 # File upload validation constants
 MAX_FILE_SIZE = 20 * 1024 * 1024  # 20MB

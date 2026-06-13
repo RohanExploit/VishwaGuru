@@ -1,40 +1,54 @@
-import os
-import sys
-from pathlib import Path
-from dotenv import load_dotenv
-
-load_dotenv()
-
-# Add project root to sys.path to ensure 'backend.*' imports work
-# This handles cases where PYTHONPATH is set to 'backend' (e.g. on Render)
-current_file = Path(__file__).resolve()
-backend_dir = current_file.parent
-repo_root = backend_dir.parent
-
-if str(repo_root) not in sys.path:
-    sys.path.insert(0, str(repo_root))
-
-from fastapi import FastAPI
+from fastapi import FastAPI, Form, UploadFile, File, Depends, BackgroundTasks, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.concurrency import run_in_threadpool
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
+from functools import lru_cache
+from typing import List
+import os
+import sys
+from pathlib import Path
 import httpx
 import logging
-import asyncio
-
-from backend.database import Base, engine
-from backend.ai_factory import create_all_ai_services
-from backend.ai_interfaces import initialize_ai_services
-from backend.bot import start_bot_thread, stop_bot_thread
-from backend.init_db import migrate_db
-from backend.scheduler import start_scheduler
-from backend.maharashtra_locator import load_maharashtra_pincode_data, load_maharashtra_mla_data
-from backend.exceptions import EXCEPTION_HANDLERS
-from backend.routers import issues, detection, grievances, utility, auth, admin, analysis, voice, field_officer, hf, resolution_proof
+import time
+import magic
+import httpx
+from backend.grievance_classifier import get_grievance_classifier
+from backend.schemas import GrievanceRequest, ChatRequest, IssueResponse
 from backend.grievance_service import GrievanceService
+from backend.database import Base, engine, get_db, SessionLocal
+from sqlalchemy.orm import Session
 import backend.dependencies
+from backend.models import Issue
+from backend.ai_factory import create_all_ai_services
+from backend.ai_interfaces import initialize_ai_services, get_ai_services
+from backend.ai_service import chat_with_civic_assistant, generate_action_plan
+from backend.bot import run_bot, start_bot_thread, stop_bot_thread
+from backend.exceptions import EXCEPTION_HANDLERS
+from backend.init_db import migrate_db
+from backend.maharashtra_locator import load_maharashtra_pincode_data, load_maharashtra_mla_data, find_constituency_by_pincode, find_mla_by_constituency
+from backend.cache import recent_issues_cache
+from backend.pothole_detection import detect_potholes
+from backend.garbage_detection import detect_garbage
+from backend.local_ml_service import detect_infrastructure_local, detect_flooding_local, detect_vandalism_local
+from backend.unified_detection_service import get_detection_status
+from backend.hf_api_service import (
+    detect_illegal_parking_clip,
+    detect_street_light_clip,
+    detect_fire_clip,
+    detect_stray_animal_clip,
+    detect_blocked_road_clip,
+    detect_tree_hazard_clip,
+    detect_pest_clip,
+    detect_severity_clip,
+    detect_smart_scan_clip,
+    generate_image_caption
+)
+
+def validate_image_for_processing(image):
+    if not image:
+        pass
 
 # Configure structured logging
 logging.basicConfig(
