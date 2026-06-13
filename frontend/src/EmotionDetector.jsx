@@ -20,9 +20,11 @@ const EmotionDetector = ({ onBack }) => {
             });
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
+                // Important to ensure the video actually plays when stream is attached
+                videoRef.current.play().catch(e => console.error("Video play error:", e));
             }
         } catch (err) {
-            setError("Could not access camera: " + err.message);
+            setError("Could not access camera. Please ensure permissions are granted. Details: " + err.message);
             setIsDetecting(false);
         }
     };
@@ -100,19 +102,33 @@ const EmotionDetector = ({ onBack }) => {
                 </div>
             )}
 
-            <div className="relative w-full max-w-md aspect-video bg-black rounded-xl overflow-hidden shadow-2xl mb-6">
+            <div className="relative w-full max-w-md aspect-video bg-black rounded-xl overflow-hidden shadow-2xl mb-6 border-4 border-transparent transition-all duration-300">
                 <video
                     ref={videoRef}
                     autoPlay
                     playsInline
                     muted
                     className="w-full h-full object-cover"
+                    style={{ transform: 'scaleX(-1)' }} // Mirror the camera for better UX
                 />
 
+                {isDetecting && (
+                    <div className="absolute top-4 right-4 flex items-center gap-2 bg-black/60 px-3 py-1.5 rounded-full backdrop-blur-md border border-white/10 z-10">
+                        <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]"></div>
+                        <span className="text-white text-xs font-bold tracking-wider uppercase">Live Feed</span>
+                    </div>
+                )}
+
                 {!isDetecting && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40">
-                        <p className="text-white font-medium bg-black bg-opacity-50 px-4 py-2 rounded">
-                            Camera Paused
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/90 backdrop-blur-sm z-10 transition-all duration-300">
+                        <div className="w-16 h-16 mb-4 rounded-full bg-gray-800 flex items-center justify-center border border-gray-700 shadow-inner">
+                            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                        </div>
+                        <p className="text-white font-bold tracking-widest uppercase text-sm">
+                            Camera Offline
+                        </p>
+                        <p className="text-gray-400 text-xs mt-2 max-w-[200px] text-center">
+                            Press start to begin emotional analysis
                         </p>
                     </div>
                 )}
