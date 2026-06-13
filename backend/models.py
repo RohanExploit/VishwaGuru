@@ -182,6 +182,7 @@ class GrievanceFollower(Base):
     __tablename__ = "grievance_followers"
     __table_args__ = (
         Index("ix_follower_user_grievance", "user_email", "grievance_id"),
+        Index("ix_follower_prev_hash", "previous_integrity_hash"),
     )
 
     id = Column(Integer, primary_key=True, index=True)
@@ -189,6 +190,10 @@ class GrievanceFollower(Base):
     user_email = Column(String, nullable=False, index=True)
     followed_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     
+    # Blockchain integrity fields
+    integrity_hash = Column(String, nullable=True)
+    previous_integrity_hash = Column(String, nullable=True, index=True)
+
     # Relationship
     grievance = relationship("Grievance", back_populates="followers")
 
