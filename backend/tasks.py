@@ -20,7 +20,8 @@ async def process_action_plan_background(issue_id: int, description: str, catego
         # Update issue in DB
         issue = db.query(Issue).filter(Issue.id == issue_id).first()
         if issue:
-            issue.action_plan = action_plan
+            current_plan = issue.action_plan or {}
+            issue.action_plan = {**current_plan, **action_plan}
             db.commit()
 
             # Invalidate cache to ensure users get the updated action plan

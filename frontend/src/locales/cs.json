@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - Chytrý zpravodaj občanských problémů",
+        "subtitle": "Hlásíte a sledujte občanské problémy ve své komunitě",
+        "privacyActive": "Ochrana soukromí s podporou AI aktivní",
+        "communityImpact": "Dopad na komunitu",
+        "makingChange": "Společně tvoříme změnu!",
+        "issuesSolved": "Vyřešené problémy",
+        "smartScanner": "Skener chytrého města",
+        "aiPoweredDetection": "Okamžitá detekce pomocí AI",
+        "categories": {
+            "roadTraffic": "Silnice a doprava",
+            "environmentSafety": "Životní prostředí a bezpečnost",
+            "civicServices": "Občanské služby",
+            "management": "Management"
+        },
+        "issues": {
+            "pothole": "Výmol",
+            "blockedRoad": "Zablokovaná silnice",
+            "illegalParking": "Nepovolené parkování",
+            "darkStreet": "Temná ulice",
+            "trafficSign": "Dopravní značka",
+            "abandonedVehicle": "Opuštěné vozidlo",
+            "garbage": "Odpadky",
+            "flood": "Povodeň",
+            "fireSmoke": "Oheň/Kouř",
+            "treeHazard": "Nebezpečný strom",
+            "strayAnimal": "Toulavé zvíře",
+            "pestControl": "Hubení škůdců",
+            "reportIssue": "Nahlásit problém",
+            "brokenInfra": "Poškozená infrastruktura",
+            "graffiti": "Graffiti",
+            "findMLA": "Najít zástupce",
+            "grievanceManagement": "Správa stížností",
+            "viewStats": "Zobrazit statistiky",
+            "leaderboard": "Žebříček",
+            "responsibilityMap": "Mapa odpovědnosti",
+            "noise": "Hluk",
+            "crowd": "Dav",
+            "waterLeak": "Únik vody",
+            "waste": "Třídič odpadu",
+            "civicEye": "Občanské oko",
+            "myReports": "Moje hlášení",
+            "analyzeGrievance": "Analyzovat stížnost"
+        },
+        "tools": {
+            "whoIsResponsible": "Kdo je odpovědný?",
+            "topReporters": "Nejlepší zpravodajové",
+            "cameraCheck": "Kontrola kamer"
+        },
+        "activity": {
+            "communityActivity": "Komunitní aktivita",
+            "liveFeed": "Živý kanál",
+            "noActivity": "Žádná nedávná aktivita k zobrazení.",
+            "loadMore": "Načíst další",
+            "verify": "Ověřit"
+        },
+        "stats": {
+            "totalImpact": "Celkový dopad",
+            "issuesResolved": "Vyřešené problémy",
+            "activeUsers": "Aktivní uživatelé"
+        },
+        "landing": {
+            "empowering": "Posílení postavení občanů",
+            "governance": "pro lepší správu",
+            "subtitle": "Hlaste občanské problémy a získejte řešení generovaná AI. Spojte se s úředníky přes Telegram.",
+            "cta": "Nahlásit problém",
+            "cards": {
+                "reportCitizens": "Hlásit s občany",
+                "generatedCivic": "generovaná občanská správa",
+                "govServices": "Vládní služby",
+                "questionGov": "Ptejte se vlády",
+                "govDesc": "Odesílejte dotazy, vyžadujte transparentnost a hnaňte úředníky k odpovědnosti",
+                "communityAction": "Komunitní akce",
+                "joinMovement": "Připojte se k hnutí"
+            },
+            "features": {
+                "publicTrust": "Veřejná důvěra",
+                "ethics": "& Etika",
+                "civicIssues": "Občanské problémy",
+                "reportProblems": "Hlásit problémy",
+                "voiceVote": "Vyjádřete svůj hlas",
+                "shareIdeas": "Sdílejte nápady pro lepší politiku",
+                "aiDemocracy": "AI pro demokracii",
+                "civicActions": "& Občanské akce",
+                "aiDesc": "Využití technologií pro transparentní správu a rychlejší řešení.",
+                "smartAnalysis": "Chytrá analýza",
+                "aiInsights": "Poznatky založené na AI",
+                "citizenCount": "10k+ aktivních občanů",
+                "secureSafe": "Bezpečné a spolehlivé",
+                "verifiedReports": "Ověřená hlášení",
+                "quickAction": "Rychlá akce",
+                "responseTime": "24h doba odezvy"
+            }
+        }
+    },
+    "common": {
+        "loading": "Načítání...",
+        "error": "Chyba",
+        "submit": "Odeslat",
+        "cancel": "Zrušit",
+        "yes": "Ano",
+        "no": "Ne",
+        "back": "Zpět"
+    }
+}

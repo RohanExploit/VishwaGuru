@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - Розумний Репортер Громадських Проблем",
+        "subtitle": "Повідомляйте та відстежуйте громадські проблеми у вашій громаді",
+        "privacyActive": "Захист приватності на базі ШІ активний",
+        "communityImpact": "Вплив на громаду",
+        "makingChange": "Разом ми змінюємо світ!",
+        "issuesSolved": "Вирішені проблеми",
+        "smartScanner": "Сканер Розумного Міста",
+        "aiPoweredDetection": "Миттєве виявлення за допомогою ШІ",
+        "categories": {
+            "roadTraffic": "Дороги та Трафік",
+            "environmentSafety": "Екологія та Безпека",
+            "civicServices": "Громадські Послуги",
+            "management": "Управління"
+        },
+        "issues": {
+            "pothole": "Вибоїна",
+            "blockedRoad": "Перекрита дорога",
+            "illegalParking": "Незаконна парковка",
+            "darkStreet": "Темна вулиця",
+            "trafficSign": "Дорожній знак",
+            "abandonedVehicle": "Покинутий транспорт",
+            "garbage": "Сміття",
+            "flood": "Повінь",
+            "fireSmoke": "Вогонь/Дим",
+            "treeHazard": "Небезпечне дерево",
+            "strayAnimal": "Безпритульна тварина",
+            "pestControl": "Боротьба зі шкідниками",
+            "reportIssue": "Повідомити про проблему",
+            "brokenInfra": "Зламана інфраструктура",
+            "graffiti": "Графіті",
+            "findMLA": "Знайти депутата",
+            "grievanceManagement": "Управління скаргами",
+            "viewStats": "Переглянути статистику",
+            "leaderboard": "Таблиця лідерів",
+            "responsibilityMap": "Карта відповідальності",
+            "noise": "Шум",
+            "crowd": "Натовп",
+            "waterLeak": "Витік води",
+            "waste": "Сортування відходів",
+            "civicEye": "Громадське око",
+            "myReports": "Мої звіти",
+            "analyzeGrievance": "Аналіз скарги"
+        },
+        "tools": {
+            "whoIsResponsible": "Хто відповідальний?",
+            "topReporters": "Топ репортерів",
+            "cameraCheck": "Перевірка камер"
+        },
+        "activity": {
+            "communityActivity": "Активність громади",
+            "liveFeed": "Пряма трансляція",
+            "noActivity": "Немає недавньої активності для відображення.",
+            "loadMore": "Завантажити більше",
+            "verify": "Перевірити"
+        },
+        "stats": {
+            "totalImpact": "Загальний вплив",
+            "issuesResolved": "Вирішені проблеми",
+            "activeUsers": "Активні користувачі"
+        },
+        "landing": {
+            "empowering": "Розширення прав громадян",
+            "governance": "для кращого управління",
+            "subtitle": "Повідомляйте про проблеми та отримуйте рішення на базі ШІ. Зв'язуйтеся з посадовцями через Telegram.",
+            "cta": "Повідомити про проблему",
+            "cards": {
+                "reportCitizens": "Повідомляйте разом з громадянами",
+                "generatedCivic": "громадянське управління",
+                "govServices": "Державні послуги",
+                "questionGov": "Контролюйте владу",
+                "govDesc": "Надсилайте запити, вимагайте прозорості та підзвітності посадовців",
+                "communityAction": "Дія громади",
+                "joinMovement": "Приєднуйтесь до руху"
+            },
+            "features": {
+                "publicTrust": "Суспільна довіра",
+                "ethics": "& Етика",
+                "civicIssues": "Громадські проблеми",
+                "reportProblems": "Повідомляти про проблеми",
+                "voiceVote": "Ваш голос має значення",
+                "shareIdeas": "Діліться ідеями для кращої політики",
+                "aiDemocracy": "ШІ для демократії",
+                "civicActions": "& Громадські дії",
+                "aiDesc": "Використання технологій для прозорого управління та швидкого вирішення проблем.",
+                "smartAnalysis": "Розумний аналіз",
+                "aiInsights": "Інсайти від ШІ",
+                "citizenCount": "10к+ активних громадян",
+                "secureSafe": "Надійно та безпечно",
+                "verifiedReports": "Перевірені звіти",
+                "quickAction": "Швидке реагування",
+                "responseTime": "Відповідь протягом 24 годин"
+            }
+        }
+    },
+    "common": {
+        "loading": "Завантаження...",
+        "error": "Помилка",
+        "submit": "Надіслати",
+        "cancel": "Скасувати",
+        "yes": "Так",
+        "no": "Ні",
+        "back": "Назад"
+    }
+}

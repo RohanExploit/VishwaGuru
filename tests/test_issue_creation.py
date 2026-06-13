@@ -35,8 +35,8 @@ def test_create_issue():
         with patch("backend.routers.issues.process_uploaded_image", new_callable=AsyncMock) as mock_process, \
              patch("backend.tasks.generate_action_plan", new_callable=AsyncMock) as mock_plan:
 
-            import io
-            mock_process.return_value = io.BytesIO(b"processed image bytes")
+            from unittest.mock import MagicMock
+            mock_process.return_value = (MagicMock(), b"processed image bytes")
 
             mock_plan.return_value = {
                 "whatsapp": "Test WhatsApp",

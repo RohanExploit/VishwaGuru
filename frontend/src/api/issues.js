@@ -4,7 +4,7 @@ import { fakeRecentIssues } from '../fakeData';
 export const issuesApi = {
   getRecent: async (limit = 10, offset = 0) => {
     try {
-      return await apiClient.get('/api/issues/recent', {
+      return await apiClient.get('/issues/recent', {
         params: { limit, offset }
       });
     } catch (error) {
@@ -15,7 +15,7 @@ export const issuesApi = {
 
   create: async (formData) => {
     // formData is expected to be a FormData object containing 'file', 'description', etc.
-    return await apiClient.postForm('/api/issues', formData);
+    return await apiClient.postForm('/issues', formData);
   },
 
   vote: async (id) => {

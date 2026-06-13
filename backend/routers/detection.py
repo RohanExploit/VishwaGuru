@@ -1,11 +1,12 @@
 from fastapi import APIRouter, UploadFile, File, Request, HTTPException, Body
 from fastapi.concurrency import run_in_threadpool
 from PIL import Image
-from async_lru import alru_cache
 import logging
+import time
 
 from backend.utils import process_and_detect, validate_uploaded_file, process_uploaded_image
 from backend.schemas import DetectionResponse, UrgencyAnalysisRequest, UrgencyAnalysisResponse
+from backend.cache import ThreadSafeCache
 from backend.pothole_detection import detect_potholes, validate_image_for_processing
 from backend.unified_detection_service import (
     detect_vandalism as detect_vandalism_unified,
@@ -47,33 +48,59 @@ router = APIRouter()
 
 # Cached Functions
 
-@alru_cache(maxsize=100)
+# Use ThreadSafeCache for better performance and proper TTL/LRU management
+detection_cache = ThreadSafeCache(ttl=3600, max_size=500)
+
+async def _get_cached_result(key: str, func, *args, **kwargs):
+    # Check cache
+    cached_result = detection_cache.get(key)
+    if cached_result is not None:
+        return cached_result
+
+    # Execute function
+    if 'client' not in kwargs:
+        import backend.dependencies
+        kwargs['client'] = backend.dependencies.SHARED_HTTP_CLIENT
+
+    result = await func(*args, **kwargs)
+    detection_cache.set(data=result, key=key)
+    return result
+
 async def _cached_detect_severity(image_bytes: bytes):
-    return await detect_severity_clip(image_bytes, client=backend.dependencies.SHARED_HTTP_CLIENT)
+    key = f"severity_{hash(image_bytes)}"
+    return await _get_cached_result(key, detect_severity_clip, image_bytes)
 
-@alru_cache(maxsize=100)
 async def _cached_detect_smart_scan(image_bytes: bytes):
-    return await detect_smart_scan_clip(image_bytes, client=backend.dependencies.SHARED_HTTP_CLIENT)
+    key = f"smart_scan_{hash(image_bytes)}"
+    return await _get_cached_result(key, detect_smart_scan_clip, image_bytes)
 
-@alru_cache(maxsize=100)
 async def _cached_generate_caption(image_bytes: bytes):
-    return await generate_image_caption(image_bytes, client=backend.dependencies.SHARED_HTTP_CLIENT)
+    key = f"caption_{hash(image_bytes)}"
+    return await _get_cached_result(key, generate_image_caption, image_bytes)
 
-@alru_cache(maxsize=100)
 async def _cached_detect_waste(image_bytes: bytes):
-    return await detect_waste_clip(image_bytes, client=backend.dependencies.SHARED_HTTP_CLIENT)
+    key = f"waste_{hash(image_bytes)}"
+    return await _get_cached_result(key, detect_waste_clip, image_bytes)
 
-@alru_cache(maxsize=100)
 async def _cached_detect_civic_eye(image_bytes: bytes):
-    return await detect_civic_eye_clip(image_bytes, client=backend.dependencies.SHARED_HTTP_CLIENT)
+    key = f"civic_eye_{hash(image_bytes)}"
+    return await _get_cached_result(key, detect_civic_eye_clip, image_bytes)
 
-@alru_cache(maxsize=100)
 async def _cached_detect_graffiti(image_bytes: bytes):
-    return await detect_graffiti_art_clip(image_bytes, client=backend.dependencies.SHARED_HTTP_CLIENT)
+    key = f"graffiti_{hash(image_bytes)}"
+    return await _get_cached_result(key, detect_graffiti_art_clip, image_bytes)
+
+async def _cached_detect_traffic_sign(image_bytes: bytes):
+    key = f"traffic_sign_{hash(image_bytes)}"
+    return await _get_cached_result(key, detect_traffic_sign_clip, image_bytes)
+
+async def _cached_detect_abandoned_vehicle(image_bytes: bytes):
+    key = f"abandoned_vehicle_{hash(image_bytes)}"
+    return await _get_cached_result(key, detect_abandoned_vehicle_clip, image_bytes)
 
 # Endpoints
 
-@router.post("/api/detect-pothole", response_model=DetectionResponse)
+@router.post("/detect-pothole", response_model=DetectionResponse)
 async def detect_pothole_endpoint(image: UploadFile = File(...)):
     # Validate uploaded file
     pil_image = await validate_uploaded_file(image)
@@ -99,23 +126,23 @@ async def detect_pothole_endpoint(image: UploadFile = File(...)):
         logger.error(f"Pothole detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Pothole detection service temporarily unavailable")
 
-@router.post("/api/detect-infrastructure", response_model=DetectionResponse)
+@router.post("/detect-infrastructure", response_model=DetectionResponse)
 async def detect_infrastructure_endpoint(image: UploadFile = File(...)):
     return await process_and_detect(image, detect_infrastructure_unified)
 
-@router.post("/api/detect-flooding", response_model=DetectionResponse)
+@router.post("/detect-flooding", response_model=DetectionResponse)
 async def detect_flooding_endpoint(image: UploadFile = File(...)):
     return await process_and_detect(image, detect_flooding_unified)
 
-@router.post("/api/detect-vandalism", response_model=DetectionResponse)
+@router.post("/detect-vandalism", response_model=DetectionResponse)
 async def detect_vandalism_endpoint(image: UploadFile = File(...)):
     return await process_and_detect(image, detect_vandalism_unified)
 
-@router.post("/api/detect-garbage", response_model=DetectionResponse)
+@router.post("/detect-garbage", response_model=DetectionResponse)
 async def detect_garbage_endpoint(image: UploadFile = File(...)):
     return await process_and_detect(image, detect_garbage_unified)
 
-@router.post("/api/detect-illegal-parking")
+@router.post("/detect-illegal-parking")
 async def detect_illegal_parking_endpoint(request: Request, image: UploadFile = File(...)):
     # Optimized Image Processing: Validation + Optimization
     _, image_bytes = await process_uploaded_image(image)
@@ -128,7 +155,7 @@ async def detect_illegal_parking_endpoint(request: Request, image: UploadFile = 
         logger.error(f"Illegal parking detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.post("/api/detect-street-light")
+@router.post("/detect-street-light")
 async def detect_street_light_endpoint(request: Request, image: UploadFile = File(...)):
     # Optimized Image Processing: Validation + Optimization
     _, image_bytes = await process_uploaded_image(image)
@@ -141,7 +168,7 @@ async def detect_street_light_endpoint(request: Request, image: UploadFile = Fil
         logger.error(f"Street light detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.post("/api/detect-fire")
+@router.post("/detect-fire")
 async def detect_fire_endpoint(request: Request, image: UploadFile = File(...)):
     # Optimized Image Processing: Validation + Optimization
     _, image_bytes = await process_uploaded_image(image)
@@ -154,7 +181,7 @@ async def detect_fire_endpoint(request: Request, image: UploadFile = File(...)):
         logger.error(f"Fire detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.post("/api/detect-stray-animal")
+@router.post("/detect-stray-animal")
 async def detect_stray_animal_endpoint(request: Request, image: UploadFile = File(...)):
     # Optimized Image Processing: Validation + Optimization
     _, image_bytes = await process_uploaded_image(image)
@@ -167,7 +194,7 @@ async def detect_stray_animal_endpoint(request: Request, image: UploadFile = Fil
         logger.error(f"Stray animal detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.post("/api/detect-blocked-road")
+@router.post("/detect-blocked-road")
 async def detect_blocked_road_endpoint(request: Request, image: UploadFile = File(...)):
     # Optimized Image Processing: Validation + Optimization
     _, image_bytes = await process_uploaded_image(image)
@@ -181,7 +208,7 @@ async def detect_blocked_road_endpoint(request: Request, image: UploadFile = Fil
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.post("/api/detect-tree-hazard")
+@router.post("/detect-tree-hazard")
 async def detect_tree_hazard_endpoint(request: Request, image: UploadFile = File(...)):
     # Optimized Image Processing: Validation + Optimization
     _, image_bytes = await process_uploaded_image(image)
@@ -195,7 +222,7 @@ async def detect_tree_hazard_endpoint(request: Request, image: UploadFile = File
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.post("/api/detect-pest")
+@router.post("/detect-pest")
 async def detect_pest_endpoint(request: Request, image: UploadFile = File(...)):
     # Optimized Image Processing: Validation + Optimization
     _, image_bytes = await process_uploaded_image(image)
@@ -209,7 +236,7 @@ async def detect_pest_endpoint(request: Request, image: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.post("/api/detect-water-leak")
+@router.post("/detect-water-leak")
 async def detect_water_leak_endpoint(request: Request, image: UploadFile = File(...)):
     # Optimized Image Processing: Validation + Optimization
     _, image_bytes = await process_uploaded_image(image)
@@ -223,7 +250,7 @@ async def detect_water_leak_endpoint(request: Request, image: UploadFile = File(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.post("/api/detect-accessibility")
+@router.post("/detect-accessibility")
 async def detect_accessibility_endpoint(request: Request, image: UploadFile = File(...)):
     # Optimized Image Processing: Validation + Optimization
     _, image_bytes = await process_uploaded_image(image)
@@ -237,7 +264,7 @@ async def detect_accessibility_endpoint(request: Request, image: UploadFile = Fi
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.post("/api/detect-crowd")
+@router.post("/detect-crowd")
 async def detect_crowd_endpoint(request: Request, image: UploadFile = File(...)):
     # Optimized Image Processing: Validation + Optimization
     _, image_bytes = await process_uploaded_image(image)
@@ -251,7 +278,7 @@ async def detect_crowd_endpoint(request: Request, image: UploadFile = File(...))
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.post("/api/detect-audio")
+@router.post("/detect-audio")
 async def detect_audio_endpoint(request: Request, file: UploadFile = File(...)):
     # Basic audio validation
     # Allow webm (browser default), wav, mp3
@@ -283,7 +310,7 @@ async def detect_audio_endpoint(request: Request, file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.post("/api/detect-severity")
+@router.post("/detect-severity")
 async def detect_severity_endpoint(image: UploadFile = File(...)):
     # Optimized Image Processing: Validation + Optimization
     _, image_bytes = await process_uploaded_image(image)
@@ -294,7 +321,7 @@ async def detect_severity_endpoint(image: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.post("/api/detect-smart-scan")
+@router.post("/detect-smart-scan")
 async def detect_smart_scan_endpoint(image: UploadFile = File(...)):
     # Optimized Image Processing: Validation + Optimization
     _, image_bytes = await process_uploaded_image(image)
@@ -305,7 +332,7 @@ async def detect_smart_scan_endpoint(image: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.post("/api/generate-description")
+@router.post("/generate-description")
 async def generate_description_endpoint(image: UploadFile = File(...)):
     # Optimized Image Processing: Validation + Optimization
     _, image_bytes = await process_uploaded_image(image)
@@ -319,7 +346,7 @@ async def generate_description_endpoint(image: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.post("/api/analyze-depth")
+@router.post("/analyze-depth")
 async def analyze_depth_endpoint(request: Request, image: UploadFile = File(...)):
     # Optimized Image Processing: Validation + Optimization
     _, image_bytes = await process_uploaded_image(image)
@@ -337,7 +364,7 @@ async def analyze_depth_endpoint(request: Request, image: UploadFile = File(...)
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.post("/api/analyze-urgency", response_model=UrgencyAnalysisResponse)
+@router.post("/analyze-urgency", response_model=UrgencyAnalysisResponse)
 async def analyze_urgency_endpoint(request: Request, urgency_req: UrgencyAnalysisRequest):
     try:
         client = get_http_client(request)
@@ -351,7 +378,7 @@ async def analyze_urgency_endpoint(request: Request, urgency_req: UrgencyAnalysi
         logger.error(f"Urgency analysis error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Urgency analysis service temporarily unavailable")
 
-@router.post("/api/transcribe-audio")
+@router.post("/transcribe-audio")
 async def transcribe_audio_endpoint(request: Request, file: UploadFile = File(...)):
     # Basic audio validation
     if hasattr(file, 'size') and file.size and file.size > 25 * 1024 * 1024:
@@ -371,7 +398,7 @@ async def transcribe_audio_endpoint(request: Request, file: UploadFile = File(..
         logger.error(f"Audio transcription error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.post("/api/detect-waste")
+@router.post("/detect-waste")
 async def detect_waste_endpoint(image: UploadFile = File(...)):
     # Optimized Image Processing: Validation + Optimization
     _, image_bytes = await process_uploaded_image(image)
@@ -382,7 +409,7 @@ async def detect_waste_endpoint(image: UploadFile = File(...)):
         logger.error(f"Waste detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.post("/api/detect-civic-eye")
+@router.post("/detect-civic-eye")
 async def detect_civic_eye_endpoint(image: UploadFile = File(...)):
     # Optimized Image Processing: Validation + Optimization
     _, image_bytes = await process_uploaded_image(image)
@@ -393,7 +420,7 @@ async def detect_civic_eye_endpoint(image: UploadFile = File(...)):
         logger.error(f"Civic Eye detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.post("/api/detect-graffiti")
+@router.post("/detect-graffiti")
 async def detect_graffiti_endpoint(image: UploadFile = File(...)):
     # Optimized Image Processing: Validation + Optimization
     _, image_bytes = await process_uploaded_image(image)
@@ -406,34 +433,24 @@ async def detect_graffiti_endpoint(image: UploadFile = File(...)):
 
 
 @router.post("/api/detect-traffic-sign")
-async def detect_traffic_sign_endpoint(request: Request, image: UploadFile = File(...)):
-    try:
-        image_bytes = await image.read()
-    except Exception as e:
-        logger.error(f"Invalid image file: {e}", exc_info=True)
-        raise HTTPException(status_code=400, detail="Invalid image file")
+async def detect_traffic_sign_endpoint(image: UploadFile = File(...)):
+    # Optimized Image Processing: Validation + Optimization
+    _, image_bytes = await process_uploaded_image(image)
 
     try:
-        client = get_http_client(request)
-        detections = await detect_traffic_sign_clip(image_bytes, client=client)
-        return {"detections": detections}
+        return {"detections": await _cached_detect_traffic_sign(image_bytes)}
     except Exception as e:
         logger.error(f"Traffic sign detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/api/detect-abandoned-vehicle")
-async def detect_abandoned_vehicle_endpoint(request: Request, image: UploadFile = File(...)):
-    try:
-        image_bytes = await image.read()
-    except Exception as e:
-        logger.error(f"Invalid image file: {e}", exc_info=True)
-        raise HTTPException(status_code=400, detail="Invalid image file")
+async def detect_abandoned_vehicle_endpoint(image: UploadFile = File(...)):
+    # Optimized Image Processing: Validation + Optimization
+    _, image_bytes = await process_uploaded_image(image)
 
     try:
-        client = get_http_client(request)
-        detections = await detect_abandoned_vehicle_clip(image_bytes, client=client)
-        return {"detections": detections}
+        return {"detections": await _cached_detect_abandoned_vehicle(image_bytes)}
     except Exception as e:
         logger.error(f"Abandoned vehicle detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")

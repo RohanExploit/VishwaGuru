@@ -34,6 +34,7 @@ DEPTH_API_URL = "https://router.huggingface.co/models/Intel/dpt-hybrid-midas"
 AUDIO_CLASS_API_URL = "https://router.huggingface.co/models/MIT/ast-finetuned-audioset-10-10-0.4593"
 
 # Speech-to-Text Model (Whisper)
+FACIAL_EMOTION_API_URL = "https://router.huggingface.co/models/dima806/facial_emotions_image_detection"
 WHISPER_API_URL = "https://router.huggingface.co/models/openai/whisper-large-v3-turbo"
 
 async def _make_request(client, url, payload):

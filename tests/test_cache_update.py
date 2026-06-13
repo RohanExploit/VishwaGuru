@@ -31,8 +31,7 @@ def test_cache_invalidation_behavior():
         with patch('backend.routers.issues.run_in_threadpool') as mock_threadpool, \
              patch('backend.routers.issues.process_uploaded_image', new_callable=AsyncMock) as mock_process: # Patch validation
 
-             import io
-             mock_process.return_value = io.BytesIO(b"processed")
+             mock_process.return_value = (MagicMock(), b"processed")
 
              # Mock the DB save to return a dummy issue with an ID
              mock_saved_issue = MagicMock()

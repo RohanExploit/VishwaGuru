@@ -4,7 +4,7 @@ import { apiClient } from './client';
 const createDetectorApi = (endpoint) => async (data) => {
     // If data is a FormData object (checking if it has append method is a heuristic)
     if (data instanceof FormData) {
-         return await apiClient.postForm(endpoint, data);
+        return await apiClient.postForm(endpoint, data);
     }
     // If data contains an image property that is a base64 string,
     // the current backend implementation for infrastructure/vandalism/etc expects BYTES.

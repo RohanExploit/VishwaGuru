@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - Smart Medborgarrapportering",
+        "subtitle": "Rapportera och spåra medborgarproblem i ditt samhälle",
+        "privacyActive": "AI-drivet integritetsskydd aktivt",
+        "communityImpact": "Samhällspåverkan",
+        "makingChange": "Tillsammans gör vi skillnad!",
+        "issuesSolved": "Lösta problem",
+        "smartScanner": "Smart City Scanner",
+        "aiPoweredDetection": "Omedelbar AI-detektering",
+        "categories": {
+            "roadTraffic": "Väg & Trafik",
+            "environmentSafety": "Miljö & Säkerhet",
+            "civicServices": "Medborgarservice",
+            "management": "Förvaltning"
+        },
+        "issues": {
+            "pothole": "Pothål",
+            "blockedRoad": "Blockerad väg",
+            "illegalParking": "Felparkering",
+            "darkStreet": "Mörk gata",
+            "trafficSign": "Trafikskylt",
+            "abandonedVehicle": "Övergivet fordon",
+            "garbage": "Sopor",
+            "flood": "Översvämning",
+            "fireSmoke": "Eld/Rök",
+            "treeHazard": "Trädfara",
+            "strayAnimal": "Lösgående djur",
+            "pestControl": "Skadedjursbekämpning",
+            "reportIssue": "Rapportera problem",
+            "brokenInfra": "Trasig infrastruktur",
+            "graffiti": "Klotter",
+            "findMLA": "Hitta företrädare",
+            "grievanceManagement": "Klagomålshantering",
+            "viewStats": "Se statistik",
+            "leaderboard": "Topplista",
+            "responsibilityMap": "Ansvarskarta",
+            "noise": "Buller",
+            "crowd": "Trängsel",
+            "waterLeak": "Vattenläcka",
+            "waste": "Avfallssortering",
+            "civicEye": "Medborgarögat",
+            "myReports": "Mina rapporter",
+            "analyzeGrievance": "Analysera klagomål"
+        },
+        "tools": {
+            "whoIsResponsible": "Vem är ansvarig?",
+            "topReporters": "Topprapportörer",
+            "cameraCheck": "Kamerakontroll"
+        },
+        "activity": {
+            "communityActivity": "Samhällsaktivitet",
+            "liveFeed": "Liveflöde",
+            "noActivity": "Ingen nylig aktivitet att visa.",
+            "loadMore": "Ladda mer aktivitet",
+            "verify": "Verifiera"
+        },
+        "stats": {
+            "totalImpact": "Total påverkan",
+            "issuesResolved": "Lösta problem",
+            "activeUsers": "Aktiva användare"
+        },
+        "landing": {
+            "empowering": "Stärka medborgarna",
+            "governance": "för bättre styrning",
+            "subtitle": "Rapportera medborgarproblem och få AI-genererade lösningar. Kontakta tjänstemän via Telegram för att delta aktivt.",
+            "cta": "Rapportera problem",
+            "cards": {
+                "reportCitizens": "Rapportera med medborgare",
+                "generatedCivic": "genererad medborgarstyrning",
+                "govServices": "Myndighetstjänster",
+                "questionGov": "Fråga regeringen",
+                "govDesc": "Skicka in frågor, kräv transparens och håll tjänstemän ansvariga",
+                "communityAction": "Samhällsåtgärd",
+                "joinMovement": "Gå med i rörelsen"
+            },
+            "features": {
+                "publicTrust": "Allmänhetens förtroende",
+                "ethics": "& Etik",
+                "civicIssues": "Medborgarproblem",
+                "reportProblems": "Rapportera problem",
+                "voiceVote": "Gör din röst hörd",
+                "shareIdeas": "Dela idéer för bättre policyer",
+                "aiDemocracy": "AI för demokrati",
+                "civicActions": "& Medborgaråtgärder",
+                "aiDesc": "Använda teknik för transparent styrning och snabbare lösningar.",
+                "smartAnalysis": "Smart analys",
+                "aiInsights": "AI-drivna insikter",
+                "citizenCount": "10k+ aktiva medborgare",
+                "secureSafe": "Säker & Trygg",
+                "verifiedReports": "Verifierade rapporter",
+                "quickAction": "Snabb åtgärd",
+                "responseTime": "24h svarstid"
+            }
+        }
+    },
+    "common": {
+        "loading": "Laddar...",
+        "error": "Fel",
+        "submit": "Skicka",
+        "cancel": "Avbryt",
+        "yes": "Ja",
+        "no": "Nej",
+        "back": "Bakåt"
+    }
+}

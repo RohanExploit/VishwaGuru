@@ -1,7 +1,3 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.gzip import GZipMiddleware
-from contextlib import asynccontextmanager
 import os
 import logging
 import httpx
@@ -80,8 +76,9 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="VishwaGuru Backend",
     description="AI-powered civic issue reporting and resolution platform",
-    version="1.0.0",
-    lifespan=lifespan
+    version="1.0.0"
+    # Temporarily disable lifespan for local dev debugging
+    # lifespan=lifespan
 )
 
 # Exception Handlers
@@ -97,8 +94,10 @@ if not is_production:
     allowed_origins.extend([
         "http://localhost:3000",
         "http://localhost:5173",
+        "http://localhost:5174",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
         "http://localhost:8080",
     ])
 

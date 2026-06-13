@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - Signalement Intelligent des Problèmes Civiques",
+        "subtitle": "Signalez et suivez les problèmes civiques dans votre communauté",
+        "privacyActive": "Protection de la vie privée par IA activée",
+        "communityImpact": "Impact Communautaire",
+        "makingChange": "Ensemble, nous faisons bouger les choses !",
+        "issuesSolved": "Problèmes Résolus",
+        "smartScanner": "Scanner de Ville Intelligente",
+        "aiPoweredDetection": "Détection instantanée par IA",
+        "categories": {
+            "roadTraffic": "Route et Trafic",
+            "environmentSafety": "Environnement et Sécurité",
+            "civicServices": "Services Civiques",
+            "management": "Gestion"
+        },
+        "issues": {
+            "pothole": "Nid-de-poule",
+            "blockedRoad": "Route Bloquée",
+            "illegalParking": "Stationnement Illégal",
+            "darkStreet": "Rue Sombre",
+            "trafficSign": "Panneau de Signalisation",
+            "abandonedVehicle": "Véhicule Abandonné",
+            "garbage": "Ordures",
+            "flood": "Inondation",
+            "fireSmoke": "Feu/Fumée",
+            "treeHazard": "Danger d'Arbre",
+            "strayAnimal": "Animal Errant",
+            "pestControl": "Contrôle des Nuisibles",
+            "reportIssue": "Signaler un Problème",
+            "brokenInfra": "Infrastructure Brisée",
+            "graffiti": "Graffiti",
+            "findMLA": "Trouver un Député",
+            "grievanceManagement": "Gestion des Plaintes",
+            "viewStats": "Voir les Stats",
+            "leaderboard": "Classement",
+            "responsibilityMap": "Carte des Responsabilités",
+            "noise": "Bruit",
+            "crowd": "Foule",
+            "waterLeak": "Fuite d'Eau",
+            "waste": "Trieur de Déchets",
+            "civicEye": "Oeil Civique",
+            "myReports": "Mes Rapports",
+            "analyzeGrievance": "Analyser la Plainte"
+        },
+        "tools": {
+            "whoIsResponsible": "Qui est Responsable ?",
+            "topReporters": "Meilleurs Rapporteurs",
+            "cameraCheck": "Vérification Caméra"
+        },
+        "activity": {
+            "communityActivity": "Activité de la Communauté",
+            "liveFeed": "Flux en Direct",
+            "noActivity": "Aucune activité récente à afficher.",
+            "loadMore": "Charger plus d'activité",
+            "verify": "Vérifier"
+        },
+        "stats": {
+            "totalImpact": "Impact Total",
+            "issuesResolved": "Problèmes Résolus",
+            "activeUsers": "Utilisateurs Actifs"
+        },
+        "landing": {
+            "empowering": "Autonomiser les Citoyens",
+            "governance": "pour une Meilleure Gouvernance",
+            "subtitle": "Signalez les problèmes civiques et obtenez des solutions générées par IA. Connectez-vous avec les officiels via Telegram.",
+            "cta": "Signaler un Problème",
+            "cards": {
+                "reportCitizens": "Signaler avec les Citoyens",
+                "generatedCivic": "gouvernance civique générée",
+                "govServices": "Services Gouvernementaux",
+                "questionGov": "Questionner le Gouvernement",
+                "govDesc": "Soumettez des requêtes, exigez de la transparence et tenez les officiels responsables",
+                "communityAction": "Action Communautaire",
+                "joinMovement": "Rejoignez le mouvement"
+            },
+            "features": {
+                "publicTrust": "Confiance Publique",
+                "ethics": "& Éthique",
+                "civicIssues": "Problèmes Civiques",
+                "reportProblems": "Signaler des problèmes",
+                "voiceVote": "Faites entendre votre voix",
+                "shareIdeas": "Partagez des idées pour de meilleures politiques",
+                "aiDemocracy": "L'IA pour la Démocratie",
+                "civicActions": "& Actions Civiques",
+                "aiDesc": "Utiliser la technologie pour une gouvernance transparente et des résolutions plus rapides.",
+                "smartAnalysis": "Analyse Intelligente",
+                "aiInsights": "Informations par IA",
+                "citizenCount": "10k+ Citoyens Actifs",
+                "secureSafe": "Sûr & Sécurisé",
+                "verifiedReports": "Rapports Vérifiés",
+                "quickAction": "Action Rapide",
+                "responseTime": "Réponse en 24h"
+            }
+        }
+    },
+    "common": {
+        "loading": "Chargement...",
+        "error": "Erreur",
+        "submit": "Soumettre",
+        "cancel": "Annuler",
+        "yes": "Oui",
+        "no": "Non",
+        "back": "Retour"
+    }
+}
