@@ -61,21 +61,13 @@ const FloodDetector = () => {
       )}
       <div className="relative w-full max-w-md aspect-video bg-black rounded-lg overflow-hidden shadow-lg">
         {!image ? (
-          !cameraError && (
-              <Webcam
-                audio={false}
-                ref={webcamRef}
-                screenshotFormat="image/jpeg"
-                className="w-full h-full object-cover"
-                videoConstraints={{ facingMode: "environment" }}
-                onUserMediaError={() => {
-                    navigator.mediaDevices.getUserMedia({ video: true })
-                        .catch((err) => {
-                            setCameraError("Could not access camera. Please check permissions.");
-                        });
-                }}
-              />
-          )
+          <Webcam
+            audio={false}
+            ref={webcamRef}
+            screenshotFormat="image/jpeg"
+            className="w-full h-full object-cover"
+            videoConstraints={{ facingMode: "environment" }} onUserMediaError={(e) => { console.warn("Primary camera access failed:", e); }}
+          />
         ) : (
           <img src={image} alt="Captured" className="w-full h-full object-cover" />
         )}

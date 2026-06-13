@@ -680,26 +680,13 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
               {showWebcam && createPortal(
                 <div className="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center p-4">
                   <div className="relative w-full max-w-md bg-black rounded-3xl overflow-hidden border border-gray-800">
-                    {cameraError ? (
-                        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative m-4">
-                            <strong className="font-bold">Camera Error:</strong>
-                            <span className="block sm:inline"> {cameraError}</span>
-                        </div>
-                    ) : (
-                        <Webcam
-                          audio={false}
-                          ref={webcamRef}
-                          screenshotFormat="image/jpeg"
-                          videoConstraints={{ facingMode: "environment" }}
-                          className="w-full object-cover aspect-[3/4]"
-                          onUserMediaError={() => {
-                              navigator.mediaDevices.getUserMedia({ video: true })
-                                  .catch((err) => {
-                                      setCameraError("Could not access camera. Please check permissions.");
-                                  });
-                          }}
-                        />
-                    )}
+                    <Webcam
+                      audio={false}
+                      ref={webcamRef}
+                      screenshotFormat="image/jpeg"
+                      videoConstraints={{ facingMode: "environment" }} onUserMediaError={(e) => { console.warn("Primary camera access failed:", e); }}
+                      className="w-full object-cover aspect-[3/4]"
+                    />
                     <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent flex justify-center gap-6">
                       <button
                         type="button"
