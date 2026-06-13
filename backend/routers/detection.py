@@ -3,6 +3,7 @@ from fastapi.concurrency import run_in_threadpool
 from PIL import Image
 import logging
 import time
+import hashlib
 
 from backend.utils import process_and_detect, validate_uploaded_file, process_uploaded_image
 from backend.schemas import DetectionResponse, UrgencyAnalysisRequest, UrgencyAnalysisResponse
@@ -68,35 +69,44 @@ async def _get_cached_result(key: str, func, *args, **kwargs):
     return result
 
 async def _cached_detect_severity(image_bytes: bytes):
-    key = f"severity_{hash(image_bytes)}"
+    # Stable cache key using MD5 (hash() is unstable across processes)
+    image_hash = hashlib.md5(image_bytes).hexdigest()
+    key = f"severity_{image_hash}"
     return await _get_cached_result(key, detect_severity_clip, image_bytes)
 
 async def _cached_detect_smart_scan(image_bytes: bytes):
-    key = f"smart_scan_{hash(image_bytes)}"
+    image_hash = hashlib.md5(image_bytes).hexdigest()
+    key = f"smart_scan_{image_hash}"
     return await _get_cached_result(key, detect_smart_scan_clip, image_bytes)
 
 async def _cached_generate_caption(image_bytes: bytes):
-    key = f"caption_{hash(image_bytes)}"
+    image_hash = hashlib.md5(image_bytes).hexdigest()
+    key = f"caption_{image_hash}"
     return await _get_cached_result(key, generate_image_caption, image_bytes)
 
 async def _cached_detect_waste(image_bytes: bytes):
-    key = f"waste_{hash(image_bytes)}"
+    image_hash = hashlib.md5(image_bytes).hexdigest()
+    key = f"waste_{image_hash}"
     return await _get_cached_result(key, detect_waste_clip, image_bytes)
 
 async def _cached_detect_civic_eye(image_bytes: bytes):
-    key = f"civic_eye_{hash(image_bytes)}"
+    image_hash = hashlib.md5(image_bytes).hexdigest()
+    key = f"civic_eye_{image_hash}"
     return await _get_cached_result(key, detect_civic_eye_clip, image_bytes)
 
 async def _cached_detect_graffiti(image_bytes: bytes):
-    key = f"graffiti_{hash(image_bytes)}"
+    image_hash = hashlib.md5(image_bytes).hexdigest()
+    key = f"graffiti_{image_hash}"
     return await _get_cached_result(key, detect_graffiti_art_clip, image_bytes)
 
 async def _cached_detect_traffic_sign(image_bytes: bytes):
-    key = f"traffic_sign_{hash(image_bytes)}"
+    image_hash = hashlib.md5(image_bytes).hexdigest()
+    key = f"traffic_sign_{image_hash}"
     return await _get_cached_result(key, detect_traffic_sign_clip, image_bytes)
 
 async def _cached_detect_abandoned_vehicle(image_bytes: bytes):
-    key = f"abandoned_vehicle_{hash(image_bytes)}"
+    image_hash = hashlib.md5(image_bytes).hexdigest()
+    key = f"abandoned_vehicle_{image_hash}"
     return await _get_cached_result(key, detect_abandoned_vehicle_clip, image_bytes)
 
 # Endpoints

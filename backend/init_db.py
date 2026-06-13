@@ -185,8 +185,13 @@ def migrate_db():
                 Base.metadata.tables['field_officer_visits'].create(bind=conn)
                 logger.info("Created field_officer_visits table")
             
-            # Indexes for field_officer_visits (run regardless of table creation)
+            # Field Officer Visits Migrations
             if inspector.has_table("field_officer_visits"):
+                if not column_exists("field_officer_visits", "previous_visit_hash"):
+                    conn.execute(text("ALTER TABLE field_officer_visits ADD COLUMN previous_visit_hash VARCHAR"))
+                    logger.info("Added previous_visit_hash column to field_officer_visits")
+
+                # Indexes for field_officer_visits (run regardless of table creation)
                 if not index_exists("field_officer_visits", "ix_field_officer_visits_issue_id"):
                     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_field_officer_visits_issue_id ON field_officer_visits (issue_id)"))
                 
@@ -198,6 +203,13 @@ def migrate_db():
                 
                 if not index_exists("field_officer_visits", "ix_field_officer_visits_check_in_time"):
                     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_field_officer_visits_check_in_time ON field_officer_visits (check_in_time)"))
+
+                if not column_exists("field_officer_visits", "previous_visit_hash"):
+                    conn.execute(text("ALTER TABLE field_officer_visits ADD COLUMN previous_visit_hash VARCHAR"))
+                    logger.info("Added previous_visit_hash column to field_officer_visits")
+
+                if not index_exists("field_officer_visits", "ix_field_officer_visits_previous_visit_hash"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_field_officer_visits_previous_visit_hash ON field_officer_visits (previous_visit_hash)"))
 
             logger.info("Database migration check completed successfully.")
 

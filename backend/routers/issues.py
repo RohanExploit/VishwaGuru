@@ -346,24 +346,27 @@ def get_nearby_issues(
         )
 
         # Convert to response format and limit results
-        nearby_responses = [
-            NearbyIssueResponse(
-                id=issue.id,
-                description=issue.description[:100] + "..." if len(issue.description) > 100 else issue.description,
-                category=issue.category,
-                latitude=issue.latitude,
-                longitude=issue.longitude,
-                distance_meters=distance,
-                upvotes=issue.upvotes or 0,
-                created_at=issue.created_at,
-                status=issue.status
-            )
-            for issue, distance in nearby_issues_with_distance[:limit]
-        ]
+        # Performance Boost: Map directly to dictionaries to avoid Pydantic overhead
+        nearby_data = []
+        for issue, distance in nearby_issues_with_distance[:limit]:
+            desc = issue.description or ""
+            short_desc = desc[:100] + "..." if len(desc) > 100 else desc
+
+            nearby_data.append({
+                "id": issue.id,
+                "description": short_desc,
+                "category": issue.category,
+                "latitude": issue.latitude,
+                "longitude": issue.longitude,
+                "distance_meters": distance,
+                "upvotes": issue.upvotes or 0,
+                "created_at": issue.created_at.isoformat() if issue.created_at else None,
+                "status": issue.status
+            })
 
         # Performance Boost: Cache serialized JSON to bypass redundant Pydantic validation
         # and serialization on cache hits.
-        json_data = json.dumps([r.model_dump(mode='json') for r in nearby_responses])
+        json_data = json.dumps(nearby_data)
         nearby_issues_cache.set(json_data, cache_key)
 
         return Response(content=json_data, media_type="application/json")

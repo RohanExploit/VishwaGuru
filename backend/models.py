@@ -253,6 +253,7 @@ class FieldOfficerVisit(Base):
     
     # Immutability hash (blockchain-like integrity)
     visit_hash = Column(String, nullable=True)  # Hash of visit data for integrity verification
+    previous_visit_hash = Column(String, nullable=True, index=True) # Linked hash for O(1) verification
     
     # Metadata
     created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
