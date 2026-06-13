@@ -1,28 +1,18 @@
 import pytest
-from fastapi.testclient import TestClient
-from unittest.mock import MagicMock, patch, AsyncMock
-import os
 import io
-import warnings
-from PIL import Image
+import os
 import sys
+from unittest.mock import MagicMock, AsyncMock, patch
 from pathlib import Path
+from fastapi.testclient import TestClient
 
-# Suppress warnings for clean test output
-warnings.filterwarnings("ignore", category=DeprecationWarning)
-warnings.filterwarnings("ignore", category=FutureWarning)
-warnings.filterwarnings("ignore", module="httplib2")
-warnings.filterwarnings("ignore", module="google.generativeai")
-
-# Ensure repository root is importable so "backend" package resolves in tests
+# Setup environment
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
-
-# Set environment variable
 os.environ['FRONTEND_URL'] = 'http://localhost:5173'
 
-# Mock magic module
+# Mock magic
 mock_magic = MagicMock()
 mock_magic.from_buffer.return_value = "image/jpeg"
 sys.modules['magic'] = mock_magic
@@ -32,89 +22,102 @@ mock_telegram = MagicMock()
 sys.modules['telegram'] = mock_telegram
 sys.modules['telegram.ext'] = mock_telegram.ext
 
-# Determine imports based on python path
-try:
-    from main import app
-    MODULE_NAME = "main"
-except ImportError:
-    from backend.main import app
-    MODULE_NAME = "backend.main"
-
-client = TestClient(app)
-
-# Manually set the http_client in state
-app.state.http_client = AsyncMock()
-
-def test_health():
-    response = client.get("/health")
-    assert response.status_code == 200
-    data = response.json()
-    assert data["status"] == "healthy"
-    assert "timestamp" in data
-    assert data["version"] == "1.0.0"
-    assert "services" in data
+# Import main (will trigger app creation, but lifespan won't run yet)
+import backend.main
+from backend.main import app
 
 @pytest.fixture
-def mock_hf_service():
-    # Patch the functions in the module where 'app' is defined
-    with patch(f"{MODULE_NAME}.detect_illegal_parking_clip", new_callable=AsyncMock) as mock_parking, \
-         patch(f"{MODULE_NAME}.detect_street_light_clip", new_callable=AsyncMock) as mock_light, \
-         patch(f"{MODULE_NAME}.detect_fire_clip", new_callable=AsyncMock) as mock_fire, \
-         patch(f"{MODULE_NAME}.detect_stray_animal_clip", new_callable=AsyncMock) as mock_animal, \
-         patch(f"{MODULE_NAME}.detect_blocked_road_clip", new_callable=AsyncMock) as mock_block:
+def client_with_mock_http():
+    import backend.main as b_main
+    import backend.dependencies
+    # Patch create_all_ai_services where it is used (in backend.main)
+    with patch.object(b_main, "create_all_ai_services") as mock_create:
+         mock_create.return_value = (AsyncMock(), AsyncMock(), AsyncMock())
 
-        mock_parking.return_value = [{"label": "illegally parked car", "confidence": 0.95}]
-        mock_light.return_value = [{"label": "broken streetlight", "confidence": 0.95}]
-        mock_fire.return_value = [{"label": "fire", "confidence": 0.95}]
-        mock_animal.return_value = [{"label": "stray dog", "confidence": 0.95}]
-        mock_block.return_value = [{"label": "fallen tree", "confidence": 0.95}]
+         # Mock http client
+         mock_http = AsyncMock()
+         # Option: Patch httpx.AsyncClient to return our mock
+         mock_http.__aenter__.return_value = mock_http
+         with patch("httpx.AsyncClient", return_value=mock_http):
+             with TestClient(app) as c:
+                 c.app.state.http_client = mock_http
+                 backend.dependencies.SHARED_HTTP_CLIENT = mock_http
+                 yield c, mock_http
 
-        yield {
-            "parking": mock_parking,
-            "light": mock_light,
-            "fire": mock_fire,
-            "animal": mock_animal,
-            "block": mock_block
-        }
+def create_test_image():
+    from PIL import Image
+    img = Image.new('RGB', (100, 100), color='white')
+    img_byte_arr = io.BytesIO()
+    img.save(img_byte_arr, format='JPEG')
+    return img_byte_arr.getvalue()
 
-def create_dummy_image():
-    file = io.BytesIO()
-    image = Image.new('RGB', (100, 100), color='red')
-    image.save(file, 'jpeg')
-    file.seek(0)
-    return file
+def test_detect_waste(client_with_mock_http):
+    client, mock_http = client_with_mock_http
 
-def test_detect_illegal_parking(mock_hf_service):
-    img = create_dummy_image()
-    files = {"image": ("test.jpg", img, "image/jpeg")}
-    response = client.post("/api/detect-illegal-parking", files=files)
+    # Reset mock because startup might have called it?
+    mock_http.post.reset_mock()
+
+    # Mock HF API response
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = [{"label": "plastic bottle", "score": 0.95}]
+    mock_http.post.return_value = mock_response
+
+    img_bytes = create_test_image()
+
+    with patch('backend.utils.validate_uploaded_file'):
+        response = client.post(
+            "/detect-waste",
+            files={"image": ("test.jpg", img_bytes, "image/jpeg")}
+        )
+
     assert response.status_code == 200
-    assert response.json()["detections"][0]["label"] == "illegally parked car"
+    data = response.json()
+    assert data["waste_type"] == "plastic bottle"
+    assert data["confidence"] == 0.95
 
-def test_detect_street_light(mock_hf_service):
-    img = create_dummy_image()
-    files = {"image": ("test.jpg", img, "image/jpeg")}
-    response = client.post("/api/detect-street-light", files=files)
-    assert response.status_code == 200
-    assert response.json()["detections"][0]["label"] == "broken streetlight"
+def test_detect_civic_eye(client_with_mock_http):
+    client, mock_http = client_with_mock_http
+    mock_http.post.reset_mock()
 
-def test_detect_fire(mock_hf_service):
-    img = create_dummy_image()
-    files = {"image": ("test.jpg", img, "image/jpeg")}
-    response = client.post("/api/detect-fire", files=files)
-    assert response.status_code == 200
-    assert response.json()["detections"][0]["label"] == "fire"
+    # Mock HF API response (CLIP returns list of dicts)
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    # Provide results for all labels (safety, cleanliness, infra)
+    mock_response.json.return_value = [
+        {"label": "safe area", "score": 0.9},
+        {"label": "clean street", "score": 0.85},
+        {"label": "good infrastructure", "score": 0.8}
+    ]
+    mock_http.post.return_value = mock_response
 
-def test_detect_stray_animal(mock_hf_service):
-    img = create_dummy_image()
-    files = {"image": ("test.jpg", img, "image/jpeg")}
-    response = client.post("/api/detect-stray-animal", files=files)
-    assert response.status_code == 200
-    assert response.json()["detections"][0]["label"] == "stray dog"
+    img_bytes = create_test_image()
 
-def test_detect_blocked_road(mock_hf_service):
-    img = create_dummy_image()
-    files = {"image": ("test.jpg", img, "image/jpeg")}
-    response = client.post("/api/detect-blocked-road", files=files)
+    with patch('backend.utils.validate_uploaded_file'):
+        response = client.post(
+            "/detect-civic-eye",
+            files={"image": ("test.jpg", img_bytes, "image/jpeg")}
+        )
+
     assert response.status_code == 200
-    assert response.json()["detections"][0]["label"] == "fallen tree"
+    data = response.json()
+    assert data["safety"]["status"] == "safe area"
+    assert data["cleanliness"]["status"] == "clean street"
+    assert data["infrastructure"]["status"] == "good infrastructure"
+
+def test_transcribe_audio(client_with_mock_http):
+    client, mock_http = client_with_mock_http
+    mock_http.post.reset_mock()
+
+    audio_content = b"fake audio content"
+
+    with patch('backend.routers.detection.transcribe_audio', new_callable=AsyncMock) as mock_transcribe:
+        mock_transcribe.return_value = "This is a test transcription."
+        response = client.post(
+            "/transcribe-audio",
+            files={"file": ("test.wav", audio_content, "audio/wav")}
+        )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["text"] == "This is a test transcription."

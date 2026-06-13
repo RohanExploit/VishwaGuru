@@ -18,9 +18,6 @@ logging.basicConfig(
 # States for ConversationHandler
 PHOTO, DESCRIPTION, CATEGORY = range(3)
 
-# Initialize Database
-Base.metadata.create_all(bind=engine)
-
 # Global variables for bot management
 _bot_application = None
 _bot_thread = None
@@ -204,24 +201,24 @@ def stop_bot_thread():
     """Stop the bot thread gracefully"""
     global _bot_thread, _shutdown_event, _bot_application
 
-    if not _bot_thread or not _bot_thread.is_alive():
-        logging.info("Bot thread is not running")
+    if not _bot_thread:
+        logging.info("Bot thread is not initialized")
         return
 
-    logging.info("Stopping bot thread...")
-
-    # Signal shutdown
-    _shutdown_event.set()
-
-    # Wait for thread to finish (with timeout)
-    _bot_thread.join(timeout=10)
-
     if _bot_thread.is_alive():
-        logging.warning("Bot thread did not stop gracefully within timeout")
+        logging.info("Stopping bot thread...")
+        # Signal shutdown
+        _shutdown_event.set()
+        # Wait for thread to finish (with timeout)
+        _bot_thread.join(timeout=10)
+        if _bot_thread.is_alive():
+            logging.warning("Bot thread did not stop gracefully within timeout")
+    else:
+        logging.info("Bot thread is already stopped")
 
     _bot_thread = None
     _bot_application = None
-    logging.info("Bot thread stopped")
+    logging.info("Bot thread cleanup complete")
 
 async def run_bot():
     """

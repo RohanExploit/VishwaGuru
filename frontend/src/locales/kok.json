@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - स्मार्ट नागरिक समस्या रिपୋର୍ଟର",
+        "subtitle": "तुमच्या समुदायांतल्या नागरी समस्यांची नोंद करात आनी तांचो मागोवा घेयात",
+        "privacyActive": "AI-संचलित गोपनीयता राखण सक्रीय आसा",
+        "communityImpact": "समुदायाचेर परिणाम",
+        "makingChange": "आमी एकठांय येवन बदल घडोवन हाडटात!",
+        "issuesSolved": "सुटावे जाल्ले प्रस्न",
+        "smartScanner": "स्मार्ट सिटी स्कॅनर",
+        "aiPoweredDetection": "AI-संचलित रोकडो सोद",
+        "categories": {
+            "roadTraffic": "रस्तो आनी रहदारी",
+            "environmentSafety": "पर्यावरण आनी सुरक्षा",
+            "civicServices": "नागरी सेवा",
+            "management": "व्यवस्थापन"
+        },
+        "issues": {
+            "pothole": "खड्डो",
+            "blockedRoad": "रस्तो बंद",
+            "illegalParking": "बेकायदेशीर पार्किंग",
+            "darkStreet": "अंधारी गल्ली",
+            "trafficSign": "यतायत चिन्ह",
+            "abandonedVehicle": "सोडून दिल्ली गाडी",
+            "garbage": "कचरो",
+            "flood": "हुंवार",
+            "fireSmoke": "उजो/धूंवर",
+            "treeHazard": "झाडाचो धोको",
+            "strayAnimal": "भटके प्राणी",
+            "pestControl": "कीड नियंत्रण",
+            "reportIssue": "प्रस्न नोंद करात",
+            "brokenInfra": "तुटलेली पायाभूत सुविधा",
+            "graffiti": "ग्राफिती",
+            "findMLA": "आमदार सोदात",
+            "grievanceManagement": "तक्रार व्यवस्थापन",
+            "viewStats": "आकडेवारी पळयात",
+            "leaderboard": "लीडरबोर्ड",
+            "responsibilityMap": "जबाबदारी नकाशा",
+            "noise": "आवाज",
+            "crowd": "गर्दी",
+            "waterLeak": "उदकाचो गळसो",
+            "waste": "कचरो वर्गीकरण",
+            "civicEye": "नागरी दोळो",
+            "myReports": "म्हजे अहवाल",
+            "analyzeGrievance": "तक्रारीचें विश्लेषण करात"
+        },
+        "tools": {
+            "whoIsResponsible": "जबाबदार कोण?",
+            "topReporters": "मुख्य रिपोर्टर",
+            "cameraCheck": "कॅमेरा तपासणी"
+        },
+        "activity": {
+            "communityActivity": "सामुदियक हालचाली",
+            "liveFeed": "थेट फीड",
+            "noActivity": "दाखौवपा सारख्यो अलिकडच्यो हालचाली नात।",
+            "loadMore": "अजुन हालचाली लोड करात",
+            "verify": "तपासणी करात"
+        },
+        "stats": {
+            "totalImpact": "एकूण परिणाम",
+            "issuesResolved": "सुटावे जाल्ले प्रस्न",
+            "activeUsers": "सक्रीय वापरकर्ते"
+        },
+        "landing": {
+            "empowering": "नागरिकांचें सक्षमीकरण",
+            "governance": "बऱ्या प्रशासना खातीर",
+            "subtitle": "नागरी समस्यांची नोंद करात आनी AI-निर्मित उपाय मेळयात. प्रशासनांत सक्रीय वांटो घेवपा खातीर टेलिग्राम वरवीं अधिकाऱ्यां कडेन संंपर्क धोरात.",
+            "cta": "प्रस्न नोंद करात",
+            "cards": {
+                "reportCitizens": "नागरिकां वांगडा नोंद करात",
+                "generatedCivic": "निर्मित नागरी प्रशासन",
+                "govServices": "शासकीय सेवा",
+                "questionGov": "शासनाक प्रस्न विचारात",
+                "govDesc": "प्रस्न धाडात, पारदर्शकतेची मागणी करात आनी अधिकाऱ्यांक जबाबदार धरा",
+                "communityAction": "सामुदायिक कृती",
+                "joinMovement": "चळवळींत सामील जायात"
+            },
+            "features": {
+                "publicTrust": "जनतेचो विश्वास",
+                "ethics": "& नैतिकता",
+                "civicIssues": "नागरी समस्या",
+                "reportProblems": "समस्यांची नोंद करात",
+                "voiceVote": "तुमचो आवाज वयर काढा",
+                "shareIdeas": "बऱ्या धोरणां खातीर कल्पना फांटावा",
+                "aiDemocracy": "लोकशाये खातीर AI",
+                "civicActions": "& नागरी कृती",
+                "aiDesc": "पारदर्शक प्रशासन आनी रोकड्या उपाया खातीर तंत्रज्ञानाचो वापर।",
+                "smartAnalysis": "स्मार्ट विश्लेषण",
+                "aiInsights": "AI-संचलित अंतर्दृष्टी",
+                "citizenCount": "१० हजार+ सक्रीय नागरिक",
+                "secureSafe": "निश्चित आनी सुरक्षित",
+                "verifiedReports": "सत्यापित अहवाल",
+                "quickAction": "रोखडी कृती",
+                "responseTime": "२४ वरां प्रतिसाद वेळ"
+            }
+        }
+    },
+    "common": {
+        "loading": "लोड जाता...",
+        "error": "चूक",
+        "submit": "धाडात",
+        "cancel": "रद्द करात",
+        "yes": "हय",
+        "no": "ना",
+        "back": "फाटीं"
+    }
+}

@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - Raportor Inteligent pentru Probleme Civice",
+        "subtitle": "Raportați și urmăriți problemele civice din comunitatea dvs.",
+        "privacyActive": "Protecția confidențialității bazată på AI este activă",
+        "communityImpact": "Impact comunitar",
+        "makingChange": "Împreună facem schimbarea!",
+        "issuesSolved": "Probleme rezolvate",
+        "smartScanner": "Scaner pentru oraș inteligent",
+        "aiPoweredDetection": "Detectare instantanee prin AI",
+        "categories": {
+            "roadTraffic": "Drumuri și trafic",
+            "environmentSafety": "Mediu și siguranță",
+            "civicServices": "Servicii civice",
+            "management": "Management"
+        },
+        "issues": {
+            "pothole": "Groapă în drum",
+            "blockedRoad": "Drum blocat",
+            "illegalParking": "Parcare ilegală",
+            "darkStreet": "Stradă întunecată",
+            "trafficSign": "Indicator rutier",
+            "abandonedVehicle": "Vehicul abandonat",
+            "garbage": "Gunoi",
+            "flood": "Inundație",
+            "fireSmoke": "Foc/Fum",
+            "treeHazard": "Pericol de copac",
+            "strayAnimal": "Animal fără stăpân",
+            "pestControl": "Controlul dăunătorilor",
+            "reportIssue": "Raportează o problemă",
+            "brokenInfra": "Infrastructură deteriorată",
+            "graffiti": "Graffiti",
+            "findMLA": "Găsește reprezentantul",
+            "grievanceManagement": "Gestionarea reclamațiilor",
+            "viewStats": "Vezi statistici",
+            "leaderboard": "Clasament",
+            "responsibilityMap": "Harta responsabilităților",
+            "noise": "Zgomot",
+            "crowd": "Mulțime",
+            "waterLeak": "Scurgere de apă",
+            "waste": "Sortator de deșeuri",
+            "civicEye": "Ochiul civic",
+            "myReports": "Rapoartele mele",
+            "analyzeGrievance": "Analizează reclamația"
+        },
+        "tools": {
+            "whoIsResponsible": "Cine este responsabil?",
+            "topReporters": "Top raportori",
+            "cameraCheck": "Verificare cameră"
+        },
+        "activity": {
+            "communityActivity": "Activitate comunitară",
+            "liveFeed": "Flux live",
+            "noActivity": "Nicio activitate recentă de afișat.",
+            "loadMore": "Încarcă mai multă activitate",
+            "verify": "Verifică"
+        },
+        "stats": {
+            "totalImpact": "Impact total",
+            "issuesResolved": "Probleme rezolvate",
+            "activeUsers": "Utilizatori activi"
+        },
+        "landing": {
+            "empowering": "Responsabilizarea cetățenilor",
+            "governance": "pentru o guvernare mai bună",
+            "subtitle": "Raportați problemele civice și primiți soluții generate de AI. Conectați-vă cu oficialii prin Telegram.",
+            "cta": "Raportează o problemă",
+            "cards": {
+                "reportCitizens": "Raportați împreună cu cetățenii",
+                "generatedCivic": "guvernare civică generată",
+                "govServices": "Servicii guvernamentale",
+                "questionGov": "Interpelați guvernul",
+                "govDesc": "Trimiteți întrebări, solicitați transparență și cereți socoteală oficialilor",
+                "communityAction": "Acțiune comunitară",
+                "joinMovement": "Alăturați-vă mișcării"
+            },
+            "features": {
+                "publicTrust": "Încrederea publicului",
+                "ethics": "& Etică",
+                "civicIssues": "Probleme civice",
+                "reportProblems": "Raportați probleme",
+                "voiceVote": "Faceți-vă vocea auzită",
+                "shareIdeas": "Împărtășiți idei pentru politici mai bune",
+                "aiDemocracy": "AI pentru democrație",
+                "civicActions": "& Acțiuni civice",
+                "aiDesc": "Utilizarea tehnologiei pentru o guvernare transparentă și rezoluții mai rapide.",
+                "smartAnalysis": "Analiză inteligentă",
+                "aiInsights": "Informații bazate pe AI",
+                "citizenCount": "peste 10.000 de cetățeni activi",
+                "secureSafe": "Sigur și securizat",
+                "verifiedReports": "Rapoarte verificate",
+                "quickAction": "Acțiune rapidă",
+                "responseTime": "Timp de răspuns 24h"
+            }
+        }
+    },
+    "common": {
+        "loading": "Se încarcă...",
+        "error": "Eroare",
+        "submit": "Trimite",
+        "cancel": "Anulează",
+        "yes": "Da",
+        "no": "Nu",
+        "back": "Înapoi"
+    }
+}

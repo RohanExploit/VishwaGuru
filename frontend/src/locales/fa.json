@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - گزارشگر هوشمند مسائل شهری",
+        "subtitle": "مسائل شهری را در جامعه خود گزارش دهید و پیگیری کنید",
+        "privacyActive": "محافظت از حریم خصوصی مبتنی بر هوش مصنوعی فعال است",
+        "communityImpact": "تأثیر اجتماعی",
+        "makingChange": "ما با هم در حال ایجاد تغییر هستیم!",
+        "issuesSolved": "مسائل حل شده",
+        "smartScanner": "اسکنر شهر هوشمند",
+        "aiPoweredDetection": "تشخیص فوری مبتنی بر هوش مصنوعی",
+        "categories": {
+            "roadTraffic": "جاده و ترافیک",
+            "environmentSafety": "محیط زیست و ایمنی",
+            "civicServices": "خدمات شهری",
+            "management": "مدیریت"
+        },
+        "issues": {
+            "pothole": "چاله",
+            "blockedRoad": "جاده مسدود شده",
+            "illegalParking": "پارک غیرقانونی",
+            "darkStreet": "خیابان تاریک",
+            "trafficSign": "تابلو ترافیکی",
+            "abandonedVehicle": "خودرو رها شده",
+            "garbage": "زباله",
+            "flood": "سیل",
+            "fireSmoke": "آتش/دود",
+            "treeHazard": "خطر درخت",
+            "strayAnimal": "حیوان ولگرد",
+            "pestControl": "کنترل آفات",
+            "reportIssue": "گزارش مشکل",
+            "brokenInfra": "زیرساخت شکسته",
+            "graffiti": "دیوارنویسی",
+            "findMLA": "یافتن نماینده",
+            "grievanceManagement": "مدیریت شکایات",
+            "viewStats": "مشاهده آمار",
+            "leaderboard": "جدول امتیازات",
+            "responsibilityMap": "نقشه مسئولیت",
+            "noise": "آلودگی صوتی",
+            "crowd": "ازدحام",
+            "waterLeak": "نشت آب",
+            "waste": "تفکیک زباله",
+            "civicEye": "چشم شهروند",
+            "myReports": "گزارش‌های من",
+            "analyzeGrievance": "تحلیل شکایت"
+        },
+        "tools": {
+            "whoIsResponsible": "چه کسی مسئول است؟",
+            "topReporters": "گزارشگران برتر",
+            "cameraCheck": "بررسی دوربین"
+        },
+        "activity": {
+            "communityActivity": "فعالیت جامعه",
+            "liveFeed": "فید زنده",
+            "noActivity": "فعالیت اخیری برای نمایش وجود ندارد.",
+            "loadMore": "بارگذاری فعالیت‌های بیشتر",
+            "verify": "تأیید"
+        },
+        "stats": {
+            "totalImpact": "کل تأثیر",
+            "issuesResolved": "مسائل حل شده",
+            "activeUsers": "کاربران فعال"
+        },
+        "landing": {
+            "empowering": "توانمندسازی شهروندان",
+            "governance": "برای حکمرانی بهتر",
+            "subtitle": "مسائل شهری را گزارش دهید و راهکارهای تولید شده توسط هوش مصنوعی را دریافت کنید. برای مشارکت فعال در حکمرانی، از طریق تلگرام با مسئولان در ارتباط باشید.",
+            "cta": "گزارش مشکل",
+            "cards": {
+                "reportCitizens": "گزارش با شهروندان",
+                "generatedCivic": "حکمرانی شهری تولید شده",
+                "govServices": "خدمات دولتی",
+                "questionGov": "پرسش از دولت",
+                "govDesc": "پرسش‌های خود را ارسال کنید، شفافیت بخواهید و مسئولان را پاسخگو کنید",
+                "communityAction": "اقدام اجتماعی",
+                "joinMovement": "به جنبش بپیوندید"
+            },
+            "features": {
+                "publicTrust": "اعتماد عمومی",
+                "ethics": "& اخلاق",
+                "civicIssues": "مسائل شهری",
+                "reportProblems": "گزارش مشکلات",
+                "voiceVote": "صدای خود را به گوش برسانید",
+                "shareIdeas": "ایده‌های خود را برای سیاست‌های بهتر به اشتراک بگذارید",
+                "aiDemocracy": "هوش مصنوعی برای دموکراسی",
+                "civicActions": "& اقدامات شهروندی",
+                "aiDesc": "بهره‌گیری از فناوری برای حکمرانی شفاف و حل سریع‌تر مسائل.",
+                "smartAnalysis": "تحلیل هوشمند",
+                "aiInsights": "بینش‌های مبتنی بر هوش مصنوعی",
+                "citizenCount": "بیش از ۱۰ هزار شهروند فعال",
+                "secureSafe": "امن و مطمئن",
+                "verifiedReports": "گزارش‌های تأیید شده",
+                "quickAction": "اقدام سریع",
+                "responseTime": "زمان پاسخگویی ۲۴ ساعته"
+            }
+        }
+    },
+    "common": {
+        "loading": "در حال بارگذاری...",
+        "error": "خطا",
+        "submit": "ارسال",
+        "cancel": "لغو",
+        "yes": "بله",
+        "no": "خیر",
+        "back": "بازگشت"
+    }
+}

@@ -41,7 +41,8 @@ from backend.maharashtra_locator import (
     find_mla_by_constituency
 )
 from backend.init_db import migrate_db
-from backend.pothole_detection import detect_potholes, validate_image_for_processing
+from backend.pothole_detection import detect_potholes
+from backend.utils import validate_image_for_processing
 from backend.garbage_detection import detect_garbage
 from backend.local_ml_service import (
     detect_infrastructure_local,

@@ -5,12 +5,14 @@ Provides the main interface for grievance management and escalation.
 
 import json
 import uuid
+import hashlib
 from typing import Dict, Any, Optional, List
 from sqlalchemy.orm import Session, joinedload
 from datetime import datetime, timezone, timedelta
 
-from backend.models import Grievance, Jurisdiction, GrievanceStatus, SeverityLevel
+from backend.models import Grievance, Jurisdiction, GrievanceStatus, SeverityLevel, Issue
 from backend.database import SessionLocal
+from backend.cache import grievance_last_hash_cache
 from backend.routing_service import RoutingService
 from backend.sla_config_service import SLAConfigService
 from backend.escalation_engine import EscalationEngine
@@ -51,8 +53,10 @@ class GrievanceService:
         Returns:
             Created Grievance object or None if creation failed
         """
+        should_close = False
         if db is None:
             db = SessionLocal()
+            should_close = True
 
         try:
             # Determine initial jurisdiction
@@ -82,6 +86,28 @@ class GrievanceService:
             # Generate unique ID
             unique_id = str(uuid.uuid4())[:8].upper()
 
+            # Blockchain feature: calculate integrity hash for the grievance
+            # Performance Boost: Use thread-safe cache to eliminate DB query for last hash
+            prev_hash = grievance_last_hash_cache.get("last_hash")
+            if prev_hash is None:
+                # Cache miss: Fetch only the last hash from DB
+                prev_grievance = db.query(Grievance.integrity_hash).order_by(Grievance.id.desc()).first()
+                prev_hash = prev_grievance[0] if prev_grievance and prev_grievance[0] else ""
+                grievance_last_hash_cache.set(data=prev_hash, key="last_hash")
+
+            # SHA-256 chaining for grievance integrity
+            hash_content = f"{unique_id}|{grievance_data.get('category', 'general')}|{severity.value}|{prev_hash}"
+            integrity_hash = hashlib.sha256(hash_content.encode()).hexdigest()
+
+            # Update cache for next grievance
+            grievance_last_hash_cache.set(data=integrity_hash, key="last_hash")
+
+            # Extract location data
+            location_data = grievance_data.get('location', {})
+            latitude = location_data.get('latitude') if isinstance(location_data, dict) else None
+            longitude = location_data.get('longitude') if isinstance(location_data, dict) else None
+            address = location_data.get('address') if isinstance(location_data, dict) else None
+
             # Create grievance
             grievance = Grievance(
                 unique_id=unique_id,
@@ -91,10 +117,16 @@ class GrievanceService:
                 city=grievance_data.get('city'),
                 district=grievance_data.get('district'),
                 state=grievance_data.get('state'),
+                latitude=latitude,
+                longitude=longitude,
+                address=address,
                 current_jurisdiction_id=jurisdiction.id,
                 assigned_authority=assigned_authority,
                 sla_deadline=sla_deadline,
-                status=GrievanceStatus.OPEN
+                status=GrievanceStatus.OPEN,
+                issue_id=grievance_data.get('issue_id'),
+                integrity_hash=integrity_hash,
+                previous_integrity_hash=prev_hash
             )
 
             db.add(grievance)
@@ -108,7 +140,7 @@ class GrievanceService:
             print(f"Error creating grievance: {e}")
             return None
         finally:
-            if db is not SessionLocal():
+            if should_close:
                 db.close()
 
     def get_grievance(self, grievance_id: int, db: Session = None) -> Optional[Grievance]:
@@ -122,8 +154,10 @@ class GrievanceService:
         Returns:
             Grievance object or None
         """
+        should_close = False
         if db is None:
             db = SessionLocal()
+            should_close = True
 
         try:
             return db.query(Grievance).options(
@@ -132,7 +166,7 @@ class GrievanceService:
             ).filter(Grievance.id == grievance_id).first()
 
         finally:
-            if db is not SessionLocal():
+            if should_close:
                 db.close()
 
     def update_grievance_status(self, grievance_id: int, status: GrievanceStatus,
@@ -148,8 +182,10 @@ class GrievanceService:
         Returns:
             True if update successful
         """
+        should_close = False
         if db is None:
             db = SessionLocal()
+            should_close = True
 
         try:
             grievance = db.query(Grievance).filter(Grievance.id == grievance_id).first()
@@ -162,6 +198,29 @@ class GrievanceService:
             if status == GrievanceStatus.RESOLVED:
                 grievance.resolved_at = datetime.now(timezone.utc)
 
+            # Sync with Issue if linked
+            if grievance.issue_id:
+                issue = db.query(Issue).filter(Issue.id == grievance.issue_id).first()
+                if issue:
+                    # Map GrievanceStatus to Issue status
+                    status_map = {
+                        GrievanceStatus.RESOLVED: "resolved",
+                        GrievanceStatus.IN_PROGRESS: "in_progress",
+                        GrievanceStatus.ESCALATED: "in_progress", # Escalated is internal, for user it's still in progress
+                        GrievanceStatus.OPEN: "open"
+                    }
+                    new_issue_status = status_map.get(status)
+
+                    if new_issue_status:
+                        issue.status = new_issue_status
+                        if new_issue_status == "resolved":
+                            issue.resolved_at = datetime.now(timezone.utc)
+                        elif new_issue_status == "in_progress":
+                            # Maybe set assigned_at if not set?
+                            if not issue.assigned_at:
+                                issue.assigned_at = datetime.now(timezone.utc)
+                                issue.assigned_to = grievance.assigned_authority
+
             db.commit()
             return True
 
@@ -170,7 +229,7 @@ class GrievanceService:
             print(f"Error updating grievance status: {e}")
             return False
         finally:
-            if db is not SessionLocal():
+            if should_close:
                 db.close()
 
     def escalate_grievance_severity(self, grievance_id: int, new_severity: SeverityLevel,
@@ -221,8 +280,10 @@ class GrievanceService:
         Returns:
             List of audit entries
         """
+        should_close = False
         if db is None:
             db = SessionLocal()
+            should_close = True
 
         try:
             grievance = db.query(Grievance).filter(Grievance.id == grievance_id).first()
@@ -242,7 +303,7 @@ class GrievanceService:
             return audit_trail
 
         finally:
-            if db is not SessionLocal():
+            if should_close:
                 db.close()
 
     def get_active_grievances_by_jurisdiction(self, jurisdiction_id: int, db: Session = None) -> List[Grievance]:
@@ -256,8 +317,10 @@ class GrievanceService:
         Returns:
             List of active grievances
         """
+        should_close = False
         if db is None:
             db = SessionLocal()
+            should_close = True
 
         try:
             return db.query(Grievance).filter(
@@ -268,5 +331,5 @@ class GrievanceService:
             ).all()
 
         finally:
-            if db is not SessionLocal():
+            if should_close:
                 db.close()

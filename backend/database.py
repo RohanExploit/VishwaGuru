@@ -11,6 +11,9 @@ if SQLALCHEMY_DATABASE_URL and SQLALCHEMY_DATABASE_URL.startswith("postgres://")
 
 if not SQLALCHEMY_DATABASE_URL:
     SQLALCHEMY_DATABASE_URL = "sqlite:///./data/issues.db"
+    # Ensure data directory exists for SQLite
+    from pathlib import Path
+    Path("./data").mkdir(exist_ok=True)
     connect_args = {"check_same_thread": False}
 else:
     connect_args = {}
