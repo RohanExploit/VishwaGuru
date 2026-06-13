@@ -111,8 +111,8 @@ def test_transcribe_audio(client_with_mock_http):
 
     audio_content = b"fake audio content"
 
-    with patch('backend.routers.detection.transcribe_audio', new_callable=AsyncMock) as mock_transcribe:
-        mock_transcribe.return_value = "This is a test transcription."
+    with patch('backend.voice_service.VoiceService.transcribe_audio', new_callable=MagicMock) as mock_transcribe:
+        mock_transcribe.return_value = {"text": "This is a test transcription.", "error": None, "language": "en", "language_name": "English", "confidence": 0.99}
         response = client.post(
             "/api/transcribe-audio",
             files={"file": ("test.wav", audio_content, "audio/wav")}
@@ -120,4 +120,4 @@ def test_transcribe_audio(client_with_mock_http):
 
     assert response.status_code == 200
     data = response.json()
-    assert data["text"] == "This is a test transcription."
+    assert data["original_text"] == "This is a test transcription."
