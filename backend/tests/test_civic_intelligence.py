@@ -152,15 +152,18 @@ def test_civic_intelligence_run(mock_listdir, mock_json_dump, mock_file_open, mo
 
     # Define query side effects
     def query_side_effect(*args):
-        if len(args) == 1:
+        if len(args) > 0:
             model = args[0]
-            if getattr(model, '__name__', '') == 'Issue':
+            # Handle column projection (InstrumentedAttribute) by checking class_
+            class_name = getattr(model, 'class_', model).__name__ if hasattr(model, 'class_') else getattr(model, '__name__', '')
+
+            if class_name == 'Issue':
                 return mock_query_issues
             elif hasattr(model, 'name') and model.name == 'count':
                 return mock_query_issues
-            elif getattr(model, '__name__', '') == 'EscalationAudit':
+            elif class_name == 'EscalationAudit':
                 return mock_query_upgrades
-            elif getattr(model, '__name__', '') == 'Grievance':
+            elif class_name == 'Grievance':
                 return mock_query_grievance
         return MagicMock()
 
