@@ -1,12 +1,13 @@
 """
 Concrete implementations of AI service interfaces using Gemini AI.
 """
+
 from typing import Dict, Optional
 import asyncio
 from backend.ai_interfaces import ActionPlanService, ChatService, MLASummaryService
 from backend.ai_service import (
     generate_action_plan as _generate_action_plan,
-    chat_with_civic_assistant as _chat_with_civic_assistant
+    chat_with_civic_assistant as _chat_with_civic_assistant,
 )
 from backend.gemini_summary import generate_mla_summary as _generate_mla_summary
 from backend.exceptions import AIServiceException
@@ -19,16 +20,18 @@ class GeminiActionPlanService(ActionPlanService):
         self,
         issue_description: str,
         category: str,
-        language: str = 'en',
-        image_path: Optional[str] = None
+        language: str = "en",
+        image_path: Optional[str] = None,
     ) -> Dict[str, str]:
         """
         Generate action plan using Gemini AI.
-        
+
         Raises:
             AIServiceException: If AI service fails
         """
-        return await _generate_action_plan(issue_description, category, language, image_path)
+        return await _generate_action_plan(
+            issue_description, category, language, image_path
+        )
 
 
 class GeminiChatService(ChatService):
@@ -37,7 +40,7 @@ class GeminiChatService(ChatService):
     async def chat(self, query: str) -> str:
         """
         Process chat query using Gemini AI.
-        
+
         Raises:
             AIServiceException: If AI service fails
         """
@@ -52,15 +55,17 @@ class GeminiMLASummaryService(MLASummaryService):
         district: str,
         assembly_constituency: str,
         mla_name: str,
-        issue_category: Optional[str] = None
+        issue_category: Optional[str] = None,
     ) -> str:
         """
         Generate MLA summary using Gemini AI.
-        
+
         Raises:
             AIServiceException: If AI service fails
         """
-        return await _generate_mla_summary(district, assembly_constituency, mla_name, issue_category)
+        return await _generate_mla_summary(
+            district, assembly_constituency, mla_name, issue_category
+        )
 
 
 # Factory functions for easy service creation
@@ -78,8 +83,10 @@ def create_gemini_mla_summary_service() -> GeminiMLASummaryService:
     """Create a Gemini-based MLA summary service."""
     return GeminiMLASummaryService()
 
+
 # Global service instance
 _ai_services = None
+
 
 class AIServices:
     def __init__(self, action_plan_service, chat_service, mla_summary_service):
@@ -87,9 +94,11 @@ class AIServices:
         self.chat_service = chat_service
         self.mla_summary_service = mla_summary_service
 
+
 def initialize_ai_services(action_plan_service, chat_service, mla_summary_service):
     global _ai_services
     _ai_services = AIServices(action_plan_service, chat_service, mla_summary_service)
+
 
 def get_ai_services():
     return _ai_services

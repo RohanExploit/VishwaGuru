@@ -23,6 +23,7 @@ const FloatingButtonsManager = ({ setView }) => {
     else if (lower.includes('garbage')) setView('garbage');
     else if (lower.includes('vandalism') || lower.includes('graffiti')) setView('vandalism');
     else if (lower.includes('flood') || lower.includes('water')) setView('flood');
+    else if (lower.includes('civic eye') || lower.includes('civic-eye')) setView('safety-check');
   };
 
   return (

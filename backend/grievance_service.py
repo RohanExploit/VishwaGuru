@@ -10,12 +10,23 @@ from typing import Dict, Any, Optional, List
 from sqlalchemy.orm import Session, joinedload
 from datetime import datetime, timezone, timedelta
 
-from backend.models import Grievance, Jurisdiction, GrievanceStatus, SeverityLevel, Issue
+from backend.models import (
+    Grievance,
+    Jurisdiction,
+    GrievanceStatus,
+    SeverityLevel,
+    Issue,
+)
 from backend.database import SessionLocal
 from backend.routing_service import RoutingService
 from backend.sla_config_service import SLAConfigService
 from backend.escalation_engine import EscalationEngine
-from backend.cache import grievance_last_hash_cache, grievance_list_cache, escalation_stats_cache
+from backend.cache import (
+    grievance_last_hash_cache,
+    grievance_list_cache,
+    escalation_stats_cache,
+)
+
 
 class GrievanceService:
     """
@@ -29,20 +40,22 @@ class GrievanceService:
         Args:
             rules_config_path: Path to the rules configuration file
         """
-        with open(rules_config_path, 'r') as f:
+        with open(rules_config_path, "r") as f:
             self.rules_config = json.load(f)
 
         self.routing_service = RoutingService(self.rules_config)
         self.sla_service = SLAConfigService(
-            default_sla_hours=self.rules_config.get('sla_defaults', {}).get('default_hours', 48)
+            default_sla_hours=self.rules_config.get("sla_defaults", {}).get(
+                "default_hours", 48
+            )
         )
         self.escalation_engine = EscalationEngine(
-            self.routing_service,
-            self.sla_service,
-            self.rules_config
+            self.routing_service, self.sla_service, self.rules_config
         )
 
-    def create_grievance(self, grievance_data: Dict[str, Any], db: Session = None) -> Optional[Grievance]:
+    def create_grievance(
+        self, grievance_data: Dict[str, Any], db: Session = None
+    ) -> Optional[Grievance]:
         """
         Create a new grievance with automatic routing and SLA assignment.
 
@@ -60,24 +73,25 @@ class GrievanceService:
 
         try:
             # Determine initial jurisdiction
-            jurisdiction = self.routing_service.determine_initial_jurisdiction(grievance_data, db)
+            jurisdiction = self.routing_service.determine_initial_jurisdiction(
+                grievance_data, db
+            )
             if not jurisdiction:
                 print("No suitable jurisdiction found for grievance")
                 return None
 
             # Assign authority
             assigned_authority = self.routing_service.assign_authority(
-                jurisdiction,
-                grievance_data.get('category', 'general')
+                jurisdiction, grievance_data.get("category", "general")
             )
 
             # Calculate SLA
-            severity = SeverityLevel(grievance_data.get('severity', 'medium'))
+            severity = SeverityLevel(grievance_data.get("severity", "medium"))
             sla_hours = self.sla_service.get_sla_hours(
                 severity=severity,
                 jurisdiction_level=jurisdiction.level,
-                department=grievance_data.get('category', 'general'),
-                db=db
+                department=grievance_data.get("category", "general"),
+                db=db,
             )
 
             now = datetime.now(timezone.utc)
@@ -91,8 +105,14 @@ class GrievanceService:
             prev_hash = grievance_last_hash_cache.get("last_hash")
             if prev_hash is None:
                 # Cache miss: Fetch only the last hash from DB
-                last_grievance = db.query(Grievance.integrity_hash).order_by(Grievance.id.desc()).first()
-                prev_hash = last_grievance[0] if last_grievance and last_grievance[0] else ""
+                last_grievance = (
+                    db.query(Grievance.integrity_hash)
+                    .order_by(Grievance.id.desc())
+                    .first()
+                )
+                prev_hash = (
+                    last_grievance[0] if last_grievance and last_grievance[0] else ""
+                )
                 grievance_last_hash_cache.set(data=prev_hash, key="last_hash")
 
             # Chaining: hash(unique_id|category|severity|prev_hash)
@@ -100,20 +120,32 @@ class GrievanceService:
             integrity_hash = hashlib.sha256(hash_content.encode()).hexdigest()
 
             # Extract location data
-            location_data = grievance_data.get('location', {})
-            latitude = location_data.get('latitude') if isinstance(location_data, dict) else None
-            longitude = location_data.get('longitude') if isinstance(location_data, dict) else None
-            address = location_data.get('address') if isinstance(location_data, dict) else None
+            location_data = grievance_data.get("location", {})
+            latitude = (
+                location_data.get("latitude")
+                if isinstance(location_data, dict)
+                else None
+            )
+            longitude = (
+                location_data.get("longitude")
+                if isinstance(location_data, dict)
+                else None
+            )
+            address = (
+                location_data.get("address")
+                if isinstance(location_data, dict)
+                else None
+            )
 
             # Create grievance
             grievance = Grievance(
                 unique_id=unique_id,
-                category=grievance_data.get('category', 'general'),
+                category=grievance_data.get("category", "general"),
                 severity=severity,
-                pincode=grievance_data.get('pincode'),
-                city=grievance_data.get('city'),
-                district=grievance_data.get('district'),
-                state=grievance_data.get('state'),
+                pincode=grievance_data.get("pincode"),
+                city=grievance_data.get("city"),
+                district=grievance_data.get("district"),
+                state=grievance_data.get("state"),
                 latitude=latitude,
                 longitude=longitude,
                 address=address,
@@ -121,9 +153,9 @@ class GrievanceService:
                 assigned_authority=assigned_authority,
                 sla_deadline=sla_deadline,
                 status=GrievanceStatus.OPEN,
-                issue_id=grievance_data.get('issue_id'),
+                issue_id=grievance_data.get("issue_id"),
                 integrity_hash=integrity_hash,
-                previous_integrity_hash=prev_hash
+                previous_integrity_hash=prev_hash,
             )
 
             db.add(grievance)
@@ -147,7 +179,9 @@ class GrievanceService:
             if should_close:
                 db.close()
 
-    def get_grievance(self, grievance_id: int, db: Session = None) -> Optional[Grievance]:
+    def get_grievance(
+        self, grievance_id: int, db: Session = None
+    ) -> Optional[Grievance]:
         """
         Get a grievance by ID.
 
@@ -164,17 +198,22 @@ class GrievanceService:
             should_close = True
 
         try:
-            return db.query(Grievance).options(
-                joinedload(Grievance.jurisdiction),
-                joinedload(Grievance.audit_logs)
-            ).filter(Grievance.id == grievance_id).first()
+            return (
+                db.query(Grievance)
+                .options(
+                    joinedload(Grievance.jurisdiction), joinedload(Grievance.audit_logs)
+                )
+                .filter(Grievance.id == grievance_id)
+                .first()
+            )
 
         finally:
             if should_close:
                 db.close()
 
-    def update_grievance_status(self, grievance_id: int, status: GrievanceStatus,
-                               db: Session = None) -> bool:
+    def update_grievance_status(
+        self, grievance_id: int, status: GrievanceStatus, db: Session = None
+    ) -> bool:
         """
         Update the status of a grievance.
 
@@ -210,8 +249,8 @@ class GrievanceService:
                     status_map = {
                         GrievanceStatus.RESOLVED: "resolved",
                         GrievanceStatus.IN_PROGRESS: "in_progress",
-                        GrievanceStatus.ESCALATED: "in_progress", # Escalated is internal, for user it's still in progress
-                        GrievanceStatus.OPEN: "open"
+                        GrievanceStatus.ESCALATED: "in_progress",  # Escalated is internal, for user it's still in progress
+                        GrievanceStatus.OPEN: "open",
                     }
                     new_issue_status = status_map.get(status)
 
@@ -241,8 +280,9 @@ class GrievanceService:
             if should_close:
                 db.close()
 
-    def escalate_grievance_severity(self, grievance_id: int, new_severity: SeverityLevel,
-                                   reason: str = "") -> bool:
+    def escalate_grievance_severity(
+        self, grievance_id: int, new_severity: SeverityLevel, reason: str = ""
+    ) -> bool:
         """
         Escalate grievance severity.
 
@@ -254,7 +294,9 @@ class GrievanceService:
         Returns:
             True if escalation successful
         """
-        return self.escalation_engine.escalate_grievance_severity(grievance_id, new_severity, reason)
+        return self.escalation_engine.escalate_grievance_severity(
+            grievance_id, new_severity, reason
+        )
 
     def manual_escalate(self, grievance_id: int, reason: str = "") -> bool:
         """
@@ -278,7 +320,9 @@ class GrievanceService:
         """
         return self.escalation_engine.evaluate_and_escalate_grievances()
 
-    def get_grievance_audit_trail(self, grievance_id: int, db: Session = None) -> List[Dict[str, Any]]:
+    def get_grievance_audit_trail(
+        self, grievance_id: int, db: Session = None
+    ) -> List[Dict[str, Any]]:
         """
         Get the complete audit trail for a grievance.
 
@@ -301,13 +345,15 @@ class GrievanceService:
 
             audit_trail = []
             for audit in grievance.audit_logs:
-                audit_trail.append({
-                    "timestamp": audit.timestamp.isoformat(),
-                    "previous_authority": audit.previous_authority,
-                    "new_authority": audit.new_authority,
-                    "reason": audit.reason.value,
-                    "notes": audit.notes
-                })
+                audit_trail.append(
+                    {
+                        "timestamp": audit.timestamp.isoformat(),
+                        "previous_authority": audit.previous_authority,
+                        "new_authority": audit.new_authority,
+                        "reason": audit.reason.value,
+                        "notes": audit.notes,
+                    }
+                )
 
             return audit_trail
 
@@ -315,7 +361,9 @@ class GrievanceService:
             if should_close:
                 db.close()
 
-    def get_active_grievances_by_jurisdiction(self, jurisdiction_id: int, db: Session = None) -> List[Grievance]:
+    def get_active_grievances_by_jurisdiction(
+        self, jurisdiction_id: int, db: Session = None
+    ) -> List[Grievance]:
         """
         Get active grievances for a specific jurisdiction.
 
@@ -332,12 +380,22 @@ class GrievanceService:
             should_close = True
 
         try:
-            return db.query(Grievance).filter(
-                and_(
-                    Grievance.current_jurisdiction_id == jurisdiction_id,
-                    Grievance.status.in_([GrievanceStatus.OPEN, GrievanceStatus.IN_PROGRESS, GrievanceStatus.ESCALATED])
+            return (
+                db.query(Grievance)
+                .filter(
+                    and_(
+                        Grievance.current_jurisdiction_id == jurisdiction_id,
+                        Grievance.status.in_(
+                            [
+                                GrievanceStatus.OPEN,
+                                GrievanceStatus.IN_PROGRESS,
+                                GrievanceStatus.ESCALATED,
+                            ]
+                        ),
+                    )
                 )
-            ).all()
+                .all()
+            )
 
         finally:
             if should_close:

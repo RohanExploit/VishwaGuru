@@ -5,11 +5,12 @@ from sklearn.pipeline import Pipeline
 import joblib
 import os
 
+
 def train_model():
     # Paths
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    data_path = os.path.join(current_dir, '../data/grievances.csv')
-    model_path = os.path.join(current_dir, 'grievance_model.joblib')
+    data_path = os.path.join(current_dir, "../data/grievances.csv")
+    model_path = os.path.join(current_dir, "grievance_model.joblib")
 
     # Load Data
     print(f"Loading data from {data_path}...")
@@ -24,16 +25,18 @@ def train_model():
         print("Error: Dataset is empty.")
         return
 
-    X = df['grievance_text']
-    y = df['category']
+    X = df["grievance_text"]
+    y = df["category"]
 
     # Create Pipeline
     print("Training model...")
-    text_clf = Pipeline([
-        ('vect', CountVectorizer(stop_words='english')),
-        ('tfidf', TfidfTransformer()),
-        ('clf', MultinomialNB()),
-    ])
+    text_clf = Pipeline(
+        [
+            ("vect", CountVectorizer(stop_words="english")),
+            ("tfidf", TfidfTransformer()),
+            ("clf", MultinomialNB()),
+        ]
+    )
 
     # Train
     text_clf.fit(X, y)
@@ -47,12 +50,13 @@ def train_model():
     test_phrases = [
         "No electricity in my house",
         "Dirty water coming from tap",
-        "Someone stole my wallet"
+        "Someone stole my wallet",
     ]
     print("\nTest Predictions:")
     for phrase in test_phrases:
         pred = text_clf.predict([phrase])[0]
         print(f"'{phrase}' -> {pred}")
+
 
 if __name__ == "__main__":
     train_model()

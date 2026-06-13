@@ -6,7 +6,8 @@ from typing import Dict, List, Any, Optional
 
 logger = logging.getLogger(__name__)
 
-DATA_FILE = os.path.join(os.path.dirname(__file__), 'data', 'modelWeights.json')
+DATA_FILE = os.path.join(os.path.dirname(__file__), "data", "modelWeights.json")
+
 
 class AdaptiveWeights:
     _instance = None
@@ -32,7 +33,7 @@ class AdaptiveWeights:
 
             mtime = os.path.getmtime(DATA_FILE)
             if self._weights is None or mtime > self._last_loaded:
-                with open(DATA_FILE, 'r') as f:
+                with open(DATA_FILE, "r") as f:
                     self._weights = json.load(f)
                 self._last_loaded = mtime
                 self._reload_count += 1
@@ -58,7 +59,7 @@ class AdaptiveWeights:
 
     def _save_weights(self):
         try:
-            with open(DATA_FILE, 'w') as f:
+            with open(DATA_FILE, "w") as f:
                 json.dump(self._weights, f, indent=2)
             # Update last loaded to avoid immediate reload
             self._last_loaded = os.path.getmtime(DATA_FILE)
@@ -67,31 +68,31 @@ class AdaptiveWeights:
 
     def get_severity_keywords(self) -> Dict[str, List[str]]:
         self._check_reload()
-        return self._weights.get('severity_keywords', {})
+        return self._weights.get("severity_keywords", {})
 
     def get_urgency_patterns(self) -> List[List[Any]]:
         self._check_reload()
-        return self._weights.get('urgency_patterns', [])
+        return self._weights.get("urgency_patterns", [])
 
     def get_category_keywords(self) -> Dict[str, List[str]]:
         self._check_reload()
-        return self._weights.get('category_keywords', {})
+        return self._weights.get("category_keywords", {})
 
     def get_category_multipliers(self) -> Dict[str, float]:
         self._check_reload()
-        return self._weights.get('category_multipliers', {})
+        return self._weights.get("category_multipliers", {})
 
     def get_duplicate_search_radius(self) -> float:
         self._check_reload()
-        return self._weights.get('duplicate_search_radius', 50.0)
+        return self._weights.get("duplicate_search_radius", 50.0)
 
     def update_category_weight(self, category: str, factor: float):
         """
         Updates the multiplier for a category.
         Factor should be slightly > 1.0 to increase severity, or < 1.0 to decrease.
         """
-        self._check_reload() # Ensure we have latest
-        multipliers = self._weights.get('category_multipliers', {})
+        self._check_reload()  # Ensure we have latest
+        multipliers = self._weights.get("category_multipliers", {})
         current = multipliers.get(category, 1.0)
 
         # Apply factor
@@ -101,22 +102,27 @@ class AdaptiveWeights:
         new_weight = max(0.5, min(3.0, new_weight))
 
         multipliers[category] = new_weight
-        self._weights['category_multipliers'] = multipliers
+        self._weights["category_multipliers"] = multipliers
 
-        self._weights['last_updated'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+        self._weights["last_updated"] = time.strftime(
+            "%Y-%m-%dT%H:%M:%SZ", time.gmtime()
+        )
         self._save_weights()
         logger.info(f"Updated weight for {category} to {new_weight:.2f}")
 
     def update_duplicate_radius(self, factor: float):
         self._check_reload()
-        current = self._weights.get('duplicate_search_radius', 50.0)
+        current = self._weights.get("duplicate_search_radius", 50.0)
         new_radius = current * factor
         # Clamp (10m to 200m)
         new_radius = max(10.0, min(200.0, new_radius))
 
-        self._weights['duplicate_search_radius'] = new_radius
-        self._weights['last_updated'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+        self._weights["duplicate_search_radius"] = new_radius
+        self._weights["last_updated"] = time.strftime(
+            "%Y-%m-%dT%H:%M:%SZ", time.gmtime()
+        )
         self._save_weights()
         logger.info(f"Updated duplicate search radius to {new_radius:.1f}m")
+
 
 adaptive_weights = AdaptiveWeights()
