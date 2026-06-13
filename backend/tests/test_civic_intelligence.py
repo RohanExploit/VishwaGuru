@@ -1,15 +1,12 @@
 import pytest
 import json
-import os
-import time
 from unittest.mock import MagicMock, patch, mock_open
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
-from backend.models import Issue, EscalationAudit, EscalationReason, Grievance
+from backend.models import Issue, Grievance
 from backend.adaptive_weights import AdaptiveWeights
 from backend.trend_analyzer import TrendAnalyzer
 from backend.civic_intelligence import CivicIntelligenceEngine
-from backend.spatial_utils import get_cluster_representative
 
 # Mock data
 MOCK_WEIGHTS = {
@@ -152,6 +149,8 @@ def test_civic_intelligence_run(mock_listdir, mock_json_dump, mock_file_open, mo
 
     # Define query side effects
     def query_side_effect(model):
+        if hasattr(model, 'name') and model.name == 'count':
+            return mock_query_issues
         if model == Issue:
             return mock_query_issues
         elif model == EscalationAudit:
@@ -168,12 +167,12 @@ def test_civic_intelligence_run(mock_listdir, mock_json_dump, mock_file_open, mo
     # Issue Query Chain
     # First call is for fetching issues_24h, second for resolved_count?
     # Actually code calls: db.query(Issue).filter(Issue.created_at >= last_24h).all()
-    # And: db.query(Issue).filter(Issue.resolved_at >= last_24h).count()
+    # And: db.query(func.count(Issue.id)).filter(Issue.resolved_at >= last_24h).scalar()
 
     # To differentiate, we can check the filter call or just return appropriate mocks
     # Let's just make sure it returns something valid for both
     mock_query_issues.filter.return_value.all.return_value = issues_result # issues_24h
-    mock_query_issues.filter.return_value.count.return_value = 1 # resolved_count
+    mock_query_issues.filter.return_value.scalar.return_value = 1 # resolved_count
 
     # Upgrade Query Chain
     # We want to test weight update, so let's simulate upgrades
@@ -186,6 +185,7 @@ def test_civic_intelligence_run(mock_listdir, mock_json_dump, mock_file_open, mo
     g1 = Grievance(id=1, category="Fire")
     g2 = Grievance(id=2, category="Fire")
     g3 = Grievance(id=3, category="Fire")
+    mock_query_grievance.options.return_value.filter.return_value.all.return_value = [g1, g2, g3]
     mock_query_grievance.filter.return_value.all.return_value = [g1, g2, g3]
 
     # Setup Trend Analyzer

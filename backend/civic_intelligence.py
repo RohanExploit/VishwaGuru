@@ -3,7 +3,7 @@ import os
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, load_only
 from sqlalchemy import func
 
 from backend.models import Issue, EscalationAudit, EscalationReason, Grievance
@@ -51,7 +51,12 @@ class CivicIntelligenceEngine:
 
             # 1. Fetch Data
             # Get issues created in the last 24 hours
-            issues_24h = db.query(Issue).filter(Issue.created_at >= last_24h).all()
+            # Performance Optimization: Use column projection to avoid loading full ORM models,
+            # since trend analyzer only needs specific attributes (id, description, category, lat, lon, upvotes, created_at)
+            issues_24h = db.query(
+                Issue.id, Issue.description, Issue.category,
+                Issue.latitude, Issue.longitude, Issue.upvotes, Issue.created_at
+            ).filter(Issue.created_at >= last_24h).all()
 
             # 2. Trend Analysis
             trends = trend_analyzer.analyze(issues_24h)
@@ -88,7 +93,8 @@ class CivicIntelligenceEngine:
             # Optimization: Fetch all related grievances in one query to avoid N+1
             grievance_ids = [audit.grievance_id for audit in upgrades]
             if grievance_ids:
-                grievances = db.query(Grievance).filter(Grievance.id.in_(grievance_ids)).all()
+                # Optimized: Use load_only to avoid fetching unnecessary columns while preserving ORM objects
+                grievances = db.query(Grievance).options(load_only(Grievance.id, Grievance.category)).filter(Grievance.id.in_(grievance_ids)).all()
                 grievance_map = {g.id: g for g in grievances}
             else:
                 grievance_map = {}
@@ -186,9 +192,9 @@ class CivicIntelligenceEngine:
         last_24h = now - timedelta(hours=24)
 
         # Count resolutions in last 24h
-        resolved_count = db.query(Issue).filter(
+        resolved_count = db.query(func.count(Issue.id)).filter(
             Issue.resolved_at >= last_24h
-        ).count()
+        ).scalar() or 0
 
         # Score Calculation
         # Base: 70
