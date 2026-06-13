@@ -196,6 +196,55 @@ Keep it factual, concise, and helpful for citizens."""
     return await generate(prompt, max_new_tokens=500, temperature=0.4)
 
 
+async def analyze_sentiment_hf(text: str) -> Dict[str, Any]:
+    """
+    Analyze the sentiment of a given text using a Hugging Face text classification model.
+    Uses 'cardiffnlp/twitter-roberta-base-sentiment-latest'.
+    """
+    if not HF_TOKEN:
+        logger.warning("HF_TOKEN not configured — returning dev stub for sentiment.")
+        return {"sentiment": "neutral", "confidence": 0.0, "dev_mode": True}
+
+    headers = {"Authorization": f"Bearer {HF_TOKEN}"}
+    payload = {"inputs": text}
+    url = "https://api-inference.huggingface.co/models/cardiffnlp/twitter-roberta-base-sentiment-latest"
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                url,
+                headers=headers,
+                json=payload,
+                timeout=20.0,
+            )
+
+        if response.status_code != 200:
+            logger.error(
+                f"HF Sentiment API error {response.status_code}: {response.text}"
+            )
+            return {"sentiment": "neutral", "confidence": 0.0, "dev_mode": True, "error": response.text}
+
+        data = response.json()
+        if isinstance(data, list) and len(data) > 0 and isinstance(data[0], list):
+            # Format: [[{'label': 'neutral', 'score': 0.8}, ...]]
+            results = data[0]
+            best_match = max(results, key=lambda x: x.get('score', 0))
+            return {
+                "sentiment": best_match.get('label', 'neutral').lower(),
+                "confidence": best_match.get('score', 0.0)
+            }
+
+        logger.warning(f"Unexpected HF sentiment response shape: {data}")
+        return {"sentiment": "neutral", "confidence": 0.0}
+
+    except httpx.TimeoutException:
+        logger.error("HF Sentiment API request timed out.")
+        return {"sentiment": "neutral", "confidence": 0.0, "dev_mode": True, "error": "timeout"}
+    except Exception as e:
+        logger.error(f"HF Sentiment API exception: {e}")
+        return {"sentiment": "neutral", "confidence": 0.0, "dev_mode": True, "error": str(e)}
+
+
 # ── Health Check ──────────────────────────────────────────────────────────────
 
 async def check_hf_text_health() -> Dict[str, Any]:
