@@ -16,7 +16,9 @@ from sqlalchemy.orm import Session
 from fastapi.concurrency import run_in_threadpool
 
 from backend.database import get_db
-from backend.models import ResolutionEvidence
+import hmac
+from backend.models import ResolutionEvidence, EvidenceAuditLog
+from backend.config import get_auth_config
 from backend.resolution_proof_service import ResolutionProofService
 from backend.schemas import (
     GenerateRPTRequest, RPTResponse,
@@ -177,6 +179,56 @@ def get_evidence(
 # ============================================================================
 # AUDIT TRAIL
 # ============================================================================
+
+@router.get("/audit/{audit_id}/blockchain-verify", response_model=BlockchainVerificationResponse)
+async def verify_evidence_audit_blockchain_integrity(audit_id: int, db: Session = Depends(get_db)):
+    """
+    Verify the cryptographic integrity of an evidence audit log using blockchain-style chaining.
+    Optimized: Uses previous_integrity_hash column for O(1) verification.
+    """
+    # Fetch current audit data including the link to previous hash
+    # Performance Boost: Use projected previous_integrity_hash to avoid N+1 or secondary lookups
+    audit = await run_in_threadpool(
+        lambda: db.query(
+            EvidenceAuditLog.id,
+            EvidenceAuditLog.evidence_id,
+            EvidenceAuditLog.action,
+            EvidenceAuditLog.actor_email,
+            EvidenceAuditLog.integrity_hash,
+            EvidenceAuditLog.previous_integrity_hash
+        ).filter(EvidenceAuditLog.id == audit_id).first()
+    )
+
+    if not audit:
+        raise HTTPException(status_code=404, detail="Evidence audit log not found")
+
+    # Determine previous hash (O(1) from stored column)
+    prev_hash = audit.previous_integrity_hash or ""
+
+    # Chaining logic: hash(evidence_id|action|actor_email|prev_hash)
+    hash_content = f"{audit.evidence_id}|{audit.action}|{audit.actor_email}|{prev_hash}"
+
+    secret_key = get_auth_config().secret_key
+    computed_hash = hmac.new(
+        secret_key.encode('utf-8'),
+        hash_content.encode('utf-8'),
+        hashlib.sha256
+    ).hexdigest()
+
+    is_valid = (computed_hash == audit.integrity_hash)
+
+    if is_valid:
+        message = "Integrity verified. This evidence audit log is cryptographically sealed and part of a secure chain."
+    else:
+        message = "Integrity check failed! The audit data does not match its cryptographic seal."
+
+    return BlockchainVerificationResponse(
+        is_valid=is_valid,
+        current_hash=audit.integrity_hash,
+        computed_hash=computed_hash,
+        message=message
+    )
+
 
 @router.get("/audit-log/{grievance_id}", response_model=AuditTrailResponse)
 def get_audit_log(
