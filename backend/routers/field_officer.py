@@ -28,6 +28,7 @@ from backend.schemas import (
     VisitStatsResponse,
     VisitImageUploadResponse,
 )
+from backend.utils import process_uploaded_image, save_processed_image
 from backend.geofencing_service import (
     is_within_geofence,
     generate_visit_hash,
@@ -370,35 +371,27 @@ async def upload_visit_images(
                     detail=f"File extension '{extension}' not allowed. Allowed: {', '.join(ALLOWED_IMAGE_EXTENSIONS)}",
                 )
 
-            # Read and validate file size without loading into memory
+            # Pre-check file size before processing to avoid unnecessary CPU usage
             image.file.seek(0, 2)
-            file_size = image.file.tell()
+            actual_size = image.file.tell()
             image.file.seek(0)
-
-            if file_size > MAX_UPLOAD_SIZE:
+            if actual_size > MAX_UPLOAD_SIZE:
                 raise HTTPException(
                     status_code=400,
                     detail=f"File {image.filename} exceeds maximum size of {MAX_UPLOAD_SIZE / 1024 / 1024:.1f} MB",
                 )
 
-            # Use process_uploaded_image for resizing and EXIF stripping
+            # Unified image processing: validation, resizing (1024px), and EXIF stripping in a single pass
+            # Returns (PIL.Image, image_bytes)
             _, image_bytes = await process_uploaded_image(image)
 
             # Generate secure filename
-            import os.path
-
             timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-            # Ensure extension is safe by forcing it to alphanumeric, though we already validated it
-            safe_ext = "".join(c for c in extension if c.isalnum())
-            safe_filename = f"visit_{visit_id}_{timestamp}_{idx}.{safe_ext}"
-            file_path = os.path.join(VISIT_IMAGES_DIR, os.path.basename(safe_filename))
+            safe_filename = f"visit_{visit_id}_{timestamp}_{idx}.{extension}"
+            file_path = os.path.join(VISIT_IMAGES_DIR, safe_filename)
 
-            # Save file using threadpool to prevent event loop blocking
-            def _save_file(path, data):
-                with open(path, "wb") as f:
-                    f.write(data)
-
-            await run_in_threadpool(_save_file, file_path, image_bytes)
+            # Offload blocking file I/O to threadpool for performance
+            await run_in_threadpool(save_processed_image, image_bytes, file_path)
 
             # Store relative path
             relative_path = os.path.join("data", "visit_images", safe_filename)
