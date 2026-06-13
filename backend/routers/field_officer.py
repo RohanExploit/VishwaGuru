@@ -173,8 +173,9 @@ def officer_check_in(request: OfficerCheckInRequest, db: Session = Depends(get_d
         # Update cache for next visit AFTER successful DB commit
         visit_last_hash_cache.set(data=visit_hash, key="last_hash")
 
-        # Invalidate visit stats cache
-        visit_stats_cache.clear()
+        # Invalidate stats cache
+        from backend.cache import recent_issues_cache
+        recent_issues_cache.invalidate("visit_stats")
 
         logger.info(
             f"Officer {request.officer_name} checked in at issue {request.issue_id}. "
@@ -271,7 +272,8 @@ def officer_check_out(request: OfficerCheckOutRequest, db: Session = Depends(get
         db.refresh(visit)
 
         # Invalidate stats cache
-        visit_stats_cache.clear()
+        from backend.cache import recent_issues_cache
+        recent_issues_cache.invalidate("visit_stats")
         
         # Invalidate stats cache
         visit_stats_cache.clear()
@@ -401,8 +403,11 @@ async def upload_visit_images(
         visit.visit_images = existing_images
         visit.updated_at = datetime.now(timezone.utc)
         
-        # Performance Optimization: Wrap blocking DB commit in threadpool
-        await run_in_threadpool(db.commit)
+        db.commit()
+
+        # Invalidate stats cache
+        from backend.cache import recent_issues_cache
+        recent_issues_cache.invalidate("visit_stats")
         
         logger.info(f"Uploaded {len(images)} images for visit {visit_id}")
 
@@ -490,6 +495,12 @@ def get_visit_statistics(db: Session = Depends(get_db)):
     Returns metrics like total visits, verification status, geo-fence compliance, etc.
     Optimized: Uses serialization caching and a single aggregate SQL query.
     """
+    from backend.cache import recent_issues_cache
+    cache_key = "visit_stats"
+    cached_data = recent_issues_cache.get(cache_key)
+    if cached_data:
+        return Response(content=cached_data, media_type="application/json")
+
     try:
         # Check cache
         cached_json = visit_stats_cache.get("default")
@@ -527,7 +538,7 @@ def get_visit_statistics(db: Session = Depends(get_db)):
         else:
             average_distance = 0.0
         
-        stats_data = {
+        result = {
             "total_visits": total_visits,
             "verified_visits": verified_visits,
             "within_geofence_count": within_geofence_count,
@@ -536,10 +547,9 @@ def get_visit_statistics(db: Session = Depends(get_db)):
             "average_distance_from_site": average_distance
         }
 
-        # Cache serialized JSON to bypass Pydantic overhead on hits
-        json_data = json.dumps(stats_data)
-        visit_stats_cache.set(json_data, "default")
-
+        # Performance Boost: Serialization Caching
+        json_data = json.dumps(result)
+        recent_issues_cache.set(json_data, cache_key)
         return Response(content=json_data, media_type="application/json")
         
     except Exception as e:

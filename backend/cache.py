@@ -194,7 +194,4 @@ audit_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=2)
 evidence_audit_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=1)
 closure_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=1)
 user_issues_cache = ThreadSafeCache(ttl=300, max_size=50) # 5 minutes TTL
-grievances_list_cache = ThreadSafeCache(ttl=60, max_size=50) # 1 minute TTL
-grievance_stats_cache = ThreadSafeCache(ttl=300, max_size=10) # 5 minutes TTL
-visit_stats_cache = ThreadSafeCache(ttl=300, max_size=10) # 5 minutes TTL
-evidence_audit_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=1)
+audit_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=1)

@@ -5,8 +5,6 @@ Core engine for evaluating and performing grievance escalations based on SLA and
 
 import datetime
 import hashlib
-import hmac
-import os
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
@@ -266,27 +264,19 @@ class EscalationEngine:
             # Recalculate SLA
             self._recalculate_sla(grievance, db)
 
-            # Optimized Blockchain logic: Cache-first retrieval to ensure O(1) creation path
+            # Blockchain integrity logic for escalation history
+            from backend.cache import audit_last_hash_cache
             prev_hash = audit_last_hash_cache.get("last_hash")
+
             if prev_hash is None:
                 # Cache miss: Fetch only the last hash from DB
                 last_audit = db.query(EscalationAudit.integrity_hash).order_by(EscalationAudit.id.desc()).first()
                 prev_hash = last_audit[0] if last_audit and last_audit[0] else ""
-                # Populate cache for subsequent escalations
                 audit_last_hash_cache.set(data=prev_hash, key="last_hash")
 
-            # HMAC-SHA256 chaining: hash(grievance_id|prev_auth|new_auth|reason|prev_hash)
-            # Using centralized config to avoid hardcoded secret fallbacks (Security compliance)
-            app_config = get_config()
-            secret_key = app_config.secret_key.encode('utf-8')
-            reason_val = reason.value if hasattr(reason, 'value') else reason
-            hash_content = f"{grievance.id}|{previous_authority}|{grievance.assigned_authority}|{reason_val}|{prev_hash}"
-
-            integrity_hash = hmac.new(
-                secret_key,
-                hash_content.encode('utf-8'),
-                hashlib.sha256
-            ).hexdigest()
+            # Chaining: hash(grievance_id|prev_auth|new_auth|reason|prev_hash)
+            hash_content = f"{grievance.id}|{previous_authority}|{grievance.assigned_authority}|{reason.value}|{prev_hash}"
+            integrity_hash = hashlib.sha256(hash_content.encode()).hexdigest()
 
             # Create audit log
             audit_log = EscalationAudit(
@@ -302,8 +292,13 @@ class EscalationEngine:
             db.add(audit_log)
             db.commit()
 
-            # Update cache after successful commit to maintain chain integrity
+            # Update cache after successful commit
             audit_last_hash_cache.set(data=integrity_hash, key="last_hash")
+
+            # Invalidate read caches since escalation changed status/authority
+            from backend.cache import user_issues_cache, recent_issues_cache
+            user_issues_cache.clear()
+            recent_issues_cache.invalidate("escalation_stats")
 
             return True
 
