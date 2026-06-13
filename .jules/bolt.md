@@ -78,6 +78,10 @@
 **Learning:** Saving audio recordings (up to 10MB) synchronously in a FastAPI async endpoint blocks the main event loop, significantly increasing tail latency for all concurrent users during high-traffic periods.
 **Action:** Wrap blocking synchronous File I/O operations like `f.write()` in `run_in_threadpool` to offload them to a separate thread, keeping the event loop responsive for other requests.
 
+## 2026-03-05 - Transaction Consolidation with Blockchain Chaining
+**Learning:** Consolidating multiple database operations into a single transaction reduces disk I/O and latency. However, when using blockchain-style hash chaining with in-memory caches, global caches MUST NOT be updated until after a successful commit to prevent poisoning on rollbacks. Intermediate chaining during the transaction must be handled manually or via a separate local tracking mechanism.
+**Action:** Consolidate multiple `db.commit()` calls into one using `db.flush()` for intermediate IDs. Track generated hashes locally and update global `ThreadSafeCache` only after `db.commit()` succeeds.
+
 ## 2026-05-15 - Serialization Caching Bypass
 **Learning:** Caching raw Python objects (like SQLAlchemy models or Pydantic instances) in a high-traffic API still incurs significant overhead because FastAPI/Pydantic must re-validate and re-serialize the data on every request.
 **Action:** Serialize data to a JSON string using `json.dumps()` BEFORE caching. On cache hits, return a raw `fastapi.Response(content=..., media_type="application/json")`. This bypasses the validation and serialization layer, resulting in significant performance gains (up to 50x in benchmarks).
