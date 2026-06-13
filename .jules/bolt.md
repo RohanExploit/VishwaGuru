@@ -45,3 +45,7 @@
 ## 2026-02-10 - Group-By for Multi-Count Statistics
 **Learning:** Executing multiple `count()` queries with different filters (e.g., for different statuses) causes redundant database scans and network round-trips.
 **Action:** Use a single SQL `GROUP BY` query to fetch counts for all categories/statuses at once, then process the results in Python.
+
+## 2025-03-03 - Single Database Roundtrip for Multiple Counts
+**Learning:** Executing multiple separate `count()` queries on the same table with different filters is inefficient due to multiple database roundtrips.
+**Action:** Use a single query with `func.count()`, `func.sum()`, and `case()` statements to calculate multiple aggregates simultaneously.

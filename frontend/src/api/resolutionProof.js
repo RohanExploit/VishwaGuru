@@ -1,6 +1,16 @@
 // Resolution Proof API functions (Issue #292)
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
+const getApiBase = () => {
+  if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'test') {
+    return '';
+  }
+  try {
+    return import.meta.env.VITE_API_URL || '';
+  } catch (e) {
+    return '';
+  }
+};
+const API_BASE = getApiBase();
 
 export const resolutionProofApi = {
     // Generate a Resolution Proof Token for a grievance
