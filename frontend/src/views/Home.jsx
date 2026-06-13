@@ -1,6 +1,5 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -55,23 +54,7 @@ const CameraCheckModal = ({ onClose }) => {
 const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loadMoreIssues, hasMore, loadingMore, stats }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [showCameraCheck, setShowCameraCheck] = React.useState(false);
-  const [showScrollTop, setShowScrollTop] = React.useState(false);
   const totalImpact = stats?.resolved_issues || 0;
-
-  // Scroll to top function
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  // Show/hide scroll to top button based on scroll position
-  React.useEffect(() => {
-    const handleScroll = () => {
-      setShowScrollTop(window.scrollY > 100);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   const categories = [
     {
@@ -82,8 +65,8 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loa
         { id: 'blocked', label: t('home.issues.blockedRoad'), icon: <XCircle size={24} />, color: 'text-gray-600', bg: 'bg-gray-50' },
         { id: 'parking', label: t('home.issues.illegalParking'), icon: <Truck size={24} />, color: 'text-rose-600', bg: 'bg-rose-50' },
         { id: 'streetlight', label: t('home.issues.darkStreet'), icon: <Lightbulb size={24} />, color: 'text-slate-600', bg: 'bg-slate-50' },
-        { id: 'report', label: t('home.issues.trafficSign'), icon: <Signpost size={24} />, color: 'text-yellow-600', bg: 'bg-yellow-50' },
-        { id: 'report', label: t('home.issues.abandonedVehicle'), icon: <Car size={24} />, color: 'text-gray-600', bg: 'bg-gray-50' },
+        { id: 'traffic-sign', label: t('home.issues.trafficSign'), icon: <Signpost size={24} />, color: 'text-yellow-600', bg: 'bg-yellow-50' },
+        { id: 'abandoned-vehicle', label: t('home.issues.abandonedVehicle'), icon: <Car size={24} />, color: 'text-gray-600', bg: 'bg-gray-50' },
       ]
     },
     {
@@ -426,7 +409,7 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loa
 
             <motion.button
               whileHover={{ scale: 1.02, x: 5 }}
-              onClick={() => setShowCameraCheck(true)}
+              onClick={() => alert('Camera check feature is coming soon')}
               className="w-full flex items-center gap-6 bg-gray-900 rounded-[2rem] p-8 text-white shadow-2xl group overflow-hidden relative"
             >
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>

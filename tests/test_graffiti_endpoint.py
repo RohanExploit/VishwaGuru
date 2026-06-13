@@ -1,14 +1,16 @@
 from fastapi.testclient import TestClient
-from unittest.mock import patch
+from unittest.mock import patch, AsyncMock
 from backend.main import app
 import pytest
+from io import BytesIO
+from PIL import Image
 
 client = TestClient(app)
 
 @pytest.fixture
 def mock_detect_graffiti():
     # Patch where it is imported in backend.routers.detection
-    with patch("backend.routers.detection.detect_graffiti_art_clip") as mock:
+    with patch("backend.routers.detection._cached_detect_graffiti", new_callable=AsyncMock) as mock:
         yield mock
 
 @pytest.fixture
@@ -24,7 +26,12 @@ def test_detect_graffiti(mock_detect_graffiti, mock_validate_file):
     ]
 
     # Simple dummy bytes
-    files = {"image": ("test.jpg", b"fake_image_bytes", "image/jpeg")}
+    img = Image.new('RGB', (100, 100))
+    img_bytes = BytesIO()
+    img.save(img_bytes, format='JPEG')
+    file_content = img_bytes.getvalue()
+
+    files = {"image": ("test.jpg", file_content, "image/jpeg")}
 
     response = client.post("/api/detect-graffiti", files=files)
 

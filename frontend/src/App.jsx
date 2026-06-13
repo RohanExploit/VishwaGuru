@@ -41,7 +41,8 @@ const NoiseDetector = React.lazy(() => import('./NoiseDetector'));
 const CivicEyeDetector = React.lazy(() => import('./CivicEyeDetector'));
 const CivicInsight = React.lazy(() => import('./views/CivicInsight'));
 const MyReportsView = React.lazy(() => import('./views/MyReportsView'));
-
+const TrafficSignDetector = React.lazy(() => import('./TrafficSignDetector'));
+const AbandonedVehicleDetector = React.lazy(() => import('./AbandonedVehicleDetector'));
 
 // Auth Components
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -69,7 +70,7 @@ function AppContent() {
 
   // Safe navigation helper
   const navigateToView = useCallback((view) => {
-    const validViews = ['home', 'map', 'report', 'action', 'mh-rep', 'pothole', 'garbage', 'vandalism', 'flood', 'infrastructure', 'parking', 'streetlight', 'fire', 'animal', 'blocked', 'tree', 'pest', 'smart-scan', 'grievance-analysis', 'noise', 'safety-check', 'insight', 'my-reports', 'grievance', 'login', 'signup'];
+    const validViews = ['home', 'map', 'report', 'action', 'mh-rep', 'pothole', 'garbage', 'vandalism', 'flood', 'infrastructure', 'parking', 'streetlight', 'fire', 'animal', 'blocked', 'tree', 'pest', 'smart-scan', 'grievance-analysis', 'noise', 'safety-check', 'insight', 'my-reports', 'grievance', 'login', 'signup', 'traffic-sign', 'abandoned-vehicle'];
     if (validViews.includes(view)) {
       navigate(view === 'home' ? '/' : `/${view}`);
     } else {
@@ -326,6 +327,8 @@ function AppContent() {
               />
               <Route path="/parking" element={<IllegalParkingDetector onBack={() => navigate('/')} />} />
               <Route path="/streetlight" element={<StreetLightDetector onBack={() => navigate('/')} />} />
+              <Route path="/traffic-sign" element={<TrafficSignDetector onBack={() => navigate('/')} />} />
+              <Route path="/abandoned-vehicle" element={<AbandonedVehicleDetector onBack={() => navigate('/')} />} />
               <Route path="/fire" element={<FireDetector onBack={() => navigate('/')} />} />
               <Route path="/animal" element={<StrayAnimalDetector onBack={() => navigate('/')} />} />
               <Route path="/blocked" element={<BlockedRoadDetector onBack={() => navigate('/')} />} />
