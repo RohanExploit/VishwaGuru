@@ -446,10 +446,9 @@ def get_visit_statistics(db: Session = Depends(get_db)):
             func.sum(case((FieldOfficerVisit.within_geofence == False, 1), else_=0)).label('outside_geofence_count'),
             func.count(func.distinct(FieldOfficerVisit.officer_email)).label('unique_officers'),
             func.avg(FieldOfficerVisit.distance_from_site).label('avg_distance'),
-            func.count(FieldOfficerVisit.id).label('total_visits'),
             func.sum(case((FieldOfficerVisit.verified_at.isnot(None), 1), else_=0)).label('verified_visits'),
-            func.sum(case((FieldOfficerVisit.within_geofence == True, 1), else_=0)).label('within_geofence_count'),
-            func.sum(case((FieldOfficerVisit.within_geofence == False, 1), else_=0)).label('outside_geofence_count')
+            func.sum(case((FieldOfficerVisit.within_geofence == True, 1), else_=0)).label('within_geofence'),
+            func.sum(case((FieldOfficerVisit.within_geofence == False, 1), else_=0)).label('outside_geofence')
         ).first()
 
         average_distance = agg_stats.avg_distance
