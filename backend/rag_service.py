@@ -86,8 +86,6 @@ class CivicRAG:
         len_query = len(query_tokens)
         if not len_query:
             return None
-
-        query_len = len(query_tokens)
         best_score = 0.0
         best_formatted = None
 
