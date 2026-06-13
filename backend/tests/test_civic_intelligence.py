@@ -1,15 +1,12 @@
 import pytest
 import json
-import os
-import time
 from unittest.mock import MagicMock, patch, mock_open
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
-from backend.models import Issue, EscalationAudit, EscalationReason, Grievance
+from backend.models import Issue, EscalationAudit, Grievance
 from backend.adaptive_weights import AdaptiveWeights
 from backend.trend_analyzer import TrendAnalyzer
 from backend.civic_intelligence import CivicIntelligenceEngine
-from backend.spatial_utils import get_cluster_representative
 
 # Mock data
 MOCK_WEIGHTS = {
@@ -19,6 +16,7 @@ MOCK_WEIGHTS = {
     "category_multipliers": {"Fire": 1.0, "Water": 1.0},
     "duplicate_search_radius": 50.0
 }
+
 
 @pytest.fixture
 def mock_adaptive_weights():
@@ -32,19 +30,25 @@ def mock_adaptive_weights():
                     yield weights
                     AdaptiveWeights._instance = None
 
+
 def test_adaptive_weights_load(mock_adaptive_weights):
     assert mock_adaptive_weights.get_category_multipliers()["Fire"] == 1.0
-    assert mock_adaptive_weights.get_severity_keywords()["critical"] == ["fire"]
+    assert mock_adaptive_weights.get_severity_keywords()["critical"] == [
+        "fire"]
+
 
 def test_adaptive_weights_update_category(mock_adaptive_weights):
     with patch('builtins.open', mock_open(read_data=json.dumps(MOCK_WEIGHTS))) as m:
-        # We need to mock getmtime to allow save to proceed without reload override
+        # We need to mock getmtime to allow save to proceed without reload
+        # override
         with patch('os.path.getmtime', side_effect=[100, 200, 200, 200, 200]):
             mock_adaptive_weights.update_category_weight("Fire", 1.5)
 
-            assert mock_adaptive_weights.get_category_multipliers()["Fire"] == 1.5
+            assert mock_adaptive_weights.get_category_multipliers()[
+                "Fire"] == 1.5
             # Verify file write
             m().write.assert_called()
+
 
 def test_trend_analyzer_keywords():
     analyzer = TrendAnalyzer()
@@ -64,6 +68,7 @@ def test_trend_analyzer_keywords():
     assert "building" in keywords
     assert keywords["building"] == 2
 
+
 def test_trend_analyzer_categories():
     analyzer = TrendAnalyzer()
     issues = [
@@ -77,6 +82,7 @@ def test_trend_analyzer_categories():
 
     assert dist["Fire"] == 2
     assert dist["Water"] == 1
+
 
 @patch('backend.trend_analyzer.cluster_issues_dbscan')
 @patch('backend.trend_analyzer.get_cluster_representative')
@@ -99,12 +105,15 @@ def test_trend_analyzer_clusters(mock_get_rep, mock_dbscan):
 
     mock_issue = MagicMock()
     mock_issue.description = "test"
-    result = analyzer.analyze([mock_issue]) # Input doesn't matter as we mock dbscan
+    # Input doesn't matter as we mock dbscan
+    result = analyzer.analyze([mock_issue])
 
     clusters = result['clusters']
-    assert len(clusters) == 1 # Only cluster1 (size 3) should be returned, cluster2 (size 2) filtered out
+    # Only cluster1 (size 3) should be returned, cluster2 (size 2) filtered out
+    assert len(clusters) == 1
     assert clusters[0]['count'] == 3
     assert clusters[0]['latitude'] == 10.0
+
 
 @patch('backend.civic_intelligence.SessionLocal')
 @patch('backend.civic_intelligence.trend_analyzer')
@@ -112,7 +121,13 @@ def test_trend_analyzer_clusters(mock_get_rep, mock_dbscan):
 @patch('builtins.open', new_callable=mock_open)
 @patch('json.dump')
 @patch('os.listdir')
-def test_civic_intelligence_run(mock_listdir, mock_json_dump, mock_file_open, mock_weights, mock_trend_analyzer, mock_db_session):
+def test_civic_intelligence_run(
+        mock_listdir,
+        mock_json_dump,
+        mock_file_open,
+        mock_weights,
+        mock_trend_analyzer,
+        mock_db_session):
     engine = CivicIntelligenceEngine()
 
     # Mock DB
@@ -154,21 +169,25 @@ def test_civic_intelligence_run(mock_listdir, mock_json_dump, mock_file_open, mo
     def query_side_effect(model):
         if model is Issue or (hasattr(model, "name") and model.name == "count"):
             return mock_query_issues
-        elif model == EscalationAudit:
+        elif model is EscalationAudit:
             return mock_query_upgrades
-        elif model == Grievance:
+        elif model is Grievance:
             return mock_query_grievance
         return MagicMock()
 
     mock_session.query.side_effect = query_side_effect
 
     # Setup results
-    issues_result = [Issue(id=1, resolved_at=None), Issue(id=2, resolved_at=datetime.now(timezone.utc))]
+    issues_result = [
+        Issue(
+            id=1, resolved_at=None), Issue(
+            id=2, resolved_at=datetime.now(
+                timezone.utc))]
 
     # Issue Query Chain
     # First call is for fetching issues_24h, second for resolved_count?
     # Actually code calls: db.query(Issue).filter(Issue.created_at >= last_24h).all()
-    # And: db.query(Issue).filter(Issue.resolved_at >= last_24h).count()
+    # And: db.query(func.count(Issue.id)).filter(Issue.resolved_at >= last_24h).scalar()
 
     # To differentiate, we can check the filter call or just return appropriate mocks
     # Let's just make sure it returns something valid for both
@@ -180,24 +199,28 @@ def test_civic_intelligence_run(mock_listdir, mock_json_dump, mock_file_open, mo
     audit1 = MagicMock(grievance_id=1)
     audit2 = MagicMock(grievance_id=2)
     audit3 = MagicMock(grievance_id=3)
-    mock_query_upgrades.filter.return_value.all.return_value = [audit1, audit2, audit3]
+    mock_query_upgrades.filter.return_value.all.return_value = [
+        audit1, audit2, audit3]
 
     # Grievance query
     g1 = Grievance(id=1, category="Fire")
     g2 = Grievance(id=2, category="Fire")
     g3 = Grievance(id=3, category="Fire")
+    mock_query_grievance.options.return_value.filter.return_value.all.return_value = [g1, g2, g3]
     mock_query_grievance.filter.return_value.all.return_value = [g1, g2, g3]
 
     # Setup Trend Analyzer
     mock_trend_analyzer.analyze.return_value = {
         "top_keywords": [],
-        "category_distribution": {"Fire": 10}, # Spiked from 2 (in previous snapshot)
+        # Spiked from 2 (in previous snapshot)
+        "category_distribution": {"Fire": 10},
         "clusters": []
     }
 
     # Setup Adaptive Weights
     mock_weights.get_duplicate_search_radius.return_value = 50.0
-    mock_weights.update_category_weight.return_value = None # It returns nothing currently
+    # It returns nothing currently
+    mock_weights.update_category_weight.return_value = None
 
     # Run
     engine.run_daily_cycle()
@@ -216,7 +239,7 @@ def test_civic_intelligence_run(mock_listdir, mock_json_dump, mock_file_open, mo
     assert "date" in snapshot
     assert "civic_index" in snapshot
     assert "trends" in snapshot
-    assert "weight_changes" in snapshot # Expect this new field
+    assert "weight_changes" in snapshot  # Expect this new field
 
     # Check spike detection (if implemented)
     # We expect "Fire" to be marked as a spike because it went from 2 to 10

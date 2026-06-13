@@ -1,6 +1,7 @@
 import logging
 import json
 import os
+from fastapi.concurrency import run_in_threadpool
 from pywebpush import webpush, WebPushException
 from backend.database import SessionLocal
 from backend.models import Issue, PushSubscription
@@ -18,11 +19,14 @@ async def process_action_plan_background(issue_id: int, description: str, catego
         action_plan = await generate_action_plan(description, category, language, image_path)
 
         # Update issue in DB
-        issue = db.query(Issue).filter(Issue.id == issue_id).first()
+        # Performance Optimization: Wrap blocking DB operations in threadpool
+        issue = await run_in_threadpool(
+            lambda: db.query(Issue).filter(Issue.id == issue_id).first()
+        )
         if issue:
             current_plan = issue.action_plan or {}
             issue.action_plan = {**current_plan, **action_plan}
-            db.commit()
+            await run_in_threadpool(db.commit)
 
             # Invalidate cache to ensure users get the updated action plan
             recent_issues_cache.clear()
@@ -31,8 +35,13 @@ async def process_action_plan_background(issue_id: int, description: str, catego
     finally:
         db.close()
 
-async def create_grievance_from_issue_background(issue_id: int):
-    """Background task to create a grievance from an issue for escalation management"""
+def create_grievance_from_issue_background(issue_id: int):
+    """
+    Background task to create a grievance from an issue for escalation management.
+    Performance Optimization: Changed to synchronous function since it only performs
+    blocking DB operations, allowing FastAPI to run it in a threadpool automatically
+    when added via BackgroundTasks.
+    """
     db = SessionLocal()
     try:
         # Get the issue
