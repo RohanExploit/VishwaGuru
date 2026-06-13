@@ -23,9 +23,6 @@ import asyncio
 from fastapi import Depends
 from contextlib import asynccontextmanager
 from bot import run_bot
-from pothole_detection import detect_potholes
-from garbage_detection import detect_garbage
-from hf_service import detect_vandalism_clip, detect_flooding_clip, detect_infrastructure_clip
 from PIL import Image
 from init_db import migrate_db
 import logging
@@ -60,12 +57,20 @@ async def lifespan(app: FastAPI):
 
     # Startup: Initialize AI services
     try:
-        action_plan_service, chat_service, mla_summary_service = create_all_ai_services()
+        (action_plan_service, chat_service, mla_summary_service,
+         vandalism_detection_service, infrastructure_detection_service,
+         flooding_detection_service, pothole_detection_service,
+         garbage_detection_service) = create_all_ai_services()
 
         initialize_ai_services(
             action_plan_service=action_plan_service,
             chat_service=chat_service,
-            mla_summary_service=mla_summary_service
+            mla_summary_service=mla_summary_service,
+            vandalism_detection_service=vandalism_detection_service,
+            infrastructure_detection_service=infrastructure_detection_service,
+            flooding_detection_service=flooding_detection_service,
+            pothole_detection_service=pothole_detection_service,
+            garbage_detection_service=garbage_detection_service
         )
         logger.info("AI services initialized successfully.")
     except Exception as e:
@@ -309,9 +314,10 @@ async def detect_pothole_endpoint(image: UploadFile = File(...)):
         logger.error(f"Invalid image file for pothole detection: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail="Invalid image file")
 
-    # Run detection (blocking, so run in threadpool)
+    # Run detection using injected service
     try:
-        detections = await run_in_threadpool(detect_potholes, pil_image)
+        ai_services = get_ai_services()
+        detections = await ai_services.pothole_detection_service.detect(pil_image)
         return {"detections": detections}
     except Exception as e:
         logger.error(f"Pothole detection error: {e}", exc_info=True)
@@ -326,11 +332,12 @@ async def detect_infrastructure_endpoint(request: Request, image: UploadFile = F
         logger.error(f"Invalid image file for infrastructure detection: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail="Invalid image file")
 
-    # Run detection (async now, so no threadpool needed for the detection call itself)
+    # Run detection using injected service
     try:
         # Use shared HTTP client from app state
         client = request.app.state.http_client
-        detections = await detect_infrastructure_clip(pil_image, client=client)
+        ai_services = get_ai_services()
+        detections = await ai_services.infrastructure_detection_service.detect(pil_image, client=client)
         return {"detections": detections}
     except Exception as e:
         logger.error(f"Infrastructure detection error: {e}", exc_info=True)
@@ -345,11 +352,12 @@ async def detect_flooding_endpoint(request: Request, image: UploadFile = File(..
         logger.error(f"Invalid image file for flooding detection: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail="Invalid image file")
 
-    # Run detection (async)
+    # Run detection using injected service
     try:
         # Use shared HTTP client from app state
         client = request.app.state.http_client
-        detections = await detect_flooding_clip(pil_image, client=client)
+        ai_services = get_ai_services()
+        detections = await ai_services.flooding_detection_service.detect(pil_image, client=client)
         return {"detections": detections}
     except Exception as e:
         logger.error(f"Flooding detection error: {e}", exc_info=True)
@@ -364,11 +372,12 @@ async def detect_vandalism_endpoint(request: Request, image: UploadFile = File(.
         logger.error(f"Invalid image file for vandalism detection: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail="Invalid image file")
 
-    # Run detection (async)
+    # Run detection using injected service
     try:
         # Use shared HTTP client from app state
         client = request.app.state.http_client
-        detections = await detect_vandalism_clip(pil_image, client=client)
+        ai_services = get_ai_services()
+        detections = await ai_services.vandalism_detection_service.detect(pil_image, client=client)
         return {"detections": detections}
     except Exception as e:
         logger.error(f"Vandalism detection error: {e}", exc_info=True)
@@ -383,9 +392,10 @@ async def detect_garbage_endpoint(image: UploadFile = File(...)):
         logger.error(f"Invalid image file for garbage detection: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail="Invalid image file")
 
-    # Run detection (blocking, so run in threadpool)
+    # Run detection using injected service
     try:
-        detections = await run_in_threadpool(detect_garbage, pil_image)
+        ai_services = get_ai_services()
+        detections = await ai_services.garbage_detection_service.detect(pil_image)
         return {"detections": detections}
     except Exception as e:
         logger.error(f"Garbage detection error: {e}", exc_info=True)
