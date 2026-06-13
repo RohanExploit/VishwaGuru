@@ -19,8 +19,8 @@ class TrendAnalyzer:
             "issue", "problem", "complaint", "regarding", "please", "help", "fix",
             "near", "opposite", "behind", "front", "road", "street", "lane"
         }
-        # Pre-compile regex for performance
-        self._word_re = re.compile(r'\w+')
+        # Bolt optimization: Pre-compile regex for faster tokenization
+        self.word_pattern = re.compile(r'\w+')
 
     def analyze(self, issues: List[Issue]) -> Dict[str, Any]:
         """
