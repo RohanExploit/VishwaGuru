@@ -59,3 +59,5 @@ Thumbs.db
 frontend/.genkit/
 .genkit/
 .netlify
+.last-run.json
+venv_new/

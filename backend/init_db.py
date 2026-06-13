@@ -219,6 +219,19 @@ def migrate_db():
                 if not index_exists("resolution_evidence", "ix_resolution_evidence_previous_integrity_hash"):
                     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_resolution_evidence_previous_integrity_hash ON resolution_evidence (previous_integrity_hash)"))
 
+            # Escalation Audits Table Migrations
+            if inspector.has_table("escalation_audits"):
+                if not column_exists("escalation_audits", "integrity_hash"):
+                    conn.execute(text("ALTER TABLE escalation_audits ADD COLUMN integrity_hash VARCHAR"))
+                    logger.info("Added integrity_hash column to escalation_audits")
+
+                if not column_exists("escalation_audits", "previous_integrity_hash"):
+                    conn.execute(text("ALTER TABLE escalation_audits ADD COLUMN previous_integrity_hash VARCHAR"))
+                    logger.info("Added previous_integrity_hash column to escalation_audits")
+
+                if not index_exists("escalation_audits", "ix_escalation_audits_previous_integrity_hash"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_escalation_audits_previous_integrity_hash ON escalation_audits (previous_integrity_hash)"))
+
             # Resolution Proof Tokens Table Migrations
             if inspector.has_table("resolution_proof_tokens"):
                 if not column_exists("resolution_proof_tokens", "nonce"):
@@ -232,6 +245,19 @@ def migrate_db():
                 if not column_exists("resolution_proof_tokens", "valid_until"):
                     conn.execute(text("ALTER TABLE resolution_proof_tokens ADD COLUMN valid_until DATETIME"))
                     logger.info("Added valid_until column to resolution_proof_tokens")
+
+            # Escalation Audit Table Migrations
+            if inspector.has_table("escalation_audits"):
+                if not column_exists("escalation_audits", "integrity_hash"):
+                    conn.execute(text("ALTER TABLE escalation_audits ADD COLUMN integrity_hash VARCHAR"))
+                    logger.info("Added integrity_hash column to escalation_audits")
+
+                if not column_exists("escalation_audits", "previous_integrity_hash"):
+                    conn.execute(text("ALTER TABLE escalation_audits ADD COLUMN previous_integrity_hash VARCHAR"))
+                    logger.info("Added previous_integrity_hash column to escalation_audits")
+
+                if not index_exists("escalation_audits", "ix_escalation_audits_previous_integrity_hash"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_escalation_audits_previous_integrity_hash ON escalation_audits (previous_integrity_hash)"))
 
             logger.info("Database migration check completed successfully.")
 

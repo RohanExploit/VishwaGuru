@@ -53,25 +53,29 @@ def get_stats(db: Session = Depends(get_db)):
     if cached_stats:
         return Response(content=cached_stats, media_type="application/json")
 
-    # Optimized: Single aggregate query for both category breakdowns and system-wide totals
+    # Optimized: Standard GROUP BY is measurably faster than multiple func.sum(case(...)) aggregations
     # This eliminates a redundant database roundtrip
-    cat_counts = db.query(
+    cat_status_counts = db.query(
         Issue.category,
-        func.count(Issue.id).label("total"),
-        func.sum(case((Issue.status.in_(['resolved', 'verified']), 1), else_=0)).label("resolved")
-    ).group_by(Issue.category).all()
+        Issue.status,
+        func.count(Issue.id)
+    ).group_by(Issue.category, Issue.status).all()
 
     total = 0
     resolved = 0
     issues_by_category = {}
 
-    for cat, cat_total, cat_resolved in cat_counts:
+    for cat, status, count in cat_status_counts:
         # Sum up system-wide totals
-        total += cat_total or 0
-        resolved += int(cat_resolved or 0)
+        total += count
+
+        # Handle resolving logic based on string or enum value
+        status_val = status.value if hasattr(status, 'value') else status
+        if status_val in ['resolved', 'verified']:
+            resolved += count
 
         # Build category breakdown
-        issues_by_category[cat] = cat_total or 0
+        issues_by_category[cat] = issues_by_category.get(cat, 0) + count
 
     # Pending is everything else
     pending = total - resolved
@@ -85,7 +89,7 @@ def get_stats(db: Session = Depends(get_db)):
 
     data = response.model_dump(mode='json')
     json_data = json.dumps(data)
-    recent_issues_cache.set(json_data, "stats")
+    recent_issues_cache.set(data=json_data, key="stats")
 
     return Response(content=json_data, media_type="application/json")
 
@@ -153,7 +157,7 @@ def get_leaderboard(db: Session = Depends(get_db)):
     response_data = {"leaderboard": leaderboard_data}
     json_data = json.dumps(response_data)
     # Cache for 5 minutes to reduce DB load on frequent hits
-    recent_issues_cache.set(json_data, cache_key)
+    recent_issues_cache.set(data=json_data, key=cache_key)
 
     return Response(content=json_data, media_type="application/json")
 

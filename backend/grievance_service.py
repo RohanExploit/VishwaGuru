@@ -15,12 +15,19 @@ from backend.database import SessionLocal
 from backend.routing_service import RoutingService
 from backend.sla_config_service import SLAConfigService
 from backend.escalation_engine import EscalationEngine
-from backend.cache import grievance_last_hash_cache
+from backend.cache import (
+    grievance_last_hash_cache,
+    grievance_list_cache,
+    escalation_stats_cache
+)
 
 class GrievanceService:
     """
     Main service for managing grievances, routing, and escalations.
     """
+
+    # Class-level cache to avoid redundant disk I/O when instantiating the service
+    _rules_cache = {}
 
     def __init__(self, rules_config_path: str = "backend/grievance_rules.json"):
         """
@@ -29,8 +36,12 @@ class GrievanceService:
         Args:
             rules_config_path: Path to the rules configuration file
         """
-        with open(rules_config_path, 'r') as f:
-            self.rules_config = json.load(f)
+        # Optimized: Use class-level cache to avoid reading and parsing the JSON file repeatedly
+        if rules_config_path not in GrievanceService._rules_cache:
+            with open(rules_config_path, 'r') as f:
+                GrievanceService._rules_cache[rules_config_path] = json.load(f)
+
+        self.rules_config = GrievanceService._rules_cache[rules_config_path]
 
         self.routing_service = RoutingService(self.rules_config)
         self.sla_service = SLAConfigService(
@@ -87,29 +98,13 @@ class GrievanceService:
             unique_id = str(uuid.uuid4())[:8].upper()
 
             # Blockchain integrity logic
-            # We cache both the last grievance ID and its integrity hash, and validate
-            # the cache against the current DB state to avoid chaining to stale hashes
-            cached_prev_hash = grievance_last_hash_cache.get("last_hash")
-            cached_last_id = grievance_last_hash_cache.get("last_id")
-
-            # Always check the actual last grievance in the DB
-            last_grievance = db.query(Grievance.id, Grievance.integrity_hash).order_by(Grievance.id.desc()).first()
-            if last_grievance:
-                db_last_id, db_last_hash = last_grievance
-            else:
-                db_last_id, db_last_hash = None, ""
-
-            # If cache is missing or inconsistent with DB, refresh from DB
-            if (
-                cached_prev_hash is None
-                or cached_last_id != db_last_id
-                or cached_prev_hash != db_last_hash
-            ):
-                prev_hash = db_last_hash or ""
+            # Performance Boost: Use thread-safe cache to eliminate DB query for last hash
+            prev_hash = grievance_last_hash_cache.get("last_hash")
+            if prev_hash is None:
+                # Cache miss: Fetch only the last hash from DB
+                last_grievance = db.query(Grievance.integrity_hash).order_by(Grievance.id.desc()).first()
+                prev_hash = last_grievance[0] if last_grievance and last_grievance[0] else ""
                 grievance_last_hash_cache.set(data=prev_hash, key="last_hash")
-                grievance_last_hash_cache.set(data=db_last_id, key="last_id")
-            else:
-                prev_hash = cached_prev_hash or ""
 
             # Chaining: hash(unique_id|category|severity|prev_hash)
             hash_content = f"{unique_id}|{grievance_data.get('category', 'general')}|{severity.value}|{prev_hash}"
@@ -146,8 +141,16 @@ class GrievanceService:
             db.commit()
             db.refresh(grievance)
 
+            # Invalidate caches
+            grievance_list_cache.clear()
+            escalation_stats_cache.clear()
+
             # Update cache after successful commit
             grievance_last_hash_cache.set(data=integrity_hash, key="last_hash")
+
+            # Invalidate grievance caches
+            grievance_list_cache.clear()
+            escalation_stats_cache.clear()
 
             return grievance
 
@@ -229,6 +232,9 @@ class GrievanceService:
 
                     if new_issue_status:
                         issue.status = new_issue_status
+                        # Invalidate caches
+                        grievance_list_cache.clear()
+                        escalation_stats_cache.clear()
                         if new_issue_status == "resolved":
                             issue.resolved_at = datetime.now(timezone.utc)
                         elif new_issue_status == "in_progress":
@@ -238,6 +244,11 @@ class GrievanceService:
                                 issue.assigned_to = grievance.assigned_authority
 
             db.commit()
+
+            # Invalidate grievance caches
+            grievance_list_cache.clear()
+            escalation_stats_cache.clear()
+
             return True
 
         except Exception as e:
