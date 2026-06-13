@@ -102,6 +102,8 @@ def equirectangular_distance(
     return R * math.sqrt(x * x + y * y)
 
 
+DEG_TO_RAD = math.pi / 180.0
+
 def find_nearby_issues(
     issues: List[Issue],
     target_lat: float,
@@ -116,6 +118,7 @@ def find_nearby_issues(
         target_lat: Target latitude
         target_lon: Target longitude
         radius_meters: Search radius in meters (default 50m)
+        pre_filtered: If True, skips the bounding box pre-filter (caller must pre-filter)
 
     Returns:
         List of tuples (issue, distance_meters) for issues within radius
@@ -132,7 +135,7 @@ def find_nearby_issues(
     # For larger distances, fallback to precise Haversine calculation.
     if radius_meters > 10000:
         for issue in issues:
-            if issue.latitude is None or issue.longitude is None:
+            if getattr(issue, 'latitude', None) is None or getattr(issue, 'longitude', None) is None:
                 continue
 
             # Apply bounding box pre-filter
@@ -185,8 +188,18 @@ def find_nearby_issues(
             # Squared distance check avoids expensive sqrt()
             dist_sq = x * x + y * y
 
-            if dist_sq <= radius_sq:
-                nearby_issues.append((issue, math.sqrt(dist_sq)))
+                # Handle longitude wrapping (dateline crossing)
+                if dlon > 180.0:
+                    dlon -= 360.0
+                elif dlon < -180.0:
+                    dlon += 360.0
+
+                x = dlon * meters_per_degree_lon
+                y = dlat * meters_per_degree_lat
+                dist_sq = (x*x + y*y)
+
+                if dist_sq <= radius_sq:
+                    nearby_issues.append((issue, math.sqrt(dist_sq)))
 
     # Sort by distance (closest first)
     nearby_issues.sort(key=lambda x: x[1])
