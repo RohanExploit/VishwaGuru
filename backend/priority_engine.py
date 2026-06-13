@@ -69,7 +69,7 @@ class PriorityEngine:
         severity_score, severity_label, severity_reasons = self._calculate_severity(
             combined_text
         )
-        urgency_score, urgency_reasons = self._calculate_urgency(
+        urgency_score, urgency_reasons = self.calculate_urgency(
             combined_text, severity_score
         )
         categories = self._detect_categories(combined_text)
@@ -178,7 +178,7 @@ class PriorityEngine:
 
         return score, label, reasons
 
-    def _calculate_urgency(self, text: str, severity_score: int):
+    def calculate_urgency(self, text: str, severity_score: int):
         # Base urgency follows severity
         urgency = severity_score
         reasons = []
@@ -193,14 +193,12 @@ class PriorityEngine:
                         f"Urgency increased by context matching pattern: '{original_pattern}'"
                     )
             else:
-                for k in keywords:
-                    if k in text:
-                        if regex.search(text):
-                            urgency += weight
-                            reasons.append(
-                                f"Urgency increased by context matching pattern: '{original_pattern}'"
-                            )
-                        break
+                if any(k in text for k in keywords):
+                    if regex.search(text):
+                        urgency += weight
+                        reasons.append(
+                            f"Urgency increased by context matching pattern: '{original_pattern}'"
+                        )
 
         # Cap at 100
         urgency = min(100, urgency)
@@ -215,9 +213,7 @@ class PriorityEngine:
             for k in keywords:
                 if k in text:
                     count += 1
-                    # Optimization: Cap count at 5 for sorting to avoid excessive string matching
-                    if count >= 5:
-                        break
+
 
             if count > 0:
                 scored_categories.append((category, count))

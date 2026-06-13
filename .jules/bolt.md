@@ -78,6 +78,10 @@
 **Learning:** Saving audio recordings (up to 10MB) synchronously in a FastAPI async endpoint blocks the main event loop, significantly increasing tail latency for all concurrent users during high-traffic periods.
 **Action:** Wrap blocking synchronous File I/O operations like `f.write()` in `run_in_threadpool` to offload them to a separate thread, keeping the event loop responsive for other requests.
 
+## 2026-03-05 - Transaction Consolidation with Blockchain Chaining
+**Learning:** Consolidating multiple database operations into a single transaction reduces disk I/O and latency. However, when using blockchain-style hash chaining with in-memory caches, global caches MUST NOT be updated until after a successful commit to prevent poisoning on rollbacks. Intermediate chaining during the transaction must be handled manually or via a separate local tracking mechanism.
+**Action:** Consolidate multiple `db.commit()` calls into one using `db.flush()` for intermediate IDs. Track generated hashes locally and update global `ThreadSafeCache` only after `db.commit()` succeeds.
+
 ## 2026-05-15 - Serialization Caching Bypass
 **Learning:** Caching raw Python objects (like SQLAlchemy models or Pydantic instances) in a high-traffic API still incurs significant overhead because FastAPI/Pydantic must re-validate and re-serialize the data on every request.
 **Action:** Serialize data to a JSON string using `json.dumps()` BEFORE caching. On cache hits, return a raw `fastapi.Response(content=..., media_type="application/json")`. This bypasses the validation and serialization layer, resulting in significant performance gains (up to 50x in benchmarks).
@@ -93,3 +97,6 @@
 ## 2026-05-20 - Joined Queries for Integrity Verification
 **Learning:** Performing multiple sequential database queries to verify cryptographically chained records (e.g., fetching a record and then its associated token/metadata from another table) introduces unnecessary latency and increases database load.
 **Action:** Consolidate associated data retrieval into a single SQL `JOIN` query within the verification hot-path. This reduces database round-trips and improves end-to-end latency for blockchain-style integrity checks.
+## 2026-05-21 - SQLAlchemy Aggregation Optimization
+**Learning:** For aggregations over a single categorical column, a standard `GROUP BY` is faster. However, when aggregating across multiple distinct categorical columns simultaneously (e.g., role and is_active) or combining with other aggregates like `avg` and `count(distinct)`, a single query using `func.sum(case(...))` is more efficient and reduces database round-trips.
+**Action:** Consolidate multiple aggregate queries into a single query using `func.sum(case(...))` for categorical counts, but explicitly handle `None` return values (e.g., `int(value or 0)`) to avoid validation errors in schemas expecting integers.

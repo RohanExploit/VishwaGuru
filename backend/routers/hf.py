@@ -12,6 +12,7 @@ from backend.hf_text_service import (
     generate_civic_response,
     chat_with_hf_assistant,
     check_hf_text_health,
+    analyze_sentiment_hf,
 )
 
 router = APIRouter()
@@ -39,6 +40,9 @@ class HFCivicRequest(BaseModel):
 
 class HFChatRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=2000)
+
+class HFSentimentRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=2000)
 
 
 # ── Endpoints ────────────────────────────────────────────────────────────────
@@ -84,6 +88,21 @@ async def hf_chat(req: HFChatRequest):
         return {"response": answer}
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"HF chat failed: {e}")
+
+@router.post("/hf/sentiment", tags=["Hugging Face"])
+async def hf_sentiment(req: HFSentimentRequest):
+    """
+    Analyze sentiment of given text using HF model.
+    """
+    try:
+        result = await analyze_sentiment_hf(req.text)
+        if "error" in result and not result.get("dev_mode"):
+            raise HTTPException(status_code=502, detail=result["error"])
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"HF sentiment analysis failed: {e}")
 
 
 @router.get("/hf/health", tags=["Hugging Face"])
