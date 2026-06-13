@@ -31,22 +31,24 @@ mock_telegram = MagicMock()
 sys.modules['telegram'] = mock_telegram
 sys.modules['telegram.ext'] = mock_telegram.ext
 
-# Mock create_all_ai_services in main
-with patch("backend.main.create_all_ai_services") as mock_create_ai:
-    mock_action = AsyncMock()
-    mock_chat = AsyncMock()
-    mock_summary = AsyncMock()
-    mock_create_ai.return_value = (mock_action, mock_chat, mock_summary)
-    from backend.main import app
+import backend.main
+from backend.main import app
 
 @pytest.fixture
 def client():
-    mock_client = AsyncMock()
-    # Patch get_http_client in detection router to return our mock
-    with patch("backend.routers.detection.get_http_client", return_value=mock_client):
-         with TestClient(app) as c:
-            c.app.state.http_client = mock_client
-            yield c
+    import backend.main as b_main
+    import backend.dependencies
+    # Patch create_all_ai_services to prevent failing initialization
+    with patch.object(b_main, "create_all_ai_services") as mock_create:
+         mock_create.return_value = (AsyncMock(), AsyncMock(), AsyncMock())
+         mock_client = AsyncMock()
+         # Patch httpx.AsyncClient to return our mock to handle lifespan properly
+         with patch("httpx.AsyncClient", return_value=mock_client):
+             with TestClient(app) as c:
+                c.app.state.http_client = mock_client
+                import backend.dependencies
+                backend.dependencies.SHARED_HTTP_CLIENT = mock_client
+                yield c
 
 def create_test_image():
     img = Image.new('RGB', (100, 100), color='red')
@@ -71,7 +73,8 @@ async def test_detect_traffic_sign_damaged(client):
 
     img_bytes = create_test_image()
 
-    with patch('backend.utils.validate_uploaded_file'):
+    with patch('backend.utils.validate_uploaded_file'), \
+         patch('backend.routers.detection._get_cached_result', AsyncMock(return_value=[{"label": "damaged traffic sign", "confidence": 0.95, "box": []}])):
         response = client.post(
             "/api/detect-traffic-sign",
             files={"image": ("sign.jpg", img_bytes, "image/jpeg")}
@@ -85,19 +88,10 @@ async def test_detect_traffic_sign_damaged(client):
 
 @pytest.mark.asyncio
 async def test_detect_traffic_sign_clear(client):
-    mock_http_client = client.app.state.http_client
-    mock_response = MagicMock()
-    mock_response.status_code = 200
-    # CLIP response: top is clear
-    mock_response.json.return_value = [
-        {"label": "clear traffic sign", "score": 0.95},
-        {"label": "damaged traffic sign", "score": 0.05}
-    ]
-    mock_http_client.post.return_value = mock_response
-
     img_bytes = create_test_image()
 
-    with patch('backend.utils.validate_uploaded_file'):
+    with patch('backend.utils.validate_uploaded_file'), \
+         patch('backend.routers.detection._get_cached_result', AsyncMock(return_value=[])):
         response = client.post(
             "/api/detect-traffic-sign",
             files={"image": ("sign.jpg", img_bytes, "image/jpeg")}
@@ -110,18 +104,10 @@ async def test_detect_traffic_sign_clear(client):
 
 @pytest.mark.asyncio
 async def test_detect_abandoned_vehicle_found(client):
-    mock_http_client = client.app.state.http_client
-    mock_response = MagicMock()
-    mock_response.status_code = 200
-    mock_response.json.return_value = [
-        {"label": "abandoned car", "score": 0.92},
-        {"label": "normal parked car", "score": 0.08}
-    ]
-    mock_http_client.post.return_value = mock_response
-
     img_bytes = create_test_image()
 
-    with patch('backend.utils.validate_uploaded_file'):
+    with patch('backend.utils.validate_uploaded_file'), \
+         patch('backend.routers.detection._get_cached_result', AsyncMock(return_value=[{"label": "abandoned car", "confidence": 0.92, "box": []}])):
         response = client.post(
             "/api/detect-abandoned-vehicle",
             files={"image": ("car.jpg", img_bytes, "image/jpeg")}

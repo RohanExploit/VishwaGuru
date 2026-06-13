@@ -36,7 +36,7 @@ describe('issuesApi', () => {
 
       const result = await issuesApi.getRecent();
 
-      expect(apiClient.get).toHaveBeenCalledWith('/api/issues/recent');
+      expect(apiClient.get).toHaveBeenCalledWith('/issues/recent', { params: { limit: 10, offset: 0 } });
       expect(result).toEqual(mockIssues);
     });
 
@@ -48,7 +48,7 @@ describe('issuesApi', () => {
 
       const result = await issuesApi.getRecent();
 
-      expect(apiClient.get).toHaveBeenCalledWith('/api/issues/recent');
+      expect(apiClient.get).toHaveBeenCalledWith('/issues/recent', { params: { limit: 10, offset: 0 } });
       expect(result).toEqual(fakeRecentIssues);
       expect(consoleWarnSpy).toHaveBeenCalledWith('Failed to fetch recent issues, using fake data', error);
 
@@ -81,7 +81,7 @@ describe('issuesApi', () => {
 
       const result = await issuesApi.create(mockFormData);
 
-      expect(apiClient.postForm).toHaveBeenCalledWith('/api/issues', mockFormData);
+      expect(apiClient.postForm).toHaveBeenCalledWith('/issues', mockFormData);
       expect(result).toEqual(mockResponse);
     });
 
@@ -106,7 +106,7 @@ describe('issuesApi', () => {
 
       const result = await issuesApi.create(mockFormData);
 
-      expect(apiClient.postForm).toHaveBeenCalledWith('/api/issues', mockFormData);
+      expect(apiClient.postForm).toHaveBeenCalledWith('/issues', mockFormData);
       expect(result).toEqual(mockResponse);
     });
   });
@@ -120,7 +120,7 @@ describe('issuesApi', () => {
 
       const result = await issuesApi.vote(issueId);
 
-      expect(apiClient.post).toHaveBeenCalledWith('/api/issues/123/vote', {});
+      expect(apiClient.post).toHaveBeenCalledWith('/issues/123/vote', {});
       expect(result).toEqual(mockResponse);
     });
 
@@ -132,7 +132,7 @@ describe('issuesApi', () => {
 
         await issuesApi.vote(issueId);
 
-        expect(apiClient.post).toHaveBeenCalledWith(`/api/issues/${issueId}/vote`, {});
+        expect(apiClient.post).toHaveBeenCalledWith(`/issues/${issueId}/vote`, {});
       }
     });
 

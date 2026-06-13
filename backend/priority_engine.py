@@ -120,14 +120,25 @@ class PriorityEngine:
         current_reload_count = adaptive_weights.reload_count
         if self._last_reload_count != current_reload_count:
             urgency_patterns = adaptive_weights.get_urgency_patterns()
-            self._regex_cache = [(re.compile(pattern), weight, pattern) for pattern, weight in urgency_patterns]
+            self._regex_cache = []
+            for pattern, weight in urgency_patterns:
+                # Pre-extract literal keywords for fast substring pre-filtering
+                # Only apply this optimization if the pattern is a simple list of words like \b(word1|word2)\b
+                keywords = []
+                if re.fullmatch(r'\\b\([a-zA-Z0-9\s|]+\)\\b', pattern):
+                    clean_pattern = pattern.replace('\\b', '').replace('(', '').replace(')', '')
+                    keywords = [k.strip() for k in clean_pattern.split('|') if k.strip()]
+                self._regex_cache.append((re.compile(pattern), weight, pattern, keywords))
             self._last_reload_count = current_reload_count
 
         # Apply regex modifiers using compiled patterns
-        for regex, weight, original_pattern in self._regex_cache:
-            if regex.search(text):
-                urgency += weight
-                reasons.append(f"Urgency increased by context matching pattern: '{original_pattern}'")
+        for regex, weight, original_pattern, keywords in self._regex_cache:
+            # Substring pre-filter: skip expensive regex search if no keywords match.
+            # If keywords is empty (meaning the pattern was complex), fallback to regex.search directly.
+            if not keywords or any(k in text for k in keywords):
+                if regex.search(text):
+                    urgency += weight
+                    reasons.append(f"Urgency increased by context matching pattern: '{original_pattern}'")
 
         # Cap at 100
         urgency = min(100, urgency)

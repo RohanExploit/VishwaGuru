@@ -5,12 +5,14 @@ Provides the main interface for grievance management and escalation.
 
 import json
 import uuid
+import hashlib
 from typing import Dict, Any, Optional, List
 from sqlalchemy.orm import Session, joinedload
 from datetime import datetime, timezone, timedelta
 
 from backend.models import Grievance, Jurisdiction, GrievanceStatus, SeverityLevel, Issue
 from backend.database import SessionLocal
+from backend.cache import grievance_last_hash_cache
 from backend.routing_service import RoutingService
 from backend.sla_config_service import SLAConfigService
 from backend.escalation_engine import EscalationEngine
@@ -84,6 +86,22 @@ class GrievanceService:
             # Generate unique ID
             unique_id = str(uuid.uuid4())[:8].upper()
 
+            # Blockchain feature: calculate integrity hash for the grievance
+            # Performance Boost: Use thread-safe cache to eliminate DB query for last hash
+            prev_hash = grievance_last_hash_cache.get("last_hash")
+            if prev_hash is None:
+                # Cache miss: Fetch only the last hash from DB
+                prev_grievance = db.query(Grievance.integrity_hash).order_by(Grievance.id.desc()).first()
+                prev_hash = prev_grievance[0] if prev_grievance and prev_grievance[0] else ""
+                grievance_last_hash_cache.set(data=prev_hash, key="last_hash")
+
+            # SHA-256 chaining for grievance integrity
+            hash_content = f"{unique_id}|{grievance_data.get('category', 'general')}|{severity.value}|{prev_hash}"
+            integrity_hash = hashlib.sha256(hash_content.encode()).hexdigest()
+
+            # Update cache for next grievance
+            grievance_last_hash_cache.set(data=integrity_hash, key="last_hash")
+
             # Extract location data
             location_data = grievance_data.get('location', {})
             latitude = location_data.get('latitude') if isinstance(location_data, dict) else None
@@ -106,7 +124,9 @@ class GrievanceService:
                 assigned_authority=assigned_authority,
                 sla_deadline=sla_deadline,
                 status=GrievanceStatus.OPEN,
-                issue_id=grievance_data.get('issue_id')
+                issue_id=grievance_data.get('issue_id'),
+                integrity_hash=integrity_hash,
+                previous_integrity_hash=prev_hash
             )
 
             db.add(grievance)
