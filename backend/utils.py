@@ -61,7 +61,7 @@ def check_upload_limits(identifier: str, limit: int) -> None:
 
     # Add current timestamp and update cache atomically
     recent_uploads.append(now)
-    user_upload_cache.set(recent_uploads, identifier)
+    user_upload_cache.set(data=recent_uploads, key=identifier)
 
 def _validate_uploaded_file_sync(file: UploadFile) -> Optional[Image.Image]:
     """

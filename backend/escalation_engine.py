@@ -10,8 +10,11 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from backend.models import Grievance, Jurisdiction, EscalationAudit, GrievanceStatus, JurisdictionLevel, EscalationReason, SeverityLevel
 from backend.database import SessionLocal
+from backend.cache import audit_last_hash_cache
+from backend.config import get_config
 from backend.routing_service import RoutingService
 from backend.sla_config_service import SLAConfigService
+from backend.cache import audit_last_hash_cache
 
 class EscalationEngine:
     """
@@ -42,8 +45,10 @@ class EscalationEngine:
         Returns:
             Dictionary with escalation statistics
         """
+        should_close = False
         if db is None:
             db = SessionLocal()
+            should_close = True
 
         try:
             # Get grievances that need evaluation
@@ -64,7 +69,7 @@ class EscalationEngine:
             }
 
         finally:
-            if db is not SessionLocal():
+            if should_close:
                 db.close()
 
     def escalate_grievance_severity(self, grievance_id: int, new_severity: SeverityLevel,
@@ -81,8 +86,10 @@ class EscalationEngine:
         Returns:
             True if escalation successful
         """
+        should_close = False
         if db is None:
             db = SessionLocal()
+            should_close = True
 
         try:
             grievance = db.query(Grievance).filter(Grievance.id == grievance_id).first()
@@ -109,7 +116,7 @@ class EscalationEngine:
             print(f"Error escalating grievance severity: {e}")
             return False
         finally:
-            if db is not SessionLocal():
+            if should_close:
                 db.close()
 
     def manual_escalate(self, grievance_id: int, reason: str = "", db: Session = None) -> bool:
@@ -124,8 +131,10 @@ class EscalationEngine:
         Returns:
             True if escalation successful
         """
+        should_close = False
         if db is None:
             db = SessionLocal()
+            should_close = True
 
         try:
             grievance = db.query(Grievance).filter(Grievance.id == grievance_id).first()
@@ -135,7 +144,7 @@ class EscalationEngine:
             return self._escalate_grievance(grievance, EscalationReason.MANUAL, db, reason)
 
         finally:
-            if db is not SessionLocal():
+            if should_close:
                 db.close()
 
     def _get_grievances_for_evaluation(self, db: Session) -> List[Grievance]:
@@ -171,7 +180,13 @@ class EscalationEngine:
         """
         # Check if SLA is breached
         now = datetime.datetime.now(datetime.timezone.utc)
-        if grievance.sla_deadline >= now:
+
+        # Handle naive datetimes from SQLite
+        deadline = grievance.sla_deadline
+        if deadline and deadline.tzinfo is None:
+            deadline = deadline.replace(tzinfo=datetime.timezone.utc)
+
+        if deadline >= now:
             return False
 
         # Check if escalation is possible
