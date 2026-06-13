@@ -393,7 +393,7 @@ async def create_issue(
             if len(current_cache) > 10:
                 current_cache.pop()
 
-            recent_issues_cache.set(current_cache)
+            recent_issues_cache.set(data=current_cache)
     except Exception as e:
         logger.error(f"Error updating cache optimistically: {e}")
         # Failure to update cache is not critical, don't fail the request
@@ -492,7 +492,7 @@ def get_recent_issues(db: Session = Depends(get_db)):
             action_plan=i.action_plan
         ).model_dump(mode='json'))
 
-    recent_issues_cache.set(data)
+    recent_issues_cache.set(data=data)
     return data
 
 # FIXED: Standardized Detection Endpoints with Consistent Validation
