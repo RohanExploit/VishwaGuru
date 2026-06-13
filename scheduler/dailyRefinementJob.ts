@@ -1,3 +1,10 @@
+/**
+ * DailyRefinementJob orchestrates the Daily Civic Intelligence Refinement Engine.
+ * Scheduled to run locally every 24 hours via Node cron, it fetches civic issues from the
+ * local SQLite DB, detects trends, updates Adaptive Weights for severity scoring,
+ * adjusts duplicate thresholds, and generates a Civic Intelligence Index snapshot without APIs.
+ */
+
 import * as cron from "node-cron";
 import * as sqlite3 from "sqlite3";
 import * as path from "path";
