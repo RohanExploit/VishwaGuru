@@ -5,6 +5,7 @@ Provides the main interface for grievance management and escalation.
 
 import json
 import uuid
+import hashlib
 from typing import Dict, Any, Optional, List
 from sqlalchemy.orm import Session, joinedload
 from datetime import datetime, timezone, timedelta
@@ -14,6 +15,7 @@ from backend.database import SessionLocal
 from backend.routing_service import RoutingService
 from backend.sla_config_service import SLAConfigService
 from backend.escalation_engine import EscalationEngine
+from backend.cache import grievance_last_hash_cache
 
 class GrievanceService:
     """
@@ -84,6 +86,35 @@ class GrievanceService:
             # Generate unique ID
             unique_id = str(uuid.uuid4())[:8].upper()
 
+            # Blockchain integrity logic
+            # We cache both the last grievance ID and its integrity hash, and validate
+            # the cache against the current DB state to avoid chaining to stale hashes
+            cached_prev_hash = grievance_last_hash_cache.get("last_hash")
+            cached_last_id = grievance_last_hash_cache.get("last_id")
+
+            # Always check the actual last grievance in the DB
+            last_grievance = db.query(Grievance.id, Grievance.integrity_hash).order_by(Grievance.id.desc()).first()
+            if last_grievance:
+                db_last_id, db_last_hash = last_grievance
+            else:
+                db_last_id, db_last_hash = None, ""
+
+            # If cache is missing or inconsistent with DB, refresh from DB
+            if (
+                cached_prev_hash is None
+                or cached_last_id != db_last_id
+                or cached_prev_hash != db_last_hash
+            ):
+                prev_hash = db_last_hash or ""
+                grievance_last_hash_cache.set(data=prev_hash, key="last_hash")
+                grievance_last_hash_cache.set(data=db_last_id, key="last_id")
+            else:
+                prev_hash = cached_prev_hash or ""
+
+            # Chaining: hash(unique_id|category|severity|prev_hash)
+            hash_content = f"{unique_id}|{grievance_data.get('category', 'general')}|{severity.value}|{prev_hash}"
+            integrity_hash = hashlib.sha256(hash_content.encode()).hexdigest()
+
             # Extract location data
             location_data = grievance_data.get('location', {})
             latitude = location_data.get('latitude') if isinstance(location_data, dict) else None
@@ -106,12 +137,17 @@ class GrievanceService:
                 assigned_authority=assigned_authority,
                 sla_deadline=sla_deadline,
                 status=GrievanceStatus.OPEN,
-                issue_id=grievance_data.get('issue_id')
+                issue_id=grievance_data.get('issue_id'),
+                integrity_hash=integrity_hash,
+                previous_integrity_hash=prev_hash
             )
 
             db.add(grievance)
             db.commit()
             db.refresh(grievance)
+
+            # Update cache after successful commit
+            grievance_last_hash_cache.set(data=integrity_hash, key="last_hash")
 
             return grievance
 
