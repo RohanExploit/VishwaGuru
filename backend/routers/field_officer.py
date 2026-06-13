@@ -12,11 +12,13 @@ from typing import List, Optional
 import logging
 import os
 import json
+import uuid
 from datetime import datetime, timezone
 
 from backend.database import get_db
 from backend.models import FieldOfficerVisit, Issue, Grievance, User
 from backend.dependencies import get_current_active_user
+from backend.utils import process_uploaded_image, save_processed_image
 from backend.schemas import (
     OfficerCheckInRequest,
     OfficerCheckOutRequest,
@@ -112,7 +114,6 @@ def officer_check_in(request: OfficerCheckInRequest, db: Session = Depends(get_d
         check_in_time = datetime.now(timezone.utc).replace(microsecond=0)
 
         # Blockchain feature: calculate integrity hash for the visit
-        # Performance Boost: Use thread-safe cache to eliminate DB query for last hash
         prev_hash = visit_last_hash_cache.get("last_hash")
         if prev_hash is None:
             # Cache miss: Fetch only the last hash from DB
