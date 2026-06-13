@@ -54,10 +54,6 @@
 **Learning:** Executing multiple separate `count()` queries to gather system statistics results in multiple database round-trips and redundant table scans.
 **Action:** Use a single SQLAlchemy query with `func.count()` and `func.sum(case(...))` to calculate all metrics in one go. This reduces network overhead and allows the database to perform calculations in a single pass.
 
-## 2025-02-13 - [Substring pre-filtering for regex optimization]
-**Learning:** In hot paths (like `PriorityEngine._calculate_urgency`), executing pre-compiled regular expressions (`re.search`) for simple keyword extraction or grouping (e.g., `\b(word1|word2)\b`) is significantly slower than simple Python substring checks (`in text`). The regex engine execution overhead in Python adds up in high-iteration loops like priority scoring.
-**Action:** Always consider pre-extracting literal keywords from simple regex patterns and executing a quick `any(k in text for k in keywords)` pre-filter. Only invoke `regex.search` if the pre-filter passes, avoiding the expensive regex operation on texts that obviously do not match.
-
-## 2024-05-28 - [Consolidating Single-Condition Aggregates with Group By]
-**Learning:** Performing multiple `func.count` queries with single conditions (e.g., `confirmation_type == 'confirmed'` and `confirmation_type == 'disputed'`) leads to redundant database scans and increased network latency. While `case` statements work well for disparate columns, for mutually exclusive values on the *same* column, a single `group_by` query is even faster (~35% improvement in benchmarks).
-**Action:** When aggregating mutually exclusive conditions on a single column, prefer querying the column and its count with a `.group_by()` over multiple `.filter().count()` calls or multiple `case` statements. This single roundtrip is significantly more efficient for the database engine.
+## 2024-05-28 - Multiple Subqueries vs Single Case Summation
+**Learning:** Using multiple `.scalar()` calls with `func.count` sequentially for fetching multiple statistical counts (e.g. `total_visits`, `verified_visits`, `within_geofence`) results in numerous network roundtrips to the DB and redundant table scans.
+**Action:** Consolidate these queries into a single SQL transaction using `db.query` projecting a mix of `func.count()` and `func.sum(case(...))` wrapped in `.label()` to perform calculation at the DB engine layer with only one trip.
