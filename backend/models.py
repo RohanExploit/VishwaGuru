@@ -192,7 +192,7 @@ class GrievanceFollower(Base):
     
     # Blockchain integrity fields
     integrity_hash = Column(String, nullable=True)
-    previous_integrity_hash = Column(String, nullable=True)
+    previous_integrity_hash = Column(String, nullable=True, index=True)
 
     # Relationship
     grievance = relationship("Grievance", back_populates="followers")
