@@ -95,10 +95,6 @@ class CivicRAG:
             if query_tokens.isdisjoint(policy_tokens):
                 continue
 
-            # Optimized: Early exit using isdisjoint which is faster than computing intersection
-            if query_tokens.isdisjoint(policy_tokens):
-                continue
-
             # Jaccard Similarity
             # Optimization 2: Calculate intersection
             intersection_len = len(query_tokens.intersection(policy_tokens))
