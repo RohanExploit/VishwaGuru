@@ -301,9 +301,9 @@ class ClosureStatusResponse(BaseModel):
     days_remaining: Optional[int] = Field(None, description="Days until deadline")
 
 class BlockchainVerificationResponse(BaseModel):
-    is_valid: bool = Field(..., description="Whether the issue integrity is intact")
+    is_valid: bool = Field(..., description="Whether the issue/record integrity is intact")
     current_hash: Optional[str] = Field(None, description="Current integrity hash stored in DB")
-    computed_hash: str = Field(..., description="Hash computed from current issue data and previous issue's hash")
+    computed_hash: str = Field(..., description="Hash computed from current data and previous hash")
     message: str = Field(..., description="Verification result message")
 
 

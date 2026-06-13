@@ -512,6 +512,7 @@ class ResolutionProofService:
         Checks:
         - Evidence exists
         - Evidence hash integrity (re-sign and compare)
+        - Blockchain integrity (recompute chain hash)
         - Location match (within geofence)
 
         Returns:
@@ -561,9 +562,18 @@ class ResolutionProofService:
             )
             location_match = is_inside
 
+        # Verify blockchain integrity
+        prev_hash = evidence.previous_integrity_hash or ""
+        # Re-derive token_id for hash (it's in metadata_bundle)
+        token_uuid = evidence.metadata_bundle.get("token_id", "")
+        hash_content = f"{evidence.evidence_hash}|{token_uuid}|{evidence.gps_latitude}|{evidence.gps_longitude}|{prev_hash}"
+        computed_integrity_hash = ResolutionProofService._sign_payload(hash_content)
+        blockchain_valid = (computed_integrity_hash == evidence.integrity_hash)
+
         is_verified = (
             signature_valid and
             location_match and
+            blockchain_valid and
             evidence.verification_status == VerificationStatus.VERIFIED
         )
 
@@ -579,6 +589,7 @@ class ResolutionProofService:
             "resolution_timestamp": resolution_ts,
             "location_match": location_match,
             "evidence_integrity": signature_valid,
+            "blockchain_integrity": blockchain_valid,
             "evidence_hash": evidence.evidence_hash,
             "evidence_count": evidence_count,
             "message": (
