@@ -4,7 +4,7 @@ import { apiClient } from './client';
 const createDetectorApi = (endpoint) => async (data) => {
     // If data is a FormData object (checking if it has append method is a heuristic)
     if (data instanceof FormData) {
-         return await apiClient.postForm(endpoint, data);
+        return await apiClient.postForm(endpoint, data);
     }
     // If data contains an image property that is a base64 string,
     // the current backend implementation for infrastructure/vandalism/etc expects BYTES.
@@ -32,28 +32,37 @@ const createDetectorApi = (endpoint) => async (data) => {
 };
 
 export const detectorsApi = {
-  pothole: async (formData) => {
-      return await apiClient.postForm('/api/detect-pothole', formData);
-  },
-  garbage: async (formData) => {
-      return await apiClient.postForm('/api/detect-garbage', formData);
-  },
-  vandalism: createDetectorApi('/api/detect-vandalism'),
-  flooding: createDetectorApi('/api/detect-flooding'),
-  infrastructure: createDetectorApi('/api/detect-infrastructure'),
-  illegalParking: createDetectorApi('/api/detect-illegal-parking'),
-  streetLight: createDetectorApi('/api/detect-street-light'),
-  fire: createDetectorApi('/api/detect-fire'),
-  strayAnimal: createDetectorApi('/api/detect-stray-animal'),
-  blockedRoad: createDetectorApi('/api/detect-blocked-road'),
-  treeHazard: createDetectorApi('/api/detect-tree-hazard'),
-  pest: createDetectorApi('/api/detect-pest'),
-  depth: createDetectorApi('/api/analyze-depth'),
-  smartScan: createDetectorApi('/api/detect-smart-scan'),
-  severity: createDetectorApi('/api/detect-severity'),
-  waste: createDetectorApi('/api/detect-waste'),
-  civicEye: createDetectorApi('/api/detect-civic-eye'),
-  transcribe: async (formData) => {
-      return await apiClient.postForm('/api/transcribe-audio', formData);
-  },
+    pothole: async (formData) => {
+        return await apiClient.postForm('/detect-pothole', formData);
+    },
+    garbage: async (formData) => {
+        return await apiClient.postForm('/detect-garbage', formData);
+    },
+    vandalism: createDetectorApi('/detect-vandalism'),
+    flooding: createDetectorApi('/detect-flooding'),
+    infrastructure: createDetectorApi('/detect-infrastructure'),
+    illegalParking: createDetectorApi('/detect-illegal-parking'),
+    streetLight: createDetectorApi('/detect-street-light'),
+    fire: createDetectorApi('/detect-fire'),
+    strayAnimal: createDetectorApi('/detect-stray-animal'),
+    blockedRoad: createDetectorApi('/detect-blocked-road'),
+    treeHazard: createDetectorApi('/detect-tree-hazard'),
+    pest: createDetectorApi('/detect-pest'),
+    depth: createDetectorApi('/analyze-depth'),
+    smartScan: createDetectorApi('/detect-smart-scan'),
+    severity: createDetectorApi('/detect-severity'),
+    waste: createDetectorApi('/detect-waste'),
+    civicEye: createDetectorApi('/detect-civic-eye'),
+    transcribe: async (formData) => {
+        return await apiClient.postForm('/transcribe-audio', formData);
+    },
+
+    // Emotion Detection (HF integration)
+    emotion: async (formData) => {
+        return apiClient.post('/api/detect-emotion', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+    },
 };

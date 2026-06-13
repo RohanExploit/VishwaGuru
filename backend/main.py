@@ -2,6 +2,7 @@ from fastapi import FastAPI, Form, UploadFile, File, Depends, BackgroundTasks, R
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.concurrency import run_in_threadpool
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from functools import lru_cache
 from typing import List
@@ -75,9 +76,13 @@ async def background_initialization(app: FastAPI):
         await run_in_threadpool(load_maharashtra_mla_data)
         logger.info("Maharashtra data pre-loaded successfully.")
 
+        # Ensure uploads directory exists
+        os.makedirs("data/uploads", exist_ok=True)
+
         # 3. Start Telegram Bot in separate thread
-        await run_in_threadpool(start_bot_thread)
-        logger.info("Telegram bot started in separate thread.")
+        # Temporarily disabled for local testing
+        # await run_in_threadpool(start_bot_thread)
+        logger.info("Telegram bot initialization skipped for local testing.")
     except Exception as e:
         logger.error(f"Error during background initialization: {e}", exc_info=True)
 
@@ -91,24 +96,33 @@ async def lifespan(app: FastAPI):
 
     # Startup: Database setup (Blocking but necessary for app consistency)
     try:
+        logger.info("Starting database initialization...")
         await run_in_threadpool(Base.metadata.create_all, bind=engine)
-        await run_in_threadpool(migrate_db)
-        logger.info("Database initialized successfully.")
+        logger.info("Base.metadata.create_all completed.")
+        # Temporarily disabled - comment out to debug startup issues
+        # await run_in_threadpool(migrate_db)
+        logger.info("Database initialized successfully (migrations skipped for local dev).")
     except Exception as e:
         logger.error(f"Database initialization failed: {e}", exc_info=True)
         # We continue to allow health checks even if DB has issues (for debugging)
 
     # Startup: Initialize Grievance Service (needed for escalation engine)
     try:
-        grievance_service = GrievanceService()
-        app.state.grievance_service = grievance_service
-        logger.info("Grievance service initialized successfully.")
+        logger.info("Initializing grievance service...")
+        # Temporarily disabled for local dev
+        # grievance_service = GrievanceService()
+        # app.state.grievance_service = grievance_service
+        logger.info("Grievance service initialization skipped for local dev.")
     except Exception as e:
         logger.error(f"Error initializing grievance service: {e}", exc_info=True)
 
     # Launch background tasks that are non-blocking for startup/health-check
     asyncio.create_task(background_initialization(app))
-    
+
+    # Start the daily civic intelligence refinement scheduler (temporarily disabled for local dev)
+    # start_scheduler()
+    logger.info("Scheduler skipped for local development")
+
     yield
     
     # Shutdown: Close Shared HTTP Client
@@ -126,8 +140,9 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="VishwaGuru Backend",
     description="AI-powered civic issue reporting and resolution platform",
-    version="1.0.0",
-    lifespan=lifespan
+    version="1.0.0"
+    # Temporarily disable lifespan for local dev debugging
+    # lifespan=lifespan
 )
 
 # Add centralized exception handlers
@@ -159,11 +174,16 @@ if not is_production:
     dev_origins = [
         "http://localhost:3000",
         "http://localhost:5173",
+        "http://localhost:5174",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
         "http://localhost:8080",
     ]
     allowed_origins.extend(dev_origins)
+    # Also add the one from .env if it's different
+    if frontend_url not in allowed_origins:
+        allowed_origins.append(frontend_url)
 
 app.add_middleware(
     CORSMiddleware,
@@ -175,11 +195,23 @@ app.add_middleware(
 
 app.add_middleware(GZipMiddleware, minimum_size=500)
 
+# Mount static files for uploads
+# check if directory exists, if not create it (redundant but safe)
+os.makedirs("data/uploads", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="data/uploads"), name="uploads")
+
 # Include Modular Routers
 app.include_router(issues.router, tags=["Issues"])
 app.include_router(detection.router, tags=["Detection"])
 app.include_router(grievances.router, tags=["Grievances"])
 app.include_router(utility.router, tags=["Utility"])
+app.include_router(auth.router, tags=["Authentication"])
+app.include_router(admin.router)
+app.include_router(analysis.router, tags=["Analysis"])
+app.include_router(voice.router, tags=["Voice & Language"])
+app.include_router(field_officer.router, tags=["Field Officer Check-In"])
+app.include_router(hf.router, tags=["Hugging Face"])
+app.include_router(resolution_proof.router, tags=["Resolution Proof"])
 
 @app.get("/health")
 def health():

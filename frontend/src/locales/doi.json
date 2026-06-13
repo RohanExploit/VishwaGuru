@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - स्मार्ट नागरिक समस्या रिपোর্टर",
+        "subtitle": "अपनें समुदाय च नागरिक समस्यां दी रिपोर्ट करो ते ट्रैक करो",
+        "privacyActive": "AI-संचालित निजता सुरक्षा सक्रिय ऐ",
+        "communityImpact": "सामुदायिक प्रभाव",
+        "makingChange": "रली-मिली अस बदलाव आनदे आं!",
+        "issuesSolved": "हल कीती दीं समस्यां",
+        "smartScanner": "स्मार्ट सिटी स्कैनर",
+        "aiPoweredDetection": "AI-संचालित तुंरत पहचान",
+        "categories": {
+            "roadTraffic": "सड़क ते यातायात",
+            "environmentSafety": "पर्यावरण ते सुरक्षा",
+            "civicServices": "नागरिक सेवा",
+            "management": "प्रबंधन"
+        },
+        "issues": {
+            "pothole": "टोआ",
+            "blockedRoad": "बंद सड़क",
+            "illegalParking": "गलत पार्किंग",
+            "darkStreet": "नेहरे आली गली",
+            "trafficSign": "ट्रैफिक निशान",
+            "abandonedVehicle": "छोडिया दा वाहन",
+            "garbage": "कूडा",
+            "flood": "हाड़",
+            "fireSmoke": "अग्ग/धूआं",
+            "treeHazard": "बूटे दा खतरा",
+            "strayAnimal": "भटके दे पशु",
+            "pestControl": "कीड़े-मकौड़े दी रोक",
+            "reportIssue": "समस्या रिपोर्ट करो",
+            "brokenInfra": "टुट्टिया दा बुनियादी ढांचा",
+            "graffiti": "ग्रेफिटी",
+            "findMLA": "विधायक लब्भो",
+            "grievanceManagement": "शिकायत प्रबंधन",
+            "viewStats": "आंकड़े देखो",
+            "leaderboard": "लीडरबोर्ड",
+            "responsibilityMap": "जिम्मेवारी नक्शा",
+            "noise": "शोर",
+            "crowd": "भेड़",
+            "waterLeak": "पाणी रिसाव",
+            "waste": "कूडा छांटने आला",
+            "civicEye": "नागरिक अक्ख",
+            "myReports": "मेरी रिपोर्ट",
+            "analyzeGrievance": "शिकायत दा विश्लेषण करो"
+        },
+        "tools": {
+            "whoIsResponsible": "कुन जिम्मेदार ऐ?",
+            "topReporters": "मुख्य रिपोर्टर",
+            "cameraCheck": "कैमरा चेक"
+        },
+        "activity": {
+            "communityActivity": "सामुदायिक गतिविधि",
+            "liveFeed": "लाइव फीड",
+            "noActivity": "दिखाने आस्तै कोई ताजी गतिविधि नेईं ऐ।",
+            "loadMore": "होर गतिविधि लोड करो",
+            "verify": "सत्यापित करो"
+        },
+        "stats": {
+            "totalImpact": "कुल प्रभाव",
+            "issuesResolved": "हल कीती दीं समस्यां",
+            "activeUsers": "सक्रिय उपयोगकर्ता"
+        },
+        "landing": {
+            "empowering": "नागरिकें दा सशक्तिकरण",
+            "governance": "बेहतर शासन आस्तै",
+            "subtitle": "नागरिक समस्या रिपोर्ट करो ते AI-जनरेटेड समाधान पाओ। शासन च सक्रिय रूप च हिस्सा लेने आस्तै टेलीग्राम राहीं अफसरें कन्नै जुड़ो।",
+            "cta": "समस्या रिपोर्ट करो",
+            "cards": {
+                "reportCitizens": "नागरिकें कन्नै रिपोर्ट करो",
+                "generatedCivic": "जनरेटेड नागरिक शासन",
+                "govServices": "सरकारी सेवा",
+                "questionGov": "सरकार थमां सवाल करो",
+                "govDesc": "सवाल जमा करो, पारदर्शिता दी मांग करो ते अफसरें गी जिम्मेदार ठहराओ",
+                "communityAction": "सामुदायिक क्रिया",
+                "joinMovement": "आंदोलन च शामिल होओ"
+            },
+            "features": {
+                "publicTrust": "जनता दा विश्वास",
+                "ethics": "& नैतिकता",
+                "civicIssues": "नागरिक समस्या",
+                "reportProblems": "समस्या रिपोर्ट करो",
+                "voiceVote": "अपनी आवाज चक्को",
+                "shareIdeas": "बेहतर नीति आस्तै विचार सांझे करो",
+                "aiDemocracy": "लोकतंत्र आस्तै AI",
+                "civicActions": "& नागरिक क्रिया",
+                "aiDesc": "पारदर्शी शासन ते तुंरत समाधान आस्तै तकनीक दा इस्तेमाल।",
+                "smartAnalysis": "स्मार्ट विश्लेषण",
+                "aiInsights": "AI-संचालित अंतर्दृष्टि",
+                "citizenCount": "10 हजार+ सक्रिय नागरिक",
+                "secureSafe": "सुरक्षित ते पक्का",
+                "verifiedReports": "सत्यापित रिपोर्ट",
+                "quickAction": "तुंरत कार्रवाई",
+                "responseTime": "24 घंटे रिस्पॉन्स टाइम"
+            }
+        }
+    },
+    "common": {
+        "loading": "लोड होआ करदा ऐ...",
+        "error": "गलती",
+        "submit": "जमा करो",
+        "cancel": "रद्द करो",
+        "yes": "हां",
+        "no": "नेईं",
+        "back": "पिच्छें"
+    }
+}

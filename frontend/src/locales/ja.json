@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - スマート市民問題レポーター",
+        "subtitle": "コミュニティの市民問題を報告し、追跡します",
+        "privacyActive": "AI搭載プライバシー保護が有効です",
+        "communityImpact": "コミュニティへの影響",
+        "makingChange": "一緒に変化を起こしましょう！",
+        "issuesSolved": "解決済みの問題",
+        "smartScanner": "スマートシティスキャナー",
+        "aiPoweredDetection": "AIによる即時検出",
+        "categories": {
+            "roadTraffic": "道路と交通",
+            "environmentSafety": "環境と安全",
+            "civicServices": "市民サービス",
+            "management": "管理"
+        },
+        "issues": {
+            "pothole": "ポットホール",
+            "blockedRoad": "通行止め",
+            "illegalParking": "違法駐車",
+            "darkStreet": "暗い通り",
+            "trafficSign": "交通標識",
+            "abandonedVehicle": "放置車両",
+            "garbage": "ゴミ",
+            "flood": "洪水",
+            "fireSmoke": "火災・煙",
+            "treeHazard": "樹木の危険",
+            "strayAnimal": "迷子・野良動物",
+            "pestControl": "害虫駆除",
+            "reportIssue": "問題を報告",
+            "brokenInfra": "インフラの破損",
+            "graffiti": "落書き",
+            "findMLA": "議員を探す",
+            "grievanceManagement": "苦情管理",
+            "viewStats": "統計を表示",
+            "leaderboard": "リーダーボード",
+            "responsibilityMap": "責任マップ",
+            "noise": "騒音",
+            "crowd": "混雑",
+            "waterLeak": "水漏れ",
+            "waste": "ゴミ分別",
+            "civicEye": "市民の目",
+            "myReports": "自分のレポート",
+            "analyzeGrievance": "苦情を分析"
+        },
+        "tools": {
+            "whoIsResponsible": "責任者は誰？",
+            "topReporters": "トップレポーター",
+            "cameraCheck": "カメラチェック"
+        },
+        "activity": {
+            "communityActivity": "コミュニティ活動",
+            "liveFeed": "ライブフィード",
+            "noActivity": "表示する最近の活動はありません。",
+            "loadMore": "さらに読み込む",
+            "verify": "確認"
+        },
+        "stats": {
+            "totalImpact": "総影響",
+            "issuesResolved": "解決済みの問題",
+            "activeUsers": "アクティブユーザー"
+        },
+        "landing": {
+            "empowering": "市民の力を引き出す",
+            "governance": "より良い統治のために",
+            "subtitle": "市民問題を報告し、AIが生成した解決策を入手しましょう。Telegramを通じて役人とつながり、統治に積極的に参加できます。",
+            "cta": "問題を報告",
+            "cards": {
+                "reportCitizens": "市民と一緒に報告",
+                "generatedCivic": "生成された市民統治",
+                "govServices": "政府サービス",
+                "questionGov": "政府への問いかけ",
+                "govDesc": "質問を送信し、透明性を要求し、役人の責任を追及します",
+                "communityAction": "コミュニティアクション",
+                "joinMovement": "ムーブメントに参加"
+            },
+            "features": {
+                "publicTrust": "公的信頼",
+                "ethics": "& 倫理",
+                "civicIssues": "市民問題",
+                "reportProblems": "問題を報告",
+                "voiceVote": "あなたの声を届ける",
+                "shareIdeas": "より良い政策のためのアイデアを共有",
+                "aiDemocracy": "民主主義のためのAI",
+                "civicActions": "& 市民行動",
+                "aiDesc": "透明な統治と迅速な解決のためにテクノロジーを活用。",
+                "smartAnalysis": "スマート分析",
+                "aiInsights": "AI主導のインサイト",
+                "citizenCount": "1万以上のアクティブ市民",
+                "secureSafe": "安全・安心",
+                "verifiedReports": "検証済みレポート",
+                "quickAction": "迅速な行動",
+                "responseTime": "24時間以内の返信"
+            }
+        }
+    },
+    "common": {
+        "loading": "読み込み中...",
+        "error": "エラー",
+        "submit": "送信",
+        "cancel": "キャンセル",
+        "yes": "はい",
+        "no": "いいえ",
+        "back": "戻る"
+    }
+}

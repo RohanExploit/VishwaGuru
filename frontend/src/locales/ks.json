@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - سمارٹ سِوِک اِیشو رِپورٹر",
+        "subtitle": "پنہنی برادری منز سِوِک اِیشون ہنز رِپورٹ کٔریو تہٕ تمن کٔریو ٹریک",
+        "privacyActive": "AI سٟتؠ چلان وول نجی تحفظ چُھ فعال",
+        "communityImpact": "کمیونٹی اِثر",
+        "makingChange": "أتھؠ واٹ کٔرِتھ چھِ أسی تبدیلی اانان!",
+        "issuesSolved": "حل سپدیمٕتؠ معملہٕ",
+        "smartScanner": "سمارٹ سٹی سِکینر",
+        "aiPoweredDetection": "AI سٟتؠ چلان وول فوری تدارک",
+        "categories": {
+            "roadTraffic": "سڑک تہٕ ٹریفک",
+            "environmentSafety": "ماحول تہٕ حفاظت",
+            "civicServices": "سِوِک خدمات",
+            "management": "اِنتظام"
+        },
+        "issues": {
+            "pothole": "کھوٚڈ",
+            "blockedRoad": "بند سڑک",
+            "illegalParking": "غیر قانونی پارکنگ",
+            "darkStreet": "أندھیارٕ گٔلی",
+            "trafficSign": "ٹریفک نِشان",
+            "abandonedVehicle": "تراومٔژ گاڑی",
+            "garbage": "کچرہٕ",
+            "flood": "سیلاب",
+            "fireSmoke": "نار/دۄہن",
+            "treeHazard": "کُلہٕ ہُنٛد خطرہٕ",
+            "strayAnimal": "آوارہ حیوان",
+            "pestControl": "کٔمؠ مآر دۄاہ",
+            "reportIssue": "مسئلہٕ رِپورٹ کٔریو",
+            "brokenInfra": "پھٹمُت بنیادی ڈھانچہٕ",
+            "graffiti": "دیوارَن پؠٹھ لؠکھن",
+            "findMLA": "نُائندہ ژھانڈیو",
+            "grievanceManagement": "شکایات ہُنٛد اِنتظام",
+            "viewStats": "اعداد و شمار وُچھوی",
+            "leaderboard": "لیڈر بورڈ",
+            "responsibilityMap": "ذمہ داری ہُنٛد نقشہٕ",
+            "noise": "شور",
+            "crowd": "ہجوم",
+            "waterLeak": "آبہٕ رساؤ",
+            "waste": "کچرہٕ الگ کرن وول",
+            "civicEye": "سِوِک اچھ",
+            "myReports": "میأنؠ رِپورٹ",
+            "analyzeGrievance": "شکایات ہُنٛد تجزیہٕ کٔریو"
+        },
+        "tools": {
+            "whoIsResponsible": "ذمہ دار کوُس چُھ؟",
+            "topReporters": "ٹاپ رِپورٹر",
+            "cameraCheck": "کیمرہٕ چیک"
+        },
+        "activity": {
+            "communityActivity": "کمیونٹی سرگرمی",
+            "liveFeed": "لائیو فیڈ",
+            "noActivity": "ہااونہٕ خآطرٕ چھِ نہٕ کانہہ موجودہ سرگرمی۔",
+            "loadMore": "مزید سرگرمی لوڈ کٔریو",
+            "verify": "تصدیق کٔریو"
+        },
+        "stats": {
+            "totalImpact": "کُل اِثر",
+            "issuesResolved": "حل سپدیمٕتؠ معملہٕ",
+            "activeUsers": "سرگرم صآرفین"
+        },
+        "landing": {
+            "empowering": "شہریَن بااِختیار بناوُن",
+            "governance": "بہتر گورننس خآطرٕ",
+            "subtitle": "سِوِک اِیشون ہنز رِپورٹ کٔریو تہٕ AI سٟتؠ تیاآر کردہ حل حآصل کٔریو۔ گورننس منز سرگرمی سٟتؠ حِصہٕ نِنہٕ خآطرٕ کٔریو ٹیلی گرام ذٔریعہٕ حکامَن سٟتؠ رابطہٕ۔",
+            "cta": "مسئلہٕ رِپورٹ کٔریو",
+            "cards": {
+                "reportCitizens": "شہریَن سٟتؠ رِپورٹ کٔریو",
+                "generatedCivic": "تیاآر کردہ سِوِک گورننس",
+                "govServices": "سرکاری خدمات",
+                "questionGov": "حکومتَس سٟتؠ سوال کٔریو",
+                "govDesc": "سوال جمع کٔریو، شفافیتٕچ مانگ کٔریو تہٕ حکامَن جوابدہ ٹھہراویو",
+                "communityAction": "کمیونٹی ایکشن",
+                "joinMovement": "تحریکس منز شآمل سپدیو"
+            },
+            "features": {
+                "publicTrust": "عوامی بھروسہٕ",
+                "ethics": "& اخلاقیات",
+                "civicIssues": "سِوِک اِیشو",
+                "reportProblems": "مسئلَن ہنز رِپورٹ کٔریو",
+                "voiceVote": "پنہنی آواز بُلند کٔریو",
+                "shareIdeas": "بہتر پالیسین خآطرٕ خیال بانڈیو",
+                "aiDemocracy": "جمہوریت خآطرٕ AI",
+                "civicActions": "& سِوِک ایکشن",
+                "aiDesc": "شفاف گورننس تہٕ تیز حل خآطرٕ ٹیکنالوجی ہُنٛد اِستعمال۔",
+                "smartAnalysis": "سمارٹ تجزیہٕ",
+                "aiInsights": "AI سٟتؠ چلان وول بصیرت",
+                "citizenCount": "10 ساسہٕ کھوتہٕ زیاآدہ سرگرم شہری",
+                "secureSafe": "محفوظ تہٕ مآمون",
+                "verifiedReports": "تصدیق شدہ رِپورٹ",
+                "quickAction": "فوری کارروائی",
+                "responseTime": "24 گھنٹہٕ جواب ہُنٛد وقت"
+            }
+        }
+    },
+    "common": {
+        "loading": "لوڈ گژھان...",
+        "error": "غلطی",
+        "submit": "جمع کٔریو",
+        "cancel": "منسوخ کٔریو",
+        "yes": "آ",
+        "no": "نہٕ",
+        "back": "پتھ"
+    }
+}

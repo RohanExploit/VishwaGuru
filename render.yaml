@@ -3,7 +3,7 @@ services:
   - type: web
     name: vishwaguru-backend
     runtime: python
-    buildCommand: "pip install -r backend/requirements-render.txt"
+    buildCommand: "./render-build.sh"
     startCommand: "python start-backend.py"
     envVars:
       - key: PYTHON_VERSION
@@ -13,8 +13,6 @@ services:
           type: web
           name: vishwaguru-backend
           property: port
-      - key: PYTHONPATH
-        value: backend
       # Required API Keys (must be set in Render dashboard)
       - key: GEMINI_API_KEY
         sync: false

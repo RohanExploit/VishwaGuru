@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - เครื่องมือรายงานปัญหาพลเมืองอัจฉริยะ",
+        "subtitle": "รายงานและติดตามปัญหาพลเมืองในชุมชนของคุณ",
+        "privacyActive": "การคุ้มครองความเป็นส่วนตัวด้วย AI พร้อมใช้งาน",
+        "communityImpact": "ผลกระทบต่อชุมชน",
+        "makingChange": "เรากำลังร่วมกันสร้างความเปลี่ยนแปลง!",
+        "issuesSolved": "ปัญหาที่แก้ไขแล้ว",
+        "smartScanner": "เครื่องสแกนเมืองอัจฉริยะ",
+        "aiPoweredDetection": "การตรวจจับทันทีด้วย AI",
+        "categories": {
+            "roadTraffic": "ถนนและการจราจร",
+            "environmentSafety": "สิ่งแวดล้อมและความปลอดภัย",
+            "civicServices": "บริการพลเมือง",
+            "management": "การจัดการ"
+        },
+        "issues": {
+            "pothole": "หลุมบ่อ",
+            "blockedRoad": "ถนนถูกปิดกั้น",
+            "illegalParking": "จอดรถผิดกฎหมาย",
+            "darkStreet": "ถนนมืด",
+            "trafficSign": "ป้ายจราจร",
+            "abandonedVehicle": "รถถูกทิ้งล้าง",
+            "garbage": "ขยะ",
+            "flood": "น้ำท่วม",
+            "fireSmoke": "ไฟไหม้/ควัน",
+            "treeHazard": "อันตรายจากต้นไม้",
+            "strayAnimal": "สัตว์จรจัด",
+            "pestControl": "กำจัดแมลงและสัตว์รบกวน",
+            "reportIssue": "รายงานปัญหา",
+            "brokenInfra": "โครงสร้างพื้นฐานชำรุด",
+            "graffiti": "กราฟฟิตี",
+            "findMLA": "ค้นหาตัวแทน",
+            "grievanceManagement": "การจัดการเรื่องร้องเรียน",
+            "viewStats": "ดูสถิติ",
+            "leaderboard": "กระดานผู้นำ",
+            "responsibilityMap": "แผนที่ความรับผิดชอบ",
+            "noise": "เสียงรบกวน",
+            "crowd": "ฝูงชนแออัด",
+            "waterLeak": "น้ำรั่ว",
+            "waste": "เครื่องคัดแยกขยะ",
+            "civicEye": "สายตาพลเมือง",
+            "myReports": "รายงานของฉัน",
+            "analyzeGrievance": "วิเคราะห์เรื่องร้องเรียน"
+        },
+        "tools": {
+            "whoIsResponsible": "ใครต้องรับผิดชอบ?",
+            "topReporters": "ผู้รายงานสูงสุด",
+            "cameraCheck": "ตรวจสอบกล้อง"
+        },
+        "activity": {
+            "communityActivity": "กิจกรรมชุมชน",
+            "liveFeed": "ฟีดสด",
+            "noActivity": "ไม่มีกิจกรรมล่าสุดที่จะแสดง",
+            "loadMore": "โหลดกิจกรรมเพิ่มเติม",
+            "verify": "ตรวจสอบ"
+        },
+        "stats": {
+            "totalImpact": "ผลกระทบรวม",
+            "issuesResolved": "ปัญหาที่แก้ไขแล้ว",
+            "activeUsers": "ผู้ใช้งานที่ใช้งานอยู่"
+        },
+        "landing": {
+            "empowering": "เสริมสร้างพลังพลเมือง",
+            "governance": "เพื่อธรรมาภิบาลที่ดีขึ้น",
+            "subtitle": "รายงานปัญหาพลเมืองและรับแนวทางการแก้ไขที่ได้รับแรงผลักดันจาก AI เชื่อมต่อกับเจ้าหน้าที่ผ่าน Telegram เพื่อมีส่วนร่วมในการปกครองอย่างกระตือรือร้น",
+            "cta": "รายงานปัญหา",
+            "cards": {
+                "reportCitizens": "รายงานร่วมกับพลเมือง",
+                "generatedCivic": "ธรรมาภิบาลพลเมืองที่สร้างขึ้น",
+                "govServices": "บริการจากรัฐบาล",
+                "questionGov": "ตั้งคำถามกับรัฐบาล",
+                "govDesc": "ส่งคำถาม เรียกร้องความโปร่งใส และให้เจ้าหน้าที่รับผิดชอบ",
+                "communityAction": "การดำเนินการของชุมชน",
+                "joinMovement": "เข้าร่วมขบวนการ"
+            },
+            "features": {
+                "publicTrust": "ความเชื่อมั่นของสาธารณชน",
+                "ethics": "& จริยธรรม",
+                "civicIssues": "ปัญหาพลเมือง",
+                "reportProblems": "รายงานปัญหา",
+                "voiceVote": "ส่งเสียงของคุณ",
+                "shareIdeas": "แบ่งปันแนวคิดเพื่อนโยบายที่ดีขึ้น",
+                "aiDemocracy": "AI เพื่อประชาธิปไตย",
+                "civicActions": "& การดำเนินการของพลเมือง",
+                "aiDesc": "การใช้เทคโนโลยีเพื่อธรรมาภิบาลที่โปร่งใสและการแก้ไขที่รวดเร็วยิ่งขึ้น",
+                "smartAnalysis": "การวิเคราะห์อัจฉริยะ",
+                "aiInsights": "ข้อมูลเชิงลึกที่ขับเคลื่อนด้วย AI",
+                "citizenCount": "พลเมืองที่ใช้งานอยู่ 10k+",
+                "secureSafe": "มั่นคงและปลอดภัย",
+                "verifiedReports": "รายงานที่ได้รับการตรวจสอบแล้ว",
+                "quickAction": "ดำเนินการอย่างรวดเร็ว",
+                "responseTime": "เวลาตอบสนอง 24 ชม."
+            }
+        }
+    },
+    "common": {
+        "loading": "กำลังโหลด...",
+        "error": "ข้อผิดพลาด",
+        "submit": "ส่ง",
+        "cancel": "ยกเลิก",
+        "yes": "ใช่",
+        "no": "ไม่",
+        "back": "กลับ"
+    }
+}

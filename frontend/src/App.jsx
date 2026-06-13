@@ -1,8 +1,13 @@
 import React, { useState, useEffect, Suspense, useCallback, useMemo } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
-import ChatWidget from './components/ChatWidget';
+import { useTranslation } from 'react-i18next';
 import { fakeRecentIssues, fakeResponsibilityMap } from './fakeData';
 import { issuesApi, miscApi } from './api';
+import Navbar from './components/Navbar';
+import Footer from './components/Footer';
+import FloatingButtonsManager from './components/FloatingButtonsManager';
+import LoadingSpinner from './components/LoadingSpinner';
+import { DarkModeProvider, useDarkMode } from './contexts/DarkModeContext';
 
 // Lazy Load Views
 const Landing = React.lazy(() => import('./views/Landing'));
@@ -32,12 +37,27 @@ const TreeDetector = React.lazy(() => import('./TreeDetector'));
 const PestDetector = React.lazy(() => import('./PestDetector'));
 const SmartScanner = React.lazy(() => import('./SmartScanner'));
 const GrievanceAnalysis = React.lazy(() => import('./views/GrievanceAnalysis'));
+const NoiseDetector = React.lazy(() => import('./NoiseDetector'));
+const CivicEyeDetector = React.lazy(() => import('./CivicEyeDetector'));
+const CivicInsight = React.lazy(() => import('./views/CivicInsight'));
+const MyReportsView = React.lazy(() => import('./views/MyReportsView'));
+
+
+// Auth Components
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import Login from './views/Login';
+import ProtectedRoute from './components/ProtectedRoute';
+import AdminDashboard from './views/AdminDashboard';
 
 // Create a wrapper component to handle state management
 function AppContent() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
+  const { isDarkMode } = useDarkMode();
+  const { user, loading: authLoading } = useAuth();
   const [responsibilityMap, setResponsibilityMap] = useState(null);
+  const [stats, setStats] = useState({ total_issues: 0, resolved_issues: 0, pending_issues: 0 });
   const [actionPlan, setActionPlan] = useState(null);
   const [maharashtraRepInfo, setMaharashtraRepInfo] = useState(null);
   const [recentIssues, setRecentIssues] = useState([]);
@@ -48,20 +68,13 @@ function AppContent() {
   const [success, setSuccess] = useState(null);
 
   // Safe navigation helper
-  const navigateToView = (view) => {
-    const validViews = ['home', 'map', 'report', 'action', 'mh-rep', 'pothole', 'garbage', 'vandalism', 'flood', 'infrastructure', 'parking', 'streetlight', 'fire', 'animal', 'blocked', 'tree', 'pest', 'smart-scan', 'grievance-analysis'];
+  const navigateToView = useCallback((view) => {
+    const validViews = ['home', 'map', 'report', 'action', 'mh-rep', 'pothole', 'garbage', 'vandalism', 'flood', 'infrastructure', 'parking', 'streetlight', 'fire', 'animal', 'blocked', 'tree', 'pest', 'smart-scan', 'grievance-analysis', 'noise', 'safety-check', 'insight', 'my-reports', 'grievance', 'login', 'signup'];
     if (validViews.includes(view)) {
       navigate(view === 'home' ? '/' : `/${view}`);
-    }
-  }, [error, success]);
-
-  // Safe navigation helper with validation
-  const navigateToView = useCallback((view) => {
-    if (VALID_VIEWS.includes(view.split('/')[0])) {
-      navigate(`/${view}`);
     } else {
       console.warn(`Attempted to navigate to invalid view: ${view}`);
-      navigate('/home');
+      navigate('/');
     }
   }, [navigate]);
 
@@ -123,13 +136,10 @@ function AppContent() {
     try {
       const data = await miscApi.getResponsibilityMap();
       setResponsibilityMap(data);
-      setSuccess('Responsibility map loaded successfully');
-      navigate('/map');
+      // Removed automatic navigate('/map') from here to prevent loops
     } catch (error) {
       console.error("Failed to fetch responsibility map", error);
-      setError("Using sample data - unable to load responsibility map");
       setResponsibilityMap(fakeResponsibilityMap);
-      navigate('/map');
     } finally {
       setLoading(false);
     }
@@ -137,17 +147,32 @@ function AppContent() {
 
   // Initialize on mount
   useEffect(() => {
+    fetchResponsibilityMap();
     fetchRecentIssues();
-  }, [fetchRecentIssues]);
+
+    // Fetch system stats
+    miscApi.getStats()
+      .then(data => setStats(data))
+      .catch(err => console.error("Failed to fetch stats", err));
+  }, [fetchRecentIssues, fetchResponsibilityMap]);
+
+  // Handle Auth Loading to prevent blinking
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-950">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
+      </div>
+    );
+  }
 
   // Check if we're on the landing page
   const isLandingPage = location.pathname === '/';
 
-  // If on landing page, render it without the main layout
-  if (isLandingPage) {
+  // If on landing page and NOT logged in, render it without the main layout
+  if (isLandingPage && !user) {
     return (
       <Suspense fallback={
-        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-950 dark:to-blue-950 transition-colors duration-300">
           <LoadingSpinner size="xl" variant="primary" />
         </div>
       }>
@@ -158,120 +183,184 @@ function AppContent() {
 
   // Otherwise render the main app layout
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-100 text-gray-900 font-sans overflow-hidden">
-      {/* Animated background elements */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-orange-300/10 rounded-full blur-3xl animate-pulse-slow"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-300/10 rounded-full blur-3xl animate-pulse-slow animation-delay-1000"></div>
+    <div className={`min-h-screen relative overflow-hidden font-sans transition-colors duration-300 ${isDarkMode ? 'dark bg-gray-950 text-white' : 'bg-gray-50 text-gray-900'}`}>
+      {/* Animated background elements - Optimized for performance */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        <div
+          className="absolute top-1/4 left-1/4 w-72 h-72 bg-orange-300/10 dark:bg-orange-300/5 rounded-full blur-3xl animate-pulse-slow transition-colors duration-300"
+          style={{ willChange: 'opacity' }}
+        ></div>
+        <div
+          className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-300/10 dark:bg-blue-300/5 rounded-full blur-3xl animate-pulse-slow animation-delay-1000 transition-colors duration-300"
+          style={{ willChange: 'opacity' }}
+        ></div>
       </div>
 
       <FloatingButtonsManager setView={navigateToView} />
 
-      <div className="relative z-10">
-        <AppHeader />
+      <div className="relative z-10 flex flex-col min-h-screen w-full">
+        <Navbar />
 
-        <Suspense fallback={
-          <div className="flex justify-center my-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-          </div>
-        }>
-          <Routes>
-            <Route
-              path="/"
-              element={
-                <Home
-                  setView={navigateToView}
-                  fetchResponsibilityMap={fetchResponsibilityMap}
-                  recentIssues={recentIssues}
-                  handleUpvote={handleUpvote}
-                />
-              }
-            />
-            <Route
-              path="/map"
-              element={
-                <MapView
-                  responsibilityMap={responsibilityMap}
-                  setView={navigateToView}
-                />
-              }
-            />
-            <Route
-              path="/report"
-              element={
-                <ReportForm
-                  setView={navigateToView}
-                  setLoading={setLoading}
-                  setError={setError}
-                  setActionPlan={setActionPlan}
-                  loading={loading}
-                />
-              }
-            />
-            <Route
-              path="/action"
-              element={
-                <ActionView
-                  actionPlan={actionPlan}
-                  setActionPlan={setActionPlan}
-                  setView={navigateToView}
-                />
-              }
-            />
-            <Route
-              path="/mh-rep"
-              element={
-                <MaharashtraRepView
-                  setView={navigateToView}
-                  setLoading={setLoading}
-                  setError={setError}
-                  setMaharashtraRepInfo={setMaharashtraRepInfo}
-                  maharashtraRepInfo={maharashtraRepInfo}
-                  loading={loading}
-                />
-              }
-            />
-            <Route path="/pothole" element={<PotholeDetector onBack={() => navigate('/')} />} />
-            <Route path="/garbage" element={<GarbageDetector onBack={() => navigate('/')} />} />
-            <Route
-              path="/vandalism"
-              element={
-                <div className="flex flex-col h-full">
-                  <button onClick={() => navigate('/')} className="self-start text-blue-600 mb-2">
+        <main className="flex-grow">
+          <Suspense fallback={<LoadingSpinner size="lg" />}>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Login initialIsLogin={false} />} />
+              <Route
+                path="/admin/dashboard"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <Home
+                      setView={navigateToView}
+                      fetchResponsibilityMap={fetchResponsibilityMap}
+                      recentIssues={recentIssues}
+                      handleUpvote={handleUpvote}
+                      loadMoreIssues={loadMoreIssues}
+                      hasMore={hasMore}
+                      loadingMore={loadingMore}
+                      stats={stats}
+                    />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/home"
+                element={
+                  <ProtectedRoute>
+                    <Home
+                      setView={navigateToView}
+                      fetchResponsibilityMap={fetchResponsibilityMap}
+                      recentIssues={recentIssues}
+                      handleUpvote={handleUpvote}
+                      loadMoreIssues={loadMoreIssues}
+                      hasMore={hasMore}
+                      loadingMore={loadingMore}
+                      stats={stats}
+                    />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/map"
+                element={
+                  <ProtectedRoute>
+                    <MapView
+                      responsibilityMap={responsibilityMap}
+                      setView={navigateToView}
+                    />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/report"
+                element={
+                  <ReportForm
+                    setView={navigateToView}
+                    setLoading={setLoading}
+                    setError={setError}
+                    setActionPlan={setActionPlan}
+                    loading={loading}
+                  />
+                }
+              />
+              <Route
+                path="/action"
+                element={
+                  <ActionView
+                    actionPlan={actionPlan}
+                    setActionPlan={setActionPlan}
+                    setView={navigateToView}
+                  />
+                }
+              />
+              <Route
+                path="/mh-rep"
+                element={
+                  <MaharashtraRepView
+                    setView={navigateToView}
+                    setLoading={setLoading}
+                    setError={setError}
+                    setMaharashtraRepInfo={setMaharashtraRepInfo}
+                    maharashtraRepInfo={maharashtraRepInfo}
+                    loading={loading}
+                  />
+                }
+              />
+              <Route path="/verify/:id" element={<VerifyView />} />
+              <Route path="/pothole" element={<PotholeDetector onBack={() => navigate('/')} />} />
+              <Route path="/garbage" element={<GarbageDetector onBack={() => navigate('/')} />} />
+              <Route
+                path="/vandalism"
+                element={
+                  <div className="flex flex-col h-full">
+                    <button onClick={() => navigate('/')} className="self-start text-blue-600 mb-2">
+                      &larr; Back
+                    </button>
+                    <VandalismDetector />
+                  </div>
+                }
+              />
+              <Route
+                path="/flood"
+                element={
+                  <div className="flex flex-col h-full">
+                    <button onClick={() => navigate('/')} className="self-start text-blue-600 mb-2">
+                      &larr; Back
+                    </button>
+                    <FloodDetector />
+                  </div>
+                }
+              />
+              <Route
+                path="/infrastructure"
+                element={<InfrastructureDetector onBack={() => navigate('/')} />}
+              />
+              <Route path="/parking" element={<IllegalParkingDetector onBack={() => navigate('/')} />} />
+              <Route path="/streetlight" element={<StreetLightDetector onBack={() => navigate('/')} />} />
+              <Route path="/fire" element={<FireDetector onBack={() => navigate('/')} />} />
+              <Route path="/animal" element={<StrayAnimalDetector onBack={() => navigate('/')} />} />
+              <Route path="/blocked" element={<BlockedRoadDetector onBack={() => navigate('/')} />} />
+              <Route path="/tree" element={<TreeDetector onBack={() => navigate('/')} />} />
+              <Route path="/pest" element={<PestDetector onBack={() => navigate('/')} />} />
+              <Route path="/smart-scan" element={<SmartScanner onBack={() => navigate('/')} />} />
+              <Route path="/grievance-analysis" element={<GrievanceAnalysis onBack={() => navigate('/')} />} />
+              <Route path="/noise" element={<NoiseDetector onBack={() => navigate('/')} />} />
+              <Route path="/safety-check" element={
+                <div className="flex flex-col h-full p-4">
+                  <button onClick={() => navigate('/')} className="self-start text-blue-600 mb-2 font-bold">
                     &larr; Back
                   </button>
-                  <VandalismDetector />
+                  <CivicEyeDetector onBack={() => navigate('/')} />
                 </div>
-              }
-            />
-            <Route
-              path="/flood"
-              element={
-                <div className="flex flex-col h-full">
-                  <button onClick={() => navigate('/')} className="self-start text-blue-600 mb-2">
-                    &larr; Back
-                  </button>
-                  <FloodDetector />
-                </div>
-              }
-            />
-            <Route
-              path="/infrastructure"
-              element={<InfrastructureDetector onBack={() => navigate('/')} />}
-            />
-            <Route path="/parking" element={<IllegalParkingDetector onBack={() => navigate('/')} />} />
-            <Route path="/streetlight" element={<StreetLightDetector onBack={() => navigate('/')} />} />
-            <Route path="/fire" element={<FireDetector onBack={() => navigate('/')} />} />
-            <Route path="/animal" element={<StrayAnimalDetector onBack={() => navigate('/')} />} />
-            <Route path="/blocked" element={<BlockedRoadDetector onBack={() => navigate('/')} />} />
-            <Route path="/tree" element={<TreeDetector onBack={() => navigate('/')} />} />
-            <Route path="/pest" element={<PestDetector onBack={() => navigate('/')} />} />
-            <Route path="/smart-scan" element={<SmartScanner onBack={() => navigate('/')} />} />
-            <Route path="/grievance-analysis" element={<GrievanceAnalysis onBack={() => navigate('/')} />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
-
+              } />
+              <Route path="/my-reports" element={
+                <ProtectedRoute>
+                  <MyReportsView />
+                </ProtectedRoute>
+              } />
+              <Route path="/grievance" element={
+                <ProtectedRoute>
+                  <GrievanceView />
+                </ProtectedRoute>
+              } />
+              <Route path="/insight" element={
+                <ProtectedRoute>
+                  <CivicInsight />
+                </ProtectedRoute>
+              } />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+        </main>
       </div>
     </div>
   );
@@ -281,7 +370,11 @@ function AppContent() {
 function App() {
   return (
     <Router>
-      <AppContent />
+      <DarkModeProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </DarkModeProvider>
     </Router>
   );
 }

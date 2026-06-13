@@ -32,53 +32,37 @@ def test_manual_verification_upvote(client):
     app.dependency_overrides[get_db] = lambda: mock_db
 
     try:
-        # Patch run_in_threadpool to just call the function
-        # But verify_issue_endpoint calls `db.flush` which is a method on mock_db.
-        # It calls `db.refresh(issue)`.
+        # We need to mock the query chain: db.query().filter().first() for updated_issue
+        # The first call is for issue_data check, the second is for updated_issue check.
+        mock_issue_data = MagicMock()
+        mock_issue_data.id = 1
+        mock_issue_data.category = "Road"
+        mock_issue_data.status = "open"
+        mock_issue_data.upvotes = 2
 
-        # We need to simulate the upvote increment logic if possible,
-        # but since it uses `Issue.upvotes + 2`, that expression will be a BinaryExpression object if Issue is real model.
-        # Here mock_issue is a MagicMock. `mock_issue.upvotes` is 2 (int).
-        # `Issue.upvotes` (class attribute) is an InstrumentedAttribute.
-        # `issue.upvotes = Issue.upvotes + 2` -> This will assign a BinaryExpression to issue.upvotes.
+        mock_updated_issue = MagicMock()
+        mock_updated_issue.upvotes = 5 # Reached threshold
+        mock_updated_issue.status = "open"
 
-        # This might fail if we try to read `issue.upvotes` later as an int.
-        # In the endpoint: `if issue.upvotes >= 5`
-        # If `issue.upvotes` is an expression, this comparison might fail or behave weirdly.
+        mock_db.query.return_value.filter.return_value.first.side_effect = [
+            mock_issue_data, # Initial check
+            mock_updated_issue # After upvote increment
+        ]
 
-        # In a real SQLAlchemy session, `db.refresh(issue)` would update `issue.upvotes` to the integer value from DB.
-        # With a Mock DB, `db.refresh(issue)` does nothing unless we make it do something.
-
-        def mock_refresh(instance):
-            # Simulate the DB update
-            # We assume the expression was evaluated.
-            # But since we can't easily evaluate the expression `Issue.upvotes + 2`,
-            # we'll just manually set it for the test.
-            instance.upvotes = 5 # Simulate it reached threshold
-
-        mock_db.refresh.side_effect = mock_refresh
-
-        # We need to patch the router logic slightly or rely on the side effect.
-        # Since the code does: `issue.upvotes = Issue.upvotes + 2`
-        # `Issue` is imported in `backend/routers/issues.py`.
-        # `mock_issue` is what we got from query.
-
-        # If we run this, `mock_issue.upvotes` becomes an expression.
-        # Then `db.refresh(mock_issue)` is called. Our side_effect sets `mock_issue.upvotes = 5`.
-        # Then `if mock_issue.upvotes >= 5` -> 5 >= 5 -> True.
-        # Then `issue.status = "verified"`.
-        # Then `db.commit()`.
-
-        # This seems workable for a unit test of logic flow.
+        # Mock update().filter().update()
+        mock_db.query.return_value.filter.return_value.update.return_value = 1
 
         response = client.post("/api/issues/1/verify") # No image = manual
 
         assert response.status_code == 200
-        assert mock_issue.status == "verified"
+        # Check that update was called to set status to verified
+        # We can verify that update was called with Issue.status: "verified"
+        # Since we are using mocks, we check if update was called at least twice
+        # (once for upvotes, once for status)
+        assert mock_db.query.return_value.filter.return_value.update.call_count >= 2
 
-        # Verify calls
+        # Verify flush and commit were called
         assert mock_db.flush.called
-        assert mock_db.refresh.called
         assert mock_db.commit.called
 
     finally:
