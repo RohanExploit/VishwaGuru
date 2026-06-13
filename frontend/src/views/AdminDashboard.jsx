@@ -12,10 +12,6 @@ const AdminDashboard = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
 
-    useEffect(() => {
-        fetchData();
-    }, [activeTab]);
-
     const fetchData = async () => {
         setLoading(true);
         setError(null);
@@ -24,15 +20,22 @@ const AdminDashboard = () => {
                 const data = await adminApi.getUsers();
                 setUsers(data);
             } else if (activeTab === 'stats') {
-                const data = await adminApi.getStats();
+                const data = await adminApi.getSystemStats();
                 setStats(data);
             }
         } catch (err) {
             setError(err.message || 'Failed to fetch data');
+            if (err.response?.status === 401 || err.response?.status === 403) {
+                logout();
+            }
         } finally {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchData();
+    }, [activeTab]);
 
     const handleLogout = () => {
         logout();

@@ -31,7 +31,8 @@ const MyReportsView = () => {
 
   useEffect(() => {
     if (localStorage.getItem('user_email')) {
-        fetchIssues(localStorage.getItem('user_email'));
+        const email = localStorage.getItem('user_email');
+        if (email) fetchIssues(email);
     }
   }, []);
 

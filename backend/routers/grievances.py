@@ -6,6 +6,7 @@ import os
 import json
 import logging
 import hashlib
+import threading
 from datetime import datetime, timezone
 
 from backend.database import get_db
@@ -27,7 +28,13 @@ from backend.closure_service import ClosureService
 
 logger = logging.getLogger(__name__)
 
+# Global lock for synchronizing follower blockchain operations
+follower_blockchain_lock = threading.Lock()
+
 router = APIRouter()
+
+# Global lock for follower blockchain operations to prevent race conditions during hash chaining
+follower_blockchain_lock = threading.Lock()
 
 @router.get("/grievances", response_model=List[GrievanceSummaryResponse])
 def get_grievances(
