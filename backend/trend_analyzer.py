@@ -47,8 +47,7 @@ class TrendAnalyzer:
     def _extract_keywords(self, issues: List[Issue]) -> List[Tuple[str, int]]:
         """
         Extract top 5 most common keywords from issue descriptions.
-        Optimized: Batch join and lowercasing reduces string object creation overhead.
-        Using pre-compiled regex for faster tokenization.
+        Optimized: Batches string operations and uses pre-compiled regex for speed.
         """
         # Optimization: Pre-compiled regex and bulk lower() reduce tokenization overhead by ~20-25%
         text = " ".join([issue.description for issue in issues if issue.description]).lower()
