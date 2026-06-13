@@ -182,6 +182,7 @@ class GrievanceFollower(Base):
     __tablename__ = "grievance_followers"
     __table_args__ = (
         Index("ix_follower_user_grievance", "user_email", "grievance_id"),
+        Index("ix_follower_prev_hash", "previous_integrity_hash"),
     )
 
     id = Column(Integer, primary_key=True, index=True)

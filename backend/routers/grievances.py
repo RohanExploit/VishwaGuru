@@ -33,6 +33,9 @@ follower_blockchain_lock = threading.Lock()
 
 router = APIRouter()
 
+# Thread lock for synchronizing blockchain operations
+follower_blockchain_lock = threading.Lock()
+
 @router.get("/grievances", response_model=List[GrievanceSummaryResponse])
 def get_grievances(
     status: Optional[str] = Query(None, description="Filter by status"),
@@ -294,12 +297,12 @@ def follow_grievance(
         if existing:
             raise HTTPException(status_code=400, detail="Already following this grievance")
         
-        # Create follower record with blockchain integrity chaining
+        # Blockchain integrity logic with O(1) cache and thread-safety
         with follower_blockchain_lock:
-            # Performance Optimization: O(1) hash lookup using thread-safe cache
+            # Performance Boost: Use thread-safe cache to eliminate DB query for last hash
             prev_hash = follower_last_hash_cache.get("last_hash")
             if prev_hash is None:
-                # Cache miss: Fetch only the integrity_hash from the last record
+                # Cache miss: Fetch only the last hash from DB
                 last_follower = db.query(GrievanceFollower.integrity_hash).order_by(GrievanceFollower.id.desc()).first()
                 prev_hash = last_follower[0] if last_follower and last_follower[0] else ""
                 follower_last_hash_cache.set(data=prev_hash, key="last_hash")
@@ -308,6 +311,7 @@ def follow_grievance(
             hash_content = f"{grievance_id}|{request.user_email}|{prev_hash}"
             integrity_hash = hashlib.sha256(hash_content.encode()).hexdigest()
 
+            # Create follower record
             follower = GrievanceFollower(
                 grievance_id=grievance_id,
                 user_email=request.user_email,
@@ -316,6 +320,7 @@ def follow_grievance(
             )
             db.add(follower)
             db.commit()
+            db.refresh(follower)
 
             # Update cache after successful commit
             follower_last_hash_cache.set(data=integrity_hash, key="last_hash")
@@ -673,6 +678,7 @@ def verify_closure_confirmation_blockchain(
         logger.error(f"Error verifying closure confirmation blockchain for {confirmation_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to verify confirmation integrity")
 
+
 @router.get("/follower/{follower_id}/blockchain-verify", response_model=BlockchainVerificationResponse)
 def verify_follower_blockchain(
     follower_id: int,
@@ -683,6 +689,7 @@ def verify_follower_blockchain(
     Optimized: Uses previous_integrity_hash column for O(1) verification.
     """
     try:
+        # Performance Boost: Use column projection to avoid loading full model instances
         follower = db.query(
             GrievanceFollower.grievance_id,
             GrievanceFollower.user_email,
