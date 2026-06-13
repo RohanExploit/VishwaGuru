@@ -630,7 +630,7 @@ async def verify_blockchain_integrity(issue_id: int, db: Session = Depends(get_d
     Verify the cryptographic integrity of a report using the blockchain-style chaining.
     Optimized: Uses column projection to fetch only needed data and stored previous hash.
     """
-    # Fetch current issue data
+    # Fetch current issue data including its recorded link to previous block
     current_issue = await run_in_threadpool(
         lambda: db.query(
             Issue.id, Issue.description, Issue.category, Issue.integrity_hash, Issue.previous_integrity_hash
@@ -665,6 +665,7 @@ async def verify_blockchain_integrity(issue_id: int, db: Session = Depends(get_d
     return BlockchainVerificationResponse(
         is_valid=is_valid,
         current_hash=current_issue.integrity_hash,
+        previous_hash=prev_hash,
         computed_hash=computed_hash,
         message=message
     )

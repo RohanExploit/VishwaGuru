@@ -1,0 +1,22 @@
+{
+  "severity_keywords": {
+    "critical": ["urgent", "danger", "emergency", "immediate"],
+    "high": ["important", "serious", "major"],
+    "medium": ["moderate", "issue", "problem"],
+    "low": ["minor", "small", "cosmetic"]
+  },
+  "category_keywords": {
+    "Pothole": ["pothole", "road", "crack", "street"],
+    "Water Supply": ["water", "leak", "pipe", "no water"],
+    "Garbage": ["garbage", "trash", "waste", "bin", "dump"],
+    "Electricity": ["power", "electricity", "outage", "light", "wire"]
+  },
+  "category_multipliers": {
+    "Pothole": 1.0,
+    "Water Supply": 1.0,
+    "Garbage": 1.0,
+    "Electricity": 1.0
+  },
+  "duplicate_search_radius": 50.0,
+  "audit_history": []
+}
