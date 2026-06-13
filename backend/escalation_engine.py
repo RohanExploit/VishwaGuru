@@ -16,6 +16,7 @@ from backend.cache import audit_last_hash_cache
 from backend.config import get_config
 from backend.routing_service import RoutingService
 from backend.sla_config_service import SLAConfigService
+from backend.cache import audit_last_hash_cache
 
 class EscalationEngine:
     """
