@@ -62,6 +62,6 @@
 **Learning:** Inconsistent application of `/api` prefixes between `main.py` router mounting and test suite request paths can lead to 404 errors during testing, even if the logic is correct. This is especially prevalent when multiple agents work on the same codebase with different assumptions about global prefixes.
 **Action:** Always verify that `app.include_router` in `backend/main.py` uses `prefix="/api"` if the test suite (e.g., `tests/test_blockchain.py`) expects it. If a router is mounted without a prefix, ensure tests are updated or the prefix is added to `main.py` to maintain repository-wide consistency.
 
-## 2026-02-12 - Atomicity of Blockchain Cache Updates
-**Learning:** When using in-memory caches to store the "latest hash" for blockchain chaining, updating the cache before a successful database commit can lead to "cache poisoning" if the transaction fails. This results in future records being chained to a hash that doesn't exist in the database, breaking the chain's integrity.
-**Action:** Always perform `cache.set()` operations for blockchain hashes strictly after `db.commit()` has succeeded.
+## 2026-02-15 - Pydantic Serialization Overhead
+**Learning:** Instantiating Pydantic models in high-volume loops only to call `.model_dump(mode='json')` immediately after adds significant and unnecessary performance overhead (approx. 4x slower than native dictionaries) because it forces data through validation and re-serialization pipelines before final `json.dumps()`.
+**Action:** When preparing JSON payloads for caching or returning `Response(content=...)`, construct raw standard Python dictionaries directly rather than using intermediate Pydantic models.
