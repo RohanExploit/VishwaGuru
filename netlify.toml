@@ -1,5 +1,5 @@
 [build]
-  command = "npm install && npm run build"
+  command = "npm ci && npm run build"
   publish = "dist"
   base = "frontend"
 
@@ -19,3 +19,4 @@
 [build.environment]
   NODE_VERSION = "20"
   CI = ""
+  NODE_VERSION = "20"
