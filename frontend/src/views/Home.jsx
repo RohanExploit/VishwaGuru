@@ -32,9 +32,6 @@ const CameraCheckModal = ({ onClose }) => {
     return () => {
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
-        if (videoRef.current) {
-          videoRef.current.srcObject = null;
-        }
       }
     };
   }, []);
@@ -61,31 +58,6 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loa
   const navigate = useNavigate();
   const [showCameraCheck, setShowCameraCheck] = React.useState(false);
   const [showScrollTop, setShowScrollTop] = React.useState(false);
-
-  const [trackingId, setTrackingId] = React.useState('');
-  const [trackingResult, setTrackingResult] = React.useState(null);
-  const [isTracking, setIsTracking] = React.useState(false);
-
-  const handleTrackIssue = async (e) => {
-    e.preventDefault();
-    if (!trackingId.trim()) return;
-
-    setIsTracking(true);
-    setTrackingResult(null);
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/issues/${trackingId}`);
-      if (response.ok) {
-        const data = await response.json();
-        setTrackingResult({ success: true, data });
-      } else {
-        setTrackingResult({ success: false, error: 'Issue not found. Please check the ID.' });
-      }
-    } catch (error) {
-      setTrackingResult({ success: false, error: 'Error connecting to server.' });
-    }
-    setIsTracking(false);
-  };
-
   const totalImpact = stats?.resolved_issues || 0;
 
   // Scroll to top function
@@ -111,8 +83,8 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loa
         { id: 'blocked', label: t('home.issues.blockedRoad'), icon: <XCircle size={24} />, color: 'text-gray-600', bg: 'bg-gray-50' },
         { id: 'parking', label: t('home.issues.illegalParking'), icon: <Truck size={24} />, color: 'text-rose-600', bg: 'bg-rose-50' },
         { id: 'streetlight', label: t('home.issues.darkStreet'), icon: <Lightbulb size={24} />, color: 'text-slate-600', bg: 'bg-slate-50' },
-        { id: 'traffic-sign', label: t('home.issues.trafficSign'), icon: <Signpost size={24} />, color: 'text-yellow-600', bg: 'bg-yellow-50' },
-        { id: 'abandoned-vehicle', label: t('home.issues.abandonedVehicle'), icon: <Car size={24} />, color: 'text-gray-600', bg: 'bg-gray-50' },
+        { id: 'report', label: t('home.issues.trafficSign'), icon: <Signpost size={24} />, color: 'text-yellow-600', bg: 'bg-yellow-50' },
+        { id: 'report', label: t('home.issues.abandonedVehicle'), icon: <Car size={24} />, color: 'text-gray-600', bg: 'bg-gray-50' },
       ]
     },
     {
@@ -126,10 +98,10 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loa
         { id: 'animal', label: t('home.issues.strayAnimal'), icon: <Dog size={24} />, color: 'text-amber-600', bg: 'bg-amber-50' },
         { id: 'pest', label: t('home.issues.pestControl'), icon: <Bug size={24} />, color: 'text-amber-800', bg: 'bg-amber-50' },
         { id: 'noise', label: t('home.issues.noise'), icon: <Volume2 size={24} />, color: 'text-purple-600', bg: 'bg-purple-50' },
-        { id: 'crowd', label: t('home.issues.crowd'), icon: <Users size={24} />, color: 'text-red-500', bg: 'bg-red-50' },
-        { id: 'waterleak', label: t('home.issues.waterLeak'), icon: <Waves size={24} />, color: 'text-blue-500', bg: 'bg-blue-50' },
-        { id: 'waste', label: t('home.issues.waste'), icon: <Recycle size={24} />, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-        { id: 'accessibility', label: t('home.issues.accessibility', { defaultValue: 'Accessibility' }), icon: <Accessibility size={24} />, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+        { id: 'report', label: t('home.issues.crowd'), icon: <Users size={24} />, color: 'text-red-500', bg: 'bg-red-50' },
+        { id: 'report', label: t('home.issues.waterLeak'), icon: <Waves size={24} />, color: 'text-blue-500', bg: 'bg-blue-50' },
+        { id: 'report', label: t('home.issues.waste'), icon: <Recycle size={24} />, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+        { id: 'report', label: t('home.issues.accessibility', { defaultValue: 'Accessibility' }), icon: <Accessibility size={24} />, color: 'text-indigo-600', bg: 'bg-indigo-50' },
       ]
     },
     {
@@ -137,7 +109,6 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loa
       icon: <Monitor size={20} className="text-gray-600" />,
       items: [
         { id: 'safety-check', label: t('home.issues.civicEye'), icon: <Eye size={24} />, color: 'text-blue-600', bg: 'bg-blue-50' },
-        { id: 'severity', label: t('home.issues.severity', { defaultValue: 'Severity Check' }), icon: <Activity size={24} />, color: 'text-rose-600', bg: 'bg-rose-50' },
         { id: 'my-reports', label: t('home.issues.myReports'), icon: <CheckCircle size={24} />, color: 'text-teal-600', bg: 'bg-teal-50' },
         { id: 'grievance', label: t('home.issues.grievanceManagement'), icon: <AlertTriangle size={24} />, color: 'text-orange-600', bg: 'bg-orange-50' },
         { id: 'stats', label: t('home.issues.viewStats'), icon: <Activity size={24} />, color: 'text-indigo-600', bg: 'bg-indigo-50' },
@@ -150,50 +121,6 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loa
   return (
     <>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12 pb-24 relative z-10">
-
-        {/* Issue Tracker Component */}
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 mb-8 mt-8">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="bg-indigo-100 p-2 rounded-xl text-indigo-600">
-              <Search size={24} />
-            </div>
-            <h3 className="text-xl font-bold">Track Your Issue</h3>
-          </div>
-          <form onSubmit={handleTrackIssue} className="flex gap-2">
-            <input
-              type="text"
-              placeholder="Enter Tracking ID (e.g., 1)"
-              className="flex-1 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              value={trackingId}
-              onChange={(e) => setTrackingId(e.target.value)}
-            />
-            <button
-              type="submit"
-              disabled={isTracking}
-              className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-700 transition disabled:opacity-70"
-            >
-              {isTracking ? 'Tracking...' : 'Track'}
-            </button>
-          </form>
-
-          {trackingResult && trackingResult.success && (
-            <div className="mt-4 p-4 bg-green-50 rounded-xl border border-green-100">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-bold text-green-800 uppercase text-sm">Status: {trackingResult.data.status}</span>
-                <span className="text-xs text-green-600">{new Date(trackingResult.data.created_at).toLocaleDateString()}</span>
-              </div>
-              <p className="text-green-900 font-medium">{trackingResult.data.category}</p>
-              <p className="text-sm text-green-700 mt-1 line-clamp-2">{trackingResult.data.description}</p>
-            </div>
-          )}
-
-          {trackingResult && !trackingResult.success && (
-            <div className="mt-4 p-3 bg-red-50 text-red-600 rounded-xl text-sm font-medium">
-              {trackingResult.error}
-            </div>
-          )}
-        </div>
-
 
         {/* Privacy Shield - High End Style */}
         <div className="flex justify-end pt-4">
@@ -480,21 +407,6 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loa
               <div className="text-left">
                 <span className="block text-xl font-black leading-tight">Emotion Detector</span>
                 <span className="text-[10px] font-black uppercase tracking-widest opacity-80 mt-1 block">HF AI Integration</span>
-              </div>
-            </motion.button>
-
-            <motion.button
-              whileHover={{ scale: 1.02, x: 5 }}
-              onClick={() => navigate('/content-moderator')}
-              className="w-full flex items-center gap-6 bg-rose-600 rounded-[2rem] p-8 text-white shadow-2xl shadow-rose-500/20 group overflow-hidden relative"
-            >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-              <div className="p-4 bg-white/20 rounded-2xl">
-                <Shield size={28} />
-              </div>
-              <div className="text-left">
-                <span className="block text-xl font-black leading-tight">Content Filter</span>
-                <span className="text-[10px] font-black uppercase tracking-widest opacity-80 mt-1 block">HF NSFW AI</span>
               </div>
             </motion.button>
 

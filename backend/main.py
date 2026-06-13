@@ -95,10 +95,10 @@ async def lifespan(app: FastAPI):
     # Startup: Initialize Grievance Service (needed for escalation engine)
     try:
         logger.info("Initializing grievance service...")
-        # Re-enabled to avoid redundant re-initialization on every manual escalation
-        grievance_service = GrievanceService()
-        app.state.grievance_service = grievance_service
-        logger.info("Grievance service initialized successfully.")
+        # Temporarily disabled for local dev
+        # grievance_service = GrievanceService()
+        # app.state.grievance_service = grievance_service
+        logger.info("Grievance service initialization skipped for local dev.")
     except Exception as e:
         logger.error(f"Error initializing grievance service: {e}", exc_info=True)
 

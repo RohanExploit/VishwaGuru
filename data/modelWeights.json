@@ -1,0 +1,79 @@
+{
+  "categoryWeights": {
+    "Pothole": 5,
+    "Garbage": 3,
+    "Water Supply": 4,
+    "Streetlight": 2,
+    "Flooding": 8
+  },
+  "duplicateThreshold": 0.7799999999999999,
+  "lastUpdated": "2026-04-02T19:10:00.096Z",
+  "history": [
+    {
+      "date": "2026-03-27",
+      "categoryWeights": {
+        "Pothole": 5,
+        "Garbage": 3,
+        "Water Supply": 4,
+        "Streetlight": 2,
+        "Flooding": 8
+      },
+      "duplicateThreshold": 0.84
+    },
+    {
+      "date": "2026-03-27",
+      "categoryWeights": {
+        "Pothole": 5,
+        "Garbage": 3,
+        "Water Supply": 4,
+        "Streetlight": 2,
+        "Flooding": 8
+      },
+      "duplicateThreshold": 0.83
+    },
+    {
+      "date": "2026-03-27",
+      "categoryWeights": {
+        "Pothole": 5,
+        "Garbage": 3,
+        "Water Supply": 4,
+        "Streetlight": 2,
+        "Flooding": 8
+      },
+      "duplicateThreshold": 0.82
+    },
+    {
+      "date": "2026-04-02",
+      "categoryWeights": {
+        "Pothole": 5,
+        "Garbage": 3,
+        "Water Supply": 4,
+        "Streetlight": 2,
+        "Flooding": 8
+      },
+      "duplicateThreshold": 0.8099999999999999
+    },
+    {
+      "date": "2026-04-02",
+      "categoryWeights": {
+        "Pothole": 5,
+        "Garbage": 3,
+        "Water Supply": 4,
+        "Streetlight": 2,
+        "Flooding": 8
+      },
+      "duplicateThreshold": 0.7999999999999999
+    },
+    {
+      "date": "2026-04-02",
+      "categoryWeights": {
+        "Pothole": 5,
+        "Garbage": 3,
+        "Water Supply": 4,
+        "Streetlight": 2,
+        "Flooding": 8
+      },
+      "duplicateThreshold": 0.7899999999999999
+    }
+  ]
+}

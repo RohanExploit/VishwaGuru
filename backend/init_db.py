@@ -177,19 +177,6 @@ def migrate_db():
                 if not index_exists("grievances", "ix_grievances_category_status"):
                     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_grievances_category_status ON grievances (category, status)"))
 
-            # Escalation Audits Table Migrations
-            if inspector.has_table("escalation_audits"):
-                if not column_exists("escalation_audits", "integrity_hash"):
-                    conn.execute(text("ALTER TABLE escalation_audits ADD COLUMN integrity_hash VARCHAR"))
-                    logger.info("Added integrity_hash column to escalation_audits")
-
-                if not column_exists("escalation_audits", "previous_integrity_hash"):
-                    conn.execute(text("ALTER TABLE escalation_audits ADD COLUMN previous_integrity_hash VARCHAR"))
-                    logger.info("Added previous_integrity_hash column to escalation_audits")
-
-                if not index_exists("escalation_audits", "ix_escalation_audits_previous_integrity_hash"):
-                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_escalation_audits_previous_integrity_hash ON escalation_audits (previous_integrity_hash)"))
-
             # Field Officer Visits Table (Issue #288)
             # This table is newly created for field officer check-in system
             if not inspector.has_table("field_officer_visits"):
@@ -218,34 +205,6 @@ def migrate_db():
 
                 if not index_exists("field_officer_visits", "ix_field_officer_visits_previous_visit_hash"):
                     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_field_officer_visits_previous_visit_hash ON field_officer_visits (previous_visit_hash)"))
-
-            # Resolution Evidence Table Migrations
-            if inspector.has_table("resolution_evidence"):
-                if not column_exists("resolution_evidence", "integrity_hash"):
-                    conn.execute(text("ALTER TABLE resolution_evidence ADD COLUMN integrity_hash VARCHAR"))
-                    logger.info("Added integrity_hash column to resolution_evidence")
-
-                if not column_exists("resolution_evidence", "previous_integrity_hash"):
-                    conn.execute(text("ALTER TABLE resolution_evidence ADD COLUMN previous_integrity_hash VARCHAR"))
-                    logger.info("Added previous_integrity_hash column to resolution_evidence")
-
-                if not index_exists("resolution_evidence", "ix_resolution_evidence_previous_integrity_hash"):
-                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_resolution_evidence_previous_integrity_hash ON resolution_evidence (previous_integrity_hash)"))
-                    logger.info("Created index ix_resolution_evidence_previous_integrity_hash")
-
-            # Resolution Proof Tokens Table Migrations
-            if inspector.has_table("resolution_proof_tokens"):
-                if not column_exists("resolution_proof_tokens", "valid_from"):
-                    conn.execute(text("ALTER TABLE resolution_proof_tokens ADD COLUMN valid_from DATETIME"))
-                    logger.info("Added valid_from column to resolution_proof_tokens")
-
-                if not column_exists("resolution_proof_tokens", "valid_until"):
-                    conn.execute(text("ALTER TABLE resolution_proof_tokens ADD COLUMN valid_until DATETIME"))
-                    logger.info("Added valid_until column to resolution_proof_tokens")
-
-                if not column_exists("resolution_proof_tokens", "nonce"):
-                    conn.execute(text("ALTER TABLE resolution_proof_tokens ADD COLUMN nonce VARCHAR"))
-                    logger.info("Added nonce column to resolution_proof_tokens")
 
             logger.info("Database migration check completed successfully.")
 

@@ -4,17 +4,13 @@ Core engine for evaluating and performing grievance escalations based on SLA and
 """
 
 import datetime
-import hashlib
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from backend.models import Grievance, Jurisdiction, EscalationAudit, GrievanceStatus, JurisdictionLevel, EscalationReason, SeverityLevel
 from backend.database import SessionLocal
-from backend.cache import audit_last_hash_cache
-from backend.config import get_config
 from backend.routing_service import RoutingService
 from backend.sla_config_service import SLAConfigService
-from backend.cache import audit_last_hash_cache
 
 class EscalationEngine:
     """
@@ -45,10 +41,8 @@ class EscalationEngine:
         Returns:
             Dictionary with escalation statistics
         """
-        should_close = False
         if db is None:
             db = SessionLocal()
-            should_close = True
 
         try:
             # Get grievances that need evaluation
@@ -69,7 +63,7 @@ class EscalationEngine:
             }
 
         finally:
-            if should_close:
+            if db is not SessionLocal():
                 db.close()
 
     def escalate_grievance_severity(self, grievance_id: int, new_severity: SeverityLevel,
@@ -86,10 +80,8 @@ class EscalationEngine:
         Returns:
             True if escalation successful
         """
-        should_close = False
         if db is None:
             db = SessionLocal()
-            should_close = True
 
         try:
             grievance = db.query(Grievance).filter(Grievance.id == grievance_id).first()
@@ -116,7 +108,7 @@ class EscalationEngine:
             print(f"Error escalating grievance severity: {e}")
             return False
         finally:
-            if should_close:
+            if db is not SessionLocal():
                 db.close()
 
     def manual_escalate(self, grievance_id: int, reason: str = "", db: Session = None) -> bool:
@@ -131,10 +123,8 @@ class EscalationEngine:
         Returns:
             True if escalation successful
         """
-        should_close = False
         if db is None:
             db = SessionLocal()
-            should_close = True
 
         try:
             grievance = db.query(Grievance).filter(Grievance.id == grievance_id).first()
@@ -144,7 +134,7 @@ class EscalationEngine:
             return self._escalate_grievance(grievance, EscalationReason.MANUAL, db, reason)
 
         finally:
-            if should_close:
+            if db is not SessionLocal():
                 db.close()
 
     def _get_grievances_for_evaluation(self, db: Session) -> List[Grievance]:
@@ -180,13 +170,7 @@ class EscalationEngine:
         """
         # Check if SLA is breached
         now = datetime.datetime.now(datetime.timezone.utc)
-
-        # Handle naive datetimes from SQLite
-        deadline = grievance.sla_deadline
-        if deadline and deadline.tzinfo is None:
-            deadline = deadline.replace(tzinfo=datetime.timezone.utc)
-
-        if deadline >= now:
+        if grievance.sla_deadline >= now:
             return False
 
         # Check if escalation is possible
@@ -264,41 +248,17 @@ class EscalationEngine:
             # Recalculate SLA
             self._recalculate_sla(grievance, db)
 
-            # Blockchain integrity logic for escalation history
-            from backend.cache import audit_last_hash_cache
-            prev_hash = audit_last_hash_cache.get("last_hash")
-
-            if prev_hash is None:
-                # Cache miss: Fetch only the last hash from DB
-                last_audit = db.query(EscalationAudit.integrity_hash).order_by(EscalationAudit.id.desc()).first()
-                prev_hash = last_audit[0] if last_audit and last_audit[0] else ""
-                audit_last_hash_cache.set(data=prev_hash, key="last_hash")
-
-            # Chaining: hash(grievance_id|prev_auth|new_auth|reason|prev_hash)
-            hash_content = f"{grievance.id}|{previous_authority}|{grievance.assigned_authority}|{reason.value}|{prev_hash}"
-            integrity_hash = hashlib.sha256(hash_content.encode()).hexdigest()
-
             # Create audit log
             audit_log = EscalationAudit(
                 grievance_id=grievance.id,
                 previous_authority=previous_authority,
                 new_authority=grievance.assigned_authority,
                 reason=reason,
-                notes=notes,
-                integrity_hash=integrity_hash,
-                previous_integrity_hash=prev_hash
+                notes=notes
             )
 
             db.add(audit_log)
             db.commit()
-
-            # Update cache after successful commit
-            audit_last_hash_cache.set(data=integrity_hash, key="last_hash")
-
-            # Invalidate read caches since escalation changed status/authority
-            from backend.cache import user_issues_cache, recent_issues_cache
-            user_issues_cache.clear()
-            recent_issues_cache.invalidate("escalation_stats")
 
             return True
 

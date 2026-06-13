@@ -1,10 +1,9 @@
-from sqlalchemy import func
 import json
 import os
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any
-from sqlalchemy.orm import Session, load_only
+from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from backend.models import Issue, EscalationAudit, EscalationReason, Grievance
@@ -14,11 +13,7 @@ from backend.database import SessionLocal
 
 logger = logging.getLogger(__name__)
 
-SNAPSHOT_DIR = os.path.join(
-    os.path.dirname(__file__),
-    'data',
-    'dailySnapshots')
-
+SNAPSHOT_DIR = os.path.join(os.path.dirname(__file__), 'data', 'dailySnapshots')
 
 class CivicIntelligenceEngine:
     def __init__(self):
@@ -29,8 +24,7 @@ class CivicIntelligenceEngine:
         Retrieves the most recent daily snapshot file, if available.
         """
         try:
-            files = sorted([f for f in os.listdir(
-                SNAPSHOT_DIR) if f.endswith('.json')])
+            files = sorted([f for f in os.listdir(SNAPSHOT_DIR) if f.endswith('.json')])
             if not files:
                 return {}
 
@@ -49,7 +43,7 @@ class CivicIntelligenceEngine:
         """
         logger.info("Starting Daily Civic Intelligence Refinement...")
         db = SessionLocal()
-        weight_changes = []  # For auditability
+        weight_changes = [] # For auditability
 
         try:
             now = datetime.now(timezone.utc)
@@ -57,8 +51,7 @@ class CivicIntelligenceEngine:
 
             # 1. Fetch Data
             # Get issues created in the last 24 hours
-            issues_24h = db.query(Issue).filter(
-                Issue.created_at >= last_24h).all()
+            issues_24h = db.query(Issue).filter(Issue.created_at >= last_24h).all()
 
             # 2. Trend Analysis
             trends = trend_analyzer.analyze(issues_24h)
@@ -66,9 +59,7 @@ class CivicIntelligenceEngine:
 
             # 2a. Spike Detection
             previous_snapshot = self._get_previous_snapshot()
-            previous_dist = previous_snapshot.get(
-                'trends', {}).get(
-                'category_distribution', {})
+            previous_dist = previous_snapshot.get('trends', {}).get('category_distribution', {})
             current_dist = trends.get('category_distribution', {})
 
             spikes = []
@@ -80,7 +71,7 @@ class CivicIntelligenceEngine:
                     if increase > 0.5:
                         spikes.append(category)
                 elif prev_count == 0 and count > 5:
-                    spikes.append(category)  # New surge
+                     spikes.append(category) # New surge
 
             trends['spikes'] = spikes
 
@@ -94,12 +85,10 @@ class CivicIntelligenceEngine:
             # Map upgrades to categories
             upgrade_counts = {}
 
-            # Optimization: Fetch all related grievances in one query to avoid
-            # N+1
+            # Optimization: Fetch all related grievances in one query to avoid N+1
             grievance_ids = [audit.grievance_id for audit in upgrades]
             if grievance_ids:
-                grievances = db.query(Grievance).filter(
-                    Grievance.id.in_(grievance_ids)).all()
+                grievances = db.query(Grievance).filter(Grievance.id.in_(grievance_ids)).all()
                 grievance_map = {g.id: g for g in grievances}
             else:
                 grievance_map = {}
@@ -107,12 +96,11 @@ class CivicIntelligenceEngine:
             for audit in upgrades:
                 grievance = grievance_map.get(audit.grievance_id)
                 if grievance and grievance.category:
-                    upgrade_counts[grievance.category] = upgrade_counts.get(
-                        grievance.category, 0) + 1
+                    upgrade_counts[grievance.category] = upgrade_counts.get(grievance.category, 0) + 1
 
             # Update weights if threshold met
             for category, count in upgrade_counts.items():
-                if count >= 3:  # Threshold for auto-adjustment
+                if count >= 3: # Threshold for auto-adjustment
                     old_multipliers = adaptive_weights.get_category_multipliers()
                     old_weight = old_multipliers.get(category, 1.0)
 
@@ -129,12 +117,11 @@ class CivicIntelligenceEngine:
                         "new_weight": new_weight,
                         "reason": f"Manual severity upgrades count: {count}"
                     })
-                    logger.info(
-                        f"Increased severity weight for {category} due to {count} manual upgrades.")
+                    logger.info(f"Increased severity weight for {category} due to {count} manual upgrades.")
 
             # 4. Duplicate Pattern Learning (Radius Adjustment)
-            # Heuristic: High clustering density suggests we might need larger radius
-            # to group effectively or if many duplicate issues are found.
+            # Heuristic: High clustering density suggests we might need larger radius to group effectively
+            # or if many duplicate/nearby issues are found.
             clusters = trends.get('clusters', [])
             cluster_count = len(clusters)
 
@@ -142,16 +129,13 @@ class CivicIntelligenceEngine:
             radius_update_factor = 1.0
 
             if cluster_count > 5:
-                # High clustering activity, increase radius slightly to ensure
-                # we catch neighbors
+                # High clustering activity, increase radius slightly to ensure we catch neighbors
                 radius_update_factor = 1.05
             elif cluster_count == 0 and len(issues_24h) > 50:
-                # Many issues but no clusters detected - radius might be too
-                # small
+                # Many issues but no clusters detected - radius might be too small
                 radius_update_factor = 1.05
             elif len(issues_24h) < 10 and current_radius > 50:
-                # Low volume, maybe decay radius back to default if it grew too
-                # large
+                # Low volume, maybe decay radius back to default if it grew too large
                 radius_update_factor = 0.95
 
             if radius_update_factor != 1.0:
@@ -188,18 +172,11 @@ class CivicIntelligenceEngine:
             logger.info(f"Daily snapshot saved to {filepath}")
 
         except Exception as e:
-            logger.error(
-                f"Error in daily civic intelligence cycle: {e}",
-                exc_info=True)
+            logger.error(f"Error in daily civic intelligence cycle: {e}", exc_info=True)
         finally:
             db.close()
 
-    def _calculate_index(self,
-                         db: Session,
-                         issues_24h: List[Issue],
-                         trends: Dict[str,
-                                      Any]) -> Dict[str,
-                                                    Any]:
+    def _calculate_index(self, db: Session, issues_24h: List[Issue], trends: Dict[str, Any]) -> Dict[str, Any]:
         """
         Generates a daily 'Civic Intelligence Index' score.
         """
@@ -209,9 +186,9 @@ class CivicIntelligenceEngine:
         last_24h = now - timedelta(hours=24)
 
         # Count resolutions in last 24h
-        resolved_count = db.query(func.count(Issue.id)).filter(
+        resolved_count = db.query(Issue).filter(
             Issue.resolved_at >= last_24h
-        ).scalar() or 0
+        ).count()
 
         # Score Calculation
         # Base: 70
@@ -238,9 +215,7 @@ class CivicIntelligenceEngine:
             # In real app, we would reverse geocode the lat/lon to get Ward/Area name
             # For now, just return lat/lon
             top_cluster = clusters[0]
-            lat = top_cluster['latitude']
-            lon = top_cluster['longitude']
-            highest_severity_region = f"Lat {lat:.4f}, Lon {lon:.4f}"
+            highest_severity_region = f"Lat {top_cluster['latitude']:.4f}, Lon {top_cluster['longitude']:.4f}"
 
         return {
             "score": round(score, 1),
@@ -249,6 +224,5 @@ class CivicIntelligenceEngine:
             "top_emerging_concern": top_cat,
             "highest_severity_region": highest_severity_region
         }
-
 
 civic_intelligence_engine = CivicIntelligenceEngine()

@@ -38,8 +38,7 @@ from backend.hf_api_service import (
     detect_graffiti_art_clip,
     detect_traffic_sign_clip,
     detect_abandoned_vehicle_clip,
-    detect_facial_emotion, detect_objects_hf,
-    detect_nsfw_content,
+    detect_facial_emotion,
 
 )
 from backend.dependencies import get_http_client
@@ -467,28 +466,6 @@ async def detect_abandoned_vehicle_endpoint(image: UploadFile = File(...)):
         logger.error(f"Abandoned vehicle detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.post("/detect-nsfw")
-async def detect_nsfw_endpoint(
-    request: Request,
-    image: UploadFile = File(...)
-):
-    """
-    Analyze image for NSFW content using Hugging Face inference.
-    """
-    img_data = await validate_uploaded_file(image)
-    if "error" in img_data:
-        raise HTTPException(status_code=400, detail=img_data["error"])
-
-    processed_bytes = await run_in_threadpool(process_uploaded_image, img_data["bytes"])
-    client = get_http_client(request)
-    result = await detect_nsfw_content(processed_bytes, client)
-
-    if "error" in result:
-        # Do not expose internal error details; return a generic message.
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-    return result
-
 @router.post("/detect-emotion")
 async def detect_emotion_endpoint(
     request: Request,
@@ -506,28 +483,6 @@ async def detect_emotion_endpoint(
     result = await detect_facial_emotion(processed_bytes, client)
 
     if "error" in result:
-        # Do not expose internal error details; return a generic message.
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-    return result
-
-@router.post("/detect-objects")
-async def detect_objects_endpoint(
-    request: Request,
-    image: UploadFile = File(...)
-):
-    """
-    Detects general objects in the image using Hugging Face object detection model.
-    """
-    img_data = await validate_uploaded_file(image)
-    if "error" in img_data:
-        raise HTTPException(status_code=400, detail=img_data["error"])
-
-    processed_bytes = await run_in_threadpool(process_uploaded_image, img_data["bytes"])
-    client = get_http_client(request)
-    result = await detect_objects_hf(processed_bytes, client)
-
-    if "error" in result:
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=500, detail=result["error"])
 
     return result

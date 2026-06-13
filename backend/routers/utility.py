@@ -53,29 +53,25 @@ def get_stats(db: Session = Depends(get_db)):
     if cached_stats:
         return Response(content=cached_stats, media_type="application/json")
 
-    # Optimized: Standard GROUP BY is measurably faster than multiple func.sum(case(...)) aggregations
+    # Optimized: Single aggregate query for both category breakdowns and system-wide totals
     # This eliminates a redundant database roundtrip
-    cat_status_counts = db.query(
+    cat_counts = db.query(
         Issue.category,
-        Issue.status,
-        func.count(Issue.id)
-    ).group_by(Issue.category, Issue.status).all()
+        func.count(Issue.id).label("total"),
+        func.sum(case((Issue.status.in_(['resolved', 'verified']), 1), else_=0)).label("resolved")
+    ).group_by(Issue.category).all()
 
     total = 0
     resolved = 0
     issues_by_category = {}
 
-    for cat, status, count in cat_status_counts:
+    for cat, cat_total, cat_resolved in cat_counts:
         # Sum up system-wide totals
-        total += count
-
-        # Handle resolving logic based on string or enum value
-        status_val = status.value if hasattr(status, 'value') else status
-        if status_val in ['resolved', 'verified']:
-            resolved += count
+        total += cat_total or 0
+        resolved += int(cat_resolved or 0)
 
         # Build category breakdown
-        issues_by_category[cat] = issues_by_category.get(cat, 0) + count
+        issues_by_category[cat] = cat_total or 0
 
     # Pending is everything else
     pending = total - resolved
@@ -89,7 +85,7 @@ def get_stats(db: Session = Depends(get_db)):
 
     data = response.model_dump(mode='json')
     json_data = json.dumps(data)
-    recent_issues_cache.set(data=json_data, key="stats")
+    recent_issues_cache.set(json_data, "stats")
 
     return Response(content=json_data, media_type="application/json")
 
@@ -146,17 +142,17 @@ def get_leaderboard(db: Session = Depends(get_db)):
         except Exception:
             masked_email = "User***"
 
-        leaderboard_data.append({
-            "user_email": masked_email,
-            "reports_count": count,
-            "total_upvotes": upvotes or 0,
-            "rank": idx + 1
-        })
+        leaderboard_data.append(LeaderboardEntry(
+            user_email=masked_email,
+            reports_count=count,
+            total_upvotes=upvotes or 0,
+            rank=idx + 1
+        ).model_dump(mode='json'))
 
     response_data = {"leaderboard": leaderboard_data}
     json_data = json.dumps(response_data)
     # Cache for 5 minutes to reduce DB load on frequent hits
-    recent_issues_cache.set(data=json_data, key=cache_key)
+    recent_issues_cache.set(json_data, cache_key)
 
     return Response(content=json_data, media_type="application/json")
 

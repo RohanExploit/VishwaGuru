@@ -223,8 +223,6 @@ class EscalationAuditResponse(BaseModel):
     new_authority: str = Field(..., description="New authority after escalation")
     timestamp: datetime = Field(..., description="When the escalation occurred")
     reason: str = Field(..., description="Reason for escalation (SLA_BREACH, SEVERITY_UPGRADE, MANUAL)")
-    integrity_hash: Optional[str] = Field(None, description="Cryptographic integrity seal")
-    previous_integrity_hash: Optional[str] = Field(None, description="Linked hash for O(1) verification")
 
 class GrievanceSummaryResponse(BaseModel):
     id: int = Field(..., description="Grievance ID")

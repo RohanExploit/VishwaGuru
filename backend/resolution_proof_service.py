@@ -1,4 +1,3 @@
-from sqlalchemy import func
 """
 Resolution Proof Service - Cryptographic Verification for OnGround Resolution (Issue #292)
 
@@ -20,24 +19,12 @@ from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, Optional, List, Tuple
 
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 
 from backend.models import (
-    Grievance,
-    ResolutionProofToken,
-    ResolutionEvidence,
-    EvidenceAuditLog,
-    VerificationStatus,
-    GrievanceStatus,
-)
-from backend.config import get_config, get_auth_config
-from backend.cache import (
-    resolution_last_hash_cache,
-    evidence_audit_last_hash_cache,
-    rpt_last_hash_cache,
+    Grievance, ResolutionProofToken, ResolutionEvidence,
+    EvidenceAuditLog, VerificationStatus, GrievanceStatus
 )
 from backend.config import get_config
-from backend.cache import resolution_last_hash_cache
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +62,9 @@ class ResolutionProofService:
         """
         key = ResolutionProofService._get_signing_key()
         signature = hmac.new(
-            key.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256
+            key.encode("utf-8"),
+            payload.encode("utf-8"),
+            hashlib.sha256
         ).hexdigest()
         return signature
 
@@ -90,9 +79,7 @@ class ResolutionProofService:
     # ──────────────────────────────────────────────
 
     @staticmethod
-    def _haversine_distance(
-        lat1: float, lon1: float, lat2: float, lon2: float
-    ) -> float:
+    def _haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
         """
         Calculate the great-circle distance between two GPS points in meters.
         Uses the Haversine formula.
@@ -103,10 +90,8 @@ class ResolutionProofService:
         dlat = lat2_r - lat1_r
         dlon = lon2_r - lon1_r
 
-        a = (
-            math.sin(dlat / 2) ** 2
-            + math.cos(lat1_r) * math.cos(lat2_r) * math.sin(dlon / 2) ** 2
-        )
+        a = (math.sin(dlat / 2) ** 2 +
+             math.cos(lat1_r) * math.cos(lat2_r) * math.sin(dlon / 2) ** 2)
         c = 2 * math.asin(math.sqrt(a))
 
         return EARTH_RADIUS_METERS * c
@@ -117,7 +102,7 @@ class ResolutionProofService:
         evidence_lon: float,
         geofence_lat: float,
         geofence_lon: float,
-        radius_meters: float,
+        radius_meters: float
     ) -> Tuple[bool, float]:
         """
         Check whether the evidence GPS is within the geofence radius.
@@ -137,7 +122,7 @@ class ResolutionProofService:
         grievance_id: int,
         authority_email: str,
         db: Session,
-        geofence_radius: float = DEFAULT_GEOFENCE_RADIUS,
+        geofence_radius: float = DEFAULT_GEOFENCE_RADIUS
     ) -> ResolutionProofToken:
         """
         Generate a one-time Resolution Proof Token.
@@ -178,7 +163,7 @@ class ResolutionProofService:
         # Invalidate any existing unused tokens for this grievance
         db.query(ResolutionProofToken).filter(
             ResolutionProofToken.grievance_id == grievance_id,
-            ResolutionProofToken.is_used == False,  # noqa: E712
+            ResolutionProofToken.is_used == False  # noqa: E712
         ).update({"is_used": True, "used_at": datetime.now(timezone.utc)})
 
         # Generate token fields
@@ -188,42 +173,19 @@ class ResolutionProofService:
         valid_until = now + timedelta(minutes=TOKEN_VALIDITY_MINUTES)
 
         # Build signing payload
-        payload = json.dumps(
-            {
-                "token_id": token_uuid,
-                "grievance_id": grievance_id,
-                "authority_email": authority_email,
-                "geofence_lat": grievance.latitude,
-                "geofence_lon": grievance.longitude,
-                "geofence_radius": geofence_radius,
-                "valid_from": now.isoformat(),
-                "valid_until": valid_until.isoformat(),
-                "nonce": nonce,
-            },
-            sort_keys=True,
-        )
+        payload = json.dumps({
+            "token_id": token_uuid,
+            "grievance_id": grievance_id,
+            "authority_email": authority_email,
+            "geofence_lat": grievance.latitude,
+            "geofence_lon": grievance.longitude,
+            "geofence_radius": geofence_radius,
+            "valid_from": now.isoformat(),
+            "valid_until": valid_until.isoformat(),
+            "nonce": nonce
+        }, sort_keys=True)
 
         signature = ResolutionProofService._sign_payload(payload)
-
-        # Blockchain Chaining: Use thread-safe cache for O(1) retrieval
-        prev_hash = rpt_last_hash_cache.get("last_hash")
-        if prev_hash is None:
-            # Cache miss: Fetch only the last hash from DB
-            last_record = (
-                db.query(ResolutionProofToken.integrity_hash)
-                .order_by(ResolutionProofToken.id.desc())
-                .first()
-            )
-            prev_hash = last_record[0] if last_record and last_record[0] else ""
-            rpt_last_hash_cache.set(data=prev_hash, key="last_hash")
-
-        # Chaining: hash(token_uuid|grievance_id|signature|prev_hash)
-        # Using HMAC for integrity hash as well to ensure authenticity
-        secret_key = get_auth_config().secret_key
-        hash_content = f"{token_uuid}|{grievance_id}|{signature}|{prev_hash}"
-        integrity_hash = hmac.new(
-            secret_key.encode("utf-8"), hash_content.encode("utf-8"), hashlib.sha256
-        ).hexdigest()
 
         # Create token record
         token = ResolutionProofToken(
@@ -235,20 +197,14 @@ class ResolutionProofService:
             geofence_radius_meters=geofence_radius,
             valid_from=now,
             valid_until=valid_until,
-            expires_at=valid_until,  # Explicitly set for DB constraint/legacy compatibility
             nonce=nonce,
             token_signature=signature,
             is_used=False,
-            integrity_hash=integrity_hash,
-            previous_integrity_hash=prev_hash,
         )
 
         db.add(token)
         db.commit()
         db.refresh(token)
-
-        # Update global cache after successful commit
-        rpt_last_hash_cache.set(data=integrity_hash, key="last_hash")
 
         logger.info(
             f"Generated RPT {token_uuid} for grievance {grievance_id} "
@@ -278,11 +234,9 @@ class ResolutionProofService:
         Raises:
             ValueError: If any validation check fails
         """
-        token = (
-            db.query(ResolutionProofToken)
-            .filter(ResolutionProofToken.token_id == token_id)
-            .first()
-        )
+        token = db.query(ResolutionProofToken).filter(
+            ResolutionProofToken.token_id == token_id
+        ).first()
 
         if not token:
             raise ValueError(f"Token {token_id} not found")
@@ -307,25 +261,20 @@ class ResolutionProofService:
         if valid_from.tzinfo is None:
             valid_from = valid_from.replace(tzinfo=timezone.utc)
 
-        payload = json.dumps(
-            {
-                "token_id": token.token_id,
-                "grievance_id": token.grievance_id,
-                "authority_email": token.authority_email,
-                "geofence_lat": token.geofence_latitude,
-                "geofence_lon": token.geofence_longitude,
-                "geofence_radius": token.geofence_radius_meters,
-                "valid_from": valid_from.isoformat(),
-                "valid_until": valid_until.isoformat(),
-                "nonce": token.nonce,
-            },
-            sort_keys=True,
-        )
+        payload = json.dumps({
+            "token_id": token.token_id,
+            "grievance_id": token.grievance_id,
+            "authority_email": token.authority_email,
+            "geofence_lat": token.geofence_latitude,
+            "geofence_lon": token.geofence_longitude,
+            "geofence_radius": token.geofence_radius_meters,
+            "valid_from": valid_from.isoformat(),
+            "valid_until": valid_until.isoformat(),
+            "nonce": token.nonce
+        }, sort_keys=True)
 
         if not ResolutionProofService._verify_signature(payload, token.token_signature):
-            raise ValueError(
-                f"Token {token_id} has an invalid signature - possible tampering"
-            )
+            raise ValueError(f"Token {token_id} has an invalid signature - possible tampering")
 
         return token
 
@@ -365,11 +314,9 @@ class ResolutionProofService:
 
         # 2. Validate geofence
         is_inside, distance = ResolutionProofService.validate_geofence(
-            gps_latitude,
-            gps_longitude,
-            token.geofence_latitude,
-            token.geofence_longitude,
-            token.geofence_radius_meters,
+            gps_latitude, gps_longitude,
+            token.geofence_latitude, token.geofence_longitude,
+            token.geofence_radius_meters
         )
 
         if not is_inside:
@@ -396,26 +343,7 @@ class ResolutionProofService:
                 "Evidence capture timestamp is outside the token validity window"
             )
 
-        # 4. Blockchain Chaining
-        # Performance Boost: Use thread-safe cache to eliminate DB query for last hash
-        prev_hash = resolution_last_hash_cache.get("last_hash")
-        if prev_hash is None:
-            # Cache miss: Fetch only the last hash from DB
-            last_record = (
-                db.query(ResolutionEvidence.integrity_hash)
-                .order_by(ResolutionEvidence.id.desc())
-                .first()
-            )
-            prev_hash = last_record[0] if last_record and last_record[0] else ""
-            resolution_last_hash_cache.set(data=prev_hash, key="last_hash")
-
-        # Chaining: hash(token_id|grievance_id|evidence_hash|prev_hash)
-        chain_content = (
-            f"{token.token_id}|{token.grievance_id}|{evidence_hash}|{prev_hash}"
-        )
-        integrity_hash = hashlib.sha256(chain_content.encode()).hexdigest()
-
-        # 5. Check for duplicate hashes
+        # 4. Check for duplicate hashes
         duplicates = ResolutionProofService._check_duplicate_hash(evidence_hash, db)
         if duplicates:
             dup_ids = [d.grievance_id for d in duplicates]
@@ -440,19 +368,6 @@ class ResolutionProofService:
         bundle_str = json.dumps(metadata_bundle, sort_keys=True)
         server_signature = ResolutionProofService._sign_payload(bundle_str)
 
-        # 5b. Implement cryptographic chaining (Issue #BLOCKCHAIN-003)
-        # Performance Boost: Use thread-safe cache for O(1) last hash retrieval
-        prev_hash = resolution_last_hash_cache.get("last_hash")
-        if prev_hash is None:
-            # Cache miss: fetch ONLY the last hash from DB
-            last_record = db.query(ResolutionEvidence.integrity_hash).order_by(ResolutionEvidence.id.desc()).first()
-            prev_hash = last_record[0] if last_record and last_record[0] else ""
-            resolution_last_hash_cache.set(data=prev_hash, key="last_hash")
-
-        # Chaining logic: hash(evidence_hash|token_id|prev_hash)
-        chain_payload = f"{evidence_hash}|{token.token_id}|{prev_hash}"
-        integrity_hash = ResolutionProofService._sign_payload(chain_payload)
-
         # 6. Create evidence record
         evidence = ResolutionEvidence(
             grievance_id=token.grievance_id,
@@ -465,8 +380,6 @@ class ResolutionProofService:
             metadata_bundle=metadata_bundle,
             server_signature=server_signature,
             verification_status=VerificationStatus.VERIFIED,
-            integrity_hash=integrity_hash,
-            previous_integrity_hash=prev_hash
         )
 
         db.add(evidence)
@@ -475,11 +388,8 @@ class ResolutionProofService:
         token.is_used = True
         token.used_at = datetime.now(timezone.utc)
 
-        # Flush to DB to get evidence.id for audit logs within the same transaction
-        db.flush()
-
-        # Update cache AFTER successful commit to prevent poisoning
-        resolution_last_hash_cache.set(data=integrity_hash, key="last_hash")
+        db.commit()
+        db.refresh(evidence)
 
         # 8. Create audit log
         ResolutionProofService._create_audit_log(
@@ -487,10 +397,10 @@ class ResolutionProofService:
             action="created",
             details=f"Evidence submitted and verified. Distance: {distance}m",
             actor_email=token.authority_email,
-            db=db,
+            db=db
         )
 
-        last_audit_hash = ResolutionProofService._create_audit_log(
+        ResolutionProofService._create_audit_log(
             evidence_id=evidence.id,
             action="verified",
             details=(
@@ -498,22 +408,12 @@ class ResolutionProofService:
                 f"Hash: {evidence_hash[:16]}... Signature: valid"
             ),
             actor_email="system",
-            db=db,
-            prev_hash=audit1_hash,
+            db=db
         )
-
-        # 9. Consolidated Transaction Commit
-        # Optimized: Single commit for evidence and all audit logs reduces DB round-trips by 3x.
-        db.commit()
-        db.refresh(evidence)
-
-        # 10. Update Global Integrity Caches (Safe to do only AFTER successful commit)
-        resolution_last_hash_cache.set(data=integrity_hash, key="last_hash")
-        evidence_audit_last_hash_cache.set(data=last_audit_hash, key="last_hash")
 
         logger.info(
             f"Evidence submitted for grievance {token.grievance_id} "
-            f"by {token.authority_email}. Hash: {evidence_hash[:16]}... (Transaction Consolidated)"
+            f"by {token.authority_email}. Hash: {evidence_hash[:16]}..."
         )
 
         return evidence
@@ -538,9 +438,9 @@ class ResolutionProofService:
         # Optimized: Count records and fetch only the latest one to avoid loading all into memory
         evidence_count = db.query(ResolutionEvidence).filter(
             ResolutionEvidence.grievance_id == grievance_id
-        ).count()
+        ).all()
 
-        if evidence_count == 0:
+        if not evidence_records:
             return {
                 "grievance_id": grievance_id,
                 "is_verified": False,
@@ -550,7 +450,7 @@ class ResolutionProofService:
                 "evidence_integrity": False,
                 "evidence_hash": None,
                 "evidence_count": 0,
-                "message": "No resolution evidence found for this grievance",
+                "message": "No resolution evidence found for this grievance"
             }
 
         # Use the most recent evidence
@@ -565,34 +465,26 @@ class ResolutionProofService:
         )
 
         # Check geofence from stored metadata
-        token = (
-            db.query(ResolutionProofToken)
-            .filter(ResolutionProofToken.id == evidence.token_id)
-            .first()
-        )
+        token = db.query(ResolutionProofToken).filter(
+            ResolutionProofToken.id == evidence.token_id
+        ).first()
 
         location_match = False
         if token:
             is_inside, _ = ResolutionProofService.validate_geofence(
-                evidence.gps_latitude,
-                evidence.gps_longitude,
-                token.geofence_latitude,
-                token.geofence_longitude,
-                token.geofence_radius_meters,
+                evidence.gps_latitude, evidence.gps_longitude,
+                token.geofence_latitude, token.geofence_longitude,
+                token.geofence_radius_meters
             )
             location_match = is_inside
 
         is_verified = (
-            signature_valid
-            and location_match
-            and evidence.verification_status == VerificationStatus.VERIFIED
+            signature_valid and
+            location_match and
+            evidence.verification_status == VerificationStatus.VERIFIED
         )
 
-        status_str = (
-            evidence.verification_status.value
-            if evidence.verification_status
-            else "pending"
-        )
+        status_str = evidence.verification_status.value if evidence.verification_status else "pending"
 
         grievance = db.query(Grievance).filter(Grievance.id == grievance_id).first()
         resolution_ts = grievance.resolved_at if grievance else None
@@ -605,12 +497,12 @@ class ResolutionProofService:
             "location_match": location_match,
             "evidence_integrity": signature_valid,
             "evidence_hash": evidence.evidence_hash,
-            "evidence_count": evidence_count,
+            "evidence_count": len(evidence_records),
             "message": (
                 "Resolution verified with cryptographic proof"
                 if is_verified
                 else "Resolution verification incomplete or failed"
-            ),
+            )
         }
 
     # ──────────────────────────────────────────────
@@ -619,7 +511,9 @@ class ResolutionProofService:
 
     @staticmethod
     def _check_duplicate_hash(
-        evidence_hash: str, db: Session, exclude_grievance_id: Optional[int] = None
+        evidence_hash: str,
+        db: Session,
+        exclude_grievance_id: Optional[int] = None
     ) -> List[ResolutionEvidence]:
         """Check if an evidence hash has been used before (anti-reuse)."""
         query = db.query(ResolutionEvidence).filter(
@@ -637,27 +531,24 @@ class ResolutionProofService:
         Public method to check for duplicate evidence hashes across all grievances.
         If found, flags the evidence and creates audit log entries.
         """
-        duplicates = (
-            db.query(ResolutionEvidence)
-            .filter(ResolutionEvidence.evidence_hash == evidence_hash)
-            .all()
-        )
+        duplicates = db.query(ResolutionEvidence).filter(
+            ResolutionEvidence.evidence_hash == evidence_hash
+        ).all()
 
         if len(duplicates) <= 1:
             return {
                 "is_duplicate": False,
                 "duplicate_grievance_ids": [],
-                "message": "No duplicate evidence found",
+                "message": "No duplicate evidence found"
             }
 
         dup_grievance_ids = list(set(d.grievance_id for d in duplicates))
 
         # Flag all duplicates
-        last_audit_hash = None
         for dup in duplicates:
             if dup.verification_status != VerificationStatus.FRAUD_DETECTED:
                 dup.verification_status = VerificationStatus.FLAGGED
-                last_audit_hash = ResolutionProofService._create_audit_log(
+                ResolutionProofService._create_audit_log(
                     evidence_id=dup.id,
                     action="flagged",
                     details=(
@@ -665,24 +556,19 @@ class ResolutionProofService:
                         f"Hash: {evidence_hash[:16]}..."
                     ),
                     actor_email="system",
-                    db=db,
-                    prev_hash=last_audit_hash,
+                    db=db
                 )
 
         db.commit()
 
-        # Update cache after successful commit
-        if last_audit_hash:
-            evidence_audit_last_hash_cache.set(data=last_audit_hash, key="last_hash")
-
         logger.warning(
-            f"Duplicate evidence hash flagged across grievances: {dup_grievance_ids} (Transaction Consolidated)"
+            f"Duplicate evidence hash flagged across grievances: {dup_grievance_ids}"
         )
 
         return {
             "is_duplicate": True,
             "duplicate_grievance_ids": dup_grievance_ids,
-            "message": f"Duplicate evidence detected across {len(dup_grievance_ids)} grievances",
+            "message": f"Duplicate evidence detected across {len(dup_grievance_ids)} grievances"
         }
 
     # ──────────────────────────────────────────────
@@ -697,59 +583,33 @@ class ResolutionProofService:
         actor_email: str,
         db: Session
     ) -> EvidenceAuditLog:
-        """
-        Create an append-only audit log entry with blockchain integrity.
-        Optimized: Uses evidence_audit_last_hash_cache for O(1) chaining.
-        """
-        # Blockchain feature: calculate integrity hash for the audit log
-        prev_hash = evidence_audit_last_hash_cache.get("last_hash")
-        if prev_hash is None:
-            # Cache miss: Fetch only the last hash from DB
-            last_audit = db.query(EvidenceAuditLog.integrity_hash).order_by(EvidenceAuditLog.id.desc()).first()
-            prev_hash = last_audit[0] if last_audit and last_audit[0] else ""
-            evidence_audit_last_hash_cache.set(data=prev_hash, key="last_hash")
-
-        # Chaining logic: hash(evidence_id|action|actor_email|prev_hash)
-        hash_content = f"{evidence_id}|{action}|{actor_email}|{prev_hash}"
-        integrity_hash = hashlib.sha256(hash_content.encode()).hexdigest()
-
+        """Create an append-only audit log entry."""
         log = EvidenceAuditLog(
             evidence_id=evidence_id,
             action=action,
             details=details,
             actor_email=actor_email,
-            integrity_hash=integrity_hash,
-            previous_integrity_hash=prev_hash
         )
         db.add(log)
         db.commit()
         db.refresh(log)
-
-        # Update cache after successful commit
-        evidence_audit_last_hash_cache.set(data=integrity_hash, key="last_hash")
-
         return log
 
     @staticmethod
     def get_audit_trail(grievance_id: int, db: Session) -> List[Dict[str, Any]]:
         """Get the complete audit trail for a grievance's resolution evidence."""
-        evidence_records = (
-            db.query(ResolutionEvidence)
-            .filter(ResolutionEvidence.grievance_id == grievance_id)
-            .all()
-        )
+        evidence_records = db.query(ResolutionEvidence).filter(
+            ResolutionEvidence.grievance_id == grievance_id
+        ).all()
 
         evidence_ids = [e.id for e in evidence_records]
 
         if not evidence_ids:
             return []
 
-        logs = (
-            db.query(EvidenceAuditLog)
-            .filter(EvidenceAuditLog.evidence_id.in_(evidence_ids))
-            .order_by(EvidenceAuditLog.timestamp.asc())
-            .all()
-        )
+        logs = db.query(EvidenceAuditLog).filter(
+            EvidenceAuditLog.evidence_id.in_(evidence_ids)
+        ).order_by(EvidenceAuditLog.timestamp.asc()).all()
 
         return [
             {
@@ -768,16 +628,11 @@ class ResolutionProofService:
     # ──────────────────────────────────────────────
 
     @staticmethod
-    def get_evidence_for_grievance(
-        grievance_id: int, db: Session
-    ) -> List[Dict[str, Any]]:
+    def get_evidence_for_grievance(grievance_id: int, db: Session) -> List[Dict[str, Any]]:
         """Get all evidence records for a grievance."""
-        records = (
-            db.query(ResolutionEvidence)
-            .filter(ResolutionEvidence.grievance_id == grievance_id)
-            .order_by(ResolutionEvidence.created_at.desc())
-            .all()
-        )
+        records = db.query(ResolutionEvidence).filter(
+            ResolutionEvidence.grievance_id == grievance_id
+        ).order_by(ResolutionEvidence.created_at.desc()).all()
 
         return [
             {
@@ -787,9 +642,7 @@ class ResolutionProofService:
                 "gps_latitude": r.gps_latitude,
                 "gps_longitude": r.gps_longitude,
                 "capture_timestamp": r.capture_timestamp,
-                "verification_status": (
-                    r.verification_status.value if r.verification_status else "pending"
-                ),
+                "verification_status": r.verification_status.value if r.verification_status else "pending",
                 "server_signature": r.server_signature,
                 "created_at": r.created_at,
             }

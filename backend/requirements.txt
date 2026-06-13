@@ -31,4 +31,3 @@ SpeechRecognition
 pydub
 googletrans==4.0.2
 langdetect
-pytest-asyncio

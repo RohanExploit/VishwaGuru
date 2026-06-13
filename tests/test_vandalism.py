@@ -14,8 +14,8 @@ def test_read_main(client):
     response = client.get("/")
     assert response.status_code == 200
     json_response = response.json()
-    assert "status" in json_response
-    assert json_response["service"] == "VishwaGuru API"
+    assert "data" in json_response
+    assert json_response["data"]["service"] == "VishwaGuru API"
 
 @patch("backend.utils.magic.from_buffer")
 @patch("backend.routers.detection.detect_vandalism_unified", new_callable=AsyncMock)
