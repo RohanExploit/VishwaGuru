@@ -36,7 +36,8 @@ from backend.hf_api_service import (
     detect_civic_eye_clip,
     detect_graffiti_art_clip,
     detect_traffic_sign_clip,
-    detect_abandoned_vehicle_clip
+    detect_abandoned_vehicle_clip,
+    detect_construction_safety_clip
 )
 from backend.dependencies import get_http_client
 import backend.dependencies

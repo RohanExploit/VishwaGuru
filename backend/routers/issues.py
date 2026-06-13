@@ -15,7 +15,7 @@ from backend.database import get_db
 from backend.models import Issue, PushSubscription
 from backend.schemas import (
     IssueCreateWithDeduplicationResponse, IssueCategory, NearbyIssueResponse,
-    DeduplicationCheckResponse, IssueSummaryResponse, VoteResponse,
+    DeduplicationCheckResponse, IssueSummaryResponse, IssueResponse, VoteResponse,
     IssueStatusUpdateRequest, IssueStatusUpdateResponse, PushSubscriptionRequest,
     PushSubscriptionResponse, BlockchainVerificationResponse
 )
@@ -178,8 +178,15 @@ async def create_issue(
             )
             prev_hash = prev_issue[0] if prev_issue and prev_issue[0] else ""
 
-# Simple but effective SHA-256 chaining
-            hash_content = f"{description}|{category}|{prev_hash}"
+            # Use more robust hashing: include reference_id, lat/lon, user_email
+            # Use fixed float formatting for coordinates to ensure consistency
+            ref_id = str(uuid.uuid4())
+            lat_str = f"{latitude:.7f}" if latitude is not None else "0.0000000"
+            lon_str = f"{longitude:.7f}" if longitude is not None else "0.0000000"
+            email_str = user_email if user_email else "anonymous"
+
+            # Robust SHA-256 chaining
+            hash_content = f"{ref_id}|{description}|{category}|{lat_str}|{lon_str}|{email_str}|{prev_hash}"
             integrity_hash = hashlib.sha256(hash_content.encode()).hexdigest()
 
             # RAG Retrieval (New)
@@ -189,7 +196,7 @@ async def create_issue(
                 initial_action_plan = {"relevant_government_rule": relevant_rule}
 
             new_issue = Issue(
-                reference_id=str(uuid.uuid4()),
+                reference_id=ref_id,
                 description=description,
                 category=category,
                 image_path=image_path,
@@ -199,7 +206,8 @@ async def create_issue(
                 longitude=longitude,
                 location=location,
                 action_plan=initial_action_plan,
-                integrity_hash=integrity_hash
+                integrity_hash=integrity_hash,
+                previous_integrity_hash=prev_hash
             )
 
             # Offload blocking DB operations to threadpool
@@ -617,35 +625,54 @@ def get_user_issues(
 
     return data
 
-@router.get("/api/issues/{issue_id}/blockchain-verify", response_model=BlockchainVerificationResponse)
+@router.get("/api/issues/{issue_id:int}/blockchain-verify", response_model=BlockchainVerificationResponse)
 async def verify_blockchain_integrity(issue_id: int, db: Session = Depends(get_db)):
     """
     Verify the cryptographic integrity of a report using the blockchain-style chaining.
-    Optimized: Uses column projection to fetch only needed data.
+    Optimized: Uses O(1) verification by utilizing stored previous_integrity_hash.
     """
-    # Fetch current issue data
+    # Fetch current issue data including all fields needed for robust hashing
+    # Performance Boost: Use column projection
     current_issue = await run_in_threadpool(
         lambda: db.query(
-            Issue.id, Issue.description, Issue.category, Issue.integrity_hash
+            Issue.id, Issue.reference_id, Issue.description, Issue.category,
+            Issue.latitude, Issue.longitude, Issue.user_email,
+            Issue.integrity_hash, Issue.previous_integrity_hash
         ).filter(Issue.id == issue_id).first()
     )
 
     if not current_issue:
         raise HTTPException(status_code=404, detail="Issue not found")
 
-    # Fetch previous issue's integrity hash to verify the chain
-    prev_issue_hash = await run_in_threadpool(
-        lambda: db.query(Issue.integrity_hash).filter(Issue.id < issue_id).order_by(Issue.id.desc()).first()
-    )
+    # Use stored previous hash for O(1) verification
+    prev_hash = current_issue.previous_integrity_hash
 
-    prev_hash = prev_issue_hash[0] if prev_issue_hash and prev_issue_hash[0] else ""
+    if prev_hash is None:
+        # Fallback for legacy records that don't have previous_integrity_hash stored
+        prev_issue_hash = await run_in_threadpool(
+            lambda: db.query(Issue.integrity_hash).filter(Issue.id < issue_id).order_by(Issue.id.desc()).first()
+        )
+        prev_hash = prev_issue_hash[0] if prev_issue_hash and prev_issue_hash[0] else ""
 
-    # Recompute hash based on current data and previous hash
-    # Chaining logic: hash(description|category|prev_hash)
-    hash_content = f"{current_issue.description}|{current_issue.category}|{prev_hash}"
+    # Recompute robust hash using the same fixed float formatting
+    lat_str = f"{current_issue.latitude:.7f}" if current_issue.latitude is not None else "0.0000000"
+    lon_str = f"{current_issue.longitude:.7f}" if current_issue.longitude is not None else "0.0000000"
+    email_str = current_issue.user_email if current_issue.user_email else "anonymous"
+
+    # Robust SHA-256 chaining logic
+    hash_content = f"{current_issue.reference_id}|{current_issue.description}|{current_issue.category}|{lat_str}|{lon_str}|{email_str}|{prev_hash}"
     computed_hash = hashlib.sha256(hash_content.encode()).hexdigest()
 
+    # Support legacy simple hashes if current_issue doesn't match robust hash
     is_valid = (computed_hash == current_issue.integrity_hash)
+
+    if not is_valid:
+        # Fallback to legacy check for older reports
+        legacy_content = f"{current_issue.description}|{current_issue.category}|{prev_hash}"
+        legacy_hash = hashlib.sha256(legacy_content.encode()).hexdigest()
+        if legacy_hash == current_issue.integrity_hash:
+            is_valid = True
+            computed_hash = legacy_hash
 
     if is_valid:
         message = "Integrity verified. This report is cryptographically sealed and has not been tampered with."
@@ -708,3 +735,18 @@ def get_recent_issues(
     # Thread-safe cache update
     recent_issues_cache.set(data, cache_key)
     return data
+
+@router.get("/api/issues/{issue_id:int}", response_model=IssueResponse)
+async def get_issue(issue_id: int, db: Session = Depends(get_db)):
+    """
+    Get a single issue by ID.
+    Optimized: Direct O(1) lookup by ID.
+    """
+    issue = await run_in_threadpool(
+        lambda: db.query(Issue).filter(Issue.id == issue_id).first()
+    )
+
+    if not issue:
+        raise HTTPException(status_code=404, detail="Issue not found")
+
+    return issue
