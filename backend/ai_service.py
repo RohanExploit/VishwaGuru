@@ -5,7 +5,7 @@ from typing import Optional, Callable, Any
 from functools import lru_cache
 import logging
 import asyncio
-from async_lru import alru_cache
+import time
 
 # Suppress deprecation warnings from google.generativeai
 # We use a context manager to ensure we only suppress warnings for this specific import
@@ -177,11 +177,26 @@ async def generate_action_plan(issue_description: str, category: str, language: 
             details={"error": str(e)}
         ) from e
 
-@alru_cache(maxsize=100)
+# Manual cache for chat
+_chat_cache = {}
+CHAT_CACHE_TTL = 3600 # 1 hour
+MAX_CHAT_CACHE_SIZE = 100
+
 async def chat_with_civic_assistant(query: str) -> str:
     """
     Chat with the civic assistant using Gemini with retry logic.
     """
+    # Check cache
+    cache_key = f"chat_{hash(query)}"
+    current_time = time.time()
+
+    if cache_key in _chat_cache:
+        result, timestamp = _chat_cache[cache_key]
+        if current_time - timestamp < CHAT_CACHE_TTL:
+            return result
+        else:
+            del _chat_cache[cache_key]
+
     async def _chat_with_gemini() -> str:
         """Inner function to chat with Gemini"""
         model = genai.GenerativeModel('gemini-1.5-flash')
@@ -199,7 +214,18 @@ async def chat_with_civic_assistant(query: str) -> str:
         return response.text.strip()
 
     try:
-        return await retry_with_exponential_backoff(_chat_with_gemini, max_retries=2)
+        result = await retry_with_exponential_backoff(_chat_with_gemini, max_retries=2)
+
+        # Update cache
+        if len(_chat_cache) > MAX_CHAT_CACHE_SIZE:
+            # Prune oldest 20%
+            keys_to_remove = list(_chat_cache.keys())[:int(MAX_CHAT_CACHE_SIZE * 0.2)]
+            for k in keys_to_remove:
+                del _chat_cache[k]
+
+        _chat_cache[cache_key] = (result, current_time)
+        return result
+
     except AIServiceException:
         # Already properly wrapped, re-raise
         raise

@@ -66,11 +66,11 @@ def migrate_db():
                     logger.info("Added action_plan column to issues")
 
                 if not column_exists("issues", "integrity_hash"):
-                    conn.execute(text("ALTER TABLE issues ADD COLUMN integrity_hash VARCHAR"))
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN integrity_hash VARCHAR(255)"))
                     logger.info("Added integrity_hash column to issues")
 
                 if not column_exists("issues", "previous_integrity_hash"):
-                    conn.execute(text("ALTER TABLE issues ADD COLUMN previous_integrity_hash VARCHAR"))
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN previous_integrity_hash VARCHAR(255)"))
                     logger.info("Added previous_integrity_hash column to issues")
 
                 # Indexes (using IF NOT EXISTS syntax where supported or check first)
@@ -94,6 +94,37 @@ def migrate_db():
 
                 if not index_exists("issues", "ix_issues_user_email"):
                     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_issues_user_email ON issues (user_email)"))
+
+                if not index_exists("issues", "ix_issues_integrity_hash"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_issues_integrity_hash ON issues (integrity_hash)"))
+
+                if not index_exists("issues", "ix_issues_previous_integrity_hash"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_issues_previous_integrity_hash ON issues (previous_integrity_hash)"))
+
+                # Voice and Language Support Columns (Issue #291)
+                if not column_exists("issues", "submission_type"):
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN submission_type VARCHAR DEFAULT 'text'"))
+                    logger.info("Added submission_type column to issues")
+
+                if not column_exists("issues", "original_language"):
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN original_language VARCHAR"))
+                    logger.info("Added original_language column to issues")
+
+                if not column_exists("issues", "original_text"):
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN original_text TEXT"))
+                    logger.info("Added original_text column to issues")
+
+                if not column_exists("issues", "transcription_confidence"):
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN transcription_confidence FLOAT"))
+                    logger.info("Added transcription_confidence column to issues")
+
+                if not column_exists("issues", "manual_correction_applied"):
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN manual_correction_applied BOOLEAN DEFAULT FALSE"))
+                    logger.info("Added manual_correction_applied column to issues")
+
+                if not column_exists("issues", "audio_file_path"):
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN audio_file_path VARCHAR"))
+                    logger.info("Added audio_file_path column to issues")
 
             # Grievances Table Migrations
             if inspector.has_table("grievances"):
@@ -134,6 +165,28 @@ def migrate_db():
 
                 if not index_exists("grievances", "ix_grievances_category_status"):
                     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_grievances_category_status ON grievances (category, status)"))
+
+            # Field Officer Visits Table (Issue #288)
+            # This table is newly created for field officer check-in system
+            if not inspector.has_table("field_officer_visits"):
+                logger.info("Creating field_officer_visits table...")
+                # Use conn.execute to stay within the transaction
+                Base.metadata.tables['field_officer_visits'].create(bind=conn)
+                logger.info("Created field_officer_visits table")
+            
+            # Indexes for field_officer_visits (run regardless of table creation)
+            if inspector.has_table("field_officer_visits"):
+                if not index_exists("field_officer_visits", "ix_field_officer_visits_issue_id"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_field_officer_visits_issue_id ON field_officer_visits (issue_id)"))
+                
+                if not index_exists("field_officer_visits", "ix_field_officer_visits_officer_email"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_field_officer_visits_officer_email ON field_officer_visits (officer_email)"))
+                
+                if not index_exists("field_officer_visits", "ix_field_officer_visits_status"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_field_officer_visits_status ON field_officer_visits (status)"))
+                
+                if not index_exists("field_officer_visits", "ix_field_officer_visits_check_in_time"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_field_officer_visits_check_in_time ON field_officer_visits (check_in_time)"))
 
             logger.info("Database migration check completed successfully.")
 

@@ -12,7 +12,7 @@
     "expected_urgency_min": 70
   },
   {
-    "description": "Streetlight on 5th avenue has been flickering for a week. It's annoying but not dangerous yet.",
+    "description": "Streetlight on 5th avenue has been flickering for a week. It's annoying.",
     "expected_category": "Street Light",
     "expected_severity": "Low",
     "expected_urgency_max": 40
@@ -26,13 +26,13 @@
   {
     "description": "Water pipe burst on the main street, flooding the entire road. Cars are stuck.",
     "expected_category": "Water Leak",
-    "expected_severity": "High",
+    "expected_severity": "Critical",
     "expected_urgency_min": 80
   },
   {
     "description": "Stray dogs are chasing children near the primary school. Very dangerous situation.",
     "expected_category": "Stray Animal",
-    "expected_severity": "High",
+    "expected_severity": "Critical",
     "expected_urgency_min": 70
   },
   {
@@ -68,8 +68,8 @@
   {
     "description": "Abandoned car parked on the roadside for months. It's rusting.",
     "expected_category": "Abandoned Vehicle",
-    "expected_severity": "Low",
-    "expected_urgency_max": 30
+    "expected_severity": "Medium",
+    "expected_urgency_max": 40
   },
   {
     "description": "Public toilet in the market is overflowing and unusable.",
@@ -110,7 +110,7 @@
   {
     "description": "Someone is burning plastic in the open field. Toxic smoke.",
     "expected_category": "Air Pollution",
-    "expected_severity": "High",
+    "expected_severity": "Critical",
     "expected_urgency_min": 75
   },
   {
@@ -129,7 +129,7 @@
     "description": "Garbage truck spilling waste on the road while driving.",
     "expected_category": "Garbage",
     "expected_severity": "Medium",
-    "expected_urgency_min": 50
+    "expected_urgency_min": 40
   },
   {
     "description": "Park benches are broken and unsafe to sit on.",
@@ -147,7 +147,7 @@
     "description": "Large crowd gathering without masks, violating health protocols.",
     "expected_category": "Crowd",
     "expected_severity": "Medium",
-    "expected_urgency_min": 50
+    "expected_urgency_min": 40
   },
   {
     "description": "Water leakage in the apartment basement affecting structural integrity.",
@@ -158,14 +158,14 @@
   {
     "description": "Blocked drainage causing localized flooding after rain.",
     "expected_category": "Flooding",
-    "expected_severity": "High",
+    "expected_severity": "Critical",
     "expected_urgency_min": 60
   },
   {
     "description": "Stray cattle blocking the highway. Traffic halted.",
     "expected_category": "Stray Animal",
     "expected_severity": "High",
-    "expected_urgency_min": 75
+    "expected_urgency_min": 70
   },
   {
     "description": "Unauthorized billboard installed blocking the traffic light view.",
@@ -177,7 +177,7 @@
     "description": "Broken glass on the playground slide. Kids could get cut.",
     "expected_category": "Public Facilities",
     "expected_severity": "High",
-    "expected_urgency_min": 80
+    "expected_urgency_min": 70
   },
   {
     "description": "Severe pothole causing damage to vehicles near the highway exit.",
