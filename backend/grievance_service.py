@@ -26,6 +26,9 @@ class GrievanceService:
     Main service for managing grievances, routing, and escalations.
     """
 
+    # Class-level cache to avoid redundant disk I/O when instantiating the service
+    _rules_cache = {}
+
     def __init__(self, rules_config_path: str = "backend/grievance_rules.json"):
         """
         Initialize the grievance service.
@@ -33,8 +36,12 @@ class GrievanceService:
         Args:
             rules_config_path: Path to the rules configuration file
         """
-        with open(rules_config_path, 'r') as f:
-            self.rules_config = json.load(f)
+        # Optimized: Use class-level cache to avoid reading and parsing the JSON file repeatedly
+        if rules_config_path not in GrievanceService._rules_cache:
+            with open(rules_config_path, 'r') as f:
+                GrievanceService._rules_cache[rules_config_path] = json.load(f)
+
+        self.rules_config = GrievanceService._rules_cache[rules_config_path]
 
         self.routing_service = RoutingService(self.rules_config)
         self.sla_service = SLAConfigService(
@@ -141,6 +148,10 @@ class GrievanceService:
             # Update cache after successful commit
             grievance_last_hash_cache.set(data=integrity_hash, key="last_hash")
 
+            # Invalidate grievance caches
+            grievance_list_cache.clear()
+            escalation_stats_cache.clear()
+
             return grievance
 
         except Exception as e:
@@ -221,6 +232,9 @@ class GrievanceService:
 
                     if new_issue_status:
                         issue.status = new_issue_status
+                        # Invalidate caches
+                        grievance_list_cache.clear()
+                        escalation_stats_cache.clear()
                         if new_issue_status == "resolved":
                             issue.resolved_at = datetime.now(timezone.utc)
                         elif new_issue_status == "in_progress":
@@ -230,6 +244,11 @@ class GrievanceService:
                                 issue.assigned_to = grievance.assigned_authority
 
             db.commit()
+
+            # Invalidate grievance caches
+            grievance_list_cache.clear()
+            escalation_stats_cache.clear()
+
             return True
 
         except Exception as e:

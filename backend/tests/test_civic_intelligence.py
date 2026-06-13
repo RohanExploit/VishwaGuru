@@ -1,15 +1,12 @@
 import pytest
 import json
-import os
-import time
 from unittest.mock import MagicMock, patch, mock_open
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
-from backend.models import Issue, EscalationAudit, EscalationReason, Grievance
+from backend.models import Issue, Grievance
 from backend.adaptive_weights import AdaptiveWeights
 from backend.trend_analyzer import TrendAnalyzer
 from backend.civic_intelligence import CivicIntelligenceEngine
-from backend.spatial_utils import get_cluster_representative
 
 # Mock data
 MOCK_WEIGHTS = {
@@ -151,13 +148,20 @@ def test_civic_intelligence_run(mock_listdir, mock_json_dump, mock_file_open, mo
     mock_query_grievance = MagicMock()
 
     # Define query side effects
-    def query_side_effect(model):
-        if model == Issue:
-            return mock_query_issues
-        elif model == EscalationAudit:
-            return mock_query_upgrades
-        elif model == Grievance:
-            return mock_query_grievance
+    def query_side_effect(*args):
+        if len(args) > 0:
+            model = args[0]
+            # Handle column projection (InstrumentedAttribute) by checking class_
+            class_name = getattr(model, 'class_', model).__name__ if hasattr(model, 'class_') else getattr(model, '__name__', '')
+
+            if class_name == 'Issue':
+                return mock_query_issues
+            elif hasattr(model, 'name') and model.name == 'count':
+                return mock_query_issues
+            elif class_name == 'EscalationAudit':
+                return mock_query_upgrades
+            elif class_name == 'Grievance':
+                return mock_query_grievance
         return MagicMock()
 
     mock_session.query.side_effect = query_side_effect
@@ -173,7 +177,7 @@ def test_civic_intelligence_run(mock_listdir, mock_json_dump, mock_file_open, mo
     # To differentiate, we can check the filter call or just return appropriate mocks
     # Let's just make sure it returns something valid for both
     mock_query_issues.filter.return_value.all.return_value = issues_result # issues_24h
-    mock_query_issues.filter.return_value.count.return_value = 1 # resolved_count
+    mock_query_issues.filter.return_value.scalar.return_value = 1 # resolved_count
 
     # Upgrade Query Chain
     # We want to test weight update, so let's simulate upgrades
@@ -186,6 +190,7 @@ def test_civic_intelligence_run(mock_listdir, mock_json_dump, mock_file_open, mo
     g1 = Grievance(id=1, category="Fire")
     g2 = Grievance(id=2, category="Fire")
     g3 = Grievance(id=3, category="Fire")
+    mock_query_grievance.options.return_value.filter.return_value.all.return_value = [g1, g2, g3]
     mock_query_grievance.filter.return_value.all.return_value = [g1, g2, g3]
 
     # Setup Trend Analyzer
