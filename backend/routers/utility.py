@@ -53,20 +53,18 @@ def get_stats(db: Session = Depends(get_db)):
     if cached_stats:
         return JSONResponse(content=cached_stats)
 
-    # Optimized: Single aggregate query to calculate total and resolved issues
-    stats = db.query(
+    # Optimized: Single aggregate query to calculate totals, resolved counts, and category distribution
+    cat_stats = db.query(
+        Issue.category,
         func.count(Issue.id).label("total"),
         func.sum(case((Issue.status.in_(['resolved', 'verified']), 1), else_=0)).label("resolved")
-    ).first()
+    ).group_by(Issue.category).all()
 
-    total = stats.total or 0
-    resolved = int(stats.resolved or 0)
-    # Pending is everything else
+    total = sum(row.total for row in cat_stats) if cat_stats else 0
+    resolved = int(sum(row.resolved or 0 for row in cat_stats)) if cat_stats else 0
     pending = total - resolved
 
-    # By category
-    cat_counts = db.query(Issue.category, func.count(Issue.id)).group_by(Issue.category).all()
-    issues_by_category = {cat: count for cat, count in cat_counts}
+    issues_by_category = {row.category: row.total for row in cat_stats}
 
     response = StatsResponse(
         total_issues=total,
