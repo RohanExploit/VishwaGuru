@@ -6,6 +6,7 @@ python-telegram-bot
 google-generativeai
 python-multipart
 psycopg2-binary
+python-magic
 huggingface-hub
 httpx
 pywebpush
@@ -15,10 +16,11 @@ firebase-admin
 a2wsgi
 python-jose[cryptography]
 passlib[bcrypt]
-bcrypt<4.0.0
+bcrypt>=4.0.0
 SpeechRecognition
 pydub
 googletrans==4.0.2
 langdetect
+psycopg2-binary
 numpy
 scikit-learn

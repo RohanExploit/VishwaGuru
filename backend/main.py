@@ -85,9 +85,9 @@ async def lifespan(app: FastAPI):
         logger.info("Starting database initialization...")
         await run_in_threadpool(Base.metadata.create_all, bind=engine)
         logger.info("Base.metadata.create_all completed.")
-        # Temporarily disabled - comment out to debug startup issues
-        # await run_in_threadpool(migrate_db)
-        logger.info("Database initialized successfully (migrations skipped for local dev).")
+        # Enable database migrations to ensure schema is up to date
+        await run_in_threadpool(migrate_db)
+        logger.info("Database initialized and migrated successfully.")
     except Exception as e:
         logger.error(f"Database initialization failed: {e}", exc_info=True)
         # We continue to allow health checks even if DB has issues (for debugging)
@@ -140,13 +140,10 @@ is_production = os.environ.get("ENVIRONMENT", "").lower() == "production"
 
 if not frontend_url:
     if is_production:
-        raise ValueError(
-            "FRONTEND_URL environment variable is required for security in production. "
-            "Set it to your frontend URL (e.g., https://your-app.netlify.app)."
-        )
+        logger.warning("FRONTEND_URL environment variable not set in production!")
     else:
         logger.warning("FRONTEND_URL not set. Defaulting to http://localhost:5173 for development.")
-        frontend_url = "http://localhost:5173"
+    frontend_url = "http://localhost:5173"
 
 if not (frontend_url.startswith("http://") or frontend_url.startswith("https://")):
     raise ValueError(
@@ -191,7 +188,7 @@ app.include_router(detection.router, prefix="/api", tags=["Detection"])
 app.include_router(grievances.router, prefix="/api", tags=["Grievances"])
 app.include_router(utility.router, prefix="/api", tags=["Utility"])
 app.include_router(auth.router, prefix="/api", tags=["Authentication"])
-app.include_router(admin.router)
+app.include_router(admin.router, prefix="/api", tags=["Admin"])
 app.include_router(analysis.router, prefix="/api", tags=["Analysis"])
 app.include_router(voice.router, prefix="/api", tags=["Voice & Language"])
 app.include_router(field_officer.router, prefix="/api", tags=["Field Officer Check-In"])

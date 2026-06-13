@@ -67,7 +67,7 @@ def test_detect_waste(client_with_mock_http):
 
     with patch('backend.utils.validate_uploaded_file'):
         response = client.post(
-            "/detect-waste",
+            "/api/detect-waste",
             files={"image": ("test.jpg", img_bytes, "image/jpeg")}
         )
 
@@ -95,7 +95,7 @@ def test_detect_civic_eye(client_with_mock_http):
 
     with patch('backend.utils.validate_uploaded_file'):
         response = client.post(
-            "/detect-civic-eye",
+            "/api/detect-civic-eye",
             files={"image": ("test.jpg", img_bytes, "image/jpeg")}
         )
 
@@ -111,13 +111,13 @@ def test_transcribe_audio(client_with_mock_http):
 
     audio_content = b"fake audio content"
 
-    with patch('backend.routers.detection.transcribe_audio', new_callable=AsyncMock) as mock_transcribe:
-        mock_transcribe.return_value = "This is a test transcription."
+    with patch('backend.voice_service.VoiceService.transcribe_audio', new_callable=MagicMock) as mock_transcribe:
+        mock_transcribe.return_value = {"text": "This is a test transcription.", "error": None, "language": "en", "language_name": "English", "confidence": 0.99}
         response = client.post(
-            "/transcribe-audio",
-            files={"file": ("test.wav", audio_content, "audio/wav")}
+            "/api/voice/transcribe",
+            files={"audio_file": ("test.wav", audio_content, "audio/wav")}
         )
 
     assert response.status_code == 200
     data = response.json()
-    assert data["text"] == "This is a test transcription."
+    assert data["original_text"] == "This is a test transcription."

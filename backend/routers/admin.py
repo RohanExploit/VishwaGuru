@@ -10,7 +10,6 @@ from backend.dependencies import get_current_admin_user
 
 router = APIRouter(
     prefix="/admin",
-    tags=["Admin"],
     dependencies=[Depends(get_current_admin_user)]
 )
 

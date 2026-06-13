@@ -6,7 +6,41 @@
     "Streetlight": 2,
     "Flooding": 8
   },
-  "duplicateThreshold": 0.84,
-  "lastUpdated": "1970-01-01T00:00:00.000Z",
-  "history": []
+  "duplicateThreshold": 0.8099999999999999,
+  "lastUpdated": "2026-03-27T18:52:50.243Z",
+  "history": [
+    {
+      "date": "2026-03-27",
+      "categoryWeights": {
+        "Pothole": 5,
+        "Garbage": 3,
+        "Water Supply": 4,
+        "Streetlight": 2,
+        "Flooding": 8
+      },
+      "duplicateThreshold": 0.84
+    },
+    {
+      "date": "2026-03-27",
+      "categoryWeights": {
+        "Pothole": 5,
+        "Garbage": 3,
+        "Water Supply": 4,
+        "Streetlight": 2,
+        "Flooding": 8
+      },
+      "duplicateThreshold": 0.83
+    },
+    {
+      "date": "2026-03-27",
+      "categoryWeights": {
+        "Pothole": 5,
+        "Garbage": 3,
+        "Water Supply": 4,
+        "Streetlight": 2,
+        "Flooding": 8
+      },
+      "duplicateThreshold": 0.82
+    }
+  ]
 }
