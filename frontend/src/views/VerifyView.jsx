@@ -29,13 +29,26 @@ const VerifyView = () => {
         }
       } catch (err) {
         console.error("Load failed", err);
-        setError("Failed to load issue.");
+        setError("Failed to load issue details.");
       } finally {
         setLoading(false);
       }
     };
     fetchIssue();
   }, [id]);
+
+  const handleVerifyBlockchain = async () => {
+    setVerifyingBlockchain(true);
+    try {
+      const data = await issuesApi.verifyBlockchain(id);
+      setBlockchainResult(data);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to verify blockchain integrity.");
+    } finally {
+      setVerifyingBlockchain(false);
+    }
+  };
 
   const handleImageChange = (e) => {
     if (e.target.files && e.target.files[0]) {

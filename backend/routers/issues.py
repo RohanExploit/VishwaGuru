@@ -33,6 +33,7 @@ from backend.cache import recent_issues_cache, nearby_issues_cache
 from backend.hf_api_service import verify_resolution_vqa
 from backend.dependencies import get_http_client
 from backend.rag_service import rag_service
+from backend.config import get_config
 
 logger = logging.getLogger(__name__)
 
@@ -93,9 +94,10 @@ async def create_issue(
 
     if latitude is not None and longitude is not None:
         try:
-            # Find existing open issues within 50 meters
+            # Find existing open issues within 50 meters (configurable)
+            radius = get_config().deduplication_radius
             # Optimization: Use bounding box to filter candidates in SQL
-            min_lat, max_lat, min_lon, max_lon = get_bounding_box(latitude, longitude, 50.0)
+            min_lat, max_lat, min_lon, max_lon = get_bounding_box(latitude, longitude, radius)
 
             # Performance Boost: Use column projection to avoid loading full model instances
             open_issues = await run_in_threadpool(
@@ -118,11 +120,12 @@ async def create_issue(
             )
 
             nearby_issues_with_distance = find_nearby_issues(
-                open_issues, latitude, longitude, radius_meters=50.0
+                open_issues, latitude, longitude, radius_meters=radius
             )
 
             if nearby_issues_with_distance:
                 # Found nearby issues - prepare deduplication response
+                limit = get_config().deduplication_limit
                 nearby_responses = [
                     NearbyIssueResponse(
                         id=issue.id,
@@ -135,7 +138,7 @@ async def create_issue(
                         created_at=issue.created_at,
                         status=issue.status
                     )
-                    for issue, distance in nearby_issues_with_distance[:3]  # Limit to top 3 closest
+                    for issue, distance in nearby_issues_with_distance[:limit]  # Limit to configured number
                 ]
 
                 deduplication_info = DeduplicationCheckResponse(
@@ -459,7 +462,10 @@ async def verify_issue_endpoint(
         final_status = updated_issue.status if updated_issue else "open"
         final_upvotes = updated_issue.upvotes if updated_issue else 0
 
-        if updated_issue and updated_issue.upvotes >= 5 and updated_issue.status == "open":
+        # Use configured threshold
+        verification_threshold = get_config().verification_threshold
+
+        if updated_issue and updated_issue.upvotes >= verification_threshold and updated_issue.status == "open":
             await run_in_threadpool(
                 lambda: db.query(Issue).filter(Issue.id == issue_id).update({
                     Issue.status: "verified"
@@ -619,7 +625,7 @@ def get_user_issues(
 
     return data
 
-@router.get("/api/issues/{issue_id}/blockchain-verify", response_model=BlockchainVerificationResponse)
+@router.get("/api/issues/{issue_id:int}/blockchain-verify", response_model=BlockchainVerificationResponse)
 async def verify_blockchain_integrity(issue_id: int, db: Session = Depends(get_db)):
     """
     Verify the cryptographic integrity of a report using the blockchain-style chaining.
@@ -662,6 +668,14 @@ async def verify_blockchain_integrity(issue_id: int, db: Session = Depends(get_d
 
     computed_hash = hashlib.sha256(hash_content.encode()).hexdigest()
     is_valid = (computed_hash == current_issue.integrity_hash)
+
+    if not is_valid:
+        # Fallback to legacy check for older reports
+        legacy_content = f"{current_issue.description}|{current_issue.category}|{prev_hash}"
+        legacy_hash = hashlib.sha256(legacy_content.encode()).hexdigest()
+        if legacy_hash == current_issue.integrity_hash:
+            is_valid = True
+            computed_hash = legacy_hash
 
     if is_valid:
         message = "Integrity verified. This report is cryptographically sealed and has not been tampered with."

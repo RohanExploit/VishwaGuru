@@ -19,9 +19,14 @@ logger = logging.getLogger(__name__)
 
 # Configure Gemini (mandatory environment variable)
 api_key = os.environ.get("GEMINI_API_KEY")
+_GEMINI_CONFIGURED = False
 
 if api_key:
-    genai.configure(api_key=api_key)
+    try:
+        genai.configure(api_key=api_key)
+        _GEMINI_CONFIGURED = True
+    except Exception as e:
+        logger.error(f"Failed to configure Gemini AI: {e}")
 else:
     # Gemini disabled (mock/local mode)
     genai = None
@@ -66,6 +71,9 @@ async def generate_mla_summary(
     """
     async def _generate_mla_summary_with_gemini() -> str:
         """Inner function to generate MLA summary with Gemini"""
+        if not _GEMINI_CONFIGURED or not genai:
+            return _get_fallback_summary(mla_name, assembly_constituency, district)
+
         model = genai.GenerativeModel('gemini-1.5-flash')
 
         issue_context = f" particularly regarding {issue_category} issues" if issue_category else ""

@@ -26,7 +26,12 @@ if not api_key:
     if os.environ.get("ENVIRONMENT") == "production":
          logger.warning("GEMINI_API_KEY not set in production environment!")
 
-genai.configure(api_key=api_key)
+try:
+    genai.configure(api_key=api_key)
+    _GEMINI_CONFIGURED = True
+except Exception as e:
+    logger.error(f"Failed to configure Gemini AI: {e}")
+    _GEMINI_CONFIGURED = False
 
 RESPONSIBILITY_MAP_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "responsibility_map.json")
 
@@ -125,6 +130,10 @@ async def generate_action_plan(issue_description: str, category: str, language: 
 
     async def _generate_with_gemini() -> dict:
         """Inner function to generate action plan with Gemini"""
+        if not _GEMINI_CONFIGURED:
+            logger.warning("Gemini AI not configured, returning fallback action plan")
+            return fallback_response
+
         model = genai.GenerativeModel('gemini-1.5-flash')
 
         prompt = f"""
@@ -184,6 +193,9 @@ async def chat_with_civic_assistant(query: str) -> str:
     """
     async def _chat_with_gemini() -> str:
         """Inner function to chat with Gemini"""
+        if not _GEMINI_CONFIGURED:
+            return "I am currently running in offline mode and cannot process complex queries. Please check back later."
+
         model = genai.GenerativeModel('gemini-1.5-flash')
 
         prompt = f"""
