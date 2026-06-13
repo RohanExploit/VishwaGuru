@@ -32,6 +32,9 @@ const CameraCheckModal = ({ onClose }) => {
     return () => {
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
+        if (videoRef.current) {
+          videoRef.current.srcObject = null;
+        }
       }
     };
   }, []);
@@ -58,6 +61,31 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loa
   const navigate = useNavigate();
   const [showCameraCheck, setShowCameraCheck] = React.useState(false);
   const [showScrollTop, setShowScrollTop] = React.useState(false);
+
+  const [trackingId, setTrackingId] = React.useState('');
+  const [trackingResult, setTrackingResult] = React.useState(null);
+  const [isTracking, setIsTracking] = React.useState(false);
+
+  const handleTrackIssue = async (e) => {
+    e.preventDefault();
+    if (!trackingId.trim()) return;
+
+    setIsTracking(true);
+    setTrackingResult(null);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/issues/${trackingId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setTrackingResult({ success: true, data });
+      } else {
+        setTrackingResult({ success: false, error: 'Issue not found. Please check the ID.' });
+      }
+    } catch (error) {
+      setTrackingResult({ success: false, error: 'Error connecting to server.' });
+    }
+    setIsTracking(false);
+  };
+
   const totalImpact = stats?.resolved_issues || 0;
 
   // Scroll to top function
@@ -122,6 +150,50 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loa
   return (
     <>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12 pb-24 relative z-10">
+
+        {/* Issue Tracker Component */}
+        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 mb-8 mt-8">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-indigo-100 p-2 rounded-xl text-indigo-600">
+              <Search size={24} />
+            </div>
+            <h3 className="text-xl font-bold">Track Your Issue</h3>
+          </div>
+          <form onSubmit={handleTrackIssue} className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Enter Tracking ID (e.g., 1)"
+              className="flex-1 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              value={trackingId}
+              onChange={(e) => setTrackingId(e.target.value)}
+            />
+            <button
+              type="submit"
+              disabled={isTracking}
+              className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-700 transition disabled:opacity-70"
+            >
+              {isTracking ? 'Tracking...' : 'Track'}
+            </button>
+          </form>
+
+          {trackingResult && trackingResult.success && (
+            <div className="mt-4 p-4 bg-green-50 rounded-xl border border-green-100">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-bold text-green-800 uppercase text-sm">Status: {trackingResult.data.status}</span>
+                <span className="text-xs text-green-600">{new Date(trackingResult.data.created_at).toLocaleDateString()}</span>
+              </div>
+              <p className="text-green-900 font-medium">{trackingResult.data.category}</p>
+              <p className="text-sm text-green-700 mt-1 line-clamp-2">{trackingResult.data.description}</p>
+            </div>
+          )}
+
+          {trackingResult && !trackingResult.success && (
+            <div className="mt-4 p-3 bg-red-50 text-red-600 rounded-xl text-sm font-medium">
+              {trackingResult.error}
+            </div>
+          )}
+        </div>
+
 
         {/* Privacy Shield - High End Style */}
         <div className="flex justify-end pt-4">
