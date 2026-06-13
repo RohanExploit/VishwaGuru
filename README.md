@@ -17,7 +17,17 @@ Before you begin, ensure you have the following installed:
 - **Node.js 18+** and **npm**
 - **Git**
 
-## Installation
+## Installation & Deployment Guides
+
+This project is structured to be easily deployable on **Firebase** (Google Cloud) or other platforms like Render/Netlify.
+
+For specific installation and deployment instructions, please verify the `README.md` in each folder:
+
+*   **[Frontend Documentation](./frontend/README.md)**: Instructions for installing dependencies, running locally, and deploying to **Firebase Hosting**.
+*   **[Backend Documentation](./backend/README.md)**: Instructions for setting up the API, running with Docker, and deploying to **Google Cloud Run** (Firebase Backend).
+*   **[Data Documentation](./data/README.md)**: Details about the static data files used by the application.
+
+## Quick Start (Local)
 
 ### 1. Clone the Repository
 
@@ -28,123 +38,43 @@ cd vishwaguru
 
 ### 2. Backend Setup
 
-The backend handles API requests, database interactions, and the Telegram bot.
-
-1.  Create a virtual environment (in the root directory):
+1.  Create a virtual environment:
     ```bash
-    # Linux/macOS
-    python3 -m venv venv
-    source venv/bin/activate
-
-    # Windows
     python -m venv venv
-    venv\Scripts\activate
+    source venv/bin/activate  # On Windows: venv\Scripts\activate
     ```
-
 2.  Install dependencies:
     ```bash
     pip install -r backend/requirements.txt
     ```
-
-3.  **Environment Configuration**:
-    Create a `.env` file in the root of the repository.
-
-    Required Environment Variables:
-    *   `TELEGRAM_BOT_TOKEN`: Token from @BotFather for the Telegram Bot.
-    *   `GEMINI_API_KEY`: API Key from Google AI Studio.
-    *   `DATABASE_URL`: (Optional) Connection string for PostgreSQL. Defaults to `sqlite:///./data/issues.db`.
-
-    **Note**: You can copy the example file:
+3.  Run the server:
     ```bash
-    cp .env.example .env
+    python -m uvicorn backend.main:app --reload
     ```
-    Then edit `.env` to add your keys.
 
 ### 3. Frontend Setup
 
-The frontend is a React application built with Vite.
-
-1.  Navigate to the frontend directory:
+1.  Navigate to frontend:
     ```bash
     cd frontend
     ```
-
 2.  Install dependencies:
     ```bash
     npm install
     ```
+3.  Run the dev server:
+    ```bash
+    npm run dev
+    ```
 
-## Running the Application
+## Deployment (Firebase)
 
-### Start the Backend Server
+The project includes a `firebase.json` for easy deployment to the Firebase ecosystem.
 
-From the **root directory** (with your virtual environment activated):
+1.  **Frontend**: Deployed to Firebase Hosting.
+2.  **Backend**: Deployed to Google Cloud Run, with Firebase Hosting configured to rewrite `/api` requests to the backend service.
 
-```bash
-PYTHONPATH=backend python -m uvicorn main:app --reload
-```
-
-The API will be available at `http://localhost:8000`.
-
-**Note for Windows**: Use `set PYTHONPATH=backend & python -m uvicorn main:app --reload`
-
-### Start the Frontend Development Server
-
-Open a new terminal window:
-
-```bash
-cd frontend
-npm run dev
-```
-The application will be accessible at `http://localhost:5173`.
-
-### Start the Telegram Bot
-
-The Telegram bot runs as part of the FastAPI application lifecycle, so it starts automatically when you run the backend server.
-
-## Tech Stack
-
-*   **Frontend**: React, Vite, Tailwind CSS
-*   **Backend**: Python, FastAPI, SQLAlchemy, Pydantic
-*   **Database**: SQLite (Dev), PostgreSQL (Prod)
-*   **AI**: Google Gemini (google-generativeai)
-*   **Bot**: python-telegram-bot
-
-## Deployment
-
-### Architecture: Split Deployment
-
-VishwaGuru uses a modern split deployment architecture:
-- **Frontend**: Deployed on Netlify (Static hosting for React app)
-- **Backend**: Deployed on Render (FastAPI server + Telegram bot + PostgreSQL)
-
-This provides:
-- ✅ Better performance (CDN for frontend)
-- ✅ Independent scaling
-- ✅ Easy rollbacks
-- ✅ Free hosting on both platforms
-
-### Quick Start
-
-See detailed guides:
-- **[Complete Deployment Guide](./DEPLOYMENT_GUIDE.md)** - Step-by-step instructions
-- **[Quick Reference](./QUICK_REFERENCE.md)** - At-a-glance configuration
-
-**TL;DR**:
-
-1. **Backend (Render)**:
-   - Build: `pip install -r backend/requirements.txt`
-   - Start: `python -m uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
-   - Add Neon database connection string and set environment variables
-
-2. **Frontend (Netlify)**:
-   - Base: `frontend/`, Build: `npm run build`, Publish: `frontend/dist`
-   - Set `VITE_API_URL` to your Render backend URL
-
-### ❌ Important: Do NOT use these commands
-
-- `python -m bot` - This only starts the Telegram bot, not the web server
-- `./render-build.sh` - This builds frontend too (unnecessary for backend-only deploy)
+See the [Frontend README](./frontend/README.md) and [Backend README](./backend/README.md) for detailed steps.
 
 ## Contributing
 
