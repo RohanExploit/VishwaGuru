@@ -6,6 +6,7 @@ import os
 import json
 import logging
 import hashlib
+import threading
 from datetime import datetime, timezone
 
 from backend.database import get_db
@@ -32,6 +33,9 @@ logger = logging.getLogger(__name__)
 follower_blockchain_lock = threading.Lock()
 
 router = APIRouter()
+
+# Thread lock for synchronizing blockchain operations
+follower_blockchain_lock = threading.Lock()
 
 @router.get("/grievances", response_model=List[GrievanceSummaryResponse])
 def get_grievances(
