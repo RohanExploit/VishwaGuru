@@ -60,3 +60,4 @@ frontend/.genkit/
 .genkit/
 .netlify
 .last-run.json
+test-venv/
