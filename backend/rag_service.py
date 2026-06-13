@@ -67,12 +67,14 @@ class CivicRAG:
         """
         Retrieve the most relevant policy based on Jaccard similarity of tokens.
         Returns the formatted policy string or None if below threshold.
+        Optimized: Uses pre-calculated token lengths and mathematical union to avoid O(N) union.
         """
         if not query or not self._prepared_policies:
             return None
 
         query_tokens = self._tokenize(query)
-        if not query_tokens:
+        query_token_count = len(query_tokens)
+        if query_token_count == 0:
             return None
 
         query_tokens_len = len(query_tokens)
