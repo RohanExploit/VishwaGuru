@@ -96,8 +96,8 @@ class CivicRAG:
                 continue
 
             # Jaccard Similarity
-            # Optimization 2: Calculate intersection
-            intersection_len = len(query_tokens.intersection(policy_tokens))
+            # Optimization 2: Calculate intersection using fast bitwise operator
+            intersection_len = len(query_tokens & policy_tokens)
 
             # Optimization 3: Calculate union length mathematically (O(1))
             # |A union B| = |A| + |B| - |A intersect B|
