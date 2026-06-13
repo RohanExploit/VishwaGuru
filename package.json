@@ -19,7 +19,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "node-cron": "^3.0.3",
+    "node-cron": "^4.2.1",
     "sqlite3": "^5.1.7"
   },
   "devDependencies": {
@@ -35,6 +35,6 @@
     "jest-util": "^30.3.0",
     "ts-jest": "^29.4.9",
     "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
+    "typescript": "^5.9.3"
   }
 }
