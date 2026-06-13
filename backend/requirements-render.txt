@@ -9,7 +9,7 @@ psycopg2-binary==2.9.11
 huggingface-hub==0.36.2
 httpx>=0.27.2,<0.29.0
 pywebpush==2.3.0
-Pillow==12.1.1
+Pillow==12.2.0
 firebase-functions==0.5.0
 firebase-admin==6.8.0
 a2wsgi==1.10.10
