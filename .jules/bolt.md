@@ -93,3 +93,7 @@
 ## 2026-05-20 - Joined Queries for Integrity Verification
 **Learning:** Performing multiple sequential database queries to verify cryptographically chained records (e.g., fetching a record and then its associated token/metadata from another table) introduces unnecessary latency and increases database load.
 **Action:** Consolidate associated data retrieval into a single SQL `JOIN` query within the verification hot-path. This reduces database round-trips and improves end-to-end latency for blockchain-style integrity checks.
+
+## 2026-05-24 - Pre-calculating spatial degrees
+**Learning:** Calling math.radians() inside of a loop over spatial items is extremely inefficient compared to calculating constants with math.pi / 180.0 outside of the loop.
+**Action:** Define a DEG_TO_RAD constant outside of loops that calculate Haversine or Equirectangular distances, and use it to replace math.radians inside the loop.
