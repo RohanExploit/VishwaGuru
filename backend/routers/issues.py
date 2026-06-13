@@ -186,9 +186,6 @@ async def create_issue(
             hash_content = f"{description}|{category}|{prev_hash}"
             integrity_hash = hashlib.sha256(hash_content.encode()).hexdigest()
 
-            # Update cache for next report
-            blockchain_last_hash_cache.set(data=integrity_hash, key="last_hash")
-
             # RAG Retrieval (New)
             relevant_rule = rag_service.retrieve(description)
             initial_action_plan = None
@@ -212,6 +209,9 @@ async def create_issue(
 
             # Offload blocking DB operations to threadpool
             await run_in_threadpool(save_issue_db, db, new_issue)
+
+            # Update cache for next report AFTER successful DB commit
+            blockchain_last_hash_cache.set(data=integrity_hash, key="last_hash")
         else:
             # Don't create new issue, just return deduplication info
             new_issue = None

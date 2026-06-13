@@ -177,6 +177,19 @@ def migrate_db():
                 if not index_exists("grievances", "ix_grievances_category_status"):
                     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_grievances_category_status ON grievances (category, status)"))
 
+            # Escalation Audits Table Migrations
+            if inspector.has_table("escalation_audits"):
+                if not column_exists("escalation_audits", "integrity_hash"):
+                    conn.execute(text("ALTER TABLE escalation_audits ADD COLUMN integrity_hash VARCHAR"))
+                    logger.info("Added integrity_hash column to escalation_audits")
+
+                if not column_exists("escalation_audits", "previous_integrity_hash"):
+                    conn.execute(text("ALTER TABLE escalation_audits ADD COLUMN previous_integrity_hash VARCHAR"))
+                    logger.info("Added previous_integrity_hash column to escalation_audits")
+
+                if not index_exists("escalation_audits", "ix_escalation_audits_previous_integrity_hash"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_escalation_audits_previous_integrity_hash ON escalation_audits (previous_integrity_hash)"))
+
             # Field Officer Visits Table (Issue #288)
             # This table is newly created for field officer check-in system
             if not inspector.has_table("field_officer_visits"):
