@@ -111,15 +111,15 @@ class ClosureService:
             GrievanceFollower.grievance_id == grievance_id
         ).scalar()
         
-        confirmations_count = db.query(func.count(ClosureConfirmation.id)).filter(
-            ClosureConfirmation.grievance_id == grievance_id,
-            ClosureConfirmation.confirmation_type == "confirmed"
-        ).scalar()
+        # Get all confirmation counts in a single query instead of multiple round-trips
+        counts = db.query(
+            ClosureConfirmation.confirmation_type,
+            func.count(ClosureConfirmation.id)
+        ).filter(ClosureConfirmation.grievance_id == grievance_id).group_by(ClosureConfirmation.confirmation_type).all()
         
-        disputes_count = db.query(func.count(ClosureConfirmation.id)).filter(
-            ClosureConfirmation.grievance_id == grievance_id,
-            ClosureConfirmation.confirmation_type == "disputed"
-        ).scalar()
+        counts_dict = {ctype: count for ctype, count in counts}
+        confirmations_count = counts_dict.get("confirmed", 0)
+        disputes_count = counts_dict.get("disputed", 0)
         
         required_confirmations = max(1, int(total_followers * ClosureService.CONFIRMATION_THRESHOLD))
         

@@ -16,18 +16,18 @@ describe('detectorsApi', () => {
   });
 
   const detectorTestCases = [
-    { name: 'pothole', endpoint: '/api/detect-pothole' },
-    { name: 'garbage', endpoint: '/api/detect-garbage' },
-    { name: 'vandalism', endpoint: '/api/detect-vandalism' },
-    { name: 'flooding', endpoint: '/api/detect-flooding' },
-    { name: 'infrastructure', endpoint: '/api/detect-infrastructure' },
-    { name: 'illegalParking', endpoint: '/api/detect-illegal-parking' },
-    { name: 'streetLight', endpoint: '/api/detect-street-light' },
-    { name: 'fire', endpoint: '/api/detect-fire' },
-    { name: 'strayAnimal', endpoint: '/api/detect-stray-animal' },
-    { name: 'blockedRoad', endpoint: '/api/detect-blocked-road' },
-    { name: 'treeHazard', endpoint: '/api/detect-tree-hazard' },
-    { name: 'pest', endpoint: '/api/detect-pest' }
+    { name: 'pothole', endpoint: '/detect-pothole' },
+    { name: 'garbage', endpoint: '/detect-garbage' },
+    { name: 'vandalism', endpoint: '/detect-vandalism' },
+    { name: 'flooding', endpoint: '/detect-flooding' },
+    { name: 'infrastructure', endpoint: '/detect-infrastructure' },
+    { name: 'illegalParking', endpoint: '/detect-illegal-parking' },
+    { name: 'streetLight', endpoint: '/detect-street-light' },
+    { name: 'fire', endpoint: '/detect-fire' },
+    { name: 'strayAnimal', endpoint: '/detect-stray-animal' },
+    { name: 'blockedRoad', endpoint: '/detect-blocked-road' },
+    { name: 'treeHazard', endpoint: '/detect-tree-hazard' },
+    { name: 'pest', endpoint: '/detect-pest' }
   ];
 
   detectorTestCases.forEach(({ name, endpoint }) => {
@@ -114,7 +114,7 @@ describe('detectorsApi', () => {
 
         await detectorsApi.pothole(mockFormData);
 
-        expect(apiClient.postForm).toHaveBeenCalledWith('/api/detect-pothole', mockFormData);
+        expect(apiClient.postForm).toHaveBeenCalledWith('/detect-pothole', mockFormData);
       }
     });
 

@@ -11,8 +11,10 @@ import {
 } from 'lucide-react';
 
 const CameraCheckModal = ({ onClose }) => {
-  const videoRef = React.useRef(null);
-  const [status, setStatus] = React.useState('requesting');
+    const videoRef = React.useRef(null);
+    const canvasRef = React.useRef(null);
+    const [status, setStatus] = React.useState('requesting');
+    const [snapshot, setSnapshot] = React.useState(null);
 
   React.useEffect(() => {
     let stream = null;
@@ -36,14 +38,58 @@ const CameraCheckModal = ({ onClose }) => {
     };
   }, []);
 
-  return (
-    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center">
-        <h3 className="text-lg font-bold mb-4">Camera Diagnostics</h3>
-        <div className="bg-gray-100 rounded-lg h-48 mb-4 flex items-center justify-center overflow-hidden relative">
-          {status === 'requesting' && <span className="text-gray-500 animate-pulse">Requesting access...</span>}
-          {status === 'error' && <span className="text-red-500 font-medium">Camera access failed. Check permissions.</span>}
-          <video ref={videoRef} autoPlay playsInline className={`w-full h-full object-cover ${status === 'active' ? 'block' : 'hidden'}`} />
+    const takeSnapshot = () => {
+        if (videoRef.current && canvasRef.current) {
+            const video = videoRef.current;
+            const canvas = canvasRef.current;
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            setSnapshot(canvas.toDataURL('image/jpeg'));
+        }
+    };
+
+    const retake = () => {
+        setSnapshot(null);
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center">
+                <h3 className="text-lg font-bold mb-4">Camera Diagnostics</h3>
+
+                <div className="bg-gray-100 rounded-lg h-48 mb-4 flex items-center justify-center overflow-hidden relative border border-gray-200">
+                    {status === 'requesting' && <span className="text-gray-500 animate-pulse">Requesting access...</span>}
+                    {status === 'error' && <span className="text-red-500 font-medium">Camera access failed. Check permissions.</span>}
+
+                    {!snapshot ? (
+                        <video ref={videoRef} autoPlay playsInline className={`w-full h-full object-cover ${status === 'active' ? 'block' : 'hidden'}`} />
+                    ) : (
+                        <img src={snapshot} alt="Test capture" className="w-full h-full object-cover" />
+                    )}
+                    <canvas ref={canvasRef} className="hidden" />
+                </div>
+
+                {status === 'active' && !snapshot && (
+                    <div className="mb-4">
+                        <p className="text-green-600 font-medium text-sm mb-2">Camera is working correctly!</p>
+                        <button onClick={takeSnapshot} className="px-4 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition">
+                            Test Snapshot
+                        </button>
+                    </div>
+                )}
+
+                {snapshot && (
+                    <div className="mb-4">
+                         <p className="text-blue-600 font-medium text-sm mb-2">Snapshot Captured!</p>
+                         <button onClick={retake} className="px-4 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition">
+                            Retake
+                        </button>
+                    </div>
+                )}
+
+                <button onClick={onClose} className="w-full bg-blue-600 text-white py-2 rounded-lg font-bold">Close</button>
+            </div>
         </div>
         {status === 'active' && <p className="text-green-600 font-medium text-sm mb-4">Camera is working correctly!</p>}
         <button onClick={onClose} className="w-full bg-blue-600 text-white py-2 rounded-lg font-bold">Close</button>
@@ -96,10 +142,10 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loa
         { id: 'tree', label: t('home.issues.treeHazard'), icon: <TreeDeciduous size={24} />, color: 'text-green-600', bg: 'bg-green-50' },
         { id: 'animal', label: t('home.issues.strayAnimal'), icon: <Dog size={24} />, color: 'text-amber-600', bg: 'bg-amber-50' },
         { id: 'pest', label: t('home.issues.pestControl'), icon: <Bug size={24} />, color: 'text-amber-800', bg: 'bg-amber-50' },
-        { id: 'noise', label: t('home.issues.noise'), icon: <Volume2 size={24} />, color: 'text-purple-600', bg: 'bg-purple-50' },
-        { id: 'report', label: t('home.issues.crowd'), icon: <Users size={24} />, color: 'text-red-500', bg: 'bg-red-50' },
-        { id: 'report', label: t('home.issues.waterLeak'), icon: <Waves size={24} />, color: 'text-blue-500', bg: 'bg-blue-50' },
-        { id: 'report', label: t('home.issues.waste'), icon: <Recycle size={24} />, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+        { id: 'noise', label: "Noise", icon: <Volume2 size={24} />, color: 'text-purple-600', bg: 'bg-purple-50' },
+        { id: 'crowd', label: "Crowd", icon: <Users size={24} />, color: 'text-red-500', bg: 'bg-red-50' },
+        { id: 'water-leak', label: "Water Leak", icon: <Waves size={24} />, color: 'text-blue-500', bg: 'bg-blue-50' },
+        { id: 'vandalism', label: "Vandalism", icon: <Brush size={24} />, color: 'text-pink-600', bg: 'bg-pink-50' },
       ]
     },
     {

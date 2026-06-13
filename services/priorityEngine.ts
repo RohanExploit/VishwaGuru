@@ -295,6 +295,17 @@ const CATEGORIES: Record<string, string[]> = {
   Environment: ["tree", "cutting", "deforestation", "forest", "nature"],
 };
 
+/**
+ * PriorityEngine: Analyzes issues to assign a severity and urgency score,
+ * leveraging adaptive weights for continuously optimized dynamic routing.
+ *
+ * Algorithm and Evolution Logic:
+ * Uses pre-defined keyword dictionaries across Critical, High, Medium, and Low severity tiers.
+ * It scores issues using substring matches. Critically, it multiplies the base score by dynamic
+ * parameters managed by AdaptiveWeights.
+ * If `modelWeights.json` determines that "Pothole" incidents are currently severe,
+ * the multiplier > 1 upgrades the severity automatically, representing self-improving infrastructure.
+ */
 export class PriorityEngine {
   private adaptiveWeights: AdaptiveWeights;
   private lastWeightsCheck: number = 0;

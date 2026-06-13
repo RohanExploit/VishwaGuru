@@ -46,8 +46,8 @@ const TreeDetector = ({ onBack }) => {
             console.error("Detection failed");
             alert("Detection failed. Please try again.");
         }
-    } catch (error) {
-        console.error("Error:", error);
+    } catch (error) { // eslint-disable-line no-unused-vars
+        console.error("Detection error");
         alert("An error occurred during detection.");
     } finally {
         setLoading(false);

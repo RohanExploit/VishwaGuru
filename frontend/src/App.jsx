@@ -23,24 +23,27 @@ const GrievanceView = React.lazy(() => import('./views/GrievanceView'));
 const NotFound = React.lazy(() => import('./views/NotFound'));
 
 // Lazy Load Detectors
-const PotholeDetector = React.lazy(() => import('./PotholeDetector'));
-const GarbageDetector = React.lazy(() => import('./GarbageDetector'));
-const VandalismDetector = React.lazy(() => import('./VandalismDetector'));
-const FloodDetector = React.lazy(() => import('./FloodDetector'));
-const InfrastructureDetector = React.lazy(() => import('./InfrastructureDetector'));
-const IllegalParkingDetector = React.lazy(() => import('./IllegalParkingDetector'));
-const StreetLightDetector = React.lazy(() => import('./StreetLightDetector'));
-const FireDetector = React.lazy(() => import('./FireDetector'));
-const StrayAnimalDetector = React.lazy(() => import('./StrayAnimalDetector'));
-const BlockedRoadDetector = React.lazy(() => import('./BlockedRoadDetector'));
-const TreeDetector = React.lazy(() => import('./TreeDetector'));
-const PestDetector = React.lazy(() => import('./PestDetector'));
-const SmartScanner = React.lazy(() => import('./SmartScanner'));
-const GrievanceAnalysis = React.lazy(() => import('./views/GrievanceAnalysis'));
-const NoiseDetector = React.lazy(() => import('./NoiseDetector'));
-const CivicEyeDetector = React.lazy(() => import('./CivicEyeDetector'));
-const CivicInsight = React.lazy(() => import('./views/CivicInsight'));
-const MyReportsView = React.lazy(() => import('./views/MyReportsView'));
+const DETECTORS = {
+  pothole: React.lazy(() => import('./PotholeDetector')),
+  garbage: React.lazy(() => import('./GarbageDetector')),
+  vandalism: React.lazy(() => import('./VandalismDetector')),
+  flood: React.lazy(() => import('./FloodDetector')),
+  infrastructure: React.lazy(() => import('./InfrastructureDetector')),
+  parking: React.lazy(() => import('./IllegalParkingDetector')),
+  streetlight: React.lazy(() => import('./StreetLightDetector')),
+  fire: React.lazy(() => import('./FireDetector')),
+  animal: React.lazy(() => import('./StrayAnimalDetector')),
+  blocked: React.lazy(() => import('./BlockedRoadDetector')),
+  tree: React.lazy(() => import('./TreeDetector')),
+  pest: React.lazy(() => import('./PestDetector')),
+  'smart-scan': React.lazy(() => import('./SmartScanner')),
+  noise: React.lazy(() => import('./NoiseDetector')),
+  'water-leak': React.lazy(() => import('./WaterLeakDetector')),
+  accessibility: React.lazy(() => import('./AccessibilityDetector')),
+  crowd: React.lazy(() => import('./CrowdDetector')),
+  severity: React.lazy(() => import('./SeverityDetector')),
+  'civic-eye': React.lazy(() => import('./CivicEyeDetector')),
+};
 
 
 // Auth Components

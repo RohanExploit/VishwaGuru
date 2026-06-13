@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { grievancesApi } from '../api';
 import ResolutionVerification from '../components/ResolutionVerification';
 
@@ -15,7 +15,7 @@ const GrievanceView = () => {
     offset: 0
   });
 
-  const loadData = React.useCallback(async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
