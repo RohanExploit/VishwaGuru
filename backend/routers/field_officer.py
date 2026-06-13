@@ -445,7 +445,11 @@ def get_visit_statistics(db: Session = Depends(get_db)):
             func.sum(case((FieldOfficerVisit.within_geofence == True, 1), else_=0)).label('within_geofence_count'),
             func.sum(case((FieldOfficerVisit.within_geofence == False, 1), else_=0)).label('outside_geofence_count'),
             func.count(func.distinct(FieldOfficerVisit.officer_email)).label('unique_officers'),
-            func.avg(FieldOfficerVisit.distance_from_site).label('avg_distance')
+            func.avg(FieldOfficerVisit.distance_from_site).label('avg_distance'),
+            func.count(FieldOfficerVisit.id).label('total_visits'),
+            func.sum(case((FieldOfficerVisit.verified_at.isnot(None), 1), else_=0)).label('verified_visits'),
+            func.sum(case((FieldOfficerVisit.within_geofence == True, 1), else_=0)).label('within_geofence_count'),
+            func.sum(case((FieldOfficerVisit.within_geofence == False, 1), else_=0)).label('outside_geofence_count')
         ).first()
 
         average_distance = agg_stats.avg_distance
@@ -522,10 +526,21 @@ def verify_visit(
 def verify_visit_blockchain(visit_id: int, db: Session = Depends(get_db)):
     """
     Verify the cryptographic integrity of a field officer visit using blockchain-style chaining.
-    Optimized: Uses previous_visit_hash column for O(1) verification.
+    Optimized: Uses column projection and previous_visit_hash column for O(1) verification.
     """
     try:
-        visit = db.query(FieldOfficerVisit).filter(FieldOfficerVisit.id == visit_id).first()
+        # Performance Boost: Use projected columns to avoid loading large JSON/Text fields (Issue #BOLT-OPT)
+        # Fetching only required columns reduces memory usage and latency.
+        visit = db.query(
+            FieldOfficerVisit.issue_id,
+            FieldOfficerVisit.officer_email,
+            FieldOfficerVisit.check_in_latitude,
+            FieldOfficerVisit.check_in_longitude,
+            FieldOfficerVisit.check_in_time,
+            FieldOfficerVisit.visit_notes,
+            FieldOfficerVisit.visit_hash,
+            FieldOfficerVisit.previous_visit_hash
+        ).filter(FieldOfficerVisit.id == visit_id).first()
 
         if not visit:
             raise HTTPException(status_code=404, detail=f"Visit {visit_id} not found")

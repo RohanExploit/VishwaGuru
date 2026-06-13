@@ -11,7 +11,7 @@
 **Objective**: Create database schema for VishwaGuru civic reports system
 
 **Actions**:
-- [ ] Create `civic_reports` table with fields:
+- [x] Create `civic_reports` table with fields:
   - id (UUID, primary key)
   - user_id (UUID, foreign key to auth.users)
   - title (TEXT, required)
@@ -23,15 +23,15 @@
   - priority (TEXT: low, medium, high)
   - created_at, updated_at (TIMESTAMP)
 
-- [ ] Enable Row Level Security (RLS) policies:
+- [x] Enable Row Level Security (RLS) policies:
   - Anyone can view reports (SELECT)
   - Authenticated users can create reports (INSERT with user_id check)
   - Users can update their own reports (UPDATE with auth.uid() check)
   - Users can delete their own reports (DELETE with auth.uid() check)
 
-- [ ] Create `report_comments` table for community engagement
-- [ ] Create `report_votes` table for upvoting/downvoting
-- [ ] Add indexes for performance (category, status, created_at, location)
+- [x] Create `report_comments` table for community engagement
+- [x] Create `report_votes` table for upvoting/downvoting
+- [x] Add indexes for performance (category, status, created_at, location)
 
 **SQL Files**: Generate and document in `docs/database/`
 
