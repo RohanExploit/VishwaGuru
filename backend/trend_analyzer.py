@@ -10,6 +10,8 @@ logger = logging.getLogger(__name__)
 
 class TrendAnalyzer:
     def __init__(self):
+        # Optimization: Pre-compile regex for faster tokenization
+        self._word_pattern = re.compile(r"\w+")
         self.stop_words = {
             "the", "a", "an", "in", "on", "at", "to", "for", "of", "and", "is", "are",
             "was", "were", "this", "that", "it", "with", "from", "by", "as", "be",
