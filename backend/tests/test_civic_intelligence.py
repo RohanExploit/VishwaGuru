@@ -1,15 +1,12 @@
 import pytest
 import json
-import os
-import time
 from unittest.mock import MagicMock, patch, mock_open
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
-from backend.models import Issue, EscalationAudit, EscalationReason, Grievance
+from backend.models import Issue, Grievance
 from backend.adaptive_weights import AdaptiveWeights
 from backend.trend_analyzer import TrendAnalyzer
 from backend.civic_intelligence import CivicIntelligenceEngine
-from backend.spatial_utils import get_cluster_representative
 
 # Mock data
 MOCK_WEIGHTS = {
@@ -188,6 +185,7 @@ def test_civic_intelligence_run(mock_listdir, mock_json_dump, mock_file_open, mo
     g1 = Grievance(id=1, category="Fire")
     g2 = Grievance(id=2, category="Fire")
     g3 = Grievance(id=3, category="Fire")
+    mock_query_grievance.options.return_value.filter.return_value.all.return_value = [g1, g2, g3]
     mock_query_grievance.filter.return_value.all.return_value = [g1, g2, g3]
 
     # Setup Trend Analyzer
