@@ -1,94 +1,78 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mic, MicOff, Loader2 } from 'lucide-react';
-import { miscApi } from '../api';
+import { useTranslation } from 'react-i18next';
 
-const VoiceInput = ({ onTranscript }) => {
-  const [isRecording, setIsRecording] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
+const VoiceInput = ({ onTranscript, language = 'en' }) => {
+  const { t } = useTranslation();
+  const [isListening, setIsListening] = useState(false);
+  const [recognition, setRecognition] = useState(null);
   const [error, setError] = useState(null);
-  const mediaRecorderRef = useRef(null);
-  const chunksRef = useRef([]);
 
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream);
-      chunksRef.current = [];
+  useEffect(() => {
+    // Check if browser supports SpeechRecognition
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-      mediaRecorderRef.current.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          chunksRef.current.push(e.data);
-        }
-      };
+    if (!SpeechRecognition) {
+      setError('Speech recognition not supported in this browser');
+      return;
+    }
 
-      mediaRecorderRef.current.onstop = async () => {
-        const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
-        const tracks = stream.getTracks();
-        tracks.forEach(track => track.stop()); // Stop microphone access
+    const recognitionInstance = new SpeechRecognition();
+    recognitionInstance.continuous = false;
+    recognitionInstance.interimResults = false;
+    recognitionInstance.lang = getLanguageCode(language);
 
-        await processAudio(audioBlob);
-      };
-
-      mediaRecorderRef.current.start();
-      setIsRecording(true);
+    recognitionInstance.onstart = () => {
+      setIsListening(true);
       setError(null);
-    } catch (err) {
-      console.error("Error accessing microphone:", err);
-      setError("Microphone access denied or not supported.");
-    }
-  };
+    };
 
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-  };
+    recognitionInstance.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      onTranscript(transcript);
+    };
 
-  const processAudio = async (blob) => {
-    setIsProcessing(true);
-    try {
-      const formData = new FormData();
-      // Filename is needed for backend to detect type properly, though we rely on content
-      formData.append('file', blob, 'recording.webm');
+    recognitionInstance.onerror = (event) => {
+      setError(`Speech recognition error: ${event.error}`);
+      setIsListening(false);
+    };
 
-      const data = await miscApi.transcribeAudio(formData);
-      if (data && data.text) {
-        onTranscript(data.text);
+    recognitionInstance.onend = () => {
+      setIsListening(false);
+    };
+
+    setRecognition(recognitionInstance);
+
+    return () => {
+      if (recognitionInstance) {
+        recognitionInstance.stop();
       }
-    } catch (err) {
-      console.error("Transcription failed:", err);
-      setError("Transcription failed. Please try again.");
-    } finally {
-      setIsProcessing(false);
-    }
+    };
+  }, [language, onTranscript]);
+
+  const getLanguageCode = (lang) => {
+    const langMap = {
+      'en': 'en-US',
+      'hi': 'hi-IN',
+      'mr': 'mr-IN'
+    };
+    return langMap[lang] || 'en-US';
   };
 
-  const toggleRecording = () => {
-    if (isRecording) {
-      stopRecording();
+  const toggleListening = () => {
+    if (!recognition) return;
+
+    if (isListening) {
+      recognition.stop();
     } else {
-      startRecording();
+      recognition.start();
     }
   };
-
-  if (!isSupported) {
-      return null; // Or render a disabled state
-  }
 
   if (error) {
     return (
-      <div className="flex flex-col items-end">
-          <button
-            type="button"
-            onClick={toggleRecording}
-            className="p-2 rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300"
-          >
-              <Mic size={20} />
-          </button>
-          <div className="text-red-500 text-xs mt-1">
-            {error}
-          </div>
+      <div className="text-red-500 text-sm mt-1">
+        {error}
       </div>
     );
   }
@@ -96,24 +80,15 @@ const VoiceInput = ({ onTranscript }) => {
   return (
     <button
       type="button"
-      onClick={toggleRecording}
-      disabled={isProcessing}
-      className={`p-2 rounded-full transition-colors flex items-center justify-center ${
-        isRecording
-          ? 'bg-red-500 text-white animate-pulse shadow-red-200 shadow-lg'
-          : isProcessing
-          ? 'bg-blue-100 text-blue-600'
+      onClick={toggleListening}
+      className={`p-2 rounded-full transition-colors ${
+        isListening
+          ? 'bg-red-500 text-white animate-pulse'
           : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
       }`}
-      title={isRecording ? 'Stop recording' : 'Start voice report'}
+      title={isListening ? 'Stop listening' : 'Start voice input'}
     >
-      {isProcessing ? (
-        <Loader2 size={20} className="animate-spin" />
-      ) : isRecording ? (
-        <MicOff size={20} />
-      ) : (
-        <Mic size={20} />
-      )}
+      {isListening ? <MicOff size={20} /> : <Mic size={20} />}
     </button>
   );
 };

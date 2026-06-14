@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import Webcam from 'react-webcam';
 
 const StreetLightDetector = ({ onBack }) => {
@@ -46,8 +46,8 @@ const StreetLightDetector = ({ onBack }) => {
             console.error("Detection failed");
             alert("Detection failed. Please try again.");
         }
-    } catch (error) { // eslint-disable-line no-unused-vars
-        console.error("Detection error");
+    } catch (error) {
+        console.error("Error:", error);
         alert("An error occurred during detection.");
     } finally {
         setLoading(false);
@@ -75,7 +75,7 @@ const StreetLightDetector = ({ onBack }) => {
                   ref={webcamRef}
                   screenshotFormat="image/jpeg"
                   className="w-full h-full object-cover"
-                  onUserMediaError={() => setCameraError("Could not access camera. Please check permissions.")}
+                  onUserMediaError={(err) => setCameraError("Could not access camera. Please check permissions.")}
                 />
               ) : (
                 <div className="relative">

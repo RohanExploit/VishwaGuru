@@ -25,7 +25,7 @@ const VerifyView = () => {
         } else {
           setError("Issue not found in recent list.");
         }
-      } catch (err) { // eslint-disable-line no-unused-vars
+      } catch (err) {
         setError("Failed to load issue.");
       } finally {
         setLoading(false);

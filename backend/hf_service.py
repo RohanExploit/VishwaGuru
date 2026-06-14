@@ -34,14 +34,15 @@ async def query_hf_api(image_bytes, labels, client=None):
         return await _make_request(new_client, image_bytes, labels)
 
 async def _make_request(client, image_bytes, labels):
-    image_base64 = base64.b64encode(image_bytes).decode('utf-8')
+    try:
+        image_base64 = base64.b64encode(image_bytes).decode('utf-8')
 
-    payload = {
-        "inputs": image_base64,
-        "parameters": {
-            "candidate_labels": labels
+        payload = {
+            "inputs": image_base64,
+            "parameters": {
+                "candidate_labels": labels
+            }
         }
-    }
 
         try:
             response = await client.post(API_URL, headers=headers, json=payload, timeout=20.0)
@@ -55,9 +56,6 @@ async def _make_request(client, image_bytes, labels):
         except Exception as e:
             logger.error(f"HF API Request Exception: {e}")
             raise ExternalAPIException("Hugging Face API", str(e)) from e
-    except Exception as e:
-        logger.error(f"Error preparing HF API request: {e}")
-        raise ExternalAPIException("Hugging Face API", str(e)) from e
 
 def _prepare_image_bytes(image: Union[Image.Image, bytes]) -> bytes:
     """
