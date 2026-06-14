@@ -20,7 +20,7 @@
   "license": "ISC",
   "dependencies": {
     "node-cron": "^3.0.3",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^6.0.1"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",
