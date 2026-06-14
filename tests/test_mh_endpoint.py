@@ -95,7 +95,6 @@ def test_maharashtra_endpoint():
     print("\n" + "="*60)
     print("✓ All tests passed!")
     print("="*60)
-    return True
 
 
 if __name__ == "__main__":
