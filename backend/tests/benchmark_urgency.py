@@ -42,7 +42,7 @@ if __name__ == "__main__":
     print("\n--- Running Profiler ---")
     pr = cProfile.Profile()
     pr.enable()
-    for _ in range(5000):
+    for _ in range(20000):
         priority_engine._calculate_urgency(sample_text, 10)
     pr.disable()
     s = io.StringIO()
