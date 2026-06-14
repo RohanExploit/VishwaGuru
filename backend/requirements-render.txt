@@ -7,6 +7,7 @@ python-multipart
 psycopg2-binary
 async-lru
 httpx
+python-magic
 pywebpush
 Pillow
 python-jose[cryptography]
