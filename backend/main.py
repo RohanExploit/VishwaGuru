@@ -1,54 +1,49 @@
-from fastapi import FastAPI, Form, UploadFile, File, Depends, BackgroundTasks, Request, Query
+import os
+import sys
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Fix for googletrans compatibility with newer httpcore (Issue #290)
+# This monkeypatch must happen before any imports of googletrans or httpx
+try:
+    import httpcore
+    if not hasattr(httpcore, "SyncHTTPTransport"):
+        httpcore.SyncHTTPTransport = object
+except ImportError:
+    pass
+
+load_dotenv()
+
+# Add project root to sys.path to ensure 'backend.*' imports work
+# This handles cases where PYTHONPATH is set to 'backend' (e.g. on Render)
+current_file = Path(__file__).resolve()
+backend_dir = current_file.parent
+repo_root = backend_dir.parent
+
+if str(repo_root) not in sys.path:
+    sys.path.insert(0, str(repo_root))
+
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.concurrency import run_in_threadpool
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
-from functools import lru_cache
-from typing import List
-import os
-import sys
-from pathlib import Path
 import httpx
 import logging
-import time
-import magic
-import httpx
-from backend.grievance_classifier import get_grievance_classifier
-from backend.schemas import GrievanceRequest, ChatRequest, IssueResponse
-from backend.grievance_service import GrievanceService
-from backend.database import Base, engine, get_db, SessionLocal
-from sqlalchemy.orm import Session
-import backend.dependencies
-from backend.models import Issue
-from backend.ai_factory import create_all_ai_services
-from backend.ai_interfaces import initialize_ai_services, get_ai_services
-from backend.ai_service import chat_with_civic_assistant, generate_action_plan
-from backend.bot import run_bot, start_bot_thread, stop_bot_thread
-from backend.exceptions import EXCEPTION_HANDLERS
-from backend.init_db import migrate_db
-from backend.maharashtra_locator import load_maharashtra_pincode_data, load_maharashtra_mla_data, find_constituency_by_pincode, find_mla_by_constituency
-from backend.cache import recent_issues_cache
-from backend.pothole_detection import detect_potholes
-from backend.garbage_detection import detect_garbage
-from backend.local_ml_service import detect_infrastructure_local, detect_flooding_local, detect_vandalism_local
-from backend.unified_detection_service import get_detection_status
-from backend.hf_api_service import (
-    detect_illegal_parking_clip,
-    detect_street_light_clip,
-    detect_fire_clip,
-    detect_stray_animal_clip,
-    detect_blocked_road_clip,
-    detect_tree_hazard_clip,
-    detect_pest_clip,
-    detect_severity_clip,
-    detect_smart_scan_clip,
-    generate_image_caption
-)
+import asyncio
 
-def validate_image_for_processing(image):
-    if not image:
-        pass
+from backend.database import Base, engine
+from backend.ai_factory import create_all_ai_services
+from backend.ai_interfaces import initialize_ai_services
+from backend.bot import start_bot_thread, stop_bot_thread
+from backend.init_db import migrate_db
+from backend.scheduler import start_scheduler
+from backend.maharashtra_locator import load_maharashtra_pincode_data, load_maharashtra_mla_data
+from backend.exceptions import EXCEPTION_HANDLERS
+from backend.routers import issues, detection, grievances, utility, auth, admin, analysis, voice, field_officer, hf, resolution_proof
+from backend.grievance_service import GrievanceService
+import backend.dependencies
 
 # Configure structured logging
 logging.basicConfig(
@@ -99,9 +94,10 @@ async def lifespan(app: FastAPI):
         logger.info("Starting database initialization...")
         await run_in_threadpool(Base.metadata.create_all, bind=engine)
         logger.info("Base.metadata.create_all completed.")
-        # Temporarily disabled - comment out to debug startup issues
-        # await run_in_threadpool(migrate_db)
-        logger.info("Database initialized successfully (migrations skipped for local dev).")
+
+        # Run migrations to ensure schema is up-to-date (Issue #290)
+        await run_in_threadpool(migrate_db)
+        logger.info("Database initialized and migrations applied successfully.")
     except Exception as e:
         logger.error(f"Database initialization failed: {e}", exc_info=True)
         # We continue to allow health checks even if DB has issues (for debugging)
@@ -140,9 +136,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="VishwaGuru Backend",
     description="AI-powered civic issue reporting and resolution platform",
-    version="1.0.0"
-    # Temporarily disable lifespan for local dev debugging
-    # lifespan=lifespan
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # Add centralized exception handlers
@@ -200,18 +195,18 @@ app.add_middleware(GZipMiddleware, minimum_size=500)
 os.makedirs("data/uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="data/uploads"), name="uploads")
 
-# Include Modular Routers
-app.include_router(issues.router, tags=["Issues"])
-app.include_router(detection.router, tags=["Detection"])
-app.include_router(grievances.router, tags=["Grievances"])
-app.include_router(utility.router, tags=["Utility"])
-app.include_router(auth.router, tags=["Authentication"])
+# Include Modular Routers with /api prefix
+app.include_router(issues.router, prefix="/api", tags=["Issues"])
+app.include_router(detection.router, prefix="/api", tags=["Detection"])
+app.include_router(grievances.router, prefix="/api", tags=["Grievances"])
+app.include_router(utility.router, prefix="/api", tags=["Utility"])
+app.include_router(auth.router, prefix="/api", tags=["Authentication"])
 app.include_router(admin.router)
-app.include_router(analysis.router, tags=["Analysis"])
-app.include_router(voice.router, tags=["Voice & Language"])
-app.include_router(field_officer.router, tags=["Field Officer Check-In"])
-app.include_router(hf.router, tags=["Hugging Face"])
-app.include_router(resolution_proof.router, tags=["Resolution Proof"])
+app.include_router(analysis.router, prefix="/api", tags=["Analysis"])
+app.include_router(voice.router, prefix="/api", tags=["Voice & Language"])
+app.include_router(field_officer.router, prefix="/api", tags=["Field Officer Check-In"])
+app.include_router(hf.router, prefix="/api", tags=["Hugging Face"])
+app.include_router(resolution_proof.router, prefix="/api", tags=["Resolution Proof"])
 
 @app.get("/health")
 def health():

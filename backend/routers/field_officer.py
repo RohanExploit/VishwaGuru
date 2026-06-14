@@ -27,9 +27,12 @@ from backend.schemas import (
 from backend.geofencing_service import (
     is_within_geofence,
     generate_visit_hash,
+    verify_visit_integrity,
     calculate_visit_metrics,
     get_geofencing_service
 )
+from backend.cache import visit_last_hash_cache
+from backend.schemas import BlockchainVerificationResponse
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +47,7 @@ MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10 MB per image
 ALLOWED_IMAGE_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
 
 
-@router.post("/api/field-officer/check-in", response_model=FieldOfficerVisitResponse)
+@router.post("/field-officer/check-in", response_model=FieldOfficerVisitResponse)
 def officer_check_in(request: OfficerCheckInRequest, db: Session = Depends(get_db)):
     """
     Field officer check-in at a grievance site with GPS verification
@@ -93,20 +96,34 @@ def officer_check_in(request: OfficerCheckInRequest, db: Session = Depends(get_d
         )
         
         # Create visit record
-        check_in_time = datetime.now(timezone.utc)
+        # Normalize check_in_time: strip microseconds for deterministic hashing across DBs
+        check_in_time = datetime.now(timezone.utc).replace(microsecond=0)
         
+        # Blockchain feature: calculate integrity hash for the visit
+        # Performance Boost: Use thread-safe cache to eliminate DB query for last hash
+        prev_hash = visit_last_hash_cache.get("last_hash")
+        if prev_hash is None:
+            # Cache miss: Fetch only the last hash from DB
+            prev_visit = db.query(FieldOfficerVisit.visit_hash).order_by(FieldOfficerVisit.id.desc()).first()
+            prev_hash = prev_visit[0] if prev_visit and prev_visit[0] else ""
+            visit_last_hash_cache.set(data=prev_hash, key="last_hash")
+
         visit_data = {
             'issue_id': request.issue_id,
             'officer_email': request.officer_email,
             'check_in_latitude': request.check_in_latitude,
             'check_in_longitude': request.check_in_longitude,
-            'check_in_time': check_in_time.isoformat(),
-            'visit_notes': request.visit_notes or ''
+            'check_in_time': check_in_time,
+            'visit_notes': request.visit_notes or '',
+            'previous_visit_hash': prev_hash
         }
         
         # Generate immutable hash
         visit_hash = generate_visit_hash(visit_data)
         
+        # Update cache for next visit
+        visit_last_hash_cache.set(data=visit_hash, key="last_hash")
+
         new_visit = FieldOfficerVisit(
             issue_id=request.issue_id,
             grievance_id=request.grievance_id,
@@ -123,6 +140,7 @@ def officer_check_in(request: OfficerCheckInRequest, db: Session = Depends(get_d
             visit_notes=request.visit_notes,
             status='checked_in',
             visit_hash=visit_hash,
+            previous_visit_hash=prev_hash,
             is_public=True
         )
         
@@ -166,7 +184,7 @@ def officer_check_in(request: OfficerCheckInRequest, db: Session = Depends(get_d
         raise HTTPException(status_code=500, detail="Check-in failed. Please try again.")
 
 
-@router.post("/api/field-officer/check-out", response_model=FieldOfficerVisitResponse)
+@router.post("/field-officer/check-out", response_model=FieldOfficerVisitResponse)
 def officer_check_out(request: OfficerCheckOutRequest, db: Session = Depends(get_db)):
     """
     Field officer check-out from a visit
@@ -241,7 +259,7 @@ def officer_check_out(request: OfficerCheckOutRequest, db: Session = Depends(get
         raise HTTPException(status_code=500, detail="Check-out failed. Please try again.")
 
 
-@router.post("/api/field-officer/visit/{visit_id}/upload-images", response_model=VisitImageUploadResponse)
+@router.post("/field-officer/visit/{visit_id}/upload-images", response_model=VisitImageUploadResponse)
 async def upload_visit_images(
     visit_id: int,
     images: List[UploadFile] = File(..., description="Visit images"),
@@ -341,7 +359,7 @@ async def upload_visit_images(
         raise HTTPException(status_code=500, detail="Image upload failed. Please try again.")
 
 
-@router.get("/api/field-officer/issue/{issue_id}/visit-history", response_model=VisitHistoryResponse)
+@router.get("/field-officer/issue/{issue_id}/visit-history", response_model=VisitHistoryResponse)
 def get_issue_visit_history(
     issue_id: int,
     public_only: bool = True,
@@ -400,7 +418,7 @@ def get_issue_visit_history(
         raise HTTPException(status_code=500, detail="Failed to retrieve visit history")
 
 
-@router.get("/api/field-officer/visit-stats", response_model=VisitStatsResponse)
+@router.get("/field-officer/visit-stats", response_model=VisitStatsResponse)
 def get_visit_statistics(db: Session = Depends(get_db)):
     """
     Get aggregate statistics for all field officer visits using optimized SQL queries
@@ -445,7 +463,7 @@ def get_visit_statistics(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail="Failed to calculate statistics")
 
 
-@router.post("/api/field-officer/visit/{visit_id}/verify")
+@router.post("/field-officer/visit/{visit_id}/verify")
 def verify_visit(
     visit_id: int,
     verifier_email: str = Form(..., description="Email of verifying admin/supervisor"),
@@ -484,3 +502,54 @@ def verify_visit(
     except Exception as e:
         logger.error(f"Error verifying visit {visit_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Verification failed")
+
+
+@router.get("/field-officer/{visit_id}/blockchain-verify", response_model=BlockchainVerificationResponse)
+def verify_visit_blockchain(visit_id: int, db: Session = Depends(get_db)):
+    """
+    Verify the cryptographic integrity of a field officer visit using blockchain-style chaining.
+    Optimized: Uses previous_visit_hash column for O(1) verification.
+    """
+    try:
+        visit = db.query(FieldOfficerVisit).filter(FieldOfficerVisit.id == visit_id).first()
+
+        if not visit:
+            raise HTTPException(status_code=404, detail=f"Visit {visit_id} not found")
+
+        # Determine previous hash (O(1) from stored column)
+        prev_hash = visit.previous_visit_hash or ""
+
+        # Chaining logic: rebuild the dictionary for verification
+        visit_data = {
+            'issue_id': visit.issue_id,
+            'officer_email': visit.officer_email,
+            'check_in_latitude': visit.check_in_latitude,
+            'check_in_longitude': visit.check_in_longitude,
+            'check_in_time': visit.check_in_time,
+            'visit_notes': visit.visit_notes or '',
+            'previous_visit_hash': prev_hash
+        }
+
+        # Use helper for verification
+        is_valid = verify_visit_integrity(visit_data, visit.visit_hash)
+
+        # For the response, we need the computed hash
+        computed_hash = generate_visit_hash(visit_data)
+
+        if is_valid:
+            message = "Integrity verified. This visit record is cryptographically sealed and part of a secure chain."
+        else:
+            message = "Integrity check failed! The visit data does not match its cryptographic seal."
+
+        return BlockchainVerificationResponse(
+            is_valid=is_valid,
+            current_hash=visit.visit_hash,
+            computed_hash=computed_hash,
+            message=message
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error verifying visit blockchain for {visit_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to verify visit integrity")
