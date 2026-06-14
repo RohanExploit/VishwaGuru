@@ -42,7 +42,8 @@ def test_blockchain_verification_success(client, db_session):
     issue2 = Issue(
         description="Second issue",
         category="Garbage",
-        integrity_hash=hash2
+        integrity_hash=hash2,
+        previous_integrity_hash=hash1
     )
     db_session.add(issue2)
     db_session.commit()
@@ -61,6 +62,7 @@ def test_blockchain_verification_success(client, db_session):
     data = response.json()
     assert data["is_valid"] == True
     assert data["current_hash"] == hash2
+    assert data["previous_hash"] == hash1
 
 def test_blockchain_verification_failure(client, db_session):
     # Create issue with tampered hash

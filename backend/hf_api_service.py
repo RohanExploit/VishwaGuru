@@ -33,6 +33,9 @@ AUDIO_CLASS_API_URL = "https://router.huggingface.co/models/MIT/ast-finetuned-au
 # Speech-to-Text Model (Whisper)
 WHISPER_API_URL = "https://router.huggingface.co/models/openai/whisper-large-v3-turbo"
 
+# Zero-Shot Text Classification Model
+ZERO_SHOT_TEXT_API_URL = "https://router.huggingface.co/models/facebook/bart-large-mnli"
+
 async def _make_request(client, url, payload):
     try:
         response = await client.post(url, headers=headers, json=payload, timeout=20.0)
@@ -456,3 +459,40 @@ async def detect_abandoned_vehicle_clip(image: Union[Image.Image, bytes], client
     labels = ["abandoned car", "rusted vehicle", "car with flat tires", "wrecked car", "normal parked car"]
     targets = ["abandoned car", "rusted vehicle", "car with flat tires", "wrecked car"]
     return await _detect_clip_generic(image, labels, targets, client)
+
+async def classify_text_category(text: str, client: httpx.AsyncClient = None):
+    """
+    Classifies text into civic issue categories using Zero-Shot Classification.
+    Returns the top category and confidence.
+    """
+    labels = [
+        "pothole", "garbage dump", "water leak", "broken street light",
+        "broken infrastructure", "traffic congestion", "fire accident",
+        "stray animal threat", "fallen tree hazard", "pest infestation",
+        "clean area", "noise pollution"
+    ]
+
+    payload = {
+        "inputs": text,
+        "parameters": {"candidate_labels": labels}
+    }
+
+    if client:
+        result = await _make_request(client, ZERO_SHOT_TEXT_API_URL, payload)
+    else:
+        async with httpx.AsyncClient() as new_client:
+            result = await _make_request(new_client, ZERO_SHOT_TEXT_API_URL, payload)
+
+    # Result format: {'sequence': '...', 'labels': ['pothole', ...], 'scores': [0.9, ...]}
+    if isinstance(result, dict) and 'labels' in result and 'scores' in result:
+        top_label = result['labels'][0]
+        top_score = result['scores'][0]
+
+        # Simple mapping to internal categories if needed, or return raw
+        return {
+            "category": top_label,
+            "confidence": top_score,
+            "all_scores": dict(zip(result['labels'][:3], result['scores'][:3]))
+        }
+
+    return {"category": "unknown", "confidence": 0}
