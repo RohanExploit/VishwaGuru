@@ -1,27 +1,100 @@
 
 > frontend@0.0.0 dev
-> vite
+> vite --port 5173
 
 
-  VITE v7.3.1  ready in 493 ms
+  VITE v7.3.1  ready in 271 ms
 
   ➜  Local:   http://localhost:5173/
   ➜  Network: use --host to expose
-9:55:20 AM [vite] http proxy error: /api/issues/recent
+9:45:55 AM [vite] http proxy error: /api/issues/recent?limit=10&offset=0
 AggregateError [ECONNREFUSED]:
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
-9:55:20 AM [vite] http proxy error: /api/issues/recent
+9:45:55 AM [vite] http proxy error: /api/issues/recent?limit=10&offset=0
 AggregateError [ECONNREFUSED]:
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
-9:55:22 AM [vite] (client) ✨ new dependencies optimized: workbox-precaching, workbox-routing, workbox-strategies, workbox-expiration
-9:55:22 AM [vite] (client) ✨ optimized dependencies changed. reloading
-9:55:23 AM [vite] http proxy error: /api/issues/recent
+9:45:57 AM [vite] (client) ✨ new dependencies optimized: workbox-precaching, workbox-routing, workbox-strategies, workbox-expiration
+9:45:57 AM [vite] (client) ✨ optimized dependencies changed. reloading
+9:45:58 AM [vite] http proxy error: /api/issues/recent?limit=10&offset=0
 AggregateError [ECONNREFUSED]:
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
-9:55:23 AM [vite] http proxy error: /api/issues/recent
+9:45:58 AM [vite] http proxy error: /api/issues/recent?limit=10&offset=0
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+9:46:43 AM [vite] http proxy error: /api/issues/recent?limit=10&offset=0
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+9:46:43 AM [vite] http proxy error: /api/issues/recent?limit=10&offset=0
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+9:47:18 AM [vite] (client) hmr update /src/App.jsx, /src/index.css
+9:47:24 AM [vite] http proxy error: /api/issues/recent?limit=10&offset=0
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+9:47:24 AM [vite] http proxy error: /api/issues/recent?limit=10&offset=0
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+9:48:20 AM [vite] http proxy error: /api/issues/recent?limit=10&offset=0
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+9:48:20 AM [vite] http proxy error: /api/issues/recent?limit=10&offset=0
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+9:49:16 AM [vite] http proxy error: /api/issues/recent?limit=10&offset=0
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+9:49:16 AM [vite] http proxy error: /api/issues/recent?limit=10&offset=0
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+9:50:27 AM [vite] http proxy error: /api/issues/recent?limit=10&offset=0
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+9:50:27 AM [vite] http proxy error: /api/issues/recent?limit=10&offset=0
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+9:51:34 AM [vite] http proxy error: /api/issues/recent?limit=10&offset=0
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+9:51:34 AM [vite] http proxy error: /api/issues/recent?limit=10&offset=0
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+9:51:35 AM [vite] http proxy error: /api/issues/recent?limit=10&offset=0
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+9:51:35 AM [vite] http proxy error: /api/issues/recent?limit=10&offset=0
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+9:53:10 AM [vite] http proxy error: /api/issues/recent?limit=10&offset=0
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+9:53:10 AM [vite] http proxy error: /api/issues/recent?limit=10&offset=0
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+9:53:12 AM [vite] http proxy error: /api/issues/recent?limit=10&offset=0
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+9:53:12 AM [vite] http proxy error: /api/issues/recent?limit=10&offset=0
 AggregateError [ECONNREFUSED]:
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)

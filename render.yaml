@@ -14,7 +14,7 @@ services:
           name: vishwaguru-backend
           property: port
       - key: PYTHONPATH
-        value: backend
+        value: .
       # Required API Keys (must be set in Render dashboard)
       - key: GEMINI_API_KEY
         sync: false

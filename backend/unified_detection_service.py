@@ -54,7 +54,7 @@ class UnifiedDetectionService:
             return self._local_available
         
         try:
-            from local_ml_service import get_general_model
+            from backend.local_ml_service import get_general_model
             model = get_general_model()
             
             # Check if model is loaded
@@ -114,7 +114,7 @@ class UnifiedDetectionService:
         backend = await self._get_detection_backend()
         
         if backend == "local":
-            from local_ml_service import detect_vandalism_local
+            from backend.local_ml_service import detect_vandalism_local
             return await detect_vandalism_local(image)
         
         elif backend == "huggingface":
@@ -132,7 +132,7 @@ class UnifiedDetectionService:
         backend = await self._get_detection_backend()
         
         if backend == "local":
-            from local_ml_service import detect_infrastructure_local
+            from backend.local_ml_service import detect_infrastructure_local
             return await detect_infrastructure_local(image)
         
         elif backend == "huggingface":
@@ -150,7 +150,7 @@ class UnifiedDetectionService:
         backend = await self._get_detection_backend()
         
         if backend == "local":
-            from local_ml_service import detect_flooding_local
+            from backend.local_ml_service import detect_flooding_local
             return await detect_flooding_local(image)
         
         elif backend == "huggingface":
@@ -265,7 +265,7 @@ class UnifiedDetectionService:
         
         if local_available:
             try:
-                from local_ml_service import get_detection_status
+                from backend.local_ml_service import get_detection_status
                 status["local_backend"]["details"] = await get_detection_status()
             except Exception:
                 pass
