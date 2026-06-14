@@ -1,10 +1,13 @@
 import os
 import logging
 import asyncio
+import threading
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters, ConversationHandler
-from database import engine, SessionLocal
-from models import Base, Issue
+from backend.database import engine, SessionLocal
+
+from backend.models import Base, Issue
+
 
 # Enable logging
 logging.basicConfig(
@@ -18,6 +21,12 @@ PHOTO, DESCRIPTION, CATEGORY = range(3)
 
 # Initialize Database
 Base.metadata.create_all(bind=engine)
+
+# Global variables for bot management
+_bot_application = None
+_bot_thread = None
+_bot_loop = None
+_shutdown_event = threading.Event()
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
@@ -110,7 +119,10 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return ConversationHandler.END
 
-async def run_bot():
+async def _run_bot_async():
+    """Internal async function to run the bot polling loop"""
+    global _bot_application
+
     token = os.environ.get("TELEGRAM_BOT_TOKEN")
     if not token:
         logger.warning("TELEGRAM_BOT_TOKEN environment variable not set. Bot will not start.")
@@ -135,6 +147,10 @@ async def run_bot():
         # Initialize and start the application
         await application.initialize()
         await application.start()
+
+        _bot_application = application
+
+        # Run polling with shutdown check
         await application.updater.start_polling()
 
         logger.info("Bot started successfully and is polling for updates.")
@@ -146,6 +162,17 @@ async def run_bot():
         return None
 
 if __name__ == '__main__':
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(run_bot())
-    loop.run_forever()
+    # For standalone bot testing
+    start_bot_thread()
+
+    # Keep main thread alive
+    try:
+        while True:
+            if not _bot_thread or not _bot_thread.is_alive():
+                logging.error("Bot thread died unexpectedly")
+                break
+            asyncio.sleep(5)
+    except KeyboardInterrupt:
+        logging.info("Received interrupt signal")
+    finally:
+        stop_bot_thread()
