@@ -1,183 +1,199 @@
-# VishwaGuru
+# 🌍 VishwaGuru
 
-VishwaGuru is an open source platform empowering India's youth to engage with democracy. It uses AI to simplify contacting representatives, filing grievances, and organizing community action. Built for India's languages and governance, it turns selfies and videos into real civic impact.
+ optimize-lazy-loading-313
+VishwaGuru is an AI-powered platform designed to help users analyze issues and generate actionable solutions using modern web technologies and AI models.
 
-## Features
+---
 
-- **AI-Powered Action Plans**: Generates WhatsApp messages and email drafts for civic issues using Google's Gemini API.
-- **Issue Reporting**: Users can report issues via a web interface or a Telegram bot.
-- **Local & Production Ready**: Supports SQLite for local development and PostgreSQL for production.
-- **Modern Stack**: Built with React (Vite) and FastAPI.
+## ✨ Features
 
-## Prerequisites
+- 🤖 AI-generated action plans using Google Gemini
+- ⚡ FastAPI-powered backend
+- 🎨 Modern React + Vite frontend
+- 📱 Telegram bot integration
+- 🗄️ SQLite (dev) & PostgreSQL (prod) support
+- ☁️ Flexible deployment options
 
-Before you begin, ensure you have the following installed:
+---
 
-- **Python 3.8+**
-- **Node.js 18+** and **npm**
-- **Git**
+## 🛠️ Project Setup (Local)
 
-## Installation
-
-### 1. Clone the Repository
-
+### 📥 Clone the Repository
 ```bash
-git clone <repository_url>
-cd vishwaguru
+git clone https://github.com/Ewocs/VishwaGuru.git
+cd VishwaGuru
 ```
 
-### 2. Backend Setup
+---
 
-The backend handles API requests, database interactions, and the Telegram bot.
+## ⚙️ Backend Setup
 
-1.  Create a virtual environment (in the root directory):
-    ```bash
-    # Linux/macOS
-    python3 -m venv venv
-    source venv/bin/activate
-
-    # Windows
-    python -m venv venv
-    venv\Scripts\activate
-    ```
-
-2.  Install dependencies:
-    ```bash
-    pip install -r backend/requirements.txt
-    ```
-
-3.  **Environment Configuration**:
-    Create a `.env` file in the root of the repository.
-
-    Required Environment Variables:
-    *   `TELEGRAM_BOT_TOKEN`: Token from @BotFather for the Telegram Bot.
-    *   `GEMINI_API_KEY`: API Key from Google AI Studio.
-    *   `DATABASE_URL`: (Optional) Connection string for PostgreSQL. Defaults to `sqlite:///./data/issues.db`.
-
-    **Note**: You can copy the example file:
-    ```bash
-    cp .env.example .env
-    ```
-    Then edit `.env` to add your keys.
-
-### 3. Frontend Setup
-
-The frontend is a React application built with Vite.
-
-1.  Navigate to the frontend directory:
-    ```bash
-    cd frontend
-    ```
-
-2.  Install dependencies:
-    ```bash
-    npm install
-    ```
-
-## Running Locally
-
-### Start the Backend Server
-
-From the **root directory** (with your virtual environment activated):
-
+### Create Virtual Environment
 ```bash
-PYTHONPATH=backend python -m uvicorn main:app --reload
+# Linux/macOS
+python3 -m venv venv
+source venv/bin/activate
+
+# Windows
+python -m venv venv
+venv\Scripts\activate
 ```
 
-The API will be available at `http://localhost:8000`.
+### Install Dependencies
+```bash
+pip install -r backend/requirements.txt
+```
 
-**Note for Windows**: Use `set PYTHONPATH=backend & python -m uvicorn main:app --reload`
+### 🔐 Environment Configuration
+```bash
+cp .env.example .env
+```
 
-### Start the Frontend Development Server
+```env
+TELEGRAM_BOT_TOKEN=your_bot_token
+GEMINI_API_KEY=your_api_key
+DATABASE_URL=sqlite:///./data/issues.db
+```
 
-Open a new terminal window:
+---
 
+## 🎨 Frontend Setup
 ```bash
 cd frontend
-npm run dev
+npm install
 ```
-The application will be accessible at `http://localhost:5173`.
 
-### Start the Telegram Bot
+---
 
-The Telegram bot runs as part of the FastAPI application lifecycle, so it starts automatically when you run the backend server.
+## 🏃‍♂️ Running Locally
 
-## Deployment to Firebase
+| Service | Command | URL |
+|------|--------|-----|
+| Backend | PYTHONPATH=backend python -m uvicorn main:app --reload | http://localhost:8000 |
+| Frontend | cd frontend && npm run dev | http://localhost:5173 |
 
-VishwaGuru can be deployed fullstack on Firebase using **Firebase Hosting** (for the frontend) and **Cloud Functions** (for the backend).
-
-### Prerequisites
-
-1.  Install Firebase CLI:
-    ```bash
-    npm install -g firebase-tools
-    ```
-2.  Login to Firebase:
-    ```bash
-    firebase login
-    ```
-
-### Deployment Steps
-
-1.  **Initialize Project** (if not already done, or to select your project):
-    ```bash
-    firebase init
-    ```
-    - Select **Hosting** and **Functions**.
-    - Choose "Use an existing project" or create a new one.
-    - Select **Python** for Functions language.
-    - **Important**: The project is already configured with `firebase.json` and `.firebaserc`. You might skip initialization if you just want to set the project alias:
-      ```bash
-      firebase use --add
-      ```
-
-2.  **Build Frontend**:
-    ```bash
-    cd frontend
-    npm run build
-    cd ..
-    ```
-
-3.  **Deploy**:
-    ```bash
-    firebase deploy
-    ```
-
-    This command will:
-    - Build the functions source by copying `backend` and `data` into `functions/`.
-    - Deploy the backend as a Firebase Cloud Function (Gen 2).
-    - Deploy the `frontend/dist` folder to Firebase Hosting.
-    - Set up rewrites so API calls go to the function and other routes go to the React app.
-
-### Environment Variables
-
-For Cloud Functions, you need to set environment variables using the Firebase CLI:
-
+### Windows Note
 ```bash
-firebase functions:config:set \
-  app.telegram_bot_token="YOUR_TOKEN" \
-  app.gemini_api_key="YOUR_KEY" \
-  app.database_url="YOUR_POSTGRES_URL"
-```
-*Note: Firebase Gen 2 functions use `.env` files or Google Secret Manager. The `functions:config:set` is for Gen 1. For Gen 2, it's recommended to use `.env` inside `functions/` or Secret Manager.*
-
-**Recommended for Gen 2:**
-Create `functions/.env` before deploying (DO NOT COMMIT THIS FILE):
-```env
-TELEGRAM_BOT_TOKEN=...
-GEMINI_API_KEY=...
-DATABASE_URL=...
+set PYTHONPATH=backend & python -m uvicorn main:app --reload
 ```
 
-## Tech Stack
+---
 
-*   **Frontend**: React, Vite, Tailwind CSS
-*   **Backend**: Python, FastAPI, SQLAlchemy, Pydantic
-*   **Database**: SQLite (Dev), PostgreSQL (Prod)
-*   **AI**: Google Gemini (google-generativeai)
-*   **Bot**: python-telegram-bot
-*   **Deployment**: Firebase (Hosting + Functions), Render/Netlify (Alternative)
+## ☁️ Deployment Options
 
-## License
+- Firebase  
+- Netlify + Render  
+- Railway  
 
-This project is licensed under the **AGPL-3.0** License.
+---
+
+## 🛠️ Tech Stack
+
+- React, Vite, Tailwind CSS  
+- Python, FastAPI  
+- SQLite, PostgreSQL  
+- Google Gemini API  
+
+---
+
+## 📚 Documentation
+
+- ARCHITECTURE.md  
+- DEPLOYMENT_GUIDE.md  
+- frontend/README.md  
+- backend/README.md  
+
+---
+
+## 📄 License
+
+GNU Affero General Public License v3.0 (AGPL-3.0)
+
+<div align="center">
+
+![VishwaGuru Banner](https://img.shields.io/badge/VishwaGuru-Civic%20Engagement-blue?style=for-the-badge&logo=github)
+![License](https://img.shields.io/badge/License-AGPL--3.0-green?style=flat-square)
+![Python](https://img.shields.io/badge/Python-3.8+-blue?style=flat-square&logo=python)
+![Visitors](https://visitor-badge.laobi.icu/badge?page_id=RohanExploit.VishwaGuru&style=flat-square)
+![React](https://img.shields.io/badge/React-18+-61dafb?style=flat-square&logo=react)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi)
+![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=flat-square&logo=firebase)
+
+**Empowering India's youth to engage with democracy through AI-powered civic action** 🚀
+
+[📖 Documentation](#documentation) • [🚀 Quick Start](#installation) • [🤝 Contributing](#development--contribution-guide) • [📋 Issues](https://github.com/Ewocs/VishwaGuru/issues)
+
+---
+
+</div>
+
+## ✨ What is VishwaGuru?
+
+VishwaGuru is an open source platform that **transforms civic engagement** in India. Using cutting-edge AI, it simplifies contacting representatives, filing grievances, and organizing community actions. 
+
+> 🎯 **Mission**: Make democracy accessible to every Indian citizen through technology
+
+---
+
+# Contributors
+
+- **[RohanExploit](https://github.com/RohanExploit)**  
+
+---
+
+## 🌟 Key Features
+
+<table>
+<tr>
+<td align="center">
+<img src="https://img.shields.io/badge/🤖-AI--Powered-blue?style=for-the-badge" />
+<br>
+<strong>AI Action Plans</strong>
+<br>
+Generates personalized WhatsApp messages and email drafts using Google's Gemini API
+</td>
+<td align="center">
+<img src="https://img.shields.io/badge/📱-Multi--Platform-green?style=for-the-badge" />
+<br>
+<strong>Multi-Platform</strong>
+<br>
+Report issues via modern web interface or Telegram bot
+</td>
+<td align="center">
+<img src="https://img.shields.io/badge/⚡-Production--Ready-orange?style=for-the-badge" />
+<br>
+<strong>Production Ready</strong>
+<br>
+SQLite for development, PostgreSQL for production
+</td>
+</tr>
+<tr>
+<td align="center">
+<img src="https://img.shields.io/badge/🎨-Modern--Stack-purple?style=for-the-badge" />
+<br>
+<strong>Modern Stack</strong>
+<br>
+React + Vite frontend, FastAPI backend
+</td>
+<td align="center">
+<img src="https://img.shields.io/badge/🌐-Indian--Focused-red?style=for-the-badge" />
+<br>
+<strong>India-Centric</strong>
+<br>
+Built for Indian languages and governance systems
+</td>
+<td align="center">
+<img src="https://img.shields.io/badge/🔒-Open--Source-yellow?style=for-the-badge" />
+<br>
+<strong>Open Source</strong>
+<br>
+Free, transparent, and community-driven
+</td>
+</tr>
+</table>
+
+---
+
+## 🏗️ Architecture & Data Flow
+The content continues as it was...
+
