@@ -83,11 +83,17 @@ def migrate_db():
                 if not index_exists("issues", "ix_issues_status"):
                     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_issues_status ON issues (status)"))
 
-                if not index_exists("issues", "ix_issues_latitude"):
-                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_issues_latitude ON issues (latitude)"))
+                # Remove redundant individual indexes if they exist (covered by composite index)
+                try:
+                    if index_exists("issues", "ix_issues_latitude"):
+                        conn.execute(text("DROP INDEX IF EXISTS ix_issues_latitude"))
+                        logger.info("Dropped redundant index ix_issues_latitude")
 
-                if not index_exists("issues", "ix_issues_longitude"):
-                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_issues_longitude ON issues (longitude)"))
+                    if index_exists("issues", "ix_issues_longitude"):
+                        conn.execute(text("DROP INDEX IF EXISTS ix_issues_longitude"))
+                        logger.info("Dropped redundant index ix_issues_longitude")
+                except Exception as e:
+                    logger.warning(f"Could not drop redundant indexes: {e}")
 
                 if not index_exists("issues", "ix_issues_status_lat_lon"):
                     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_issues_status_lat_lon ON issues (status, latitude, longitude)"))

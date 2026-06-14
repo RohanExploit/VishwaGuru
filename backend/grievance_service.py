@@ -7,6 +7,7 @@ import json
 import uuid
 from typing import Dict, Any, Optional, List
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import and_
 from datetime import datetime, timezone, timedelta
 
 from backend.models import Grievance, Jurisdiction, GrievanceStatus, SeverityLevel, Issue
