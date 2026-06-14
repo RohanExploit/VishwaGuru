@@ -37,3 +37,11 @@
 ## 2026-02-08 - Return Type Consistency in Utilities
 **Learning:** Inconsistent return types in shared utility functions (like `process_uploaded_image`) can cause runtime crashes across multiple modules, especially when some expect tuples and others expect single values. This can lead to deployment failures that are hard to debug without full integration logs.
 **Action:** Always maintain strict return type consistency for core utilities. Use type hints and verify all call sites when changing a function's signature. Ensure that performance-oriented optimizations (like returning multiple processed formats) are applied uniformly.
+
+## 2026-02-10 - Secure Single-Query Blockchain Verification
+**Learning:** While blockchain verification usually requires fetching the previous block's hash, performing two separate database queries doubles the roundtrip latency. However, caching the previous hash in the current row (O(1)) is a security risk as it makes the check entirely local to the row.
+**Action:** Use a SQL subquery to fetch the actual preceding record's hash alongside the current record's data in a single database roundtrip. This achieves optimal performance (1 query instead of 2) without sacrificing the cryptographic chain of trust.
+
+## 2026-02-10 - O(1) Metadata Stripping
+**Learning:** Creating a new image and pasting pixels to strip EXIF data is an O(N) operation that consumes significant CPU and memory proportional to image resolution.
+**Action:** Use `del img.info['exif']` to strip EXIF metadata in O(1) time. This avoids pixel-level processing and significantly reduces memory pressure during high-concurrency image uploads.

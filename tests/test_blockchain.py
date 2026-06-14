@@ -97,3 +97,48 @@ def test_upvote_optimization(client, db_session):
     # Verify in DB
     db_session.refresh(issue)
     assert issue.upvotes == 11
+
+def test_blockchain_o1_optimization(client, db_session):
+    # This test verifies that the previous_integrity_hash is stored
+    # and used to avoid the extra query.
+
+    # Create first issue
+    response = client.post(
+        "/api/issues",
+        data={
+            "description": "First issue for O1 test",
+            "category": "Road"
+        }
+    )
+    assert response.status_code == 201
+    id1 = response.json()["id"]
+
+    issue1 = db_session.query(Issue).filter(Issue.id == id1).first()
+    hash1 = issue1.integrity_hash
+    # The very first issue in an empty DB will have empty previous hash
+    assert issue1.previous_integrity_hash == ""
+
+    # Create second issue
+    response = client.post(
+        "/api/issues",
+        data={
+            "description": "Second issue for O1 test",
+            "category": "Garbage"
+        }
+    )
+    assert response.status_code == 201
+    id2 = response.json()["id"]
+
+    issue2 = db_session.query(Issue).filter(Issue.id == id2).first()
+    # Check that it stored the hash of the first issue
+    assert issue2.previous_integrity_hash == hash1
+
+    # Verify the chain re-calculation logic matches
+    expected_hash2_content = f"Second issue for O1 test|Garbage|{hash1}"
+    expected_hash2 = hashlib.sha256(expected_hash2_content.encode()).hexdigest()
+    assert issue2.integrity_hash == expected_hash2
+
+    # Verify endpoint still works (it will use the O1 path internally)
+    response = client.get(f"/api/issues/{id2}/blockchain-verify")
+    assert response.status_code == 200
+    assert response.json()["is_valid"] == True

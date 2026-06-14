@@ -28,7 +28,10 @@ from backend.init_db import migrate_db
 from backend.scheduler import start_scheduler
 from backend.maharashtra_locator import load_maharashtra_pincode_data, load_maharashtra_mla_data
 from backend.exceptions import EXCEPTION_HANDLERS
-from backend.routers import issues, detection, grievances, utility, auth, admin, analysis, voice, resolution_proof
+from backend.routers import (
+    issues, detection, grievances, utility, auth,
+    admin, analysis, voice, field_officer, resolution_proof
+)
 from backend.grievance_service import GrievanceService
 import backend.dependencies
 
@@ -184,6 +187,7 @@ app.include_router(auth.router, tags=["Authentication"])
 app.include_router(admin.router)
 app.include_router(analysis.router, tags=["Analysis"])
 app.include_router(voice.router, tags=["Voice & Language"])
+app.include_router(field_officer.router, tags=["Field Officer Check-In"])
 app.include_router(resolution_proof.router)
 
 @app.get("/health")
