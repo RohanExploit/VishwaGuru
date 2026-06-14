@@ -44,7 +44,7 @@ class AdaptiveWeights:
     def _check_reload(self):
         # Optimization: Throttle mtime checks to every 5 seconds
         current_time = time.time()
-        if current_time - self._last_check_time > 5:
+        if current_time - self._last_check_time > self._CHECK_INTERVAL:
             self._last_check_time = current_time
             old_last_loaded = self._last_loaded
             self._load_weights()
