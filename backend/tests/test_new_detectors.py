@@ -73,7 +73,7 @@ async def test_detect_traffic_sign_damaged(client):
 
     with patch('backend.utils.validate_uploaded_file'):
         response = client.post(
-            "/api/detect-traffic-sign",
+                "/detect-traffic-sign",
             files={"image": ("sign.jpg", img_bytes, "image/jpeg")}
         )
 
@@ -99,7 +99,7 @@ async def test_detect_traffic_sign_clear(client):
 
     with patch('backend.utils.validate_uploaded_file'):
         response = client.post(
-            "/api/detect-traffic-sign",
+                "/detect-traffic-sign",
             files={"image": ("sign.jpg", img_bytes, "image/jpeg")}
         )
 
@@ -123,7 +123,7 @@ async def test_detect_abandoned_vehicle_found(client):
 
     with patch('backend.utils.validate_uploaded_file'):
         response = client.post(
-            "/api/detect-abandoned-vehicle",
+                "/detect-abandoned-vehicle",
             files={"image": ("car.jpg", img_bytes, "image/jpeg")}
         )
 

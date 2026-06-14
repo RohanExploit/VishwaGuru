@@ -443,7 +443,7 @@ async def detect_graffiti_endpoint(image: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.post("/api/detect-traffic-sign")
+@router.post("/detect-traffic-sign")
 async def detect_traffic_sign_endpoint(image: UploadFile = File(...)):
     # Optimized Image Processing: Validation + Optimization
     _, image_bytes = await process_uploaded_image(image)
@@ -455,7 +455,7 @@ async def detect_traffic_sign_endpoint(image: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.post("/api/detect-abandoned-vehicle")
+@router.post("/detect-abandoned-vehicle")
 async def detect_abandoned_vehicle_endpoint(image: UploadFile = File(...)):
     # Optimized Image Processing: Validation + Optimization
     _, image_bytes = await process_uploaded_image(image)

@@ -73,7 +73,7 @@ async def test_detect_vandalism_with_bytes(client):
     # Since client is fixture, the http_client is already initialized in app.state
     # We can access it via app.state.http_client (which is the mock_client from fixture)
 
-    mock_client = app.state.http_client
+    mock_client = client.app.state.http_client
     # Reset mock to ensure clean state
     mock_client.post.reset_mock()
 
@@ -108,7 +108,7 @@ async def test_detect_vandalism_with_bytes(client):
 
 @pytest.mark.asyncio
 async def test_detect_infrastructure_with_bytes(client):
-    mock_client = app.state.http_client
+    mock_client = client.app.state.http_client
     mock_client.post.reset_mock()
 
     # Setup response for infrastructure
