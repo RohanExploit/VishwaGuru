@@ -14,8 +14,15 @@ _model_lock: threading.Lock = threading.Lock()
 _model_loading_error: Optional[Exception] = None
 _model_initialized: bool = False
 
-_model = None
-_model_lock = threading.Lock()
+def is_model_available():
+    """
+    Checks if the model dependencies are available.
+    """
+    try:
+        import ultralyticsplus
+        return True
+    except ImportError:
+        return False
 
 def load_model():
     """
@@ -44,9 +51,12 @@ def load_model():
 
         logger.info("Model loaded successfully.")
         return model
+    except ImportError:
+        logger.warning("ultralyticsplus not installed. Pothole detection disabled.")
+        return None
     except Exception as e:
         logger.error(f"Failed to load model: {e}")
-        raise ModelLoadException("keremberke/yolov8n-pothole-segmentation", details={"error": str(e)}) from e
+        return None
 
 
 def get_model():
@@ -99,15 +109,6 @@ def get_model():
             raise ModelLoadException("keremberke/yolov8n-pothole-segmentation", details={"error": str(e)}) from e
 
 
-def validate_image_for_processing(image):
-    """
-    Validates if the image is suitable for processing.
-    """
-    if image is None:
-        from fastapi import HTTPException
-        raise HTTPException(status_code=400, detail="No image provided for processing")
-    return True
-
 def reset_model():
     """
     Resets the model singleton state. Primarily for testing purposes.
@@ -129,7 +130,17 @@ def reset_model():
         _model_loading_error = None
         logger.info("Model singleton state has been reset.")
 
-    return _model
+def validate_image_for_processing(image):
+    """
+    Validates that the image is a valid PIL Image and can be processed.
+    Uses image.load() to verify integrity without closing the file pointer.
+    """
+    try:
+        image.load()
+        return True
+    except Exception as e:
+        logger.error(f"Image validation failed: {e}")
+        raise DetectionException("Invalid image content for pothole detection", "pothole", details={"error": str(e)}) from e
 
 def detect_potholes(image_source):
     """
@@ -146,6 +157,8 @@ def detect_potholes(image_source):
     """
     try:
         model = get_model()
+        if model is None:
+            return []
 
         # perform inference
         # stream=False ensures we get all results in memory

@@ -91,6 +91,11 @@ async def _detect_clip_generic(image: Union[Image.Image, bytes], labels: List[st
 
 # --- Specific Detectors ---
 
+async def detect_pothole_clip(image: Union[Image.Image, bytes], client: httpx.AsyncClient = None):
+    labels = ["pothole", "damaged road", "road crack", "smooth road", "clean street"]
+    targets = ["pothole", "damaged road", "road crack"]
+    return await _detect_clip_generic(image, labels, targets, client)
+
 async def detect_illegal_parking_clip(image: Union[Image.Image, bytes], client: httpx.AsyncClient = None):
     labels = ["illegal parking", "car blocking driveway", "double parked", "car on sidewalk", "legal parking", "empty street"]
     targets = ["illegal parking", "car blocking driveway", "double parked", "car on sidewalk"]
@@ -432,27 +437,3 @@ async def detect_civic_eye_clip(image: Union[Image.Image, bytes], client: httpx.
         "cleanliness": {"status": cleanliness['label'], "score": cleanliness['score']},
         "infrastructure": {"status": infra['label'], "score": infra['score']}
     }
-
-async def detect_graffiti_art_clip(image: Union[Image.Image, bytes], client: httpx.AsyncClient = None):
-    """
-    Distinguish between artistic mural (legal) and graffiti vandalism (illegal).
-    """
-    labels = ["artistic mural", "street art", "graffiti tag", "vandalism", "clean wall"]
-    targets = ["artistic mural", "street art", "graffiti tag", "vandalism"]
-    return await _detect_clip_generic(image, labels, targets, client)
-
-async def detect_traffic_sign_clip(image: Union[Image.Image, bytes], client: httpx.AsyncClient = None):
-    """
-    Detects damaged or vandalized traffic signs.
-    """
-    labels = ["damaged traffic sign", "graffiti on sign", "bent sign", "faded sign", "clear traffic sign"]
-    targets = ["damaged traffic sign", "graffiti on sign", "bent sign", "faded sign"]
-    return await _detect_clip_generic(image, labels, targets, client)
-
-async def detect_abandoned_vehicle_clip(image: Union[Image.Image, bytes], client: httpx.AsyncClient = None):
-    """
-    Detects abandoned or wrecked vehicles.
-    """
-    labels = ["abandoned car", "rusted vehicle", "car with flat tires", "wrecked car", "normal parked car"]
-    targets = ["abandoned car", "rusted vehicle", "car with flat tires", "wrecked car"]
-    return await _detect_clip_generic(image, labels, targets, client)

@@ -1,11 +1,26 @@
 import json
-from sqlalchemy import Column, Integer, String, DateTime, Float, Text, ForeignKey, Enum, Index, Boolean
-from sqlalchemy.types import JSON
+from sqlalchemy import Column, Integer, String, DateTime, Float, Text, ForeignKey, Enum, Index
+from sqlalchemy.types import TypeDecorator
 from backend.database import Base
 from sqlalchemy.orm import relationship
 
 import datetime
 import enum
+
+class JSONEncodedDict(TypeDecorator):
+    """Represents an immutable structure as a json-encoded string."""
+    impl = Text
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is not None:
+            value = json.dumps(value)
+        return value
+
+    def process_result_value(self, value, dialect):
+        if value is not None:
+            value = json.loads(value)
+        return value
 
 class JurisdictionLevel(enum.Enum):
     LOCAL = "local"
@@ -30,36 +45,12 @@ class EscalationReason(enum.Enum):
     SEVERITY_UPGRADE = "severity_upgrade"
     MANUAL = "manual"
 
-class UserRole(enum.Enum):
-    ADMIN = "admin"
-    USER = "user"
-    OFFICIAL = "official"
-
-class VerificationStatus(enum.Enum):
-    PENDING = "pending"
-    VERIFIED = "verified"
-    FLAGGED = "flagged"
-    FRAUD_DETECTED = "fraud_detected"
-
-
-class User(Base):
-    __tablename__ = "users"
-
-    id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, unique=True, index=True, nullable=False)
-    hashed_password = Column(String, nullable=False)
-    full_name = Column(String, nullable=True)
-    role = Column(Enum(UserRole), default=UserRole.USER, nullable=False)
-    is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
-
-
 class Jurisdiction(Base):
     __tablename__ = "jurisdictions"
 
     id = Column(Integer, primary_key=True, index=True)
     level = Column(Enum(JurisdictionLevel), nullable=False, index=True)
-    geographic_coverage = Column(JSON, nullable=False)  # e.g., {"states": ["Maharashtra"], "districts": ["Mumbai"]}
+    geographic_coverage = Column(JSONEncodedDict, nullable=False)  # e.g., {"states": ["Maharashtra"], "districts": ["Mumbai"]}
     responsible_authority = Column(String, nullable=False)  # Department or authority name
     default_sla_hours = Column(Integer, nullable=False)  # Default SLA in hours
 
@@ -85,28 +76,16 @@ class Grievance(Base):
     longitude = Column(Float, nullable=True, index=True)
     address = Column(String, nullable=True)
     current_jurisdiction_id = Column(Integer, ForeignKey("jurisdictions.id"), nullable=False)
-    assigned_authority = Column(String, nullable=False, index=True)
+    assigned_authority = Column(String, nullable=False)
     sla_deadline = Column(DateTime, nullable=False)
     status = Column(Enum(GrievanceStatus), default=GrievanceStatus.OPEN, index=True)
     created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc), index=True)
     updated_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc), onupdate=lambda: datetime.datetime.now(datetime.timezone.utc))
     resolved_at = Column(DateTime, nullable=True)
-    
-    # Closure confirmation fields
-    closure_requested_at = Column(DateTime, nullable=True)
-    closure_confirmation_deadline = Column(DateTime, nullable=True)
-    closure_approved = Column(Boolean, default=False)
-    pending_closure = Column(Boolean, default=False, index=True)
-    
-    issue_id = Column(Integer, ForeignKey("issues.id"), nullable=True, index=True)
 
     # Relationships
     jurisdiction = relationship("Jurisdiction", back_populates="grievances")
     audit_logs = relationship("EscalationAudit", back_populates="grievance")
-    followers = relationship("GrievanceFollower", back_populates="grievance")
-    closure_confirmations = relationship("ClosureConfirmation", back_populates="grievance")
-    resolution_evidence = relationship("ResolutionEvidence", back_populates="grievance")
-    resolution_tokens = relationship("ResolutionProofToken", back_populates="grievance")
 
 class SLAConfig(Base):
     __tablename__ = "sla_configs"
@@ -139,7 +118,7 @@ class Issue(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     reference_id = Column(String, unique=True, index=True)  # Secure reference for government updates
-    description = Column(Text)
+    description = Column(String)
     category = Column(String, index=True)
     image_path = Column(String)
     source = Column(String)  # 'telegram', 'web', etc.

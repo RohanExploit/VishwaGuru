@@ -18,6 +18,7 @@ const NotFound = React.lazy(() => import('./views/NotFound'));
 // Lazy Load Detectors
 const PotholeDetector = React.lazy(() => import('./PotholeDetector'));
 const GarbageDetector = React.lazy(() => import('./GarbageDetector'));
+const WasteDetector = React.lazy(() => import('./WasteDetector'));
 const VandalismDetector = React.lazy(() => import('./VandalismDetector'));
 const FloodDetector = React.lazy(() => import('./FloodDetector'));
 const InfrastructureDetector = React.lazy(() => import('./InfrastructureDetector'));
@@ -27,21 +28,13 @@ const FireDetector = React.lazy(() => import('./FireDetector'));
 const StrayAnimalDetector = React.lazy(() => import('./StrayAnimalDetector'));
 const BlockedRoadDetector = React.lazy(() => import('./BlockedRoadDetector'));
 const TreeDetector = React.lazy(() => import('./TreeDetector'));
-const PestDetector = React.lazy(() => import('./PestDetector'));
-const SmartScanner = React.lazy(() => import('./SmartScanner'));
-const GrievanceAnalysis = React.lazy(() => import('./views/GrievanceAnalysis'));
-const NoiseDetector = React.lazy(() => import('./NoiseDetector'));
-const CivicEyeDetector = React.lazy(() => import('./CivicEyeDetector'));
-const CivicInsight = React.lazy(() => import('./views/CivicInsight'));
-const MyReportsView = React.lazy(() => import('./views/MyReportsView'));
-const TrafficSignDetector = React.lazy(() => import('./TrafficSignDetector'));
-const AbandonedVehicleDetector = React.lazy(() => import('./AbandonedVehicleDetector'));
 
-// Auth Components
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import Login from './views/Login';
-import ProtectedRoute from './components/ProtectedRoute';
-import AdminDashboard from './views/AdminDashboard';
+// Loader
+const Loader = () => (
+  <div className="flex justify-center my-8">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+  </div>
+);
 
 function Layout({ children }) {
     return (
@@ -68,13 +61,46 @@ function App() {
   const [recentIssues, setRecentIssues] = useState([]);
 
   // Safe navigation helper
-  const navigateToView = useCallback((view) => {
-    const validViews = ['home', 'map', 'report', 'action', 'mh-rep', 'pothole', 'garbage', 'vandalism', 'flood', 'infrastructure', 'parking', 'streetlight', 'fire', 'animal', 'blocked', 'tree', 'pest', 'smart-scan', 'grievance-analysis', 'noise', 'safety-check', 'insight', 'my-reports', 'grievance', 'login', 'signup', 'traffic-sign', 'abandoned-vehicle'];
+  const navigateToView = (view) => {
+    const validViews = ['home', 'map', 'report', 'action', 'mh-rep', 'pothole', 'garbage', 'vandalism', 'flood', 'infrastructure', 'parking', 'streetlight', 'fire', 'animal', 'blocked', 'tree'];
     if (validViews.includes(view)) {
       navigate(view === 'home' ? '/' : `/${view}`);
+    }
+  };
+
+  // Fetch recent issues on mount
+  const fetchRecentIssues = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/issues/recent`);
+      if (response.ok) {
+        const data = await response.json();
+        setRecentIssues(data);
+      } else {
+        throw new Error("Failed to fetch");
+      }
+    } catch (e) {
+      console.error("Failed to fetch recent issues, using fake data", e);
+      setRecentIssues(fakeRecentIssues);
+    }
+  };
+
+  useEffect(() => {
+    if (error || success) {
+      const timer = setTimeout(() => {
+        setError(null);
+        setSuccess(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error, success]);
+
+  // Safe navigation helper with validation
+  const navigateToView = useCallback((view) => {
+    if (VALID_VIEWS.includes(view.split('/')[0])) {
+      navigate(`/${view}`);
     } else {
       console.warn(`Attempted to navigate to invalid view: ${view}`);
-      navigate('/');
+      navigate('/home');
     }
   }, [navigate]);
 
@@ -124,15 +150,145 @@ function App() {
   );
 }
 
+// Add custom animations to global styles
+const GlobalStyles = () => (
+  <style jsx global>{`
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes gradient {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    
+    @keyframes gradient-slow {
+      0%, 100% { opacity: 0.3; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.02); }
+    }
+    
+    @keyframes pulse-slow {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 0.8; }
+    }
+    
+    @keyframes loading-bar {
+      0% { transform: translateX(-100%); }
+      50% { transform: translateX(20%); }
+      100% { transform: translateX(100%); }
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+    
+    .animate-fadeIn {
+      animation: fadeIn 0.5s ease-out;
+    }
+    
+    .animate-fadeInUp {
+      animation: fadeInUp 0.6s ease-out;
+    }
+    
+    .animate-gradient {
+      background-size: 200% auto;
+      animation: gradient 3s ease infinite;
+    }
+    
+    .animate-gradient-slow {
+      animation: gradient-slow 6s ease-in-out infinite;
+    }
+    
+    .animate-pulse-slow {
+      animation: pulse-slow 3s ease-in-out infinite;
+    }
+    
+    .animate-loading-bar {
+      animation: loading-bar 1.5s ease-in-out infinite;
+    }
+    
+    .animate-float {
+      animation: float 3s ease-in-out infinite;
+    }
+    
+    .animation-delay-1000 {
+      animation-delay: 1s;
+    }
+    
+    .animation-delay-2000 {
+      animation-delay: 2s;
+    }
+    
+    /* Smooth scroll behavior */
+    html {
+      scroll-behavior: smooth;
+    }
+    
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 10px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.05);
+      border-radius: 5px;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(to bottom, #f97316, #3b82f6);
+      border-radius: 5px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(to bottom, #ea580c, #2563eb);
+    }
+    
+    /* Selection color */
+    ::selection {
+      background: rgba(249, 115, 22, 0.3);
+      color: #1f2937;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .floating-actions {
+        bottom: 100px;
+        right: 16px;
+      }
+      
+      .floating-chat {
+        bottom: 24px;
+        right: 16px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .floating-actions {
+        bottom: 120px;
+        right: 12px;
+      }
+      
+      .floating-chat {
+        bottom: 20px;
+        right: 12px;
+      }
+    }
+  `}</style>
+);
+
 // Main App Component
 function App() {
   return (
     <Router>
-      <DarkModeProvider>
-        <AuthProvider>
-          <AppContent />
-        </AuthProvider>
-      </DarkModeProvider>
+      <AppContent />
+      <GlobalStyles />
     </Router>
   );
 }

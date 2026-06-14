@@ -7,9 +7,28 @@ const GarbageDetector = () => {
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
     const [isDetecting, setIsDetecting] = useState(false);
+    const [detections, setDetections] = useState([]);
     const [error, setError] = useState(null);
 
-    // Define functions in dependency order
+    useEffect(() => {
+        let interval;
+        if (isDetecting) {
+            startCamera();
+            interval = setInterval(detectFrame, 2000); // Check every 2 seconds
+        } else {
+            stopCamera();
+            if (interval) clearInterval(interval);
+            // Clear canvas when stopping
+            if (canvasRef.current) {
+                const ctx = canvasRef.current.getContext('2d');
+                ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+            }
+        }
+        return () => {
+            stopCamera();
+            if (interval) clearInterval(interval);
+        };
+    }, [isDetecting]);
 
     const startCamera = async () => {
         setError(null);
@@ -79,6 +98,9 @@ const GarbageDetector = () => {
         }
 
         // Draw current frame to convert to blob
+        // We use a temporary canvas for capturing the image to send to backend,
+        // because we don't want to draw *on top* of the display canvas yet.
+        // Actually, creating a new canvas element in memory is cleaner.
         const captureCanvas = document.createElement('canvas');
         captureCanvas.width = canvas.width;
         captureCanvas.height = canvas.height;
@@ -107,27 +129,6 @@ const GarbageDetector = () => {
             }
         }, 'image/jpeg', 0.8);
     };
-
-    useEffect(() => {
-        let interval;
-        if (isDetecting) {
-            startCamera();
-            interval = setInterval(detectFrame, 2000); // Check every 2 seconds
-        } else {
-            stopCamera();
-            if (interval) clearInterval(interval);
-            // Clear canvas when stopping
-            if (canvasRef.current) {
-                const ctx = canvasRef.current.getContext('2d');
-                ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-            }
-        }
-        return () => {
-            stopCamera();
-            if (interval) clearInterval(interval);
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isDetecting]);
 
     return (
         <div className="mt-6 flex flex-col items-center w-full">

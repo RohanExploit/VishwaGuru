@@ -36,7 +36,7 @@ describe('issuesApi', () => {
 
       const result = await issuesApi.getRecent();
 
-      expect(apiClient.get).toHaveBeenCalledWith('/api/issues/recent', { params: { limit: 10, offset: 0 } });
+      expect(apiClient.get).toHaveBeenCalledWith('/api/issues/recent');
       expect(result).toEqual(mockIssues);
     });
 
@@ -48,7 +48,7 @@ describe('issuesApi', () => {
 
       const result = await issuesApi.getRecent();
 
-      expect(apiClient.get).toHaveBeenCalledWith('/api/issues/recent', { params: { limit: 10, offset: 0 } });
+      expect(apiClient.get).toHaveBeenCalledWith('/api/issues/recent');
       expect(result).toEqual(fakeRecentIssues);
       expect(consoleWarnSpy).toHaveBeenCalledWith('Failed to fetch recent issues, using fake data', error);
 

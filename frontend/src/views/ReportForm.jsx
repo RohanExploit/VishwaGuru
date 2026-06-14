@@ -36,8 +36,7 @@ const ReportForm = () => {
         setSubmitStatus({ state: 'success', message: 'Report saved offline. Will sync when online.' });
         setActionPlan(fakeActionPlan); // Show fallback plan
         setView('action');
-      } catch (error) {
-        console.error("Offline save failed", error);
+      } catch (err) {
         setSubmitStatus({ state: 'error', message: 'Failed to save offline.' });
         setError('Failed to save report offline.');
       } finally {
@@ -58,8 +57,8 @@ const ReportForm = () => {
     }
     // Append severity info if available
     if (severity) {
-      payload.append('severity_level', severity.level);
-      payload.append('severity_score', severity.confidence);
+        payload.append('severity_level', severity.level);
+        payload.append('severity_score', severity.confidence);
     }
 
     try {
