@@ -1,0 +1,37 @@
+name: 📚 Documentation Issue
+description: Report missing or unclear documentation
+title: "[Docs]: "
+labels: ["documentation"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: "## 📄 Documentation improvement request"
+
+  - type: input
+    id: section
+    attributes:
+      label: Which file or section?
+      placeholder: README.md / API docs / Setup guide
+    validations:
+      required: true
+
+  - type: textarea
+    id: issue
+    attributes:
+      label: What is unclear or missing?
+      placeholder: Explain the problem.
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested improvement
+      placeholder: How should it be improved?
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
