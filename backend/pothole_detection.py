@@ -1,18 +1,40 @@
 import logging
 import threading
+from typing import Optional, Any
+
+from backend.exceptions import ModelLoadException, DetectionException
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-_model = None
-_model_lock = threading.Lock()
+# Thread-safe singleton pattern for model loading
+# This prevents race conditions when multiple threads try to load the model simultaneously
+_model: Optional[Any] = None
+_model_lock: threading.Lock = threading.Lock()
+_model_loading_error: Optional[Exception] = None
+_model_initialized: bool = False
+
+def is_model_available():
+    """
+    Checks if the model dependencies are available.
+    """
+    try:
+        import ultralyticsplus
+        return True
+    except ImportError:
+        return False
 
 def load_model():
     """
     Loads the YOLO model lazily.
     The model file will be downloaded on the first call if not cached.
     This prevents blocking the application startup.
+    
+    Returns:
+        The loaded YOLO model instance.
+        
+    Raises:
+        Exception: If model loading fails.
     """
     logger.info("Loading Pothole Detection Model...")
     try:
@@ -29,9 +51,13 @@ def load_model():
 
         logger.info("Model loaded successfully.")
         return model
+    except ImportError:
+        logger.warning("ultralyticsplus not installed. Pothole detection disabled.")
+        return None
     except Exception as e:
         logger.error(f"Failed to load model: {e}")
-        raise e
+        return None
+
 
 def get_model():
     global _model
@@ -53,31 +79,40 @@ def detect_potholes(image_source):
 
     Returns:
         List of detections. Each detection is a dict with 'box', 'confidence', 'label'.
+
+    Raises:
+        DetectionException: If pothole detection fails
     """
-    model = get_model()
+    try:
+        model = get_model()
+        if model is None:
+            return []
 
-    # perform inference
-    # stream=False ensures we get all results in memory
-    results = model.predict(image_source, stream=False)
+        # perform inference
+        # stream=False ensures we get all results in memory
+        results = model.predict(image_source, stream=False)
 
-    # observe results
-    result = results[0] # Single image
+        # observe results
+        result = results[0] # Single image
 
-    detections = []
+        detections = []
 
-    if hasattr(result, 'boxes'):
-        for i, box in enumerate(result.boxes):
-            # box.xyxy is [x1, y1, x2, y2] tensor
-            # Convert to list
-            coords = box.xyxy[0].cpu().numpy().tolist()
-            conf = float(box.conf[0].cpu().numpy())
-            cls_id = int(box.cls[0].cpu().numpy())
-            label = result.names[cls_id]
+        if hasattr(result, 'boxes'):
+            for i, box in enumerate(result.boxes):
+                # box.xyxy is [x1, y1, x2, y2] tensor
+                # Convert to list
+                coords = box.xyxy[0].cpu().numpy().tolist()
+                conf = float(box.conf[0].cpu().numpy())
+                cls_id = int(box.cls[0].cpu().numpy())
+                label = result.names[cls_id]
 
-            detections.append({
-                "box": coords, # [x1, y1, x2, y2]
-                "confidence": conf,
-                "label": label
-            })
+                detections.append({
+                    "box": coords, # [x1, y1, x2, y2]
+                    "confidence": conf,
+                    "label": label
+                })
 
-    return detections
+        return detections
+    except Exception as e:
+        logger.error(f"Pothole detection failed: {e}")
+        raise DetectionException("Failed to detect potholes in image", "pothole", details={"error": str(e)}) from e
