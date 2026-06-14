@@ -1,0 +1,14 @@
+2026-03-20 15:13:18,197 - backend.adaptive_weights - INFO - Adaptive weights loaded/reloaded.
+2026-03-20 15:13:18,264 - backend.rag_service - INFO - Loaded 5 civic policies for RAG.
+/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/pydub/utils.py:170: RuntimeWarning: Couldn't find ffmpeg or avconv - defaulting to ffmpeg, but may not work
+  warn("Couldn't find ffmpeg or avconv - defaulting to ffmpeg, but may not work", RuntimeWarning)
+INFO:     Started server process [13485]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:10001 (Press CTRL+C to quit)
+Starting server on port 10001
+INFO:     127.0.0.1:46444 - "GET /health HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [13485]

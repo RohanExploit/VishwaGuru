@@ -92,11 +92,6 @@ async def _detect_clip_generic(image: Union[Image.Image, bytes], labels: List[st
 
 # --- Specific Detectors ---
 
-async def detect_vandalism_clip(image: Union[Image.Image, bytes], client: httpx.AsyncClient = None):
-    labels = ["graffiti", "vandalism", "broken window", "defaced property", "clean wall", "intact property"]
-    targets = ["graffiti", "vandalism", "broken window", "defaced property"]
-    return await _detect_clip_generic(image, labels, targets, client)
-
 async def detect_illegal_parking_clip(image: Union[Image.Image, bytes], client: httpx.AsyncClient = None):
     labels = ["illegal parking", "car blocking driveway", "double parked", "car on sidewalk", "legal parking", "empty street"]
     targets = ["illegal parking", "car blocking driveway", "double parked", "car on sidewalk"]

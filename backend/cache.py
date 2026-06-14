@@ -15,7 +15,6 @@ class ThreadSafeCache:
     
     def __init__(self, ttl: int = 300, max_size: int = 100):
         self._data = collections.OrderedDict()
-        # Use OrderedDict for timestamps to enable O(K) expiration cleanup
         self._timestamps = collections.OrderedDict()
         self._ttl = ttl  # Time to live in seconds
         self._max_size = max_size  # Maximum number of cache entries
@@ -58,13 +57,14 @@ class ThreadSafeCache:
             
             # If cache is full, evict least recently used entry
             if len(self._data) >= self._max_size and key not in self._data:
-                self._evict_lru()
+                # First try to clean up expired to free space, if still full, then evict LRU
+                self._cleanup_expired(current_time)
+                if len(self._data) >= self._max_size:
+                    self._evict_lru()
             
             # Set new data atomically (adds to end, updating if exists)
             self._data[key] = data
             self._data.move_to_end(key)
-
-            # Update timestamp and move to end to maintain O(K) cleanup order
             self._timestamps[key] = current_time
             self._timestamps.move_to_end(key)
             
@@ -120,18 +120,17 @@ class ThreadSafeCache:
         Internal method to clean up expired entries.
         Optimized to O(K) where K is the number of expired entries.
         Must be called within lock context.
-        Optimized to O(K) by breaking at the first non-expired entry.
         """
-        current_time = time.time()
-        expired_keys = []
+        if current_time is None:
+            current_time = time.time()
 
-        # Iterating through OrderedDict yields items in insertion order (oldest first)
+        expired_keys = []
+        # Since _timestamps is an OrderedDict and we use move_to_end on set,
+        # we can iterate from the beginning and stop at the first non-expired entry.
         for key, timestamp in self._timestamps.items():
             if current_time - timestamp >= self._ttl:
                 expired_keys.append(key)
             else:
-                # Since we iterate in order of insertion/update, once we find a
-                # non-expired entry, all subsequent entries are also non-expired.
                 break
         
         for key in expired_keys:
@@ -176,8 +175,6 @@ class SimpleCache:
 # Global instances with improved configuration
 recent_issues_cache = ThreadSafeCache(ttl=300, max_size=20)  # 5 minutes TTL, max 20 entries
 nearby_issues_cache = ThreadSafeCache(ttl=60, max_size=100)  # 1 minute TTL, max 100 entries
-user_issues_cache = ThreadSafeCache(ttl=300, max_size=50)    # 5 minutes TTL, max 50 entries
 user_upload_cache = ThreadSafeCache(ttl=3600, max_size=1000)  # 1 hour TTL for upload limits
-user_issues_cache = ThreadSafeCache(ttl=300, max_size=100)  # 5 minutes TTL for user history
 blockchain_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=1)
 grievance_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=1)

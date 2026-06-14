@@ -22,3 +22,4 @@ googletrans==4.0.2
 langdetect
 numpy
 scikit-learn
+httpcore

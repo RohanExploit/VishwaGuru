@@ -30,7 +30,7 @@ from backend.tasks import (
     send_status_notification
 )
 from backend.spatial_utils import get_bounding_box, find_nearby_issues
-from backend.cache import recent_issues_cache, nearby_issues_cache, blockchain_last_hash_cache, user_issues_cache
+from backend.cache import recent_issues_cache, nearby_issues_cache, blockchain_last_hash_cache
 from backend.hf_api_service import verify_resolution_vqa
 from backend.dependencies import get_http_client
 from backend.rag_service import rag_service
@@ -284,11 +284,10 @@ async def upvote_issue(issue_id: int, db: Session = Depends(get_db)):
 
     await run_in_threadpool(db.commit)
 
-    # Invalidate user cache to reflect upvote change
     try:
         user_issues_cache.clear()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error(f"Error clearing cache: {e}")
 
     # Fetch only the updated upvote count using column projection
     new_upvotes = await run_in_threadpool(
@@ -347,24 +346,27 @@ def get_nearby_issues(
         )
 
         # Convert to response format and limit results
-        nearby_responses = [
-            NearbyIssueResponse(
-                id=issue.id,
-                description=issue.description[:100] + "..." if len(issue.description) > 100 else issue.description,
-                category=issue.category,
-                latitude=issue.latitude,
-                longitude=issue.longitude,
-                distance_meters=distance,
-                upvotes=issue.upvotes or 0,
-                created_at=issue.created_at,
-                status=issue.status
-            )
-            for issue, distance in nearby_issues_with_distance[:limit]
-        ]
+        # Performance Boost: Map directly to dictionaries to avoid Pydantic overhead
+        nearby_data = []
+        for issue, distance in nearby_issues_with_distance[:limit]:
+            desc = issue.description or ""
+            short_desc = desc[:100] + "..." if len(desc) > 100 else desc
+
+            nearby_data.append({
+                "id": issue.id,
+                "description": short_desc,
+                "category": issue.category,
+                "latitude": issue.latitude,
+                "longitude": issue.longitude,
+                "distance_meters": distance,
+                "upvotes": issue.upvotes or 0,
+                "created_at": issue.created_at.isoformat() if issue.created_at else None,
+                "status": issue.status
+            })
 
         # Performance Boost: Cache serialized JSON to bypass redundant Pydantic validation
         # and serialization on cache hits.
-        json_data = json.dumps([r.model_dump(mode='json') for r in nearby_responses])
+        json_data = json.dumps(nearby_data)
         nearby_issues_cache.set(json_data, cache_key)
 
         return Response(content=json_data, media_type="application/json")
@@ -440,12 +442,6 @@ async def verify_issue_endpoint(
                     )
                     await run_in_threadpool(db.commit)
 
-            # Invalidate user history cache
-            try:
-                user_issues_cache.clear()
-            except Exception:
-                pass
-
             return {
                 "is_resolved": is_resolved,
                 "ai_answer": answer,
@@ -488,12 +484,6 @@ async def verify_issue_endpoint(
 
         # Final commit for all changes in the transaction
         await run_in_threadpool(db.commit)
-
-        # Invalidate user history cache
-        try:
-            user_issues_cache.clear()
-        except Exception:
-            pass
 
         return VoteResponse(
             id=issue_id,
@@ -545,12 +535,10 @@ def update_issue_status(
     db.commit()
     db.refresh(issue)
 
-    # Invalidate caches
     try:
-        recent_issues_cache.clear()
         user_issues_cache.clear()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error(f"Error clearing cache: {e}")
 
     # Send notification to citizen
     background_tasks.add_task(send_status_notification, issue.id, old_status, request.status.value, request.notes)
@@ -603,6 +591,8 @@ def subscribe_push_notifications(
         message="Push subscription created"
     )
 
+from backend.cache import user_issues_cache
+
 @router.get("/issues/user", response_model=List[IssueSummaryResponse])
 def get_user_issues(
     user_email: str = Query(..., description="Email of the user"),
@@ -612,9 +602,9 @@ def get_user_issues(
 ):
     """
     Get issues reported by a specific user (identified by email).
-    Optimized: Uses column projection and serialized JSON caching to bypass Pydantic overhead.
+    Optimized: Uses column projection to avoid loading full model instances and large fields.
     """
-    cache_key = f"user_issues_{user_email}_{limit}_{offset}"
+    cache_key = f"user_{user_email}_{limit}_{offset}"
     cached_json = user_issues_cache.get(cache_key)
     if cached_json:
         return Response(content=cached_json, media_type="application/json")
@@ -653,8 +643,6 @@ def get_user_issues(
             "longitude": row.longitude
         })
 
-    # Performance Boost: Cache serialized JSON to bypass redundant Pydantic validation
-    # and serialization on cache hits. Returning Response directly is ~2-3x faster.
     json_data = json.dumps(data)
     user_issues_cache.set(data=json_data, key=cache_key)
     return Response(content=json_data, media_type="application/json")
