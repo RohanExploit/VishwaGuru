@@ -8,7 +8,7 @@ psycopg2-binary
 async-lru
 huggingface-hub
 httpx
-python-magic
+# python-magic - removed to avoid libmagic dependency issues on Render
 pywebpush
 Pillow
 firebase-functions

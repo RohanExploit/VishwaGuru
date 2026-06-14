@@ -2,12 +2,21 @@
 Spatial utilities for geospatial operations and deduplication.
 """
 import math
+import logging
 from typing import List, Tuple, Optional
 # Lazy import for heavy ML libraries to improve startup time and reduce memory usage
 # from sklearn.cluster import DBSCAN
 # import numpy as np
 
 from backend.models import Issue
+
+logger = logging.getLogger(__name__)
+
+try:
+    from sklearn.cluster import DBSCAN
+    HAS_SKLEARN = True
+except ImportError:
+    HAS_SKLEARN = False
 
 
 def get_bounding_box(lat: float, lon: float, radius_meters: float) -> Tuple[float, float, float, float]:
@@ -166,20 +175,38 @@ def cluster_issues_dbscan(issues: List[Issue], eps_meters: float = 30.0) -> List
     # 1 degree longitude ≈ 111,000 * cos(latitude) meters
     eps_degrees = eps_meters / 111000  # Rough approximation
 
+    if DBSCAN is None:
+        # Fallback if scikit-learn is not installed
+        return [[issue] for issue in valid_issues]
+
     # Perform DBSCAN clustering
-    db = DBSCAN(eps=eps_degrees, min_samples=1, metric='haversine').fit(
-        np.radians(coordinates)
-    )
+    if DBSCAN:
+        db = DBSCAN(eps=eps_degrees, min_samples=1, metric='haversine').fit(
+            np.radians(coordinates)
+        )
+        labels = db.labels_
+    else:
+        # Fallback: Treat each issue as its own cluster if sklearn is missing
+        # or implement a simple distance-based clustering here if critical
+        labels = range(len(valid_issues))
 
     # Group issues by cluster
     clusters = {}
-    for i, label in enumerate(db.labels_):
+    for i, label in enumerate(labels):
         if label not in clusters:
             clusters[label] = []
         clusters[label].append(valid_issues[i])
 
-    # Return clusters as list of lists (exclude noise points labeled as -1)
-    return [cluster for label, cluster in clusters.items() if label != -1]
+            # Return clusters as list of lists (exclude noise points labeled as -1)
+            return [cluster for label, cluster in clusters.items() if label != -1]
+        except Exception as e:
+            logger.error(f"DBSCAN clustering failed: {e}")
+            # Fallback to individual clusters
+            return [[issue] for issue in valid_issues]
+    else:
+        # Fallback when scikit-learn is not available
+        # Treat each issue as its own cluster
+        return [[issue] for issue in valid_issues]
 
 
 def get_cluster_representative(cluster: List[Issue]) -> Issue:
