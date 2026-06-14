@@ -52,16 +52,9 @@ async def test_detect_severity_endpoint():
             "confidence": 0.95
         }
 
-        import io
-        from PIL import Image
-
-        # Create a dummy valid image file
-        img = Image.new('RGB', (100, 100), color='red')
-        img_byte_arr = io.BytesIO()
-        img.save(img_byte_arr, format='JPEG')
-        img_bytes = img_byte_arr.getvalue()
-
-        files = {"image": ("test.jpg", img_bytes, "image/jpeg")}
+        # Create a dummy image file
+        file_content = b"fake image content"
+        files = {"image": ("test.jpg", file_content, "image/jpeg")}
 
         # Use TestClient as context manager to trigger lifespan (startup/shutdown)
         with TestClient(app) as client:

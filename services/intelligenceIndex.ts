@@ -1,71 +1,98 @@
-import sqlite3 from 'sqlite3';
-import { Trends } from './trendAnalyzer';
+import * as fs from 'fs';
+import * as path from 'path';
 
-export interface IndexResult {
-    score: number;
-    new_issues_count: number;
-    resolved_issues_count: number;
-    top_emerging_concern: string;
-    highest_severity_region: string;
+export interface DailySnapshot {
+    date: string;
+    civicIntelligenceIndex: number;
+    delta: number;
+    topEmergingConcern: string | null;
+    highestSeverityRegion: string | null;
+    topKeywords: string[];
 }
 
 export class IntelligenceIndex {
-    private dbPath: string;
+    private snapshotsDir: string;
 
-    constructor(dbPath: string = './data/issues.db') {
-        this.dbPath = dbPath;
+    constructor() {
+        this.snapshotsDir = process.env.SNAPSHOTS_DIR || path.resolve(__dirname, '../data/dailySnapshots');
+        if (!fs.existsSync(this.snapshotsDir)) {
+            fs.mkdirSync(this.snapshotsDir, { recursive: true });
+        }
     }
 
-    private async getResolvedIssuesLast24h(): Promise<number> {
-        return new Promise((resolve, reject) => {
-            const db = new sqlite3.Database(this.dbPath, sqlite3.OPEN_READONLY, (err) => {
-                if (err) return resolve(0);
-            });
+    calculateIndexScore(categorySpikes: Record<string, number>, topKeywordsCount: number): number {
+        // Base score: 50
+        // More spikes = lower intelligence (system overwhelmed)
+        // Less spikes / more resolved = higher intelligence
 
-            const query = `
-                SELECT COUNT(*) as resolved_count
-                FROM issues
-                WHERE resolved_at >= datetime('now', '-1 day')
-            `;
+        let score = 50.0;
+        let spikePenalty = 0;
 
-            db.get(query, [], (err, row: any) => {
-                db.close();
-                if (err) {
-                    if (err.message.includes("no such table")) return resolve(0);
-                    return reject(err);
-                }
-                resolve(row ? row.resolved_count : 0);
-            });
-        });
+        for (const spikeValue of Object.values(categorySpikes)) {
+            spikePenalty += (spikeValue / 100) * 2; // E.g., 50% spike -> -1, 200% spike -> -4
+        }
+
+        score -= Math.min(20, spikePenalty);
+
+        // Add minimal reward for maintaining low active spikes
+        if (spikePenalty === 0 && topKeywordsCount > 0) {
+            score += 2;
+        }
+
+        // Cap score
+        return Math.max(0, Math.min(100, Number(score.toFixed(1))));
     }
 
-    public async generateDailyScore(trends: Trends): Promise<IndexResult> {
-        const totalNew = trends.total_issues;
-        const resolvedCount = await this.getResolvedIssuesLast24h();
+    generateSnapshot(
+        categorySpikes: Record<string, number>,
+        topKeywords: string[],
+        highestSeverityRegion: string | null
+    ): DailySnapshot {
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
-        // Base 70 + 2 per resolution - 0.5 per new
-        let score = 70.0 + (resolvedCount * 2.0) - (totalNew * 0.5);
-        score = Math.max(0.0, Math.min(100.0, score));
-
-        let topCat = "None";
-        if (Object.keys(trends.category_distribution).length > 0) {
-            topCat = Object.keys(trends.category_distribution).reduce((a, b) =>
-                trends.category_distribution[a] > trends.category_distribution[b] ? a : b
-            );
+        let topEmergingConcern: string | null = null;
+        let maxSpike = 0;
+        for (const [category, spike] of Object.entries(categorySpikes)) {
+            if (spike > maxSpike) {
+                maxSpike = spike;
+                topEmergingConcern = category;
+            }
         }
 
-        let highestSeverityRegion = "None";
-        if (trends.clusters && trends.clusters.length > 0) {
-            const topCluster = trends.clusters[0];
-            highestSeverityRegion = `Lat ${topCluster.latitude.toFixed(4)}, Lon ${topCluster.longitude.toFixed(4)}`;
+        const score = this.calculateIndexScore(categorySpikes, topKeywords.length);
+
+        // Find yesterday's snapshot to calculate delta
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayFile = path.join(this.snapshotsDir, `${yesterday.toISOString().split('T')[0]}.json`);
+
+        let delta = 0;
+        if (fs.existsSync(yesterdayFile)) {
+            try {
+                const pastData: DailySnapshot = JSON.parse(fs.readFileSync(yesterdayFile, 'utf8'));
+                delta = Number((score - pastData.civicIntelligenceIndex).toFixed(1));
+            } catch (err) {
+                console.error("Failed to parse yesterday's snapshot", err);
+            }
+        } else {
+            // First time running, just default to positive base
+            delta = Number((score - 50.0).toFixed(1));
         }
 
-        return {
-            score: parseFloat(score.toFixed(1)),
-            new_issues_count: totalNew,
-            resolved_issues_count: resolvedCount,
-            top_emerging_concern: topCat,
-            highest_severity_region: highestSeverityRegion
+        const snapshot: DailySnapshot = {
+            date: today,
+            civicIntelligenceIndex: score,
+            delta,
+            topEmergingConcern,
+            highestSeverityRegion,
+            topKeywords
         };
+
+        return snapshot;
+    }
+
+    saveSnapshot(snapshot: DailySnapshot) {
+        const filePath = path.join(this.snapshotsDir, `${snapshot.date}.json`);
+        fs.writeFileSync(filePath, JSON.stringify(snapshot, null, 2));
     }
 }

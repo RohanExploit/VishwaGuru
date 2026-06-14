@@ -1,75 +1,49 @@
-import sqlite3 from 'sqlite3';
+import { TrendAnalyzer } from './trendAnalyzer';
+import { AdaptiveWeights } from './adaptiveWeights';
+import { IntelligenceIndex, DailySnapshot } from './intelligenceIndex';
 
-export interface WeightUpdate {
-    category: string;
-    factor: number;
-    reason: string;
-}
-
-/**
- * priorityEngine
- * Analyzes manual critical markings (escalations) in the database
- * to auto-adjust severity scoring parameters.
- */
 export class PriorityEngine {
-    private dbPath: string;
+    private trendAnalyzer: TrendAnalyzer;
+    private adaptiveWeights: AdaptiveWeights;
+    private intelligenceIndex: IntelligenceIndex;
 
-    constructor(dbPath: string = './data/issues.db') {
-        this.dbPath = dbPath;
+    constructor() {
+        this.trendAnalyzer = new TrendAnalyzer();
+        this.adaptiveWeights = new AdaptiveWeights();
+        this.intelligenceIndex = new IntelligenceIndex();
     }
 
-    /**
-     * Finds manual severity upgrades in the last 24h and calculates new weight parameters
-     */
-    public async autoAdjustSeverity(): Promise<WeightUpdate[]> {
-        return new Promise((resolve, reject) => {
-            const db = new sqlite3.Database(this.dbPath, sqlite3.OPEN_READONLY, (err) => {
-                if (err) {
-                    console.error('Error opening database', err);
-                    // For testing/mocking, if DB doesn't exist, just return empty
-                    return resolve([]);
-                }
-            });
+    async runDailyRefinement(): Promise<DailySnapshot> {
+        console.log(`[${new Date().toISOString()}] Starting Daily Civic Intelligence Refinement...`);
 
-            // SQLite query to find count of 'SEVERITY_UPGRADE' per category in the last 24h
-            // Assuming tables `escalation_audits` and `grievances` exist.
-            const query = `
-                SELECT g.category, COUNT(e.id) as upgrade_count
-                FROM escalation_audits e
-                JOIN grievances g ON e.grievance_id = g.id
-                WHERE e.reason = 'SEVERITY_UPGRADE'
-                  AND e.timestamp >= datetime('now', '-1 day')
-                GROUP BY g.category
-            `;
+        // Step 1: Trend Detection
+        console.log(`[${new Date().toISOString()}] Step 1: Trend Detection`);
+        const { topKeywords, categorySpikes, highestSeverityRegion } = await this.trendAnalyzer.analyzeLast24h();
 
-            db.all(query, [], (err, rows: any[]) => {
-                db.close();
-                if (err) {
-                    // If tables don't exist yet, gracefully return empty updates
-                    if (err.message.includes("no such table")) {
-                        return resolve([]);
-                    }
-                    console.error("Error executing query in priorityEngine:", err);
-                    return reject(err);
-                }
+        console.log(`Top Keywords: ${topKeywords.join(', ') || 'None'}`);
+        console.log(`Spikes Detected: ${Object.keys(categorySpikes).length}`);
+        if (highestSeverityRegion) {
+            console.log(`Highest Severity Region Detected at: ${highestSeverityRegion}`);
+        }
 
-                const updates: WeightUpdate[] = [];
-                for (const row of rows) {
-                    const count = row.upgrade_count;
-                    const category = row.category;
+        // Step 2: Adaptive Weight Optimization
+        console.log(`[${new Date().toISOString()}] Step 2: Adaptive Weight Optimization`);
+        const updatedWeights = this.adaptiveWeights.adjustWeights(categorySpikes, highestSeverityRegion);
+        console.log(`Duplicate threshold adjusted to: ${updatedWeights.duplicateThreshold}`);
 
-                    // If marked critical >= 3 times in 24h, increase weight by 10%
-                    if (count >= 3 && category) {
-                        updates.push({
-                            category,
-                            factor: 1.1,
-                            reason: `Manual severity upgrades count: ${count}`
-                        });
-                    }
-                }
+        // Step 3: Civic Intelligence Index
+        console.log(`[${new Date().toISOString()}] Step 3: Generating Civic Intelligence Index`);
+        const snapshot = this.intelligenceIndex.generateSnapshot(
+            categorySpikes,
+            topKeywords,
+            highestSeverityRegion
+        );
 
-                resolve(updates);
-            });
-        });
+        // Save daily metadata snapshot
+        this.intelligenceIndex.saveSnapshot(snapshot);
+        console.log(`[${new Date().toISOString()}] Daily Refinement Complete.`);
+        console.log(`Summary: Index: ${snapshot.civicIntelligenceIndex} (${snapshot.delta >= 0 ? '+' : ''}${snapshot.delta})`);
+
+        return snapshot;
     }
 }

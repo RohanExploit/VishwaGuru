@@ -1,14 +1,4 @@
-const _getApiUrl = () => {
-  if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'test') {
-    return '';
-  }
-  try {
-    return import.meta.env.VITE_API_URL || '';
-  } catch (e) {
-    return '';
-  }
-};
-const API_URL = _getApiUrl();
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 let authToken = localStorage.getItem('token');
 

@@ -1,123 +1,94 @@
-import fs from 'fs';
-import path from 'path';
-import { WeightUpdate } from './priorityEngine';
+import * as fs from 'fs';
+import * as path from 'path';
+
+export interface ModelWeights {
+    severityWeights: Record<string, number>;
+    duplicateThreshold: number;
+    lastUpdated: string;
+    previousWeights: Record<string, number>;
+}
+
+const defaultWeights: ModelWeights = {
+    severityWeights: {
+        'pothole': 5,
+        'garbage': 4,
+        'vandalism': 3,
+        'water_leak': 6,
+        'power_outage': 7
+    },
+    duplicateThreshold: 0.8,
+    lastUpdated: new Date().toISOString(),
+    previousWeights: {}
+};
 
 export class AdaptiveWeights {
-    private fileLocation: string;
-    private weights: any;
+    private weightsPath: string;
 
-    constructor(fileLocation: string = './data/modelWeights.json') {
-        this.fileLocation = fileLocation;
-        this.loadWeights();
+    constructor() {
+        this.weightsPath = process.env.WEIGHTS_PATH || path.resolve(__dirname, '../data/modelWeights.json');
     }
 
-    private loadWeights() {
-        if (!fs.existsSync(this.fileLocation)) {
-            this.weights = {
-                category_multipliers: {},
-                duplicate_search_radius: 50.0,
-                audit_history: []
-            };
-            return;
+    private loadWeights(): ModelWeights {
+        if (!fs.existsSync(this.weightsPath)) {
+            // Ensure directory exists
+            fs.mkdirSync(path.dirname(this.weightsPath), { recursive: true });
+            fs.writeFileSync(this.weightsPath, JSON.stringify(defaultWeights, null, 2));
+            return defaultWeights;
         }
 
         try {
-            const data = fs.readFileSync(this.fileLocation, 'utf-8');
-            this.weights = JSON.parse(data);
-        } catch (e) {
-            console.error("Error loading adaptive weights:", e);
-            this.weights = {};
-        }
-
-        if (!this.weights.audit_history) {
-            this.weights.audit_history = [];
+            const data = fs.readFileSync(this.weightsPath, 'utf8');
+            return JSON.parse(data);
+        } catch (error) {
+            console.error('Error reading weights, returning defaults.', error);
+            return defaultWeights;
         }
     }
 
-    private saveWeights() {
-        try {
-            fs.writeFileSync(this.fileLocation, JSON.stringify(this.weights, null, 2));
-        } catch (e) {
-            console.error("Error saving adaptive weights:", e);
-        }
+    private saveWeights(weights: ModelWeights) {
+        fs.mkdirSync(path.dirname(this.weightsPath), { recursive: true });
+        fs.writeFileSync(this.weightsPath, JSON.stringify(weights, null, 2));
     }
 
-    private _recordAudit(reason: string, oldValue: any, newValue: any, key: string) {
-        this.weights.audit_history.push({
-            timestamp: new Date().toISOString(),
-            key,
-            oldValue,
-            newValue,
-            reason
-        });
-    }
+    adjustWeights(categorySpikes: Record<string, number>, highestSeverityRegion: string | null) {
+        const currentWeights = this.loadWeights();
 
-    /**
-     * Integrates severity updates dynamically adjusting the weights logic.
-     */
-    public updateCategoryWeights(updates: WeightUpdate[]): any[] {
-        const changes = [];
-        for (const update of updates) {
-            const oldWeight = this.weights.category_multipliers[update.category] || 1.0;
-            let newWeight = oldWeight * update.factor;
-            newWeight = Math.max(0.5, Math.min(3.0, newWeight)); // Clamp
+        // Audit trail: store a snapshot of previous state
+        currentWeights.previousWeights = { ...currentWeights.severityWeights };
 
-            this.weights.category_multipliers[update.category] = newWeight;
+        let changed = false;
 
-            changes.push({
-                category: update.category,
-                old_weight: oldWeight,
-                new_weight: newWeight,
-                reason: update.reason
-            });
+        // Adjust severity weights dynamically based on spikes
+        for (const [category, spikePercentage] of Object.entries(categorySpikes)) {
+            let weight = currentWeights.severityWeights[category] || 3; // base weight for unknown
 
-            this._recordAudit(update.reason, oldWeight, newWeight, `category_multipliers.${update.category}`);
+            if (spikePercentage > 100) {
+                weight += 1.5; // High urgency spike
+            } else if (spikePercentage >= 50) {
+                weight += 0.5; // Moderate spike
+            }
+
+            // Cap at 10
+            currentWeights.severityWeights[category] = Math.min(10, Number(weight.toFixed(1)));
+            changed = true;
         }
 
-        if (updates.length > 0) {
-            this.saveWeights();
+        // Adjust duplicate detection rule if clustering is found
+        if (highestSeverityRegion) {
+            // Decrease similarity threshold temporarily to catch more duplicates in high-density zones
+            currentWeights.duplicateThreshold = Math.max(0.6, currentWeights.duplicateThreshold - 0.05);
+            changed = true;
+        } else {
+            // Restore towards baseline if no clustering
+            currentWeights.duplicateThreshold = Math.min(0.8, currentWeights.duplicateThreshold + 0.01);
+            changed = true;
         }
 
-        return changes;
-    }
-
-    /**
-     * Updates Duplicate radius dynamically
-     */
-    public updateDuplicateRadius(clusterCount: number, issuesCount: number): any {
-        const currentRadius = this.weights.duplicate_search_radius || 50.0;
-        let factor = 1.0;
-        let reason = `Cluster density analysis (clusters: ${clusterCount}, issues: ${issuesCount})`;
-
-        if (clusterCount > 5) {
-            factor = 1.05;
-        } else if (clusterCount === 0 && issuesCount > 50) {
-            factor = 1.05;
-        } else if (issuesCount < 10 && currentRadius > 50) {
-            factor = 0.95;
+        if (changed) {
+            currentWeights.lastUpdated = new Date().toISOString();
+            this.saveWeights(currentWeights);
         }
 
-        if (factor !== 1.0) {
-            let newRadius = currentRadius * factor;
-            newRadius = Math.max(10.0, Math.min(200.0, newRadius)); // Clamp
-
-            this.weights.duplicate_search_radius = newRadius;
-
-            this._recordAudit(reason, currentRadius, newRadius, 'duplicate_search_radius');
-            this.saveWeights();
-
-            return {
-                category: "GLOBAL_DUPLICATE_RADIUS",
-                old_weight: currentRadius,
-                new_weight: newRadius,
-                reason
-            };
-        }
-
-        return null;
-    }
-
-    public getWeights() {
-        return this.weights;
+        return currentWeights;
     }
 }

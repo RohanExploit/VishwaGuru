@@ -53,6 +53,10 @@ async def create_issue(
     image: UploadFile = File(None),
     db: Session = Depends(get_db)
 ):
+    """
+    Create a new civic issue report.
+    Includes spatial deduplication and blockchain-style cryptographic chaining.
+    """
     image_path = None
 
     # Check upload limits if image is being uploaded
@@ -630,7 +634,7 @@ async def verify_blockchain_integrity(issue_id: int, db: Session = Depends(get_d
     Verify the cryptographic integrity of a report using the blockchain-style chaining.
     Optimized: Uses column projection to fetch only needed data and stored previous hash.
     """
-    # Fetch current issue data including its recorded link to previous block
+    # Fetch current issue data including the link to the previous hash
     current_issue = await run_in_threadpool(
         lambda: db.query(
             Issue.id, Issue.description, Issue.category, Issue.integrity_hash, Issue.previous_integrity_hash
@@ -650,22 +654,23 @@ async def verify_blockchain_integrity(issue_id: int, db: Session = Depends(get_d
         )
         prev_hash = prev_issue_hash[0] if prev_issue_hash and prev_issue_hash[0] else ""
 
-    # Recompute hash based on current data and previous hash
+    # Recompute hash based on current data and the actual previous hash from DB
     # Chaining logic: hash(description|category|prev_hash)
-    hash_content = f"{current_issue.description}|{current_issue.category}|{prev_hash}"
+    hash_content = f"{current_issue.description}|{current_issue.category}|{actual_prev_hash}"
     computed_hash = hashlib.sha256(hash_content.encode()).hexdigest()
 
-    is_valid = (computed_hash == current_issue.integrity_hash)
+    is_valid = (computed_hash == current_issue.integrity_hash) and link_valid
 
     if is_valid:
         message = "Integrity verified. This report is cryptographically sealed and has not been tampered with."
+    elif not link_valid:
+        message = "Integrity check failed! The link to the previous report hash is invalid or tampered with."
     else:
         message = "Integrity check failed! The report data does not match its cryptographic seal."
 
     return BlockchainVerificationResponse(
         is_valid=is_valid,
         current_hash=current_issue.integrity_hash,
-        previous_hash=prev_hash,
         computed_hash=computed_hash,
         message=message
     )

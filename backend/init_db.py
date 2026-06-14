@@ -66,11 +66,11 @@ def migrate_db():
                     logger.info("Added action_plan column to issues")
 
                 if not column_exists("issues", "integrity_hash"):
-                    conn.execute(text("ALTER TABLE issues ADD COLUMN integrity_hash VARCHAR(255)"))
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN integrity_hash VARCHAR"))
                     logger.info("Added integrity_hash column to issues")
 
                 if not column_exists("issues", "previous_integrity_hash"):
-                    conn.execute(text("ALTER TABLE issues ADD COLUMN previous_integrity_hash VARCHAR(255)"))
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN previous_integrity_hash VARCHAR"))
                     logger.info("Added previous_integrity_hash column to issues")
 
                 # Indexes (using IF NOT EXISTS syntax where supported or check first)

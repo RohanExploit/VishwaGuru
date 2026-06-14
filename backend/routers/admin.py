@@ -16,22 +16,26 @@ router = APIRouter(
 
 @router.get("/users", response_model=List[UserResponse])
 def get_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    """
+    Retrieve a list of users with pagination.
+    """
     users = db.query(User).offset(skip).limit(limit).all()
     return users
 
 @router.get("/stats")
 def get_system_stats(db: Session = Depends(get_db)):
-    # ⚡ Bolt: Optimize by aggregating counts in a single query
-    # Why: Reduces DB roundtrips from 3 to 1
-    # Impact: O(1) latency instead of O(N) operations over the network
+    """
+    Get aggregate system statistics.
+    Optimized: Uses a single database query with conditional aggregation.
+    """
     stats = db.query(
-        func.count(User.id).label('total_users'),
-        func.sum(case((User.role == UserRole.ADMIN, 1), else_=0)).label('admin_count'),
-        func.sum(case((User.is_active == True, 1), else_=0)).label('active_users')
+        func.count(User.id).label("total"),
+        func.sum(case((User.role == UserRole.ADMIN, 1), else_=0)).label("admin_count"),
+        func.sum(case((User.is_active == True, 1), else_=0)).label("active_count")
     ).first()
     
     return {
-        "total_users": stats.total_users or 0,
+        "total_users": stats.total or 0,
         "admin_count": int(stats.admin_count or 0),
-        "active_users": int(stats.active_users or 0),
+        "active_users": int(stats.active_count or 0),
     }
