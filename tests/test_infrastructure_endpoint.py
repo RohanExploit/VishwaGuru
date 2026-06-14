@@ -11,7 +11,7 @@ def client():
     with TestClient(app) as c:
         yield c
 
-@patch("backend.main.detect_infrastructure_clip", new_callable=AsyncMock)
+@patch("backend.main.detect_infrastructure_local", new_callable=AsyncMock)
 @patch("backend.main.run_in_threadpool")
 def test_detect_infrastructure_endpoint(mock_run, mock_detect, client):
     # Create a dummy image
@@ -41,7 +41,7 @@ def test_detect_infrastructure_endpoint(mock_run, mock_detect, client):
     assert len(data["detections"]) == 1
     assert data["detections"][0]["label"] == "broken streetlight"
 
-@patch("backend.main.detect_infrastructure_clip", new_callable=AsyncMock)
+@patch("backend.main.detect_infrastructure_local", new_callable=AsyncMock)
 @patch("backend.main.run_in_threadpool")
 def test_detect_infrastructure_endpoint_empty(mock_run, mock_detect, client):
     # Create a dummy image
