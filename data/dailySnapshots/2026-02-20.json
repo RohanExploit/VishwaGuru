@@ -1,0 +1,36 @@
+{
+    "date": "2026-02-20",
+    "timestamp": "2026-02-20T19:34:07.330305+00:00",
+    "index": {
+        "score": 92.0,
+        "change": 32.0,
+        "top_concern": "Pothole",
+        "highest_severity_region": "Lat: 10.000, Lon: 10.000",
+        "metrics": {
+            "resolved_last_24h": 50,
+            "created_last_24h": 100
+        }
+    },
+    "trends": {
+        "top_keywords": [
+            [
+                "pothole",
+                10
+            ]
+        ],
+        "category_spikes": [
+            {
+                "category": "Pothole",
+                "count": 20
+            }
+        ],
+        "cluster_hotspots": [
+            {
+                "latitude": 10.0,
+                "longitude": 10.0,
+                "count": 5
+            }
+        ],
+        "total_issues": 100
+    },
+    "weights_version":
