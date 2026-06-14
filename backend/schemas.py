@@ -5,6 +5,11 @@ from enum import Enum
 
 class IssueCategory(str, Enum):
     ROAD = "Road"
+
+class UserRole(str, Enum):
+    ADMIN = "admin"
+    USER = "user"
+    OFFICIAL = "official"
     WATER = "Water"
     STREETLIGHT = "Streetlight"
     GARBAGE = "Garbage"

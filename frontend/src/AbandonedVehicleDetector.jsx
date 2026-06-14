@@ -1,12 +1,31 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { detectorsApi } from './api';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
-
-const CrowdDetector = ({ onBack }) => {
+const AbandonedVehicleDetector = ({ onBack }) => {
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
     const [isDetecting, setIsDetecting] = useState(false);
     const [error, setError] = useState(null);
+
+    useEffect(() => {
+        let interval;
+        if (isDetecting) {
+            startCamera();
+            interval = setInterval(detectFrame, 2000); // Check every 2 seconds
+        } else {
+            stopCamera();
+            if (interval) clearInterval(interval);
+            if (canvasRef.current) {
+                const ctx = canvasRef.current.getContext('2d');
+                ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+            }
+        }
+        return () => {
+            stopCamera();
+            if (interval) clearInterval(interval);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isDetecting]);
 
     const startCamera = async () => {
         setError(null);
@@ -35,6 +54,39 @@ const CrowdDetector = ({ onBack }) => {
         }
     };
 
+    const drawDetections = (detections, context) => {
+        context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+
+        context.lineWidth = 4;
+        context.font = 'bold 18px Arial';
+
+        if (!detections || detections.length === 0) return;
+
+        detections.forEach(det => {
+            const { label, confidence, box } = det;
+
+            // For Abandoned Vehicle (likely zero-shot, no box)
+            // But if we had box...
+            if (box && box.length === 4) {
+                 const [x1, y1, x2, y2] = box;
+                 context.strokeStyle = '#A9A9A9'; // DarkGray
+                 context.strokeRect(x1, y1, x2 - x1, y2 - y1);
+
+                 context.fillStyle = 'rgba(0,0,0,0.5)';
+                 const text = `${label} ${(confidence * 100).toFixed(0)}%`;
+                 const textWidth = context.measureText(text).width;
+                 context.fillRect(x1, y1 > 20 ? y1 - 25 : y1, textWidth + 10, 25);
+
+                 context.fillStyle = '#FFFFFF';
+                 context.fillText(text, x1 + 5, y1 > 20 ? y1 - 7 : y1 + 18);
+            } else {
+                 context.fillStyle = 'rgba(169, 169, 169, 0.8)'; // DarkGray
+                 const text = `${label} ${(confidence * 100).toFixed(0)}%`;
+                 context.fillText(text, 20, 40);
+            }
+        });
+    };
+
     const detectFrame = async () => {
         if (!videoRef.current || !canvasRef.current || !isDetecting) return;
 
@@ -58,13 +110,8 @@ const CrowdDetector = ({ onBack }) => {
             formData.append('image', blob, 'frame.jpg');
 
             try {
-                const response = await fetch(`${API_URL}/api/detect-crowd`, {
-                    method: 'POST',
-                    body: formData
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
+                const data = await detectorsApi.abandonedVehicle(formData);
+                if (data && data.detections) {
                     drawDetections(data.detections, context);
                 }
             } catch (err) {
@@ -73,45 +120,9 @@ const CrowdDetector = ({ onBack }) => {
         }, 'image/jpeg', 0.8);
     };
 
-    const drawDetections = (detections, context) => {
-        context.clearRect(0, 0, context.canvas.width, context.canvas.height);
-
-        detections.forEach((det, index) => {
-             // Zero-shot detection (no box)
-             context.font = 'bold 20px Arial';
-             context.fillStyle = 'rgba(255, 69, 0, 0.8)'; // OrangeRed
-             const label = `${det.label} ${(det.confidence * 100).toFixed(0)}%`;
-             const textWidth = context.measureText(label).width;
-
-             const yPos = 40 + (index * 50);
-             context.fillRect(10, yPos - 30, textWidth + 20, 40);
-             context.fillStyle = '#FFFFFF';
-             context.fillText(label, 20, yPos - 4);
-        });
-    };
-
-    useEffect(() => {
-        let interval;
-        if (isDetecting) {
-            setTimeout(() => startCamera(), 0);
-            interval = setInterval(detectFrame, 2000);
-        } else {
-            stopCamera();
-            if (interval) clearInterval(interval);
-            if (canvasRef.current) {
-                const ctx = canvasRef.current.getContext('2d');
-                ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-            }
-        }
-        return () => {
-            stopCamera();
-            if (interval) clearInterval(interval);
-        };
-    }, [isDetecting]);
-
     return (
         <div className="mt-6 flex flex-col items-center w-full">
-            <h2 className="text-xl font-semibold mb-4 text-center">Crowd Density Monitor</h2>
+            <h2 className="text-xl font-semibold mb-4 text-center">Abandoned Vehicle Detector</h2>
 
             {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">{error}</div>}
 
@@ -147,14 +158,17 @@ const CrowdDetector = ({ onBack }) => {
             </button>
 
             <p className="text-sm text-gray-500 mt-2 text-center max-w-md">
-                Monitors crowd density to detect unsafe overcrowding.
+                Identifies abandoned, rusted, or wrecked vehicles.
             </p>
 
-            <button onClick={onBack} className="mt-6 text-gray-600 hover:text-gray-900 underline">
+            <button
+                onClick={onBack}
+                className="mt-6 text-gray-600 hover:text-gray-900 underline"
+            >
                 Back to Home
             </button>
         </div>
     );
 };
 
-export default CrowdDetector;
+export default AbandonedVehicleDetector;

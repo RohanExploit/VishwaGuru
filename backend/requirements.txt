@@ -24,3 +24,5 @@ a2wsgi
 scikit-learn
 numpy
 pytest
+python-jose[cryptography]
+passlib[bcrypt]
