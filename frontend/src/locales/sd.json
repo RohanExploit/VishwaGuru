@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - سمارٽ شهري مسئلا رپورٽر",
+        "subtitle": "پنهنجي ڪميونٽي ۾ شهري مسئلن جي رپورٽ ڪريو ۽ انهن تي نظر رکو",
+        "privacyActive": "AI سان هلندڙ رازداري تحفظ فعال آهي",
+        "communityImpact": "ڪميونٽي جو اثر",
+        "makingChange": "اسان گڏجي تبديلي آڻي رهيا آهيون!",
+        "issuesSolved": "حل ٿيل مسئلا",
+        "smartScanner": "سمارٽ سٽي اسڪينر",
+        "aiPoweredDetection": "AI ذريعي فوري سڃاڻپ",
+        "categories": {
+            "roadTraffic": "روڊ ۽ ٽريفڪ",
+            "environmentSafety": "ماحول ۽ حفاظت",
+            "civicServices": "شهري خدمتون",
+            "management": "انتظاميه"
+        },
+        "issues": {
+            "pothole": "کڏو",
+            "blockedRoad": "بند روڊ",
+            "illegalParking": "غلط پارڪنگ",
+            "darkStreet": "اونداهي گلي",
+            "trafficSign": "ٽريفڪ نشان",
+            "abandonedVehicle": "ڇڏيل گاڏي",
+            "garbage": "ڪچرو",
+            "flood": "ٻوڏ",
+            "fireSmoke": "باهه/دوننهون",
+            "treeHazard": "وڻ جو خطرو",
+            "strayAnimal": "آواره جانور",
+            "pestControl": "جيتن جو خاتمو",
+            "reportIssue": "مسئلي جي رپورٽ ڪريو",
+            "brokenInfra": "ٽٽل بنيادي ڍانچو",
+            "graffiti": "ديوار تي لکڻ",
+            "findMLA": "نمائندو ڳوليو",
+            "grievanceManagement": "شڪايتن جو انتظام",
+            "viewStats": "اعداد و شمار ڏسو",
+            "leaderboard": "ليڊر بورڊ",
+            "responsibilityMap": "ذميواري جو نقشو",
+            "noise": "شور",
+            "crowd": "هجوم",
+            "waterLeak": "پاڻي جو لڪيج",
+            "waste": "ڪچرو ڌار ڪندڙ",
+            "civicEye": "شهري اک",
+            "myReports": "منهنجون رپورٽون",
+            "analyzeGrievance": "شڪايت جو تجزيو ڪريو"
+        },
+        "tools": {
+            "whoIsResponsible": "ذميوار ڪير آهي؟",
+            "topReporters": "مٿيان رپورٽر",
+            "cameraCheck": "ڪيمرا چيڪ"
+        },
+        "activity": {
+            "communityActivity": "ڪميونٽي جي سرگرمي",
+            "liveFeed": "لائيو فيڊ",
+            "noActivity": "ڏيکارڻ لاءِ ڪا به تازي سرگرمي ناهي.",
+            "loadMore": "وڌيڪ سرگرميون لوڊ ڪريو",
+            "verify": "تصديق ڪريو"
+        },
+        "stats": {
+            "totalImpact": "ڪل اثر",
+            "issuesResolved": "حل ٿيل مسئلا",
+            "activeUsers": "سرگرم صارف"
+        },
+        "landing": {
+            "empowering": "شهرين کي بااختيار بڻائڻ",
+            "governance": "بهتر گورننس لاءِ",
+            "subtitle": "شهري مسئلن جي رپورٽ ڪريو ۽ AI سان تيار ڪيل حل حاصل ڪريو. گورننس ۾ حصو وٺڻ لاءِ ٽيلي گرام ذريعي آفيسرن سان رابطو ڪريو.",
+            "cta": "مسئلي جي رپورٽ ڪريو",
+            "cards": {
+                "reportCitizens": "شهرين سان گڏ رپورٽ ڪريو",
+                "generatedCivic": "تيار ڪيل شهري گورننس",
+                "govServices": "سرڪاري خدمتون",
+                "questionGov": "حڪومت کان سوال ڪريو",
+                "govDesc": "سوال جمع ڪرايو، شفافيت جي گهر ڪريو ۽ آفيسرن کي جوابده بڻايو",
+                "communityAction": "ڪميونٽي ايڪشن",
+                "joinMovement": "تحريڪ ۾ شامل ٿيو"
+            },
+            "features": {
+                "publicTrust": "عوامي اعتماد",
+                "ethics": "& اخلاقيات",
+                "civicIssues": "شهري مسئلا",
+                "reportProblems": "مسئلن جي رپورٽ ڪريو",
+                "voiceVote": "پنهنجو آواز بلند ڪريو",
+                "shareIdeas": "بهتر پاليسين لاءِ خيال ونڊيو",
+                "aiDemocracy": "جمهوريت لاءِ AI",
+                "civicActions": "& شهري قدم",
+                "aiDesc": "شفاف گورننس ۽ تيز حلن لاءِ ٽيڪنالوجي جو استعمال.",
+                "smartAnalysis": "سمارٽ تجزيو",
+                "aiInsights": "AI تي ٻڌل بصيرت",
+                "citizenCount": "10 هزار کان وڌيڪ سرگرم شهري",
+                "secureSafe": "محفوظ ۽ پڪو",
+                "verifiedReports": "تصديق ٿيل رپورٽون",
+                "quickAction": "فوري ڪارروائي",
+                "responseTime": "24 ڪلاڪ جوابي وقت"
+            }
+        }
+    },
+    "common": {
+        "loading": "لوڊ ٿي رهيو آهي...",
+        "error": "غلطي",
+        "submit": "جمع ڪرايو",
+        "cancel": "منسوخ ڪريو",
+        "yes": "ها",
+        "no": "نه",
+        "back": "واپس"
+    }
+}

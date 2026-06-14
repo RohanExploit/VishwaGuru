@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - স্মার্ট সিভিক ইস্যু রিপোর্টার",
+        "subtitle": "ᱟᱢᱟᱜ ᱥᱟᱶᱛᱟ ᱨᱮ ᱥᱤᱵᱷᱤᱠ ᱮᱴᱠᱮᱴᱚᱬᱮ ᱠᱚ ᱞᱟᱹᱭ ᱢᱮ ᱟᱨ ᱯᱟᱸᱡᱟ ᱢᱮ",
+        "privacyActive": "AI-ᱯᱟᱣᱟᱨᱰ ᱯᱨᱟᱭᱵᱷᱮᱥᱤ ᱯᱨᱚᱴᱮᱠᱥᱚᱱ ᱮᱠᱴᱤᱵᱷ ᱢᱮᱱᱟᱜ-ᱟ",
+        "communityImpact": "ᱥᱟᱶᱛᱟ ᱚᱨᱥᱚᱝ",
+        "makingChange": "ᱮᱠᱞᱟ ᱫᱚ ᱵᱟᱝ, ᱢᱮᱥᱟ ᱠᱟᱛᱮ ᱵᱚᱱ ᱵᱚᱫᱚᱞᱮᱫ-ᱟ!",
+        "issuesSolved": "ᱥᱚᱞᱦᱮ ᱟᱠᱟᱱ ᱮᱴᱠᱮᱴᱚᱬᱮ",
+        "smartScanner": "স্মার্ট সিটি স্কেনার",
+        "aiPoweredDetection": "AI-ᱯᱟᱣᱟᱨᱰ ᱞᱚᱜᱚᱱ ᱧᱟᱢ",
+        "categories": {
+            "roadTraffic": "ᱰᱟᱦᱟᱨ ᱟᱨ ᱴᱨᱟᱯᱷᱤᱠ",
+            "environmentSafety": "ᱯᱚᱨᱤᱵᱮᱥ ᱟᱨ ᱥᱩᱨᱚᱠᱷᱭᱟ",
+            "civicServices": "ᱥᱤᱵᱷᱤᱠ ᱥᱮᱵᱟ ᱠᱚ",
+            "management": "ᱪᱟᱪᱞᱟᱣ"
+        },
+        "issues": {
+            "pothole": "ᱰᱟᱦᱟᱨ ᱨᱮ ᱜᱟᱰᱞᱟᱜ",
+            "blockedRoad": "ᱮᱥᱮᱫ ᱟᱠᱟᱱ ᱰᱟᱦᱟᱨ",
+            "illegalParking": "ᱵᱟᱹᱲᱤᱡ ᱜᱟᱹᱰᱤ ᱛᱤᱸᱜᱩ",
+            "darkStreet": "ᱧᱩᱛ ᱠᱩᱞᱤ",
+            "trafficSign": "ᱴᱨᱟᱯᱷᱤᱠ ᱪᱤᱱᱦᱟᱹ",
+            "abandonedVehicle": "ᱵᱟᱹᱜᱤ ᱟᱠᱟᱱ ᱜᱟᱹᱰᱤ",
+            "garbage": "ᱡᱚᱵᱽᱨᱟ",
+            "flood": "ᱵᱟᱱ",
+            "fireSmoke": "ᱥᱮᱸᱜᱮᱞ/ᱫᱷᱩᱶᱟᱸ",
+            "treeHazard": "ᱫᱟᱨᱮ ᱠᱷᱚᱱ ᱵᱚᱛᱚᱨ",
+            "strayAnimal": "ᱟᱹᱛᱤᱧ ᱡᱤᱭᱟᱹᱞᱤ",
+            "pestControl": "ᱛᱤᱡᱩ ᱜᱚᱡ",
+            "reportIssue": "ᱮᱴᱠᱮᱴᱚᱬᱮ ᱞᱟᱹᱭ ᱢᱮ",
+            "brokenInfra": "ᱨᱟᱹᱯᱩᱫ ᱟᱠᱟᱱ ᱵᱩᱱᱤᱭᱟᱹᱫᱽ",
+            "graffiti": "ᱫᱮᱣᱟᱞ ᱨᱮ ᱚᱞ",
+            "findMLA": "ᱮᱢ.ᱮᱞ.ᱮ. ᱧᱟᱢᱮᱢ",
+            "grievanceManagement": "ᱠᱷᱟᱹᱛᱤᱨ ᱪᱟᱪᱞᱟᱣ",
+            "viewStats": "ᱥᱴᱮᱴᱥ ᱧᱮᱞ ᱢᱮ",
+            "leaderboard": "ᱞᱤᱰᱟᱨᱵᱳᱨᱰ",
+            "responsibilityMap": "ᱫᱟᱹᱭᱛᱚ ᱢᱮᱯ",
+            "noise": "ᱦᱚᱲᱞᱟ",
+            "crowd": "ᱵᱷᱤᱲ",
+            "waterLeak": "ᱫᱟᱜ ᱡᱚᱨᱚ",
+            "waste": "ᱡᱚᱵᱽᱨᱟ ᱵᱷᱮᱜᱟᱨᱤᱡ",
+            "civicEye": "ᱥᱤᱵᱷᱤᱠ ᱢᱮᱫ",
+            "myReports": "ᱤᱧᱟᱜ ᱨᱤᱯᱳᱨᱴ ᱠᱚ",
+            "analyzeGrievance": "ᱠᱷᱟᱹᱛᱤᱨ ᱵᱤᱪᱟᱹᱨ"
+        },
+        "tools": {
+            "whoIsResponsible": "ᱚᱠᱚᱭ ᱫᱟᱹᱭᱛᱚ ᱨᱮ ᱢᱮᱱᱟᱭᱟ?",
+            "topReporters": "ᱢᱩᱬᱩᱛ ᱨᱤᱯᳳᱨᱴᱟᱨ",
+            "camera_check": "ᱠᱮᱢᱮᱨᱟ ᱪᱮᱠ"
+        },
+        "activity": {
+            "communityActivity": "ᱥᱟᱶᱛᱟ ᱠᱟᱹᱢᱤ",
+            "liveFeed": "ᱞᱟᱭᱤᱵᱷ ᱯᱷᱤᱰ",
+            "noActivity": "ᱧᱮᱞ ᱞᱟᱹᱜᱤᱫ ᱱᱤᱛᱚᱜᱟᱜ ᱠᱟᱹᱢᱤ ᱵᱟᱹᱱᱩᱜ-ᱟ᱾",
+            "loadMore": "ᱟᱨᱦᱚᱸ ᱧᱟᱢ ᱢᱮ",
+            "verify": "ᱥᱟᱹᱨᱤ ᱢᱮ"
+        },
+        "stats": {
+            "totalImpact": "ᱡᱚᱛᱚ ᱚᱨᱥᱚᱝ",
+            "issuesResolved": "ᱥᱚᱞᱦᱮ ᱟᱠᱟᱱ ᱮᱴᱠᱮᱴᱚᱬᱮ",
+            "activeUsers": "ᱮᱠᱴᱤᱵᱷ ᱵᱮᱵᱷᱟᱨᱤᱭᱟᱹ ᱠᱚ"
+        },
+        "landing": {
+            "empowering": "ᱱᱟᱜᱟᱨᱤᱭᱟᱹ ᱠᱚ ᱫᱟᱲᱮᱭᱟᱱ",
+            "governance": "ᱵᱩᱜᱤ ᱥᱟᱥᱚᱱ ᱞᱟᱹᱜᱤᱫ",
+            "subtitle": "ᱥᱤᱵᱷᱤᱠ ᱮᱴᱠᱮᱴᱚᱬᱮ ᱠᱚ ᱞᱟᱹᱭ ᱢᱮ ᱟᱨ AI-ᱛᱮ ᱛᱮᱭᱟᱨ ᱟᱠᱟᱱ ᱥᱚᱞᱦᱮ ᱧᱟᱢ ᱢᱮ᱾ ᱥᱟᱥᱚᱱ ᱨᱮ ᱥᱮᱞᱮᱫᱚᱜ ᱞᱟᱹᱜᱤᱫ ᱴᱮᱞᱤᱜᱨᱟᱢ ᱛᱮ ᱟᱹᱢᱟᱹᱞᱤᱭᱟᱹ ᱠᱚ ᱥᱟᱶ ᱡᱚᱲᱟᱣᱚᱜ ᱢᱮ᱾",
+            "cta": "ᱮᱴᱠᱮᱴᱚᱬᱮ ᱞᱟᱹᱭ ᱢᱮ",
+            "cards": {
+                "reportCitizens": "ᱱᱟᱜᱟᱨᱤᱭᱟᱹ ᱠᱚ ᱥᱟᱶ ᱞᱟᱹᱭ ᱢᱮ",
+                "generatedCivic": "ᱛᱮᱭᱟᱨ ᱟᱠᱟᱱ ᱥᱤᱵᱷᱤᱠ ᱥᱟᱥᱚᱱ",
+                "govServices": "ᱥᱚᱨᱠᱟᱨᱤ ᱥᱮᱵᱟ ᱠᱚ",
+                "questionGov": "ᱥᱚᱨᱠᱟᱨ ᱠᱩᱞᱤᱭᱮᱢ",
+                "govDesc": "ᱠᱩᱠᱞᱤ ᱠᱚ ᱮᱢ ᱢᱮ, ᱥᱟᱹᱨᱤ ᱠᱟᱛᱷᱟ ᱠᱷᱚᱡᱽ ᱢᱮ ᱟᱨ ᱟᱹᱢᱟᱹᱞᱤᱭᱟᱹ ᱠᱚ ᱠᱩᱞᱤ ᱠᱚ ᱢᱮ",
+                "communityAction": "ᱥᱟᱶᱛᱟ ᱠᱟᱹᱢᱤ",
+                "joinMovement": "ᱞᱟᱲᱟᱣᱱᱟ ᱨᱮ ᱥᱮᱞᱮᱫᱚᱜ ᱢᱮ"
+            },
+            "features": {
+                "publicTrust": "ᱦᱚᱲ ᱠᱚᱣᱟᱜ ᱛᱷᱟᱯᱚᱱ",
+                "ethics": "& ᱱᱤᱛᱤ",
+                "civicIssues": "ᱥᱤᱵᱷᱤᱠ ᱮᱴᱠᱮᱴᱚᱬᱮ ᱠᱚ",
+                "reportProblems": "ᱮᱴᱠᱮᱴᱚᱬᱮ ᱞᱟᱹᱭ ᱢᱮ",
+                "voiceVote": "ᱟᱢᱟᱜ ᱟᱲᱟᱝ ᱮᱢ ᱢᱮ",
+                "shareIdeas": "ᱵᱩᱜᱤ ᱱᱤᱛᱤ ᱞᱟᱹᱜᱤᱫ ᱩᱭᱦᱟᱹᱨ ᱮᱢ ᱢᱮ",
+                "aiDemocracy": "Democracy ᱞᱟᱹᱜᱤᱫ AI",
+                "civicActions": "& ᱥᱤᱵᱷᱤᱠ ᱠᱟᱹᱢᱤ ᱠᱚ",
+                "aiDesc": "ᱥᱟᱹᱨᱤ ᱥᱟᱥᱚᱱ ᱟᱨ ᱞᱚᱜᱚᱱ ᱥᱚᱞᱦᱮ ᱞᱟᱹᱜᱤᱫ ᱴᱮᱠᱱᱚᱞᱚᱡᱤ ᱵᱮᱵᱷᱟᱨ᱾",
+                "smartAnalysis": "স্মার্ট ᱵᱤᱪᱟᱹᱨ",
+                "aiInsights": "AI-ᱯᱟᱣᱟᱨᱰ ᱵᱩᱡᱷᱟᱹᱣ",
+                "citizenCount": "᱑᱐ ᱦᱟᱡᱟᱨ+ ᱮᱠᱴᱤᱵᱷ ᱱᱟᱜᱟᱨᱤᱭᱟᱹ ᱠᱚ",
+                "secureSafe": "ᱥᱩᱨᱚᱠᱷᱤᱛ ᱟᱨ ᱱᱤᱨᱟᱹᱯᱚᱫᱽ",
+                "verifiedReports": "ᱥᱟᱹᱨᱤ ᱟᱠᱟᱱ ᱨᱤᱯᳳᱨᱴ ᱠᱚ",
+                "quickAction": "ᱞᱚᱜᱚᱱ ᱛᱮ ᱠᱟᱹᱢᱤ",
+                "responseTime": "᱒᱔ ᱴᱟᱲᱟᱝ ᱨᱮ ᱛᱮᱞᱟ"
+            }
+        }
+    },
+    "common": {
+        "loading": "ᱞᳳᱰ ᱦᱩᱭᱩᱜ ᱠᱟᱱᱟ...",
+        "error": "ᱵᱟᱹᱲᱤᱡ",
+        "submit": "ᱮᱢ ᱢᱮ",
+        "cancel": "ᱵᱟᱹᱜᱤ ᱢᱮ",
+        "yes": "ᱦᱚᱭ",
+        "no": "ᱵᱟᱝ",
+        "back": "ᱛᱟᱭᱚᱢ"
+    }
+}

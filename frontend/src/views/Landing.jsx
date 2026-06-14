@@ -1,14 +1,17 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import {
     Building2, MessageCircle, Users, Shield, Star, FileText,
     Search, ArrowRight, Sun, Moon
 } from 'lucide-react';
 import { useDarkMode } from '../contexts/DarkModeContext';
+import LanguageSelector from '../components/LanguageSelector';
 
 const Landing = () => {
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const { isDarkMode, toggleDarkMode } = useDarkMode();
 
     // Animation variants
@@ -116,7 +119,7 @@ const Landing = () => {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between h-20">
                         {/* Logo */}
-                        <div className="flex items-center gap-3 cursor-pointer group">
+                        <div className="flex items-center gap-3 cursor-pointer group" onClick={() => navigate('/')}>
                             {/* Programmatic Logo - Magnifying Glass with Growth Chart */}
                             <div className="w-10 h-10 relative flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                                 <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-sm" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -142,18 +145,21 @@ const Landing = () => {
                             </h1>
                         </div>
 
-                        {/* Dark Mode Toggle */}
-                        <button
-                            onClick={toggleDarkMode}
-                            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
-                            title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-                        >
-                            {isDarkMode ? (
-                                <Sun size={20} className="text-yellow-400" />
-                            ) : (
-                                <Moon size={20} className="text-gray-700" />
-                            )}
-                        </button>
+                        <div className="flex items-center gap-4">
+                            <LanguageSelector />
+                            {/* Dark Mode Toggle */}
+                            <button
+                                onClick={toggleDarkMode}
+                                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
+                                title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+                            >
+                                {isDarkMode ? (
+                                    <Sun size={20} className="text-yellow-400" />
+                                ) : (
+                                    <Moon size={20} className="text-gray-700" />
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -167,7 +173,7 @@ const Landing = () => {
                         variants={slideInLeft}
                         initial="hidden"
                         animate="visible"
-                        className="lg:col-span-5 space-y-8"
+                        className="lg:col-span-10 xl:col-span-5 space-y-8"
                     >
                         <div className="space-y-6">
                             <motion.h1
@@ -182,7 +188,7 @@ const Landing = () => {
                                     transition={{ duration: 0.3, delay: 0.2 }}
                                     className="inline-block"
                                 >
-                                    Empowering Citizens
+                                    {t('home.landing.empowering')}
                                 </motion.span>
                                 <br />
                                 <motion.span
@@ -191,7 +197,7 @@ const Landing = () => {
                                     transition={{ duration: 0.3, delay: 0.3 }}
                                     className="text-gray-400 dark:text-gray-500 font-bold inline-block transition-colors duration-300"
                                 >
-                                    for Better Governance
+                                    {t('home.landing.governance')}
                                 </motion.span>
                             </motion.h1>
                             <motion.p
@@ -200,7 +206,7 @@ const Landing = () => {
                                 transition={{ duration: 0.3, delay: 0.4 }}
                                 className="text-lg text-gray-600 dark:text-gray-300 leading-relaxed max-w-lg transition-colors duration-300"
                             >
-                                Report civic issues and get AI-generated solutions. Connect with officials via Telegram to actively participate in governance.
+                                {t('home.landing.subtitle')}
                             </motion.p>
                         </div>
 
@@ -208,10 +214,10 @@ const Landing = () => {
                             whileHover={{ scale: 1.05, translateY: -3 }}
                             whileTap={{ scale: 0.95 }}
                             transition={{ duration: 0.15 }}
-                            onClick={() => navigate('/home')}
+                            onClick={() => navigate('/login')}
                             className="bg-[#2D60FF] hover:bg-blue-700 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-[0_10px_20px_-5px_rgba(37,99,235,0.3)] hover:shadow-[0_15px_30px_-5px_rgba(37,99,235,0.5)] transition-all duration-150 flex items-center gap-2 group"
                         >
-                            Call Action Issue
+                            {t('home.landing.cta')}
                             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                         </motion.button>
                     </motion.div>
@@ -221,7 +227,7 @@ const Landing = () => {
                         variants={slideInRight}
                         initial="hidden"
                         animate="visible"
-                        className="lg:col-span-7 grid grid-cols-1 md:grid-cols-2 gap-6 relative"
+                        className="lg:col-span-12 xl:col-span-7 grid grid-cols-1 md:grid-cols-2 gap-6 relative"
                     >
                         {/* Decorative background blur */}
                         <div className="absolute -inset-10 bg-blue-50 dark:bg-blue-900/20 rounded-full blur-3xl -z-10 transition-colors duration-300" />
@@ -238,13 +244,13 @@ const Landing = () => {
                                 <div className="absolute top-0 right-0 p-4 opacity-20">
                                     <Search className="w-8 h-8" />
                                 </div>
-                                <div className="flex items-start gap-4 mb-8">
+                                <div className="flex items-start gap-4 mb-4 md:mb-8">
                                     <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
                                         <Building2 className="w-6 h-6" />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-lg">DepMyIndia</h3>
-                                        <p className="text-blue-100 text-sm opacity-90">Report Citizens with <br /> generated civic governance</p>
+                                        <h3 className="font-bold text-lg">FixMyIndia</h3>
+                                        <p className="text-blue-100 text-sm opacity-90">{t('home.landing.cards.reportCitizens')} <br /> {t('home.landing.cards.generatedCivic')}</p>
                                     </div>
                                 </div>
                                 <div className="h-1 w-full bg-white/20 rounded-full overflow-hidden">
@@ -259,7 +265,7 @@ const Landing = () => {
                                 className="bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.05)] dark:shadow-[0_10px_30px_-5px_rgba(0,0,0,0.3)] hover:shadow-xl border-2 border-gray-100 dark:border-gray-700 hover:border-orange-400 dark:hover:border-orange-500 group transition-all duration-150"
                             >
                                 <div className="flex justify-between items-center mb-6">
-                                    <h3 className="font-bold text-gray-800 dark:text-gray-100">Government Services</h3>
+                                    <h3 className="font-bold text-gray-800 dark:text-gray-100">{t('home.landing.cards.govServices')}</h3>
                                     <div className="text-gray-400 dark:text-gray-500">•••</div>
                                 </div>
                                 <div className="bg-gradient-to-br from-orange-50 dark:from-orange-900/30 to-white dark:to-gray-800 border border-orange-100 dark:border-orange-800 rounded-2xl p-5 group-hover:border-orange-200 dark:group-hover:border-orange-600 transition-colors">
@@ -268,8 +274,8 @@ const Landing = () => {
                                             <MessageCircle className="w-5 h-5" />
                                         </div>
                                         <div>
-                                            <h4 className="font-bold text-gray-900 dark:text-white mb-1">Question the Government</h4>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400 leading-snug">Submit queries, demand transparency, and hold officials accountable</p>
+                                            <h4 className="font-bold text-gray-900 dark:text-white mb-1">{t('home.landing.cards.questionGov')}</h4>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400 leading-snug">{t('home.landing.cards.govDesc')}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -287,8 +293,8 @@ const Landing = () => {
                                 className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-60 transition-opacity duration-500"
                             />
                             <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/80 dark:from-black/90 to-transparent">
-                                <p className="text-white font-medium mb-1">Community Action</p>
-                                <p className="text-gray-300 dark:text-gray-400 text-sm">Join the movement</p>
+                                <p className="text-white font-medium mb-1">{t('home.landing.cards.communityAction')}</p>
+                                <p className="text-gray-300 dark:text-gray-400 text-sm">{t('home.landing.cards.joinMovement')}</p>
                             </div>
                         </motion.div>
                     </motion.div>
@@ -314,8 +320,8 @@ const Landing = () => {
                                 <Building2 className="w-8 h-8 text-gray-700 dark:text-gray-300" />
                             </div>
                         </div>
-                        <h3 className="font-bold text-gray-900 dark:text-white mb-1">Public Trust</h3>
-                        <p className="text-gray-500 dark:text-gray-400 text-sm">& Ethics</p>
+                        <h3 className="font-bold text-gray-900 dark:text-white mb-1">{t('home.landing.features.publicTrust')}</h3>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm">{t('home.landing.features.ethics')}</p>
                     </motion.div>
 
                     {/* Feature 2 (Green Accent) */}
@@ -328,8 +334,8 @@ const Landing = () => {
                         <div className="w-16 h-16 mx-auto mb-6 bg-green-50 dark:bg-green-900/30 border border-green-100 dark:border-green-800 rounded-2xl flex items-center justify-center">
                             <MessageCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
                         </div>
-                        <h3 className="font-bold text-gray-900 dark:text-white mb-1">Civic Issues</h3>
-                        <p className="text-gray-500 dark:text-gray-400 text-sm">Report problems</p>
+                        <h3 className="font-bold text-gray-900 dark:text-white mb-1">{t('home.landing.features.civicIssues')}</h3>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm">{t('home.landing.features.reportProblems')}</p>
                     </motion.div>
 
                     {/* Feature 3 */}
@@ -342,8 +348,8 @@ const Landing = () => {
                         <div className="w-16 h-16 mx-auto mb-6 bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 rounded-2xl flex items-center justify-center">
                             <Star className="w-8 h-8 text-blue-600 dark:text-blue-400" />
                         </div>
-                        <h3 className="font-bold text-gray-900 dark:text-white mb-1">Voice Your Vote</h3>
-                        <p className="text-gray-500 dark:text-gray-400 text-xs">Share ideas for better policies</p>
+                        <h3 className="font-bold text-gray-900 dark:text-white mb-1">{t('home.landing.features.voiceVote')}</h3>
+                        <p className="text-gray-500 dark:text-gray-400 text-xs">{t('home.landing.features.shareIdeas')}</p>
                     </motion.div>
 
                     {/* AI Header (Span 4th col) */}
@@ -352,10 +358,10 @@ const Landing = () => {
                         className="space-y-4 flex flex-col justify-center pl-4"
                     >
                         <h2 className="text-2xl font-bold text-gray-900 dark:text-white leading-tight transition-colors duration-300">
-                            AI for Democracy <br /> & Civic Actions
+                            {t('home.landing.features.aiDemocracy')} <br /> {t('home.landing.features.civicActions')}
                         </h2>
                         <p className="text-gray-500 dark:text-gray-400 text-sm transition-colors duration-300">
-                            Leveraging technology for transparent governance and faster resolutions.
+                            {t('home.landing.features.aiDesc')}
                         </p>
                     </motion.div>
                 </motion.div>
@@ -366,32 +372,32 @@ const Landing = () => {
                     {[
                         {
                             icon: <Star className="w-6 h-6" />,
-                            title: "Smart Analysis",
-                            subtitle: "AI-Powered Insights",
+                            title: t('home.landing.features.smartAnalysis'),
+                            subtitle: t('home.landing.features.aiInsights'),
                             bg: "bg-blue-50 dark:bg-blue-900/30",
                             color: "text-blue-600 dark:text-blue-400",
                             border: "hover:border-blue-200 dark:hover:border-blue-600"
                         },
                         {
                             icon: <Users className="w-6 h-6" />,
-                            title: "Community",
-                            subtitle: "10k+ Active Citizens",
+                            title: t('home.landing.cards.communityAction'),
+                            subtitle: t('home.landing.features.citizenCount'),
                             bg: "bg-purple-50 dark:bg-purple-900/30",
                             color: "text-purple-600 dark:text-purple-400",
                             border: "hover:border-purple-200 dark:hover:border-purple-600"
                         },
                         {
                             icon: <Shield className="w-6 h-6" />,
-                            title: "Secure & Safe",
-                            subtitle: "Verified Reports",
+                            title: t('home.landing.features.secureSafe'),
+                            subtitle: t('home.landing.features.verifiedReports'),
                             bg: "bg-emerald-50 dark:bg-emerald-900/30",
                             color: "text-emerald-600 dark:text-emerald-400",
                             border: "hover:border-emerald-200 dark:hover:border-emerald-600"
                         },
                         {
                             icon: <FileText className="w-6 h-6" />,
-                            title: "Quick Action",
-                            subtitle: "24h Response Time",
+                            title: t('home.landing.features.quickAction'),
+                            subtitle: t('home.landing.features.responseTime'),
                             bg: "bg-orange-50 dark:bg-orange-900/30",
                             color: "text-orange-600 dark:text-orange-400",
                             border: "hover:border-orange-200 dark:hover:border-orange-600"

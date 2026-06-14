@@ -20,5 +20,13 @@ export const issuesApi = {
 
   vote: async (id) => {
     return await apiClient.post(`/api/issues/${id}/vote`, {}); // The backend endpoint might not require a body for upvote
+  },
+
+  getById: async (id) => {
+    return await apiClient.get(`/api/issues/${id}`);
+  },
+
+  verifyBlockchain: async (id) => {
+    return await apiClient.get(`/api/issues/${id}/blockchain-verify`);
   }
 };

@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - مخبر القضايا المدنية الذكي",
+        "subtitle": "أبلغ وتتبع القضايا المدنية في مجتمعك",
+        "privacyActive": "حماية الخصوصية المدعومة بالذكاء الاصطناعي نشطة",
+        "communityImpact": "تأثير المجتمع",
+        "makingChange": "بالتواصل معاً نحن نصنع التغيير!",
+        "issuesSolved": "قضايا تم حلها",
+        "smartScanner": "ماسح المدينة الذكية",
+        "aiPoweredDetection": "كشف فوري مدعوم بالذكاء الاصطناعي",
+        "categories": {
+            "roadTraffic": "الطرق والمرور",
+            "environmentSafety": "البيئة والسلامة",
+            "civicServices": "الخدمات المدنية",
+            "management": "الإدارة"
+        },
+        "issues": {
+            "pothole": "حفرة",
+            "blockedRoad": "طريق مغلق",
+            "illegalParking": "ركن غير قانوني",
+            "darkStreet": "شارع مظلم",
+            "trafficSign": "إشارة مرورية",
+            "abandonedVehicle": "مركبة مهجورة",
+            "garbage": "نفايات",
+            "flood": "فيضان",
+            "fireSmoke": "حريق/دخان",
+            "treeHazard": "خطر شجر",
+            "strayAnimal": "حيوان ضال",
+            "pestControl": "مكافحة الحشرات",
+            "reportIssue": "أبلغ عن مشكلة",
+            "brokenInfra": "بنية تحتية مكسورة",
+            "graffiti": "رسومات جدارية",
+            "findMLA": "ابحث عن المسؤول",
+            "grievanceManagement": "إدارة المظالم",
+            "viewStats": "عرض الإحصائيات",
+            "leaderboard": "لوحة المتصدرين",
+            "responsibilityMap": "خريطة المسؤولية",
+            "noise": "ضجيج",
+            "crowd": "ازدحام",
+            "waterLeak": "تسرب مياه",
+            "waste": "فرز النفايات",
+            "civicEye": "العين المدنية",
+            "myReports": "تقاريري",
+            "analyzeGrievance": "تحليل المظلمة"
+        },
+        "tools": {
+            "whoIsResponsible": "من المسؤول؟",
+            "topReporters": "كبار المخبرين",
+            "cameraCheck": "فحص الكاميرا"
+        },
+        "activity": {
+            "communityActivity": "نشاط المجتمع",
+            "liveFeed": "بث مباشر",
+            "noActivity": "لا يوجد نشاط حديث لعرضه.",
+            "loadMore": "تحميل المزيد",
+            "verify": "تحقق"
+        },
+        "stats": {
+            "totalImpact": "التأثير الإجمالي",
+            "issuesResolved": "قضايا تم حلها",
+            "activeUsers": "المستخدمون النشطون"
+        },
+        "landing": {
+            "empowering": "تمكين المواطنين",
+            "governance": "من أجل حوكمة أفضل",
+            "subtitle": "أبلغ عن قضايا مدنية واحصل على حلول مولدة بالذكاء الاصطناعي. تواصل مع المسؤولين عبر تيليجرام.",
+            "cta": "أبلغ عن مشكلة",
+            "cards": {
+                "reportCitizens": "أبلغ مع المواطنين",
+                "generatedCivic": "الحوكمة المدنية المولدة",
+                "govServices": "الخدمات الحكومية",
+                "questionGov": "ساءل الحكومة",
+                "govDesc": "قدم استفسارات، واطلب الشفافية، وحمل المسؤولين المسؤولية",
+                "communityAction": "العمل المجتمعي",
+                "joinMovement": "انضم إلى الحركة"
+            },
+            "features": {
+                "publicTrust": "الثقة العامة",
+                "ethics": "& الأخلاقيات",
+                "civicIssues": "القضايا المدنية",
+                "reportProblems": "الإبلاغ عن المشاكل",
+                "voiceVote": "أسمع صوتك",
+                "shareIdeas": "شارك أفكاراً لسياسات أفضل",
+                "aiDemocracy": "الذكاء الاصطناعي للديمقراطية",
+                "civicActions": "& الإجراءات المدنية",
+                "aiDesc": "الاستفادة من التكنولوجيا لحوكمة شفافة وقرارات أسرع.",
+                "smartAnalysis": "تحليل ذكي",
+                "aiInsights": "رؤى مدعومة بالذكاء الاصطناعي",
+                "citizenCount": "أكثر من 10 آلاف مواطن نشط",
+                "secureSafe": "آمن ومحمي",
+                "verifiedReports": "تقارير تم التحقق منها",
+                "quickAction": "عمل سريع",
+                "responseTime": "وقت استجابة 24 ساعة"
+            }
+        }
+    },
+    "common": {
+        "loading": "جاري التحميل...",
+        "error": "خطأ",
+        "submit": "إرسال",
+        "cancel": "إلغاء",
+        "yes": "نعم",
+        "no": "لا",
+        "back": "رجوع"
+    }
+}

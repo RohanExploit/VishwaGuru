@@ -1,0 +1,302 @@
+[
+  {
+    "description": "A huge fire broke out in the waste dump near the main market. Thick black smoke is everywhere, people are choking!",
+    "expected_category": "Fire",
+    "expected_severity": "Critical",
+    "expected_urgency_min": 90
+  },
+  {
+    "description": "There is a massive pothole in the middle of MG Road causing traffic jams and accidents. A biker fell just now.",
+    "expected_category": "Pothole",
+    "expected_severity": "High",
+    "expected_urgency_min": 70
+  },
+  {
+    "description": "Streetlight on 5th avenue has been flickering for a week. It's annoying but not dangerous yet.",
+    "expected_category": "Street Light",
+    "expected_severity": "Low",
+    "expected_urgency_max": 40
+  },
+  {
+    "description": "Garbage has not been collected for 3 days in Sector 4. The smell is getting bad.",
+    "expected_category": "Garbage",
+    "expected_severity": "Medium",
+    "expected_urgency_min": 40
+  },
+  {
+    "description": "Water pipe burst on the main street, flooding the entire road. Cars are stuck.",
+    "expected_category": "Water Leak",
+    "expected_severity": "High",
+    "expected_urgency_min": 80
+  },
+  {
+    "description": "Stray dogs are chasing children near the primary school. Very dangerous situation.",
+    "expected_category": "Stray Animal",
+    "expected_severity": "High",
+    "expected_urgency_min": 70
+  },
+  {
+    "description": "Construction material dumped on the sidewalk blocking pedestrian path.",
+    "expected_category": "Construction Safety",
+    "expected_severity": "Medium",
+    "expected_urgency_min": 40
+  },
+  {
+    "description": "Illegal parking in front of the hospital gate. Ambulance cannot enter!",
+    "expected_category": "Illegal Parking",
+    "expected_severity": "Critical",
+    "expected_urgency_min": 90
+  },
+  {
+    "description": "Graffiti painted on the statue in the park.",
+    "expected_category": "Vandalism",
+    "expected_severity": "Medium",
+    "expected_urgency_max": 50
+  },
+  {
+    "description": "Manhole cover is missing near the playground. A child could fall in.",
+    "expected_category": "Infrastructure",
+    "expected_severity": "Critical",
+    "expected_urgency_min": 90
+  },
+  {
+    "description": "Traffic signal at the busy intersection is not working. Chaos and near misses.",
+    "expected_category": "Traffic Sign",
+    "expected_severity": "High",
+    "expected_urgency_min": 70
+  },
+  {
+    "description": "Abandoned car parked on the roadside for months. It's rusting.",
+    "expected_category": "Abandoned Vehicle",
+    "expected_severity": "Low",
+    "expected_urgency_max": 30
+  },
+  {
+    "description": "Public toilet in the market is overflowing and unusable.",
+    "expected_category": "Public Facilities",
+    "expected_severity": "High",
+    "expected_urgency_min": 70
+  },
+  {
+    "description": "Tree branch about to fall on the power lines. Sparks seen.",
+    "expected_category": "Tree Hazard",
+    "expected_severity": "Critical",
+    "expected_urgency_min": 85
+  },
+  {
+    "description": "Wheelchair ramp at the government office is broken.",
+    "expected_category": "Accessibility",
+    "expected_severity": "High",
+    "expected_urgency_min": 50
+  },
+  {
+    "description": "Loud music playing late at night from the nearby club. Can't sleep.",
+    "expected_category": "Noise Pollution",
+    "expected_severity": "Medium",
+    "expected_urgency_max": 60
+  },
+  {
+    "description": "Dead animal on the road causing foul smell.",
+    "expected_category": "Stray Animal",
+    "expected_severity": "High",
+    "expected_urgency_min": 50
+  },
+  {
+    "description": "Open drainage causing mosquito breeding. Health hazard.",
+    "expected_category": "Health Hazard",
+    "expected_severity": "High",
+    "expected_urgency_min": 65
+  },
+  {
+    "description": "Someone is burning plastic in the open field. Toxic smoke.",
+    "expected_category": "Air Pollution",
+    "expected_severity": "High",
+    "expected_urgency_min": 75
+  },
+  {
+    "description": "Bus stop shelter has collapsed. No shade for commuters.",
+    "expected_category": "Infrastructure",
+    "expected_severity": "Critical",
+    "expected_urgency_min": 40
+  },
+  {
+    "description": "Electric wires hanging low over the street. Danger of electrocution.",
+    "expected_category": "Infrastructure",
+    "expected_severity": "Critical",
+    "expected_urgency_min": 90
+  },
+  {
+    "description": "Garbage truck spilling waste on the road while driving.",
+    "expected_category": "Garbage",
+    "expected_severity": "Medium",
+    "expected_urgency_min": 50
+  },
+  {
+    "description": "Park benches are broken and unsafe to sit on.",
+    "expected_category": "Public Facilities",
+    "expected_severity": "High",
+    "expected_urgency_max": 75
+  },
+  {
+    "description": "Street sign for 'No Entry' is faded and unreadable.",
+    "expected_category": "Traffic Sign",
+    "expected_severity": "Low",
+    "expected_urgency_max": 35
+  },
+  {
+    "description": "Large crowd gathering without masks, violating health protocols.",
+    "expected_category": "Crowd",
+    "expected_severity": "Medium",
+    "expected_urgency_min": 50
+  },
+  {
+    "description": "Water leakage in the apartment basement affecting structural integrity.",
+    "expected_category": "Water Leak",
+    "expected_severity": "High",
+    "expected_urgency_min": 70
+  },
+  {
+    "description": "Blocked drainage causing localized flooding after rain.",
+    "expected_category": "Flooding",
+    "expected_severity": "High",
+    "expected_urgency_min": 60
+  },
+  {
+    "description": "Stray cattle blocking the highway. Traffic halted.",
+    "expected_category": "Stray Animal",
+    "expected_severity": "High",
+    "expected_urgency_min": 75
+  },
+  {
+    "description": "Unauthorized billboard installed blocking the traffic light view.",
+    "expected_category": "Traffic Sign",
+    "expected_severity": "High",
+    "expected_urgency_min": 70
+  },
+  {
+    "description": "Broken glass on the playground slide. Kids could get cut.",
+    "expected_category": "Public Facilities",
+    "expected_severity": "High",
+    "expected_urgency_min": 80
+  },
+  {
+    "description": "Severe pothole causing damage to vehicles near the highway exit.",
+    "expected_category": "Pothole",
+    "expected_severity": "High",
+    "expected_urgency_min": 70
+  },
+  {
+    "description": "Overflowing dustbin attracting rats and flies.",
+    "expected_category": "Garbage",
+    "expected_severity": "High",
+    "expected_urgency_min": 50
+  },
+  {
+    "description": "Streetlight pole is leaning dangerously.",
+    "expected_category": "Street Light",
+    "expected_severity": "High",
+    "expected_urgency_min": 70
+  },
+  {
+    "description": "Construction debris left on the road causing accidents.",
+    "expected_category": "Construction Safety",
+    "expected_severity": "High",
+    "expected_urgency_min": 70
+  },
+  {
+    "description": "Smoke coming from the underground transformer.",
+    "expected_category": "Fire",
+    "expected_severity": "Critical",
+    "expected_urgency_min": 90
+  },
+  {
+    "description": "Illegal dumping of chemicals in the river.",
+    "expected_category": "Water Pollution",
+    "expected_severity": "Critical",
+    "expected_urgency_min": 90
+  },
+  {
+    "description": "Noise from construction work at night disturbing residents.",
+    "expected_category": "Noise Pollution",
+    "expected_severity": "Medium",
+    "expected_urgency_min": 40
+  },
+  {
+    "description": "Broken sidewalk tiles causing tripping hazard for elderly.",
+    "expected_category": "Infrastructure",
+    "expected_severity": "High",
+    "expected_urgency_min": 50
+  },
+  {
+    "description": "Tree roots uplifting the pavement.",
+    "expected_category": "Tree Hazard",
+    "expected_severity": "Medium",
+    "expected_urgency_max": 50
+  },
+  {
+    "description": "Speed breaker is too high and unmarked, damaging cars.",
+    "expected_category": "Infrastructure",
+    "expected_severity": "Medium",
+    "expected_urgency_min": 40
+  },
+  {
+    "description": "Waterlogging in the underpass preventing passage.",
+    "expected_category": "Flooding",
+    "expected_severity": "High",
+    "expected_urgency_min": 70
+  },
+  {
+    "description": "Rabid dog biting people in the park.",
+    "expected_category": "Stray Animal",
+    "expected_severity": "Critical",
+    "expected_urgency_min": 90
+  },
+  {
+    "description": "Gas leak smell near the pipeline.",
+    "expected_category": "Gas Leak",
+    "expected_severity": "Critical",
+    "expected_urgency_min": 90
+  },
+  {
+    "description": "Illegal cutting of trees in the reserved forest area.",
+    "expected_category": "Environment",
+    "expected_severity": "High",
+    "expected_urgency_min": 70
+  },
+  {
+    "description": "Public water tap running continuously, wasting water.",
+    "expected_category": "Water Leak",
+    "expected_severity": "Medium",
+    "expected_urgency_min": 40
+  },
+  {
+    "description": "Dead fish floating in the lake.",
+    "expected_category": "Water Pollution",
+    "expected_severity": "High",
+    "expected_urgency_min": 70
+  },
+  {
+    "description": "Crack in the flyover pillar visible.",
+    "expected_category": "Infrastructure",
+    "expected_severity": "Critical",
+    "expected_urgency_min": 90
+  },
+  {
+    "description": "Pedestrian crossing signal not working.",
+    "expected_category": "Traffic Sign",
+    "expected_severity": "High",
+    "expected_urgency_min": 60
+  },
+  {
+    "description": "Garbage burning near the school affecting air quality.",
+    "expected_category": "Air Pollution",
+    "expected_severity": "Critical",
+    "expected_urgency_min": 80
+  },
+  {
+    "description": "Open electrical box on the street level.",
+    "expected_category": "Infrastructure",
+    "expected_severity": "Critical",
+    "expected_urgency_min": 90
+  }
+]

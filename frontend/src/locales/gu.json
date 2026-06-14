@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - સ્માર્ટ નાગરિક સમસ્યા રિપોર્ટર",
+        "subtitle": "તમારા સમુદાયમાં નાગરિક સમસ્યાઓ રિપોર્ટ કરો અને ટ્રેક કરો",
+        "privacyActive": "AI-સંચાલિત ગોપનીયતા સુરક્ષા સક્રિય છે",
+        "communityImpact": "સમુદાય પર પ્રભાવ",
+        "makingChange": "સાથે મળીને આપણે પરિવર્તન લાવી રહ્યા છીએ!",
+        "issuesSolved": "ઉકેલાયેલી સમસ્યાઓ",
+        "smartScanner": "સ્માર્ટ સિટી સ્કેનર",
+        "aiPoweredDetection": "AI-સંચાલિત તાત્કાલિક શોધ",
+        "categories": {
+            "roadTraffic": "રોડ અને ટ્રાફિક",
+            "environmentSafety": "પર્યાવરણ અને સુરક્ષા",
+            "civicServices": "નાગરિક સેવાઓ",
+            "management": "વ્યવસ્થાપન"
+        },
+        "issues": {
+            "pothole": "ખાડો",
+            "blockedRoad": "બંધ રસ્તો",
+            "illegalParking": "ગેરકાયદે પાર્કિંગ",
+            "darkStreet": "અંધારી શેરી",
+            "trafficSign": "ટ્રાફિક સંકેત",
+            "abandonedVehicle": "ત્યજી દેવાયેલ વાહન",
+            "garbage": "કચરો",
+            "flood": "પૂર",
+            "fireSmoke": "આગ/ધૂમાડો",
+            "treeHazard": "વૃક્ષ જોખમ",
+            "strayAnimal": "રખડતા પશુઓ",
+            "pestControl": "જીવાત નિયંત્રણ",
+            "reportIssue": "સમસ્યા રિપોર્ટ કરો",
+            "brokenInfra": "તૂટેલી માળખાગત સુવિધા",
+            "graffiti": "ગ્રેફિટિ",
+            "findMLA": "ધારાસભ્ય શોધો",
+            "grievanceManagement": "ફરિયાદ વ્યવસ્થાપન",
+            "viewStats": "આંકડા જુઓ",
+            "leaderboard": "લીડરબોર્ડ",
+            "responsibilityMap": "જવાબદારી નકશો",
+            "noise": "ઘોંઘાટ",
+            "crowd": "ભીડ",
+            "waterLeak": "પાણીનું ગળતર",
+            "waste": "કચરો વર્ગીકરણ",
+            "civicEye": "નાગરિક આંખ",
+            "myReports": "મારા રિપોર્ટ",
+            "analyzeGrievance": "ફરિયાદનું વિશ્લેષણ કરો"
+        },
+        "tools": {
+            "whoIsResponsible": "કોણ જવાબદાર છે?",
+            "topReporters": "ટોપ રિપોર્ટર્સ",
+            "cameraCheck": "કેમેરા તપાસ"
+        },
+        "activity": {
+            "communityActivity": "સમુદાય પ્રવૃત્તિ",
+            "liveFeed": "લાઇવ ફીડ",
+            "noActivity": "બતાવવા માટે કોઈ તાજેતરની પ્રવૃત્તિ નથી.",
+            "loadMore": "વધુ પ્રવૃત્તિ લોડ કરો",
+            "verify": "ચકાસો"
+        },
+        "stats": {
+            "totalImpact": "કુલ પ્રભાવ",
+            "issuesResolved": "ઉકેલાયેલી સમસ્યાઓ",
+            "activeUsers": "સક્રિય વપરાશકર્તાઓ"
+        },
+        "landing": {
+            "empowering": "નાગરિકોનું સશક્તિકરણ",
+            "governance": "વધુ સારા શાસન માટે",
+            "subtitle": "નાગરિક સમસ્યાઓ રિપોર્ટ કરો અને AI-જનરેટેડ સોલ્યુશન્સ મેળવો. શાસનમાં સક્રિયપણે ભાગ લેવા માટે ટેલિગ્રામ દ્વારા અધિકારીઓ સાથે જોડાઓ.",
+            "cta": "સમસ્યા રિપોર્ટ કરો",
+            "cards": {
+                "reportCitizens": "નાગરિકો સાથે રિપોર્ટ કરો",
+                "generatedCivic": "નાગરિક શાસન",
+                "govServices": "સરકારી સેવાઓ",
+                "questionGov": "સરકારને પ્રશ્ન પૂછો",
+                "govDesc": "પ્રશ્નો સબમિટ કરો, પારદર્શિતાની માંગ કરો અને અધિકારીઓને જવાબદાર ઠેરવો",
+                "communityAction": "સામુદાયિક કાર્યવાહી",
+                "joinMovement": "આંદોલનમાં જોડાઓ"
+            },
+            "features": {
+                "publicTrust": "જાહેર વિશ્વાસ",
+                "ethics": "& નીતિશાસ્ત્ર",
+                "civicIssues": "નાગરિક સમસ્યાઓ",
+                "reportProblems": "સમસ્યાઓ રિપોર્ટ કરો",
+                "voiceVote": "તમારો અવાજ બુલંદ કરો",
+                "shareIdeas": "સારી નીતિઓ માટે વિચારો શેર કરો",
+                "aiDemocracy": "લોકશાહી માટે AI",
+                "civicActions": "& નાગરિક કાર્યો",
+                "aiDesc": "પારદર્શક શાસન અને ઝડપી નિરાકરણ માટે ટેક્નોલોજીનો ઉપયોગ.",
+                "smartAnalysis": "સ્માર્ટ વિશ્લેષણ",
+                "aiInsights": "AI-સંચાલિત આંતરદૃષ્ટિ",
+                "citizenCount": "10k+ સક્રિય નાગરિકો",
+                "secureSafe": "સુરક્ષિત",
+                "verifiedReports": "ચકાસાયેલ રિપોર્ટ",
+                "quickAction": "ઝડપી કાર્યવાહી",
+                "responseTime": "24 કલાક પ્રતિસાદ સમય"
+            }
+        }
+    },
+    "common": {
+        "loading": "લોડ થઈ રહ્યું છે...",
+        "error": "ભૂલ",
+        "submit": "સબમિટ કરો",
+        "cancel": "રદ કરો",
+        "yes": "હા",
+        "no": "ના",
+        "back": "પાછા"
+    }
+}

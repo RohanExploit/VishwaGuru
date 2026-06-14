@@ -1,48 +1,106 @@
 {
   "home": {
-    "title": "विश्वगुरु - स्मार्ट सिविक इश्यू रिपोर्टर",
-    "subtitle": "तुमच्या समुदायात सिविक समस्या नोंदवा आणि ट्रॅक करा",
+    "title": "विश्वगुरु - स्मार्ट नागरी समस्या रिपोर्टर",
+    "subtitle": "तुमच्या समुदायातील नागरी समस्या नोंदवा आणि त्यांचा मागोवा घ्या",
     "privacyActive": "AI-चालित गोपनीयता संरक्षण सक्रिय",
     "communityImpact": "समुदाय प्रभाव",
-    "makingChange": "आम्ही एकत्र बदल घडवत आहोत!",
+    "makingChange": "एकत्र आपण बदल घडवत आहोत!",
     "issuesSolved": "समस्या सोडवल्या",
     "smartScanner": "स्मार्ट सिटी स्कॅनर",
     "aiPoweredDetection": "AI-चालित त्वरित शोध",
     "categories": {
       "roadTraffic": "रस्ता आणि वाहतूक",
       "environmentSafety": "पर्यावरण आणि सुरक्षा",
-      "civicServices": "नागरीक सेवा"
+      "civicServices": "नागरी सेवा",
+      "management": "व्यवस्थापन"
     },
     "issues": {
       "pothole": "खड्डा",
-      "blockedRoad": "अवरोधित रस्ता",
-      "illegalParking": "अवैध पार्किंग",
-      "darkStreet": "अंधूक रस्ता",
+      "blockedRoad": "रस्ता बंद",
+      "illegalParking": "बेकायदेशीर पार्किंग",
+      "darkStreet": "अंधार असलेला रस्ता",
       "trafficSign": "वाहतूक चिन्ह",
       "abandonedVehicle": "बेवारस वाहन",
       "garbage": "कचरा",
-      "flood": "पुर",
+      "flood": "पूर",
       "fireSmoke": "आग/धूर",
       "treeHazard": "झाडाचा धोका",
-      "strayAnimal": "भटकणारे प्राणी",
+      "strayAnimal": "भटके प्राणी",
       "pestControl": "कीटक नियंत्रण",
       "reportIssue": "समस्या नोंदवा",
       "brokenInfra": "तुटलेली पायाभूत सुविधा",
-      "graffiti": "गंदा लेख",
-      "findMLA": "MLA शोधा"
+      "graffiti": "ग्राफिती",
+      "findMLA": "आमदार शोधा",
+      "grievanceManagement": "तक्रार व्यवस्थापन",
+      "viewStats": "आकडेवारी पहा",
+      "leaderboard": "लीडरबोर्ड",
+      "responsibilityMap": "जबाबदारी नकाशा",
+      "noise": "गोंगाट",
+      "crowd": "गर्दी",
+      "waterLeak": "पाणी गळती",
+      "waste": "कचरा वर्गीकरण",
+      "civicEye": "नागरी डोळा",
+      "myReports": "माझे रिपोर्ट",
+      "analyzeGrievance": "तक्रारीचे विश्लेषण करा"
+    },
+    "tools": {
+      "whoIsResponsible": "जबाबदार कोण?",
+      "topReporters": "अव्वल रिपोर्टर",
+      "cameraCheck": "कॅमेरा तपासणी"
+    },
+    "activity": {
+      "communityActivity": "समुदाय क्रियाकलाप",
+      "liveFeed": "थेट फीड",
+      "noActivity": "दाखवण्यासाठी कोणतेही अलीकडील क्रियाकलाप नाहीत.",
+      "loadMore": "अधिक क्रियाकलाप लोड करा",
+      "verify": "पडताळणी करा"
     },
     "stats": {
       "totalImpact": "एकूण प्रभाव",
       "issuesResolved": "समस्या सोडवल्या",
       "activeUsers": "सक्रिय वापरकर्ते"
+    },
+    "landing": {
+      "empowering": "नागरिकांचे सक्षमीकरण",
+      "governance": "उत्तम प्रशासनासाठी",
+      "subtitle": "नागरी समस्या नोंदवा आणि AI-व्युत्पन्न उपाय मिळवा. प्रशासनात सक्रियपणे सहभागी होण्यासाठी टेलिग्रामद्वारे अधिकाऱ्यांशी संपर्क साधा.",
+      "cta": "समस्या नोंदवा",
+      "cards": {
+        "reportCitizens": "नागरिकांसह नोंदवा",
+        "generatedCivic": "नागरी प्रशासन",
+        "govServices": "शासकीय सेवा",
+        "questionGov": "शासनाला प्रश्न विचारा",
+        "govDesc": "प्रश्न सादर करा, पारदर्शकतेची मागणी करा आणि अधिकाऱ्यांना जबाबदार धरा",
+        "communityAction": "सामुदायिक कृती",
+        "joinMovement": "चळवळीत सामील व्हा"
+      },
+      "features": {
+        "publicTrust": "जनतेचा विश्वास",
+        "ethics": "& नैतिकता",
+        "civicIssues": "नागरी समस्या",
+        "reportProblems": "समस्या नोंदवा",
+        "voiceVote": "तुमचा आवाज पोहोचवा",
+        "shareIdeas": "चांगल्या धोरणांसाठी कल्पना शेअर करा",
+        "aiDemocracy": "लोकशाहीसाठी AI",
+        "civicActions": "& नागरी कृती",
+        "aiDesc": "पारदर्शक प्रशासन आणि जलद निराकरणासाठी तंत्रज्ञानाचा वापर.",
+        "smartAnalysis": "स्मार्ट विश्लेषण",
+        "aiInsights": "AI-चालित अंतर्दृष्टी",
+        "citizenCount": "10k+ सक्रिय नागरिक",
+        "secureSafe": "सुरक्षित",
+        "verifiedReports": "सत्यापित अहवाल",
+        "quickAction": "त्वरीत कृती",
+        "responseTime": "24 तास प्रतिसाद वेळ"
+      }
     }
   },
   "common": {
     "loading": "लोड होत आहे...",
     "error": "त्रुटी",
-    "submit": "सबमिट करा",
+    "submit": "सादर करा",
     "cancel": "रद्द करा",
-    "yes": "होय",
-    "no": "नाही"
+    "yes": "हो",
+    "no": "नाही",
+    "back": "मागे"
   }
 }

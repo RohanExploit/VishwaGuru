@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - Pelapor Masalah Sipil Cerdas",
+        "subtitle": "Laporkan dan lacak masalah sipil di komunitas Anda",
+        "privacyActive": "Perlindungan Privasi Berbasis AI Aktif",
+        "communityImpact": "Dampak Komunitas",
+        "makingChange": "Bersama kita membuat perubahan!",
+        "issuesSolved": "Masalah Teratasi",
+        "smartScanner": "Pemindai Kota Cerdas",
+        "aiPoweredDetection": "Deteksi Instan Berbasis AI",
+        "categories": {
+            "roadTraffic": "Jalan & Lalu Lintas",
+            "environmentSafety": "Lingkungan & Keamanan",
+            "civicServices": "Layanan Sipil",
+            "management": "Manajemen"
+        },
+        "issues": {
+            "pothole": "Lubang Jalan",
+            "blockedRoad": "Jalan Terblokir",
+            "illegalParking": "Parkir Liar",
+            "darkStreet": "Jalan Gelap",
+            "trafficSign": "Rambu Lalu Lintas",
+            "abandonedVehicle": "Kendaraan Terbengkalai",
+            "garbage": "Sampah",
+            "flood": "Banjir",
+            "fireSmoke": "Kebakaran/Asap",
+            "treeHazard": "Pohon Tumbang/Berbahaya",
+            "strayAnimal": "Hewan Liar",
+            "pestControl": "Pengendalian Hama",
+            "reportIssue": "Laporkan Masalah",
+            "brokenInfra": "Infrastruktur Rusak",
+            "graffiti": "Grafiti",
+            "findMLA": "Cari Perwakilan",
+            "grievanceManagement": "Manajemen Keluhan",
+            "viewStats": "Lihat Statistik",
+            "leaderboard": "Papan Peringkat",
+            "responsibilityMap": "Peta Tanggung Jawab",
+            "noise": "Kebisingan",
+            "crowd": "Kerumunan",
+            "waterLeak": "Kebocoran Air",
+            "waste": "Pemisah Sampah",
+            "civicEye": "Mata Sipil",
+            "myReports": "Laporan Saya",
+            "analyzeGrievance": "Analisis Keluhan"
+        },
+        "tools": {
+            "whoIsResponsible": "Siapa yang Bertanggung Jawab?",
+            "topReporters": "Pelapor Teratas",
+            "cameraCheck": "Cek Kamera"
+        },
+        "activity": {
+            "communityActivity": "Aktivitas Komunitas",
+            "liveFeed": "Umpan Langsung",
+            "noActivity": "Tidak ada aktivitas terbaru untuk ditampilkan.",
+            "loadMore": "Muat Lebih Banyak Aktivitas",
+            "verify": "Verifikasi"
+        },
+        "stats": {
+            "totalImpact": "Total Dampak",
+            "issuesResolved": "Masalah Teratasi",
+            "activeUsers": "Pengguna Aktif"
+        },
+        "landing": {
+            "empowering": "Memberdayakan Warga",
+            "governance": "untuk Tata Kelola yang Lebih Baik",
+            "subtitle": "Laporkan masalah sipil dan dapatkan solusi berbasis AI. Hubungi pejabat melalui Telegram để berpartisipasi aktif dalam tata kelola.",
+            "cta": "Laporkan Masalah",
+            "cards": {
+                "reportCitizens": "Lapor bersama Warga",
+                "generatedCivic": "tata kelola sipil yang dihasilkan",
+                "govServices": "Layanan Pemerintah",
+                "questionGov": "Pertanyakan Pemerintah",
+                "govDesc": "Ajukan pertanyaan, tuntut transparansi, dan minta pertanggungjawaban pejabat",
+                "communityAction": "Aksi Komunitas",
+                "joinMovement": "Bergabunglah dengan gerakan"
+            },
+            "features": {
+                "publicTrust": "Kepercayaan Publik",
+                "ethics": "& Etika",
+                "civicIssues": "Masalah Sipil",
+                "reportProblems": "Laporkan masalah",
+                "voiceVote": "Suarakan Pendapat Anda",
+                "shareIdeas": "Bagikan ide untuk kebijakan yang lebih baik",
+                "aiDemocracy": "AI untuk Demokrasi",
+                "civicActions": "& Aksi Sipil",
+                "aiDesc": "Memanfaatkan teknologi untuk tata kelola yang transparan và penyelesaian yang lebih cepat.",
+                "smartAnalysis": "Analisis Cerdas",
+                "aiInsights": "Wawasan Berbasis AI",
+                "citizenCount": "10rb+ Warga Aktif",
+                "secureSafe": "Aman & Terjamin",
+                "verifiedReports": "Laporan Terverifikasi",
+                "quickAction": "Tindakan Cepat",
+                "responseTime": "Waktu Respons 24 Jam"
+            }
+        }
+    },
+    "common": {
+        "loading": "Memuat...",
+        "error": "Kesalahan",
+        "submit": "Kirim",
+        "cancel": "Batal",
+        "yes": "Ya",
+        "no": "Tidak",
+        "back": "Kembali"
+    }
+}

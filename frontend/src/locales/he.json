@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - VihwaGuru - דיווח חכם על בעיות אזרחיות",
+        "subtitle": "דווח ועקוב אחר בעיות אזרחיות בקהילה שלך",
+        "privacyActive": "הגנת פרטיות מבוססת בינה מלאכותית פעילה",
+        "communityImpact": "השפעה קהילתית",
+        "makingChange": "יחד אנחנו עושים שינוי!",
+        "issuesSolved": "בעיות שנפתרו",
+        "smartScanner": "סורק עיר חכמה",
+        "aiPoweredDetection": "זיהוי מיידי מבוסס בינה מלאכותית",
+        "categories": {
+            "roadTraffic": "כבישים ותנועה",
+            "environmentSafety": "סביבה ובטיחות",
+            "civicServices": "שירותים אזרחיים",
+            "management": "ניהול"
+        },
+        "issues": {
+            "pothole": "בור בכביש",
+            "blockedRoad": "כביש חסום",
+            "illegalParking": "חניה לא חוקית",
+            "darkStreet": "רחוב חשוך",
+            "trafficSign": "תמרור",
+            "abandonedVehicle": "רכב נטוש",
+            "garbage": "אשפה",
+            "flood": "הצפה",
+            "fireSmoke": "אש/עשן",
+            "treeHazard": "סכנת עץ",
+            "strayAnimal": "חיה משוטטת",
+            "pestControl": "הדברת מזיקים",
+            "reportIssue": "דווח על בעיה",
+            "brokenInfra": "תשתית שבורה",
+            "graffiti": "גרפיטי",
+            "findMLA": "מצא נציג",
+            "grievanceManagement": "ניהול תלונות",
+            "viewStats": "צפה בסטטיסטיקה",
+            "leaderboard": "לוח מובילים",
+            "responsibilityMap": "מפת אחריות",
+            "noise": "רעש",
+            "crowd": "קהל",
+            "waterLeak": "דליפת מים",
+            "waste": "מיון פסולת",
+            "civicEye": "עין אזרחית",
+            "myReports": "הדיווחים שלי",
+            "analyzeGrievance": "נתח תלונה"
+        },
+        "tools": {
+            "whoIsResponsible": "מי אחראי?",
+            "topReporters": "מדווחים מובילים",
+            "cameraCheck": "בדיקת מצלמה"
+        },
+        "activity": {
+            "communityActivity": "פעילות קהילתית",
+            "liveFeed": "עדכונים חיים",
+            "noActivity": "אין פעילות אחרונה להצגה.",
+            "loadMore": "טען עוד פעילות",
+            "verify": "אמת"
+        },
+        "stats": {
+            "totalImpact": "השפעה כוללת",
+            "issuesResolved": "בעיות שנפתרו",
+            "activeUsers": "משתמשים פעילים"
+        },
+        "landing": {
+            "empowering": "העצמת אזרחים",
+            "governance": "לממשל טוב יותר",
+            "subtitle": "דווח על בעיות אזרחיות וקבל פתרונות שנוצרו על ידי בינה מלאכותית. התחבר לבכירים באמצעות טלגרם.",
+            "cta": "דווח על בעיה",
+            "cards": {
+                "reportCitizens": "דווח עם אזרחים",
+                "generatedCivic": "ממשל אזרחי נוצר",
+                "govServices": "שירותי ממשל",
+                "questionGov": "שאל את הממשלה",
+                "govDesc": "הגש שאילתות, דרוש שקיפות והטיל אחריות על בכירים",
+                "communityAction": "פעולה קהילתית",
+                "joinMovement": "הצטרף לתנועה"
+            },
+            "features": {
+                "publicTrust": "אמון הציבור",
+                "ethics": "& אתיקה",
+                "civicIssues": "בעיות אזרחיות",
+                "reportProblems": "דווח על בעיות",
+                "voiceVote": "השמע את קולך",
+                "shareIdeas": "שתף רעיונות למדיניות טובה יותר",
+                "aiDemocracy": "בינה מלאכותית לדמוקרטיה",
+                "civicActions": "& פעולות אזרחיות",
+                "aiDesc": "שימוש בטכנולוגיה לממשל שקוף ופתרונות מהירים יותר.",
+                "smartAnalysis": "ניתוח חכם",
+                "aiInsights": "תובנות מבוססות בינה מלאכותית",
+                "citizenCount": "מעל 10,000 אזרחים פעילים",
+                "secureSafe": "בטוח ומאובטח",
+                "verifiedReports": "דיווחים מאומתים",
+                "quickAction": "פעולה מהירה",
+                "responseTime": "זמן תגובה של 24 שעות"
+            }
+        }
+    },
+    "common": {
+        "loading": "טוען...",
+        "error": "שגיאה",
+        "submit": "שלח",
+        "cancel": "ביטול",
+        "yes": "כן",
+        "no": "לא",
+        "back": "חזור"
+    }
+}

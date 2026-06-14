@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "विश्वगुरु - स्मार्ट नागरिकसमस्या-निवेदकः",
+        "subtitle": "भवतः समुदाये नागरिकसमस्याः निवेदयन्तु अन्वेषयन्तु च",
+        "privacyActive": "AI-सञ्चालित गोपनीयतासंरक्षणं सक्रियम् अस्ति",
+        "communityImpact": "सामुदायिकप्रभावः",
+        "makingChange": "वयं मिलित्वा परिवर्तनं कुर्मः!",
+        "issuesSolved": "समाहिताः समस्याः",
+        "smartScanner": "स्मार्ट सिटी स्कैनर",
+        "aiPoweredDetection": "AI-सञ्चालितं त्वरितमन्वेषणम्",
+        "categories": {
+            "roadTraffic": "मार्गः यातायातञ्च",
+            "environmentSafety": "पर्यावरणं सुरक्षा च",
+            "civicServices": "नागरिकसेवाः",
+            "management": "प्रबन्धनम्"
+        },
+        "issues": {
+            "pothole": "गर्तः",
+            "blockedRoad": "अवरुद्धमार्गः",
+            "illegalParking": "अवैधं वाहनस्थानम्",
+            "darkStreet": "अन्धकारमयमार्गः",
+            "trafficSign": "यातायातसङ्केतः",
+            "abandonedVehicle": "त्यक्तं वाहनम्",
+            "garbage": "कच्चरः",
+            "flood": "जलौघः",
+            "fireSmoke": "अग्निः/धूमः",
+            "treeHazard": "वृक्षसङ्कटम्",
+            "strayAnimal": "भ्रमन्तः पशवः",
+            "pestControl": "कीटनियन्त्रणम्",
+            "reportIssue": "समस्यां निवेदयतु",
+            "brokenInfra": "भग्नं बुनियादीढाञ्चा",
+            "graffiti": "भित्तिचित्रणम्",
+            "findMLA": "प्रतिनिधिं अन्विष्यतु",
+            "grievanceManagement": "शिकायतप्रबन्धनम्",
+            "viewStats": "आङ्कडान् पश्यतु",
+            "leaderboard": "लीडरबोर्ड",
+            "responsibilityMap": "उत्तरदायित्वमानचित्रम्",
+            "noise": "कोलाहलः",
+            "crowd": "जनसमूहः",
+            "waterLeak": "जलस्रावः",
+            "waste": "कच्चरवर्गीकरणम्",
+            "civicEye": "नागरिकचक्षुः",
+            "myReports": "मम निवेदनानि",
+            "analyzeGrievance": "शिकायतविशेषणम्"
+        },
+        "tools": {
+            "whoIsResponsible": "कः उत्तरदायी?",
+            "topReporters": "शीर्षनिवेदकाः",
+            "cameraCheck": "कैमरा परीक्षणम्"
+        },
+        "activity": {
+            "communityActivity": "सामुदायिकगतिविधिः",
+            "liveFeed": "लाइव फीड",
+            "noActivity": "दर्शयितुं नूतना गतिविधिः नास्ति।",
+            "loadMore": "अधिकं लोड कुर्वन्तु",
+            "verify": "सत्यापयतु"
+        },
+        "stats": {
+            "totalImpact": "कुलप्रभावः",
+            "issuesResolved": "समाहिताः समस्याः",
+            "activeUsers": "सक्रियाः उपयोक्तारः"
+        },
+        "landing": {
+            "empowering": "नागरिकाणां सबलीकरणम्",
+            "governance": "उत्तमशासनाय",
+            "subtitle": "नागरिकसमस्याः निवेदयन्तु AI-जनितसमाधानं च प्राप्नुवन्तु। शासने सक्रियभागेन भागं ग्रहीतुं टेलीग्राम-माध्यमेन अधिकारिभिः सह सम्पर्काः भवन्तु।",
+            "cta": "समस्यां निवेदयतु",
+            "cards": {
+                "reportCitizens": "नागरिकैः सह निवेदयतु",
+                "generatedCivic": "जनितं नागरिकशासनम्",
+                "govServices": "सर्वकारीयसेवाः",
+                "questionGov": "सर्वकारं पृच्छन्तु",
+                "govDesc": "प्रश्नान् प्रेषयन्तु, पारदर्शितां प्रार्थयन्तु अधिकारिणः च उत्तरदायिनः कुर्वन्तु",
+                "communityAction": "सामुदायिकं कर्म",
+                "joinMovement": "आन्दोलने सम्मिलिताः भवन्तु"
+            },
+            "features": {
+                "publicTrust": "सार्वजनिकविश्वासः",
+                "ethics": "& नीतिः",
+                "civicIssues": "नागरिकसमस्याः",
+                "reportProblems": "समस्याः निवेदयन्तु",
+                "voiceVote": "स्वस्य स्वरं उच्चैः कुर्वन्तु",
+                "shareIdeas": "उत्तमनीतिभ्यः विचारान् साझां कुर्वन्तु",
+                "aiDemocracy": "लोकतान्त्रिकाय AI",
+                "civicActions": "& नागरिककर्माणि",
+                "aiDesc": "पारदर्शीशासनाय शीघ्रसमाधानाय च तन्त्रज्ञानस्य उपयोगः।",
+                "smartAnalysis": "स्मार्ट विश्लेषणम्",
+                "aiInsights": "AI-सञ्चालितं ज्ञानम्",
+                "citizenCount": "10k+ सक्रियाः नागरिकाः",
+                "secureSafe": "सुरक्षितं निश्चितं च",
+                "verifiedReports": "सत्यापितनिवेदनानि",
+                "quickAction": "त्वरिता कार्यवाही",
+                "responseTime": "24h प्रत्युत्तरसमयः"
+            }
+        }
+    },
+    "common": {
+        "loading": "लोड भवति...",
+        "error": "त्रुटिः",
+        "submit": "प्रेषयतु",
+        "cancel": "निरस्तं करोतु",
+        "yes": "आम्",
+        "no": "न",
+        "back": "पृष्ठतः"
+    }
+}

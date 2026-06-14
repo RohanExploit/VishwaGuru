@@ -15,7 +15,7 @@ from backend.database import get_db
 from backend.models import Issue, PushSubscription
 from backend.schemas import (
     IssueCreateWithDeduplicationResponse, IssueCategory, NearbyIssueResponse,
-    DeduplicationCheckResponse, IssueSummaryResponse, VoteResponse,
+    DeduplicationCheckResponse, IssueSummaryResponse, IssueResponse, VoteResponse,
     IssueStatusUpdateRequest, IssueStatusUpdateResponse, PushSubscriptionRequest,
     PushSubscriptionResponse, BlockchainVerificationResponse
 )
@@ -32,6 +32,8 @@ from backend.spatial_utils import get_bounding_box, find_nearby_issues
 from backend.cache import recent_issues_cache, nearby_issues_cache
 from backend.hf_api_service import verify_resolution_vqa
 from backend.dependencies import get_http_client
+from backend.rag_service import rag_service
+from backend.adaptive_weights import AdaptiveWeights
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +54,8 @@ async def create_issue(
     db: Session = Depends(get_db)
 ):
     image_path = None
+    linked_issue_id = None
+    deduplication_info = None
 
     # Check upload limits if image is being uploaded
     if image:
@@ -87,20 +91,21 @@ async def create_issue(
         raise HTTPException(status_code=500, detail="Internal server error")
 
     # Spatial deduplication check
-    deduplication_info = None
-    linked_issue_id = None
-
     if latitude is not None and longitude is not None:
         try:
-            # Find existing open issues within 50 meters
+            # Get dynamic radius from AdaptiveWeights
+            search_radius = AdaptiveWeights().duplicate_search_radius
+
+            # Find existing open issues within dynamic radius
             # Optimization: Use bounding box to filter candidates in SQL
-            min_lat, max_lat, min_lon, max_lon = get_bounding_box(latitude, longitude, 50.0)
+            min_lat, max_lat, min_lon, max_lon = get_bounding_box(latitude, longitude, search_radius)
 
             # Performance Boost: Use column projection to avoid loading full model instances
+            # Optimization: Use substr to truncate description at DB level
             open_issues = await run_in_threadpool(
                 lambda: db.query(
                     Issue.id,
-                    Issue.description,
+                    func.substr(Issue.description, 1, 101).label("description"),
                     Issue.category,
                     Issue.latitude,
                     Issue.longitude,
@@ -117,7 +122,7 @@ async def create_issue(
             )
 
             nearby_issues_with_distance = find_nearby_issues(
-                open_issues, latitude, longitude, radius_meters=50.0
+                open_issues, latitude, longitude, radius_meters=search_radius
             )
 
             if nearby_issues_with_distance:
@@ -125,7 +130,7 @@ async def create_issue(
                 nearby_responses = [
                     NearbyIssueResponse(
                         id=issue.id,
-                        description=issue.description[:100] + "..." if len(issue.description) > 100 else issue.description,
+                        description=issue.description + "..." if issue.description and len(issue.description) > 100 else (issue.description or ""),
                         category=issue.category,
                         latitude=issue.latitude,
                         longitude=issue.longitude,
@@ -165,38 +170,45 @@ async def create_issue(
             # Continue with issue creation if deduplication fails
 
     try:
-        # Save to DB only if no nearby issues found or deduplication failed
-        if deduplication_info is None or not deduplication_info.has_nearby_issues:
-            # Blockchain feature: calculate integrity hash for the report
-            # Optimization: Fetch only the last hash to maintain the chain with minimal overhead
-            prev_issue = await run_in_threadpool(
-                lambda: db.query(Issue.integrity_hash).order_by(Issue.id.desc()).first()
-            )
-            prev_hash = prev_issue[0] if prev_issue and prev_issue[0] else ""
+        # Blockchain feature: calculate integrity hash for the report
+        # Optimization: Fetch only the last hash to maintain the chain with minimal overhead
+        prev_issue = await run_in_threadpool(
+            lambda: db.query(Issue.integrity_hash).order_by(Issue.id.desc()).first()
+        )
+        prev_hash = prev_issue[0] if prev_issue and prev_issue[0] else ""
 
-            # Simple but effective SHA-256 chaining
-            hash_content = f"{description}|{category}|{prev_hash}"
-            integrity_hash = hashlib.sha256(hash_content.encode()).hexdigest()
+        # Simple but effective SHA-256 chaining
+        hash_content = f"{description}|{category}|{prev_hash}"
+        integrity_hash = hashlib.sha256(hash_content.encode()).hexdigest()
 
-            new_issue = Issue(
-                reference_id=str(uuid.uuid4()),
-                description=description,
-                category=category,
-                image_path=image_path,
-                source="web",
-                user_email=user_email,
-                latitude=latitude,
-                longitude=longitude,
-                location=location,
-                action_plan=None,
-                integrity_hash=integrity_hash
-            )
+        # Determine status and parent_issue_id based on deduplication
+        # Even duplicates are stored for cryptographic chain integrity
+        issue_status = "open"
+        actual_parent_id = None
+        if deduplication_info and deduplication_info.has_nearby_issues:
+            issue_status = "duplicate"
+            actual_parent_id = linked_issue_id
 
-            # Offload blocking DB operations to threadpool
-            await run_in_threadpool(save_issue_db, db, new_issue)
-        else:
-            # Don't create new issue, just return deduplication info
-            new_issue = None
+        new_issue = Issue(
+            reference_id=str(uuid.uuid4()),
+            description=description,
+            category=category,
+            image_path=image_path,
+            source="web",
+            user_email=user_email,
+            latitude=latitude,
+            longitude=longitude,
+            location=location,
+            action_plan=None,
+            status=issue_status,
+            integrity_hash=integrity_hash,
+            previous_integrity_hash=prev_hash,
+            parent_issue_id=actual_parent_id
+        )
+
+        # Offload blocking DB operations to threadpool
+        await run_in_threadpool(save_issue_db, db, new_issue)
+
     except Exception as e:
         # Clean up uploaded file if DB save failed
         if image_path and os.path.exists(image_path):
@@ -208,8 +220,8 @@ async def create_issue(
         logger.error(f"Database error while creating issue: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to save issue to database")
 
-    # Add background task for AI generation only if new issue was created
-    if new_issue:
+    # Add background tasks only for non-duplicate issues to save resources
+    if new_issue and new_issue.status != "duplicate":
         background_tasks.add_task(process_action_plan_background, new_issue.id, description, category, language, image_path)
 
         # Create grievance for escalation management
@@ -230,11 +242,12 @@ async def create_issue(
         )
 
     # Return response with deduplication information
-    if new_issue:
+    # If it was a duplicate, return id=None to trigger the 'linked issue' flow in frontend
+    if new_issue and new_issue.status != "duplicate":
         return IssueCreateWithDeduplicationResponse(
             id=new_issue.id,
             message="Issue reported successfully. Action plan will be generated shortly.",
-            action_plan=None,
+            action_plan=initial_action_plan,
             deduplication_info=deduplication_info,
             linked_issue_id=linked_issue_id
         )
@@ -300,9 +313,10 @@ def get_nearby_issues(
         min_lat, max_lat, min_lon, max_lon = get_bounding_box(latitude, longitude, radius)
 
         # Performance Boost: Use column projection to avoid loading full model instances
+    # Optimization: Use substr to truncate description at DB level
         open_issues = db.query(
             Issue.id,
-            Issue.description,
+        func.substr(Issue.description, 1, 101).label("description"),
             Issue.category,
             Issue.latitude,
             Issue.longitude,
@@ -325,7 +339,7 @@ def get_nearby_issues(
         nearby_responses = [
             NearbyIssueResponse(
                 id=issue.id,
-                description=issue.description[:100] + "..." if len(issue.description) > 100 else issue.description,
+                description=issue.description + "..." if issue.description and len(issue.description) > 100 else (issue.description or ""),
                 category=issue.category,
                 latitude=issue.latitude,
                 longitude=issue.longitude,
@@ -571,7 +585,7 @@ def get_user_issues(
     results = db.query(
         Issue.id,
         Issue.category,
-        Issue.description,
+        func.substr(Issue.description, 1, 101).label("description"),
         Issue.created_at,
         Issue.image_path,
         Issue.status,
@@ -587,7 +601,7 @@ def get_user_issues(
     data = []
     for row in results:
         desc = row.description or ""
-        short_desc = desc[:100] + "..." if len(desc) > 100 else desc
+        short_desc = desc + "..." if len(desc) > 100 else desc
 
         data.append({
             "id": row.id,
@@ -608,36 +622,43 @@ def get_user_issues(
 async def verify_blockchain_integrity(issue_id: int, db: Session = Depends(get_db)):
     """
     Verify the cryptographic integrity of a report using the blockchain-style chaining.
-    Optimized: Uses column projection to fetch only needed data.
+    Optimized: Uses a subquery to fetch current and predecessor hashes in a single DB round-trip.
     """
-    # Fetch current issue data
+    # Subquery to find the integrity hash of the actual immediate predecessor in the DB
+    prev_hash_subquery = db.query(Issue.integrity_hash).filter(Issue.id < issue_id).order_by(Issue.id.desc()).limit(1).scalar_subquery()
+
+    # Fetch current issue data and the actual hash of the record preceding it
     current_issue = await run_in_threadpool(
         lambda: db.query(
-            Issue.id, Issue.description, Issue.category, Issue.integrity_hash
+            Issue.id, Issue.description, Issue.category, Issue.integrity_hash,
+            Issue.previous_integrity_hash,
+            prev_hash_subquery.label('actual_predecessor_hash')
         ).filter(Issue.id == issue_id).first()
     )
 
     if not current_issue:
         raise HTTPException(status_code=404, detail="Issue not found")
 
-    # Fetch previous issue's integrity hash to verify the chain
-    prev_issue_hash = await run_in_threadpool(
-        lambda: db.query(Issue.integrity_hash).filter(Issue.id < issue_id).order_by(Issue.id.desc()).first()
-    )
-
-    prev_hash = prev_issue_hash[0] if prev_issue_hash and prev_issue_hash[0] else ""
-
-    # Recompute hash based on current data and previous hash
-    # Chaining logic: hash(description|category|prev_hash)
-    hash_content = f"{current_issue.description}|{current_issue.category}|{prev_hash}"
+    # 1. Verify internal consistency: hash(data | claimed_prev_hash) == current_hash
+    claimed_prev_hash = current_issue.previous_integrity_hash or ""
+    hash_content = f"{current_issue.description}|{current_issue.category}|{claimed_prev_hash}"
     computed_hash = hashlib.sha256(hash_content.encode()).hexdigest()
 
-    is_valid = (computed_hash == current_issue.integrity_hash)
+    internal_valid = (computed_hash == current_issue.integrity_hash)
+
+    # 2. Verify chain continuity: claimed_prev_hash == actual_predecessor_hash
+    # (If actual_predecessor_hash is None, it means it's the first record, so claimed should be empty)
+    actual_prev_hash = current_issue.actual_predecessor_hash or ""
+    chain_valid = (claimed_prev_hash == actual_prev_hash)
+
+    is_valid = internal_valid and chain_valid
 
     if is_valid:
-        message = "Integrity verified. This report is cryptographically sealed and has not been tampered with."
+        message = "Integrity verified. This report is cryptographically sealed and correctly linked to the chain."
+    elif not internal_valid:
+        message = "Integrity check failed! The report data does not match its cryptographic seal (Tampering detected)."
     else:
-        message = "Integrity check failed! The report data does not match its cryptographic seal."
+        message = "Integrity check failed! The report is not correctly linked to its predecessor (Chain break detected)."
 
     return BlockchainVerificationResponse(
         is_valid=is_valid,
@@ -659,10 +680,11 @@ def get_recent_issues(
 
     # Fetch issues with pagination
     # Optimized: Use column projection to fetch only needed fields
+    # Optimization: Use substr to truncate description at DB level
     results = db.query(
         Issue.id,
         Issue.category,
-        Issue.description,
+        func.substr(Issue.description, 1, 101).label("description"),
         Issue.created_at,
         Issue.image_path,
         Issue.status,
@@ -677,7 +699,7 @@ def get_recent_issues(
     for row in results:
         # Manually construct dict from named tuple row to avoid full object overhead
         desc = row.description or ""
-        short_desc = desc[:100] + "..." if len(desc) > 100 else desc
+        short_desc = desc + "..." if len(desc) > 100 else desc
 
         data.append({
             "id": row.id,

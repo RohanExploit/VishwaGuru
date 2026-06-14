@@ -22,27 +22,33 @@ def client(db_session):
     app.dependency_overrides = {}
 
 def test_blockchain_verification_success(client, db_session):
-    # Create first issue
-    hash1_content = "First issue|Road|"
+    # Create first issue with new hash format and previous_integrity_hash
+    ref1 = "ref1"
+    hash1_content = f"{ref1}|First issue|Road|None|None|None|"
     hash1 = hashlib.sha256(hash1_content.encode()).hexdigest()
 
     issue1 = Issue(
+        reference_id=ref1,
         description="First issue",
         category="Road",
-        integrity_hash=hash1
+        integrity_hash=hash1,
+        previous_integrity_hash=""
     )
     db_session.add(issue1)
     db_session.commit()
     db_session.refresh(issue1)
 
     # Create second issue chained to first
-    hash2_content = f"Second issue|Garbage|{hash1}"
+    ref2 = "ref2"
+    hash2_content = f"{ref2}|Second issue|Garbage|None|None|None|{hash1}"
     hash2 = hashlib.sha256(hash2_content.encode()).hexdigest()
 
     issue2 = Issue(
+        reference_id=ref2,
         description="Second issue",
         category="Garbage",
-        integrity_hash=hash2
+        integrity_hash=hash2,
+        previous_integrity_hash=hash1
     )
     db_session.add(issue2)
     db_session.commit()
@@ -62,12 +68,48 @@ def test_blockchain_verification_success(client, db_session):
     assert data["is_valid"] == True
     assert data["current_hash"] == hash2
 
+def test_blockchain_backward_compatibility(client, db_session):
+    # Create legacy issue (no previous_integrity_hash, old hash format)
+    # Step 1: Create a predecessor
+    prev_hash = "previoushash"
+    issue_prev = Issue(
+        description="Predecessor",
+        category="Road",
+        integrity_hash=prev_hash
+    )
+    db_session.add(issue_prev)
+    db_session.commit()
+
+    # Step 2: Create legacy issue chained to it
+    legacy_content = f"Legacy issue|Road|{prev_hash}"
+    legacy_hash = hashlib.sha256(legacy_content.encode()).hexdigest()
+
+    issue_legacy = Issue(
+        description="Legacy issue",
+        category="Road",
+        integrity_hash=legacy_hash,
+        previous_integrity_hash=None # Explicitly None to simulate old records
+    )
+    db_session.add(issue_legacy)
+    db_session.commit()
+    db_session.refresh(issue_legacy)
+
+    # Verify legacy issue - should use fallback logic
+    response = client.get(f"/api/issues/{issue_legacy.id}/blockchain-verify")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["is_valid"] == True
+    assert data["current_hash"] == legacy_hash
+
 def test_blockchain_verification_failure(client, db_session):
     # Create issue with tampered hash
+    lat, lon = 19.0760, 72.8777
     issue = Issue(
+        reference_id="ref3",
         description="Tampered issue",
         category="Road",
-        integrity_hash="invalidhash"
+        integrity_hash="invalidhash",
+        previous_integrity_hash=""
     )
     db_session.add(issue)
     db_session.commit()

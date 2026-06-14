@@ -36,7 +36,9 @@ describe('issuesApi', () => {
 
       const result = await issuesApi.getRecent();
 
-      expect(apiClient.get).toHaveBeenCalledWith('/api/issues/recent');
+      expect(apiClient.get).toHaveBeenCalledWith('/api/issues/recent', {
+        params: { limit: 10, offset: 0 }
+      });
       expect(result).toEqual(mockIssues);
     });
 
@@ -48,7 +50,9 @@ describe('issuesApi', () => {
 
       const result = await issuesApi.getRecent();
 
-      expect(apiClient.get).toHaveBeenCalledWith('/api/issues/recent');
+      expect(apiClient.get).toHaveBeenCalledWith('/api/issues/recent', {
+        params: { limit: 10, offset: 0 }
+      });
       expect(result).toEqual(fakeRecentIssues);
       expect(consoleWarnSpy).toHaveBeenCalledWith('Failed to fetch recent issues, using fake data', error);
 
@@ -143,6 +147,32 @@ describe('issuesApi', () => {
       apiClient.post.mockRejectedValue(error);
 
       await expect(issuesApi.vote(issueId)).rejects.toThrow('Vote failed');
+    });
+  });
+
+  describe('getById', () => {
+    it('should call apiClient.get with correct path', async () => {
+      const issueId = 123;
+      const mockIssue = { id: 123, description: 'Test' };
+      apiClient.get.mockResolvedValue(mockIssue);
+
+      const result = await issuesApi.getById(issueId);
+
+      expect(apiClient.get).toHaveBeenCalledWith('/api/issues/123');
+      expect(result).toEqual(mockIssue);
+    });
+  });
+
+  describe('verifyBlockchain', () => {
+    it('should call apiClient.get with correct path', async () => {
+      const issueId = 123;
+      const mockResponse = { is_valid: true };
+      apiClient.get.mockResolvedValue(mockResponse);
+
+      const result = await issuesApi.verifyBlockchain(issueId);
+
+      expect(apiClient.get).toHaveBeenCalledWith('/api/issues/123/blockchain-verify');
+      expect(result).toEqual(mockResponse);
     });
   });
 });

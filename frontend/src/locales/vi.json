@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - Công cụ báo cáo vấn đề dân sự thông minh",
+        "subtitle": "Báo cáo và theo dõi các vấn đề dân sự trong cộng đồng của bạn",
+        "privacyActive": "Bảo vệ quyền riêng tư bằng AI đang hoạt động",
+        "communityImpact": "Tác động cộng đồng",
+        "makingChange": "Cùng nhau chúng ta đang tạo ra sự thay đổi!",
+        "issuesSolved": "Vấn đề đã giải quyết",
+        "smartScanner": "Máy quét thành phố thông minh",
+        "aiPoweredDetection": "Phát hiện tức thì bằng AI",
+        "categories": {
+            "roadTraffic": "Đường bộ & Giao thông",
+            "environmentSafety": "Môi trường & An toàn",
+            "civicServices": "Dịch vụ dân sự",
+            "management": "Quản lý"
+        },
+        "issues": {
+            "pothole": "Ổ gà",
+            "blockedRoad": "Đường bị chặn",
+            "illegalParking": "Đậu xe trái phép",
+            "darkStreet": "Đường thiếu ánh sáng",
+            "trafficSign": "Biển báo giao thông",
+            "abandonedVehicle": "Xe bị bỏ hoang",
+            "garbage": "Rác thải",
+            "flood": "Ngập lụt",
+            "fireSmoke": "Hỏa hoạn/Khói",
+            "treeHazard": "Cây nguy hiểm",
+            "strayAnimal": "Động vật đi lạc",
+            "pestControl": "Kiểm soát dịch hại",
+            "reportIssue": "Báo cáo vấn đề",
+            "brokenInfra": "Cơ sở hạ tầng bị hỏng",
+            "graffiti": "Vẽ bậy",
+            "findMLA": "Tìm đại biểu",
+            "grievanceManagement": "Quản lý khiếu nại",
+            "viewStats": "Xem thống kê",
+            "leaderboard": "Bảng xếp hạng",
+            "responsibilityMap": "Bản đồ trách nhiệm",
+            "noise": "Tiếng ồn",
+            "crowd": "Đám đông",
+            "waterLeak": "Rò rỉ nước",
+            "waste": "Phân loại rác",
+            "civicEye": "Mắt dân sự",
+            "myReports": "Báo cáo của tôi",
+            "analyzeGrievance": "Phân tích khiếu nại"
+        },
+        "tools": {
+            "whoIsResponsible": "Ai chịu trách nhiệm?",
+            "topReporters": "Người báo cáo hàng đầu",
+            "cameraCheck": "Kiểm tra camera"
+        },
+        "activity": {
+            "communityActivity": "Hoạt động cộng đồng",
+            "liveFeed": "Nguồn cấp dữ liệu trực tiếp",
+            "noActivity": "Không có hoạt động gần đây để hiển thị.",
+            "loadMore": "Tải thêm hoạt động",
+            "verify": "Xác minh"
+        },
+        "stats": {
+            "totalImpact": "Tổng tác động",
+            "issuesResolved": "Vấn đề đã giải quyết",
+            "activeUsers": "Người dùng hoạt động"
+        },
+        "landing": {
+            "empowering": "Trao quyền cho công dân",
+            "governance": "vì sự quản trị tốt hơn",
+            "subtitle": "Báo cáo các vấn đề dân sự và nhận các giải pháp do AI tạo ra. Kết nối với các quan chức qua Telegram để tích cực tham gia quản trị.",
+            "cta": "Báo cáo vấn đề",
+            "cards": {
+                "reportCitizens": "Báo cáo cùng công dân",
+                "generatedCivic": "quản trị dân sự được tạo ra",
+                "govServices": "Dịch vụ chính phủ",
+                "questionGov": "Chất vấn chính phủ",
+                "govDesc": "Gửi thắc mắc, yêu cầu sự minh bạch và yêu cầu các quan chức chịu trách nhiệm",
+                "communityAction": "Hành động cộng đồng",
+                "joinMovement": "Tham gia phong trào"
+            },
+            "features": {
+                "publicTrust": "Niềm tin của công chúng",
+                "ethics": "& Đạo đức",
+                "civicIssues": "Vấn đề dân sự",
+                "reportProblems": "Báo cáo vấn đề",
+                "voiceVote": "Tiếng nói của bạn",
+                "shareIdeas": "Chia sẻ ý tưởng cho các chính sách tốt hơn",
+                "aiDemocracy": "AI vì dân chủ",
+                "civicActions": "& Hành động dân sự",
+                "aiDesc": "Tận dụng công nghệ để quản trị minh bạch và giải quyết nhanh hơn.",
+                "smartAnalysis": "Phân tích thông minh",
+                "aiInsights": "Thông tin chi tiết do AI cung cấp",
+                "citizenCount": "Hơn 10 nghìn công dân tích cực",
+                "secureSafe": "An toàn & Bảo mật",
+                "verifiedReports": "Báo cáo đã xác minh",
+                "quickAction": "Hành động nhanh",
+                "responseTime": "Thời gian phản hồi 24 giờ"
+            }
+        }
+    },
+    "common": {
+        "loading": "Đang tải...",
+        "error": "Lỗi",
+        "submit": "Gửi",
+        "cancel": "Hủy",
+        "yes": "Có",
+        "no": "Không",
+        "back": "Quay lại"
+    }
+}
