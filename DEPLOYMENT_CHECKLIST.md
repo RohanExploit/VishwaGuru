@@ -229,7 +229,7 @@ You've successfully deployed VishwaGuru!
 Refer to detailed guides:
 - [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) - Full deployment guide
 - [QUICK_REFERENCE.md](./QUICK_REFERENCE.md) - Quick command reference
-- [ARCHITECTURE.md](./ARCHITECTURE.md) - Architecture diagrams
+- [ARCHITECTURE.md](./ARCHITECTURE.md) - Architecture diagrams (ASCII available, visual diagrams missing)
 
 ---
 
