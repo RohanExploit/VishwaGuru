@@ -162,6 +162,7 @@ class Issue(Base):
     location = Column(String, nullable=True)
     action_plan = Column(JSONEncodedDict, nullable=True)
     integrity_hash = Column(String, nullable=True)  # Blockchain integrity seal
+    previous_integrity_hash = Column(String, nullable=True)  # O(1) link to previous block
 
 class PushSubscription(Base):
     __tablename__ = "push_subscriptions"

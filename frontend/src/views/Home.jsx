@@ -1,13 +1,13 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import {
   AlertTriangle, MapPin, Search, Activity, Camera, Trash2, ThumbsUp, Brush,
   Droplets, Zap, Truck, Flame, Dog, XCircle, Lightbulb, TreeDeciduous, Bug,
   Scan, ChevronRight, LayoutGrid, Shield, Leaf, Building, CheckCircle, Trophy, Monitor,
-  Volume2, Users, Waves, Accessibility, Siren, Recycle, Eye, ChevronUp, Signpost, Car
+  Volume2, Users, Waves, Accessibility, Siren, Recycle, Eye, ChevronUp, Signpost, Car,
+  Bus, Sparkles, ShieldCheck
 } from 'lucide-react';
 
 const CameraCheckModal = ({ onClose }) => {
@@ -100,6 +100,15 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loa
         { id: 'crowd', label: t('home.issues.crowd'), icon: <Users size={24} />, color: 'text-red-500', bg: 'bg-red-50' },
         { id: 'water-leak', label: t('home.issues.waterLeak'), icon: <Waves size={24} />, color: 'text-blue-500', bg: 'bg-blue-50' },
         { id: 'waste', label: t('home.issues.waste'), icon: <Recycle size={24} />, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+      ]
+    },
+    {
+      title: "Community & Amenities",
+      icon: <Users size={20} className="text-purple-600" />,
+      items: [
+        { id: 'public-transport', label: "Public Transport", icon: <Bus size={24} />, color: 'text-blue-600', bg: 'bg-blue-50' },
+        { id: 'cleanliness', label: "Cleanliness", icon: <Sparkles size={24} />, color: 'text-green-600', bg: 'bg-green-50' },
+        { id: 'playground', label: "Playground Safety", icon: <ShieldCheck size={24} />, color: 'text-orange-600', bg: 'bg-orange-50' },
       ]
     },
     {

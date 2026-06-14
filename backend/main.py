@@ -123,20 +123,27 @@ is_production = os.environ.get("ENVIRONMENT", "").lower() == "production"
 
 if not frontend_url:
     if is_production:
-        raise ValueError(
-            "FRONTEND_URL environment variable is required for security in production. "
-            "Set it to your frontend URL (e.g., https://your-app.netlify.app)."
+        logger.warning(
+            "FRONTEND_URL environment variable is not set in production! "
+            "CORS requests may fail. Set it to your frontend URL (e.g., https://your-app.netlify.app)."
         )
+        # Default to empty or keep as None, but don't crash.
+        # If we set it to something, allowed_origins will include it.
+        # If we set it to None, allowed_origins logic below needs to handle it.
+        frontend_url = ""
     else:
         logger.warning("FRONTEND_URL not set. Defaulting to http://localhost:5173 for development.")
         frontend_url = "http://localhost:5173"
 
-if not (frontend_url.startswith("http://") or frontend_url.startswith("https://")):
-    raise ValueError(
-        f"FRONTEND_URL must be a valid HTTP/HTTPS URL. Got: {frontend_url}"
+if frontend_url and not (frontend_url.startswith("http://") or frontend_url.startswith("https://")):
+    logger.warning(
+        f"FRONTEND_URL must be a valid HTTP/HTTPS URL. Got: {frontend_url}. Ignoring it."
     )
+    frontend_url = ""
 
-allowed_origins = [frontend_url]
+allowed_origins = []
+if frontend_url:
+    allowed_origins.append(frontend_url)
 
 if not is_production:
     dev_origins = [
