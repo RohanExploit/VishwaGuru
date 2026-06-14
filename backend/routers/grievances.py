@@ -1,11 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func, case
+from sqlalchemy import func
 from typing import List, Optional
 import os
 import json
 import logging
-import hashlib
 from datetime import datetime, timezone
 
 from backend.database import get_db
@@ -16,8 +15,7 @@ from backend.schemas import (
     FollowGrievanceRequest, FollowGrievanceResponse,
     RequestClosureRequest, RequestClosureResponse,
     ConfirmClosureRequest, ConfirmClosureResponse,
-    ClosureStatusResponse,
-    BlockchainVerificationResponse
+    ClosureStatusResponse
 )
 from backend.grievance_service import GrievanceService
 from backend.closure_service import ClosureService
@@ -26,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-@router.get("/grievances", response_model=List[GrievanceSummaryResponse])
+@router.get("/api/grievances", response_model=List[GrievanceSummaryResponse])
 def get_grievances(
     status: Optional[str] = Query(None, description="Filter by status"),
     category: Optional[str] = Query(None, description="Filter by category"),
@@ -88,7 +86,7 @@ def get_grievances(
         logger.error(f"Error getting grievances: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to retrieve grievances")
 
-@router.get("/grievances/{grievance_id}", response_model=GrievanceSummaryResponse)
+@router.get("/api/grievances/{grievance_id}", response_model=GrievanceSummaryResponse)
 def get_grievance(grievance_id: int, db: Session = Depends(get_db)):
     """Get detailed grievance information with escalation history"""
     try:
@@ -137,7 +135,7 @@ def get_grievance(grievance_id: int, db: Session = Depends(get_db)):
         logger.error(f"Error getting grievance {grievance_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to retrieve grievance")
 
-@router.get("/escalation-stats", response_model=EscalationStatsResponse)
+@router.get("/api/escalation-stats", response_model=EscalationStatsResponse)
 def get_escalation_stats(db: Session = Depends(get_db)):
     """
     Get escalation statistics.
@@ -172,7 +170,7 @@ def get_escalation_stats(db: Session = Depends(get_db)):
         logger.error(f"Error getting escalation stats: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to retrieve escalation statistics")
 
-@router.post("/grievances/{grievance_id}/escalate")
+@router.post("/api/grievances/{grievance_id}/escalate")
 def manual_escalate_grievance(
     grievance_id: int,
     request: Request,
@@ -221,7 +219,7 @@ def _load_responsibility_map():
     with open(file_path, "r") as f:
         return json.load(f)
 
-@router.get("/responsibility-map", response_model=ResponsibilityMapResponse)
+@router.get("/api/responsibility-map", response_model=ResponsibilityMapResponse)
 def get_responsibility_map():
     """Get responsibility mapping data for civic authorities"""
     try:
@@ -239,7 +237,7 @@ def get_responsibility_map():
 # COMMUNITY CONFIRMATION ENDPOINTS (Issue #289)
 # ============================================================================
 
-@router.post("/grievances/{grievance_id}/follow", response_model=FollowGrievanceResponse)
+@router.post("/api/grievances/{grievance_id}/follow", response_model=FollowGrievanceResponse)
 def follow_grievance(
     grievance_id: int,
     request: FollowGrievanceRequest,
@@ -288,7 +286,7 @@ def follow_grievance(
         raise HTTPException(status_code=500, detail="Failed to follow grievance")
 
 
-@router.delete("/grievances/{grievance_id}/follow")
+@router.delete("/api/grievances/{grievance_id}/follow")
 def unfollow_grievance(
     grievance_id: int,
     user_email: str = Query(..., description="Email of user to unfollow"),
@@ -316,7 +314,7 @@ def unfollow_grievance(
         raise HTTPException(status_code=500, detail="Failed to unfollow grievance")
 
 
-@router.post("/grievances/{grievance_id}/request-closure", response_model=RequestClosureResponse)
+@router.post("/api/grievances/{grievance_id}/request-closure", response_model=RequestClosureResponse)
 def request_grievance_closure(
     grievance_id: int,
     request_data: RequestClosureRequest,
@@ -350,7 +348,7 @@ def request_grievance_closure(
         raise HTTPException(status_code=500, detail="Failed to request closure")
 
 
-@router.post("/grievances/{grievance_id}/confirm-closure", response_model=ConfirmClosureResponse)
+@router.post("/api/grievances/{grievance_id}/confirm-closure", response_model=ConfirmClosureResponse)
 def confirm_grievance_closure(
     grievance_id: int,
     confirmation: ConfirmClosureRequest,
@@ -389,7 +387,7 @@ def confirm_grievance_closure(
         raise HTTPException(status_code=500, detail="Failed to confirm closure")
 
 
-@router.get("/grievances/{grievance_id}/closure-status", response_model=ClosureStatusResponse)
+@router.get("/api/grievances/{grievance_id}/closure-status", response_model=ClosureStatusResponse)
 def get_closure_status(
     grievance_id: int,
     db: Session = Depends(get_db)
@@ -400,20 +398,19 @@ def get_closure_status(
         if not grievance:
             raise HTTPException(status_code=404, detail="Grievance not found")
         
-        # Optimized: Use a single aggregate query to calculate total followers, confirmations and disputes in one database roundtrip
         total_followers = db.query(func.count(GrievanceFollower.id)).filter(
             GrievanceFollower.grievance_id == grievance_id
         ).scalar()
         
-        # Get all confirmation counts in a single query instead of multiple round-trips
-        from sqlalchemy import case
-        stats = db.query(
-            func.sum(case((ClosureConfirmation.confirmation_type == 'confirmed', 1), else_=0)).label('confirmed'),
-            func.sum(case((ClosureConfirmation.confirmation_type == 'disputed', 1), else_=0)).label('disputed')
-        ).filter(ClosureConfirmation.grievance_id == grievance_id).first()
+        confirmations_count = db.query(func.count(ClosureConfirmation.id)).filter(
+            ClosureConfirmation.grievance_id == grievance_id,
+            ClosureConfirmation.confirmation_type == "confirmed"
+        ).scalar()
         
-        confirmations_count = stats.confirmed or 0
-        disputes_count = stats.disputed or 0
+        disputes_count = db.query(func.count(ClosureConfirmation.id)).filter(
+            ClosureConfirmation.grievance_id == grievance_id,
+            ClosureConfirmation.confirmation_type == "disputed"
+        ).scalar()
         
         required_confirmations = max(1, int(total_followers * ClosureService.CONFIRMATION_THRESHOLD))
         
@@ -439,60 +436,3 @@ def get_closure_status(
     except Exception as e:
         logger.error(f"Error getting closure status for grievance {grievance_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to get closure status")
-
-
-@router.get("/grievances/{grievance_id}/blockchain-verify", response_model=BlockchainVerificationResponse)
-def verify_grievance_blockchain(
-    grievance_id: int,
-    db: Session = Depends(get_db)
-):
-    """
-    Verify the cryptographic integrity of a grievance using blockchain-style chaining.
-    Optimized: Uses previous_integrity_hash column for O(1) verification.
-    """
-    try:
-        grievance = db.query(
-            Grievance.unique_id,
-            Grievance.category,
-            Grievance.severity,
-            Grievance.integrity_hash,
-            Grievance.previous_integrity_hash
-        ).filter(Grievance.id == grievance_id).first()
-
-        if not grievance:
-            raise HTTPException(status_code=404, detail="Grievance not found")
-
-        # Determine previous hash (O(1) from stored column)
-        prev_hash = grievance.previous_integrity_hash or ""
-
-        # Recompute hash based on current data and previous hash
-        # Chaining logic: hash(unique_id|category|severity|prev_hash)
-        severity_value = grievance.severity.value if hasattr(grievance.severity, 'value') else grievance.severity
-        hash_content = f"{grievance.unique_id}|{grievance.category}|{severity_value}|{prev_hash}"
-        computed_hash = hashlib.sha256(hash_content.encode()).hexdigest()
-
-        if grievance.integrity_hash is None:
-            # Legacy or unsealed grievance: no integrity hash stored, so we cannot verify tampering.
-            is_valid = False
-            message = (
-                "No integrity hash present for this grievance; cryptographic integrity cannot be verified."
-            )
-        else:
-            is_valid = (computed_hash == grievance.integrity_hash)
-            message = (
-                "Integrity verified. This grievance record is cryptographically sealed."
-                if is_valid
-                else "Integrity check failed! The grievance data does not match its cryptographic seal."
-            )
-        return BlockchainVerificationResponse(
-            is_valid=is_valid,
-            current_hash=grievance.integrity_hash,
-            computed_hash=computed_hash,
-            message=message
-        )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error verifying grievance blockchain for {grievance_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to verify grievance integrity")
