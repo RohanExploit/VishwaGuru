@@ -46,7 +46,7 @@ describe('detectorsApi', () => {
 
         const result = await detectorsApi[name](mockFormData);
 
-        expect(apiClient.postForm).toHaveBeenCalledWith(endpoint.replace('/api', ''), mockFormData);
+        expect(apiClient.postForm).toHaveBeenCalledWith(endpoint, mockFormData);
         expect(result).toEqual(mockResponse);
       });
 
@@ -114,7 +114,7 @@ describe('detectorsApi', () => {
 
         await detectorsApi.pothole(mockFormData);
 
-        expect(apiClient.postForm).toHaveBeenCalledWith('/detect-pothole', mockFormData);
+        expect(apiClient.postForm).toHaveBeenCalledWith('/api/detect-pothole', mockFormData);
       }
     });
 

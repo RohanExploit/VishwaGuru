@@ -16,30 +16,19 @@ export const AuthProvider = ({ children }) => {
     };
 
     useEffect(() => {
-        const handleLogout = () => logout();
-        window.addEventListener('auth:logout', handleLogout);
-        return () => window.removeEventListener('auth:logout', handleLogout);
-    }, []);
-
-    useEffect(() => {
         if (token) {
             // Set default header
             apiClient.setToken(token);
-
-            // Only fetch user if not already set (prevents double fetch on login)
-            if (!user) {
-                authApi.me()
-                    .then(userData => setUser(userData))
-                    .catch(() => {
-                        logout();
-                    })
-                    .finally(() => setLoading(false));
-            } else {
-                setLoading(false);
-            }
+            // Fetch user details
+            authApi.me()
+                .then(userData => setUser(userData))
+                .catch(() => {
+                    logout();
+                })
+                .finally(() => setLoading(false));
         } else {
             apiClient.removeToken();
-            setLoading(false);
+            setTimeout(() => setLoading(false), 0);
         }
     }, [token]);
 

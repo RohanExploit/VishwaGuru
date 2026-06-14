@@ -34,9 +34,5 @@ export interface DailySnapshot {
   delta: number;
   topKeywords: string[];
   emergingConcerns: Array<{ category: string; increasePercentage: number }>;
-  highestSeverityRegion?: {
-    latitude: number;
-    longitude: number;
-    count: number;
-  };
+  highestSeverityRegion?: { latitude: number; longitude: number; count: number };
 }

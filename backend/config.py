@@ -25,13 +25,8 @@ class Config:
     """
     
     # API Keys
-    gemini_api_key: Optional[str]
+    gemini_api_key: str
     telegram_bot_token: str
-    
-    # Hugging Face
-    hf_token: Optional[str]
-    hf_text_api_url: str
-    hf_text_model: str
     
     # Database
     database_url: str
@@ -64,9 +59,8 @@ class Config:
         
         # Required variables
         gemini_api_key = os.getenv("GEMINI_API_KEY")
-        # Gemini key is optional (we can fallback to mock services)
-        # if not gemini_api_key:
-        #    errors.append("GEMINI_API_KEY is required")
+        if not gemini_api_key:
+            errors.append("GEMINI_API_KEY is required")
         
         telegram_bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
         if not telegram_bot_token:
@@ -76,17 +70,6 @@ class Config:
         database_url = os.getenv(
             "DATABASE_URL", 
             "sqlite:///./data/issues.db"
-        )
-        
-        # Hugging Face text generation settings
-        hf_token = os.getenv("HF_TOKEN")
-        hf_text_api_url = os.getenv(
-            "HF_TEXT_API_URL",
-            "https://router.huggingface.co/featherless-ai/v1/completions"
-        )
-        hf_text_model = os.getenv(
-            "HF_TEXT_MODEL",
-            "meta-llama/Meta-Llama-3-8B-Instruct"
         )
         
         # Ensure data directory exists for SQLite
@@ -138,9 +121,6 @@ class Config:
         return cls(
             gemini_api_key=gemini_api_key,
             telegram_bot_token=telegram_bot_token,
-            hf_token=hf_token,
-            hf_text_api_url=hf_text_api_url,
-            hf_text_model=hf_text_model,
             database_url=database_url,
             environment=environment,
             debug=debug,
@@ -177,9 +157,8 @@ class Config:
         Returns dict with validation status for each key.
         """
         validations = {
-            "gemini_api_key": len(self.gemini_api_key) > 20 if self.gemini_api_key else True,
+            "gemini_api_key": len(self.gemini_api_key) > 20,
             "telegram_bot_token": ":" in self.telegram_bot_token and len(self.telegram_bot_token) > 40,
-            "hf_token": self.hf_token.startswith("hf_") if self.hf_token else True,
         }
         return validations
     
@@ -191,8 +170,6 @@ class Config:
             f"  database={self.get_database_type()},\n"
             f"  debug={self.debug},\n"
             f"  gemini_api_key={'*' * 10 if self.gemini_api_key else 'NOT SET'},\n"
-            f"  hf_token={'*' * 10 if self.hf_token else 'NOT SET'},\n"
-            f"  hf_text_model={self.hf_text_model},\n"
             f"  telegram_bot_token={'*' * 10 if self.telegram_bot_token else 'NOT SET'}\n"
             f")"
         )

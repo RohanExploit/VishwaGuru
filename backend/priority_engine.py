@@ -11,9 +11,9 @@ class PriorityEngine:
     """
 
     def __init__(self):
-        # Cache for pre-compiled regex patterns to improve performance
-        self._regex_cache = []
-        self._last_reload_count = -1
+        # We no longer hardcode values here.
+        # They are fetched dynamically from AdaptiveWeights on each analysis.
+        pass
 
     def analyze(self, text: str, image_labels: Optional[List[str]] = None) -> Dict[str, Any]:
         """
@@ -116,40 +116,13 @@ class PriorityEngine:
         urgency = severity_score
         reasons = []
 
-        # Optimization: Use pre-compiled regex from cache if configuration hasn't changed
-        current_reload_count = adaptive_weights.reload_count
-        if self._last_reload_count != current_reload_count:
-            urgency_patterns = adaptive_weights.get_urgency_patterns()
-            self._regex_cache = []
-            for pattern, weight in urgency_patterns:
-                # Pre-extract literal keywords for fast substring pre-filtering
-                # Only apply this optimization if the pattern is a simple list of words like \b(word1|word2)\b
-                keywords = []
-                # Optimization: Extract literal keywords from simple regex strings like "\b(word1|word2)\b"
-                # This allows us to use a fast substring check (`in text`) before executing the regex engine.
-                if re.fullmatch(r'\\b\([a-zA-Z0-9\s|]+\)\\b', pattern):
-                    clean_pattern = pattern.replace('\\b', '').replace('(', '').replace(')', '')
-                    keywords = [k.strip() for k in clean_pattern.split('|') if k.strip()]
-                self._regex_cache.append((re.compile(pattern), weight, pattern, keywords))
-            self._last_reload_count = current_reload_count
+        urgency_patterns = adaptive_weights.get_urgency_patterns()
 
-        # Apply regex modifiers using compiled patterns
-        for regex, weight, original_pattern, keywords in self._regex_cache:
-            # Substring pre-filter: skip expensive regex search if no keywords match.
-            # If keywords is empty (meaning the pattern was complex), fallback to regex.search directly.
-            if not keywords:
-                if regex.search(text):
-                    urgency += weight
-                    reasons.append(f"Urgency increased by context matching pattern: '{original_pattern}'")
-            else:
-                # Optimized: Using a simple for loop instead of a generator expression `any(k in text for k in keywords)`
-                # which significantly reduces function call overhead in hot paths.
-                for k in keywords:
-                    if k in text:
-                        if regex.search(text):
-                            urgency += weight
-                            reasons.append(f"Urgency increased by context matching pattern: '{original_pattern}'")
-                        break
+        # Apply regex modifiers
+        for pattern, weight in urgency_patterns:
+            if re.search(pattern, text):
+                urgency += weight
+                reasons.append(f"Urgency increased by context matching pattern: '{pattern}'")
 
         # Cap at 100
         urgency = min(100, urgency)

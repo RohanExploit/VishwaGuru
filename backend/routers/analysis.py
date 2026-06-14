@@ -18,7 +18,7 @@ class AnalyzeIssueResponse(BaseModel):
     suggested_categories: List[str]
     reasoning: List[str]
 
-@router.post("/analyze-issue", response_model=AnalyzeIssueResponse)
+@router.post("/api/analyze-issue", response_model=AnalyzeIssueResponse)
 def analyze_issue(request: AnalyzeIssueRequest):
     """
     Analyzes an issue description and optional image labels to determine severity, urgency, and category.
