@@ -31,62 +31,62 @@ const LeaderboardView = ({ setView }) => {
 
   return (
     <div className="h-full flex flex-col">
-       <button onClick={() => setView('home')} className="self-start text-blue-600 mb-4 flex items-center gap-1 hover:underline">
+       <button onClick={() => setView('home')} className="self-start text-blue-600 dark:text-blue-400 mb-4 flex items-center gap-1 hover:underline dark:hover:text-blue-300 transition">
           <ArrowLeft size={16} /> Back to Home
        </button>
 
        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-800 flex items-center justify-center gap-2">
+          <h2 className="text-2xl font-bold text-gray-800 dark:text-white flex items-center justify-center gap-2">
              <Trophy className="text-yellow-500" />
              Top Citizens
           </h2>
-          <p className="text-gray-500 text-sm">Recognizing our most active community members</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">Recognizing our most active community members</p>
        </div>
 
        {loading ? (
          <div className="flex justify-center my-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div>
          </div>
        ) : (
-         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="grid grid-cols-12 bg-gray-50 p-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-md border border-gray-100 dark:border-gray-700 overflow-hidden">
+            <div className="grid grid-cols-12 bg-gray-50 dark:bg-gray-700 p-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                <div className="col-span-2 text-center">Rank</div>
                <div className="col-span-6">User</div>
                <div className="col-span-2 text-center">Reports</div>
                <div className="col-span-2 text-center">Upvotes</div>
             </div>
-            <div className="divide-y divide-gray-50">
+            <div className="divide-y divide-gray-50 dark:divide-gray-700">
                {leaderboard.length > 0 ? (
                  leaderboard.map((entry) => (
-                   <div key={entry.rank} className="grid grid-cols-12 p-4 items-center hover:bg-gray-50 transition">
+                   <div key={entry.rank} className="grid grid-cols-12 p-4 items-center hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
                       <div className="col-span-2 flex justify-center">
                          {getRankIcon(entry.rank)}
                       </div>
                       <div className="col-span-6 flex items-center gap-2">
-                         <div className="bg-blue-100 p-1.5 rounded-full text-blue-600">
+                         <div className="bg-blue-100 dark:bg-blue-900/30 p-1.5 rounded-full text-blue-600 dark:text-blue-400">
                              <User size={16} />
                          </div>
                          <div className="flex flex-col">
-                             <span className="font-medium text-gray-800 text-sm">{entry.user_email}</span>
+                             <span className="font-medium text-gray-800 dark:text-white text-sm">{entry.user_email}</span>
                              {entry.reports_count > 5 && (
-                                 <span className="flex items-center gap-1 text-[10px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded-full border border-purple-100 w-fit">
+                                 <span className="flex items-center gap-1 text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-1.5 py-0.5 rounded-full border border-purple-100 dark:border-purple-700/50 w-fit">
                                      <Shield size={10} fill="currentColor" />
                                      Civic Hero
                                  </span>
                              )}
                          </div>
                       </div>
-                      <div className="col-span-2 text-center font-semibold text-gray-700">
+                      <div className="col-span-2 text-center font-semibold text-gray-700 dark:text-gray-300">
                          {entry.reports_count}
                       </div>
-                      <div className="col-span-2 text-center flex items-center justify-center gap-1 text-orange-600 font-medium">
+                      <div className="col-span-2 text-center flex items-center justify-center gap-1 text-orange-600 dark:text-orange-400 font-medium">
                          <Star size={12} fill="currentColor" />
                          {entry.total_upvotes}
                       </div>
                    </div>
                  ))
                ) : (
-                 <div className="p-8 text-center text-gray-400 text-sm">
+                 <div className="p-8 text-center text-gray-400 dark:text-gray-500 text-sm">
                     No data available yet. Be the first to report!
                  </div>
                )}

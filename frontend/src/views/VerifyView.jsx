@@ -67,34 +67,34 @@ const VerifyView = () => {
     }
   };
 
-  if (loading) return <div className="p-8 text-center">Loading...</div>;
-  if (error && !issue) return <div className="p-8 text-center text-red-600">{error}</div>;
+  if (loading) return <div className="p-8 text-center text-gray-900 dark:text-white">Loading...</div>;
+  if (error && !issue) return <div className="p-8 text-center text-red-600 dark:text-red-400">{error}</div>;
 
   return (
     <div className="p-4 max-w-lg mx-auto">
-      <button onClick={() => navigate(-1)} className="flex items-center text-gray-600 mb-4">
+      <button onClick={() => navigate(-1)} className="flex items-center text-gray-600 dark:text-gray-400 mb-4 hover:text-gray-700 dark:hover:text-gray-300 transition">
         <ArrowLeft size={20} className="mr-1" /> Back
       </button>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
-        <h1 className="text-2xl font-bold mb-2">Verify Resolution</h1>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-md border border-gray-100 dark:border-gray-700 p-6 mb-6">
+        <h1 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">Verify Resolution</h1>
         <div className="mb-4">
-            <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded text-sm font-semibold uppercase">
+            <span className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 px-2 py-1 rounded text-sm font-semibold uppercase">
                 {issue.category}
             </span>
         </div>
-        <p className="text-gray-700 mb-4">{issue.description}</p>
+        <p className="text-gray-700 dark:text-gray-300 mb-4">{issue.description}</p>
 
-        <div className="border-t pt-4">
-            <h3 className="font-semibold mb-3">Upload Proof of Fix</h3>
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+            <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">Upload Proof of Fix</h3>
 
             <div className="flex gap-3 mb-4">
-                <label className="flex-1 cursor-pointer bg-blue-50 text-blue-700 p-4 rounded-lg flex flex-col items-center justify-center border border-blue-200 hover:bg-blue-100 transition">
+                <label className="flex-1 cursor-pointer bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 p-4 rounded-lg flex flex-col items-center justify-center border border-blue-200 dark:border-blue-700/50 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition">
                     <Camera size={24} className="mb-2" />
                     <span className="font-medium">Camera</span>
                     <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageChange} />
                 </label>
-                <label className="flex-1 cursor-pointer bg-gray-50 text-gray-700 p-4 rounded-lg flex flex-col items-center justify-center border border-gray-200 hover:bg-gray-100 transition">
+                <label className="flex-1 cursor-pointer bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 p-4 rounded-lg flex flex-col items-center justify-center border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600/50 transition">
                     <Upload size={24} className="mb-2" />
                     <span className="font-medium">Upload</span>
                     <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
@@ -103,11 +103,11 @@ const VerifyView = () => {
 
             {image && (
                 <div className="mb-4 text-center">
-                    <p className="text-sm text-green-600 font-medium mb-2">Selected: {image.name}</p>
+                    <p className="text-sm text-green-600 dark:text-green-400 font-medium mb-2">Selected: {image.name}</p>
                     <button
                         onClick={handleVerify}
                         disabled={verifying}
-                        className="w-full bg-green-600 text-white py-3 rounded-lg font-bold shadow hover:bg-green-700 transition disabled:opacity-50"
+                        className="w-full bg-green-600 dark:bg-green-700 text-white py-3 rounded-lg font-bold shadow dark:shadow-md hover:bg-green-700 dark:hover:bg-green-600 transition disabled:opacity-50"
                     >
                         {verifying ? 'Verifying with AI...' : 'Verify Resolution'}
                     </button>
@@ -115,25 +115,25 @@ const VerifyView = () => {
             )}
 
             {result && (
-                <div className={`mt-6 p-4 rounded-lg border ${result.is_resolved ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                <div className={`mt-6 p-4 rounded-lg border ${result.is_resolved ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700/50' : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700/50'}`}>
                     <div className="flex items-center gap-3 mb-2">
                         {result.is_resolved ? (
-                            <CheckCircle size={28} className="text-green-600" />
+                            <CheckCircle size={28} className="text-green-600 dark:text-green-400" />
                         ) : (
-                            <XCircle size={28} className="text-red-600" />
+                            <XCircle size={28} className="text-red-600 dark:text-red-400" />
                         )}
                         <div>
-                            <h3 className={`font-bold text-lg ${result.is_resolved ? 'text-green-800' : 'text-red-800'}`}>
+                            <h3 className={`font-bold text-lg ${result.is_resolved ? 'text-green-800 dark:text-green-300' : 'text-red-800 dark:text-red-300'}`}>
                                 {result.is_resolved ? 'Verified Resolved' : 'Not Resolved'}
                             </h3>
-                            <p className="text-sm opacity-80">AI Confidence: {(result.confidence * 100).toFixed(1)}%</p>
+                            <p className={`text-sm opacity-80 ${result.is_resolved ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>AI Confidence: {(result.confidence * 100).toFixed(1)}%</p>
                         </div>
                     </div>
-                    <p className="text-sm mt-2">
+                    <p className={`text-sm mt-2 ${result.is_resolved ? 'text-green-800 dark:text-green-300' : 'text-red-800 dark:text-red-300'}`}>
                         <strong>AI Analysis:</strong> The system analyzed the image asking "{result.question_asked}" and the answer was "{result.ai_answer}".
                     </p>
                     {result.is_resolved && (
-                        <p className="text-sm mt-2 text-green-700 font-medium">
+                        <p className="text-sm mt-2 text-green-700 dark:text-green-400 font-medium">
                             The issue status has been updated to "Verified".
                         </p>
                     )}

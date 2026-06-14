@@ -399,12 +399,12 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
 
   return (
     <div className="mt-6">
-       <h2 className="text-xl font-semibold mb-4 text-center">Report an Issue</h2>
+       <h2 className="text-xl font-semibold mb-4 text-center text-gray-900 dark:text-white">Report an Issue</h2>
        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Category</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Category</label>
             <select
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
+              className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm p-2 border bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               value={formData.category}
               onChange={(e) => setFormData({...formData, category: e.target.value})}
             >
@@ -416,13 +416,13 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
               <option value="women_safety">Women Safety</option>
             </select>
             {analyzingSmartScan && (
-                <div className="text-xs text-blue-600 mt-1 animate-pulse flex items-center gap-1">
+                <div className="text-xs text-blue-600 dark:text-blue-400 mt-1 animate-pulse flex items-center gap-1">
                     <Loader2 size={12} className="animate-spin"/>
                     AI is analyzing image for category...
                 </div>
             )}
             {analysisErrors.smartScan && (
-                <div className="text-xs text-orange-600 mt-1 flex items-center gap-1">
+                <div className="text-xs text-orange-600 dark:text-orange-400 mt-1 flex items-center gap-1">
                     <AlertTriangle size={12} />
                     {analysisErrors.smartScan}
                 </div>
@@ -430,16 +430,16 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
             {smartCategory && (
                 <div
                     onClick={() => setFormData({...formData, category: smartCategory.mapped})}
-                    className="mt-2 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-100 p-2 rounded-lg cursor-pointer hover:bg-purple-100 transition flex items-center justify-between group"
+                    className="mt-2 bg-gradient-to-r from-purple-50 dark:from-purple-900/30 to-indigo-50 dark:to-indigo-900/30 border border-purple-100 dark:border-purple-700/50 p-2 rounded-lg cursor-pointer hover:bg-purple-100 dark:hover:bg-purple-900/40 transition flex items-center justify-between group"
                 >
                     <div className="flex items-center gap-2">
                         <span className="text-lg">✨</span>
                         <div>
-                            <p className="text-xs text-purple-800 font-bold uppercase tracking-wide">AI Suggestion</p>
-                            <p className="text-sm font-medium text-purple-900 capitalize">{smartCategory.original}</p>
+                            <p className="text-xs text-purple-800 dark:text-purple-300 font-bold uppercase tracking-wide">AI Suggestion</p>
+                            <p className="text-sm font-medium text-purple-900 dark:text-purple-200 capitalize">{smartCategory.original}</p>
                         </div>
                     </div>
-                    <div className="bg-white text-purple-600 px-3 py-1 rounded text-xs font-bold shadow-sm group-hover:shadow transition">
+                    <div className="bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-400 px-3 py-1 rounded text-xs font-bold shadow-sm dark:shadow-md group-hover:shadow dark:group-hover:shadow-lg transition">
                         Apply
                     </div>
                 </div>
@@ -447,6 +447,7 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
           </div>
 
           <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Language</label>
             <label className="block text-sm font-medium text-gray-700">Email (Optional)</label>
             <input
               type="email"
@@ -461,7 +462,7 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
           <div>
             <label className="block text-sm font-medium text-gray-700">Language</label>
             <select
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
+              className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm p-2 border bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               value={i18n.language}
               onChange={(e) => i18n.changeLanguage(e.target.value)}
             >
@@ -472,11 +473,11 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">Description</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
             <div className="relative">
               <textarea
                 required
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border pr-12"
+                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm p-2 border pr-12 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                 rows="3"
                 value={formData.description}
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
@@ -491,15 +492,15 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
               </div>
             </div>
             {analyzingUrgency && (
-               <div className="mt-1 text-xs text-blue-600 animate-pulse">
+               <div className="mt-1 text-xs text-blue-600 dark:text-blue-400 animate-pulse">
                    Checking urgency...
                </div>
             )}
             {urgencyAnalysis && !analyzingUrgency && (
                 <div className={`mt-2 p-2 rounded text-sm flex items-center justify-between ${
-                    urgencyAnalysis.urgency === 'High' ? 'bg-red-50 text-red-800 border border-red-200' :
-                    urgencyAnalysis.urgency === 'Medium' ? 'bg-orange-50 text-orange-800 border border-orange-200' :
-                    'bg-green-50 text-green-800 border border-green-200'
+                    urgencyAnalysis.urgency === 'High' ? 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-700/50' :
+                    urgencyAnalysis.urgency === 'Medium' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-800 dark:text-orange-300 border border-orange-200 dark:border-orange-700/50' :
+                    'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-700/50'
                 }`}>
                     <span className="font-semibold">Urgency: {urgencyAnalysis.urgency}</span>
                     <span className="text-xs opacity-75">Sentiment: {urgencyAnalysis.sentiment}</span>
@@ -510,7 +511,7 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
                     type="button"
                     onClick={autoDescribe}
                     disabled={describing}
-                    className="mt-2 text-xs bg-purple-100 text-purple-700 px-3 py-1 rounded hover:bg-purple-200 transition flex items-center gap-1 font-medium"
+                    className="mt-2 text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-3 py-1 rounded hover:bg-purple-200 dark:hover:bg-purple-900/50 transition flex items-center gap-1 font-medium"
                 >
                     {describing ? 'Generating description...' : '✨ Auto-fill description from image'}
                 </button>
@@ -518,20 +519,20 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">Location (Optional)</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Location (Optional)</label>
              <div className="flex gap-2 mt-1">
                 <input
                     type="text"
                     readOnly
                     placeholder="Location not set"
-                    className="block w-full rounded-md border-gray-300 shadow-sm p-2 border bg-gray-50"
+                    className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm p-2 border bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
                     value={formData.location || ''}
                 />
                 <button
                     type="button"
                     onClick={getLocation}
                     disabled={gettingLocation}
-                    className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded inline-flex items-center"
+                    className="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white font-semibold py-2 px-4 rounded inline-flex items-center transition"
                 >
                     {gettingLocation ? '...' : '📍'}
                 </button>
@@ -550,10 +551,10 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Photo Evidence</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Photo Evidence</label>
 
             <div className="flex gap-3 mb-2">
-                <label className="flex-1 cursor-pointer bg-white hover:bg-gray-50 text-gray-700 font-medium py-3 px-4 rounded-lg text-center border border-gray-300 shadow-sm flex items-center justify-center gap-2 transition">
+                <label className="flex-1 cursor-pointer bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-300 font-medium py-3 px-4 rounded-lg text-center border border-gray-300 dark:border-gray-600 shadow-sm dark:shadow-md flex items-center justify-center gap-2 transition">
                     <ImageIcon size={20} />
                     <span>Upload</span>
                     <input
@@ -563,7 +564,7 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
                         onChange={handleImageChange}
                     />
                 </label>
-                <label className="flex-1 cursor-pointer bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium py-3 px-4 rounded-lg text-center border border-blue-200 shadow-sm flex items-center justify-center gap-2 transition">
+                <label className="flex-1 cursor-pointer bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium py-3 px-4 rounded-lg text-center border border-blue-200 dark:border-blue-700/50 shadow-sm dark:shadow-md flex items-center justify-center gap-2 transition">
                     <Camera size={20} />
                     <span>Camera</span>
                     <input
@@ -577,7 +578,7 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
             </div>
 
             {formData.image && (
-                <div className="text-sm text-green-600 mb-2 text-center flex items-center justify-center gap-2">
+                <div className="text-sm text-green-600 dark:text-green-400 mb-2 text-center flex items-center justify-center gap-2">
                     {uploading ? (
                         <>
                             <Loader2 size={16} className="animate-spin" />
@@ -594,10 +595,10 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
                     type="button"
                     onClick={analyzeDepth}
                     disabled={analyzingDepth}
-                    className="w-full text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-2 rounded-lg hover:bg-indigo-100 transition flex items-center justify-center gap-2 font-medium mb-2"
+                    className="w-full text-xs bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700/50 px-3 py-2 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition flex items-center justify-center gap-2 font-medium mb-2"
                 >
                     {analyzingDepth ? (
-                        <div className="w-3 h-3 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                        <div className="w-3 h-3 border-2 border-indigo-600 dark:border-indigo-400 border-t-transparent rounded-full animate-spin"></div>
                     ) : (
                         <Layers size={14} />
                     )}
@@ -606,8 +607,8 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
             )}
 
             {depthMap && (
-                <div className="mb-2 border border-gray-200 rounded-lg overflow-hidden">
-                    <div className="bg-gray-50 px-2 py-1 text-xs text-gray-500 font-medium border-b border-gray-200">
+                <div className="mb-2 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                    <div className="bg-gray-50 dark:bg-gray-700 px-2 py-1 text-xs text-gray-500 dark:text-gray-400 font-medium border-b border-gray-200 dark:border-gray-700">
                         3D Depth Analysis Map
                     </div>
                     <img
@@ -619,14 +620,14 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
             )}
 
             {analyzing && (
-                <div className="flex items-center justify-center gap-2 text-blue-600 bg-blue-50 p-3 rounded-lg border border-blue-100 animate-pulse">
-                    <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                <div className="flex items-center justify-center gap-2 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-100 dark:border-blue-700/50 animate-pulse">
+                    <div className="w-4 h-4 border-2 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin"></div>
                     <span className="text-sm font-medium">Analyzing severity...</span>
                 </div>
             )}
 
             {analysisErrors.severity && (
-                <div className="flex items-center justify-center gap-2 text-red-600 bg-red-50 p-3 rounded-lg border border-red-100">
+                <div className="flex items-center justify-center gap-2 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border border-red-100 dark:border-red-700/50">
                     <AlertTriangle size={16} />
                     <span className="text-sm font-medium">Severity analysis: {analysisErrors.severity}</span>
                 </div>
@@ -634,18 +635,18 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
 
             {severity && (
                 <div className={`p-3 rounded-lg border ${
-                    severity.level === 'Critical' ? 'bg-red-50 border-red-200 text-red-800' :
-                    severity.level === 'High' ? 'bg-orange-50 border-orange-200 text-orange-800' :
-                    severity.level === 'Medium' ? 'bg-yellow-50 border-yellow-200 text-yellow-800' :
-                    'bg-green-50 border-green-200 text-green-800'
+                    severity.level === 'Critical' ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700/50 text-red-800 dark:text-red-300' :
+                    severity.level === 'High' ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-700/50 text-orange-800 dark:text-orange-300' :
+                    severity.level === 'Medium' ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-700/50 text-yellow-800 dark:text-yellow-300' :
+                    'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700/50 text-green-800 dark:text-green-300'
                 }`}>
                     <div className="flex justify-between items-center mb-1">
                         <span className="text-xs font-bold uppercase tracking-wider">AI Severity Analysis</span>
                         <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                             severity.level === 'Critical' ? 'bg-red-200 text-red-900' :
-                             severity.level === 'High' ? 'bg-orange-200 text-orange-900' :
-                             severity.level === 'Medium' ? 'bg-yellow-200 text-yellow-900' :
-                             'bg-green-200 text-green-900'
+                             severity.level === 'Critical' ? 'bg-red-200 dark:bg-red-900/50 text-red-900 dark:text-red-200' :
+                             severity.level === 'High' ? 'bg-orange-200 dark:bg-orange-900/50 text-orange-900 dark:text-orange-200' :
+                             severity.level === 'Medium' ? 'bg-yellow-200 dark:bg-yellow-900/50 text-yellow-900 dark:text-yellow-200' :
+                             'bg-green-200 dark:bg-green-900/50 text-green-900 dark:text-green-200'
                         }`}>{severity.level}</span>
                     </div>
                     <p className="text-sm">
@@ -658,12 +659,12 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 font-bold shadow-md"
+            className="w-full bg-blue-600 dark:bg-blue-700 text-white py-3 px-4 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition disabled:opacity-50 font-bold shadow-md dark:shadow-lg"
           >
             {loading ? 'Processing…' : isOnline ? 'Generate Action Plan' : 'Save Offline'}
           </button>
 
-          <div className={`mt-2 text-center text-sm ${isOnline ? 'text-green-600' : 'text-orange-600'}`}>
+          <div className={`mt-2 text-center text-sm ${isOnline ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
             {isOnline ? '🟢 Online - Report will be submitted immediately' : '🟠 Offline - Report will be saved and synced later'}
           </div>
 
@@ -671,10 +672,10 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
             <div
               className={`mt-3 flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium shadow-sm ${
                 submitStatus.state === 'success'
-                  ? 'bg-green-50 border-green-200 text-green-800'
+                  ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700/50 text-green-800 dark:text-green-300'
                   : submitStatus.state === 'pending'
-                  ? 'bg-blue-50 border-blue-200 text-blue-800'
-                  : 'bg-red-50 border-red-200 text-red-800'
+                  ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700/50 text-blue-800 dark:text-blue-300'
+                  : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700/50 text-red-800 dark:text-red-300'
               }`}
             >
               {submitStatus.state === 'success' && <CheckCircle2 size={18} />}
@@ -683,7 +684,7 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
               <span>{submitStatus.message}</span>
             </div>
           )}
-          <button type="button" onClick={() => setView('home')} className="mt-2 text-gray-500 hover:text-gray-700 underline text-center w-full block text-sm">Cancel</button>
+          <button type="button" onClick={() => setView('home')} className="mt-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 underline text-center w-full block text-sm transition">Cancel</button>
        </form>
 
       {showNearbyModal && (

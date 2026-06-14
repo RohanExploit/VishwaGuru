@@ -1,3 +1,47 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Dark mode base styles */
+@layer base {
+  :root {
+    --bg-light: #ffffff;
+    --bg-light-secondary: #f9fafb;
+    --text-light: #1f2937;
+    --text-light-secondary: #6b7280;
+    --border-light: #e5e7eb;
+    
+    --bg-dark: #1a1a1a;
+    --bg-dark-secondary: #2d2d2d;
+    --text-dark: #f3f4f6;
+    --text-dark-secondary: #d1d5db;
+    --border-dark: #404040;
+  }
+
+  html {
+    @apply bg-white text-gray-900 transition-colors duration-300;
+  }
+
+  html.dark {
+    @apply bg-[#1a1a1a] text-gray-100;
+  }
+}
+
+/* Dark mode component styles */
+@layer components {
+  .light-bg {
+    @apply bg-white dark:bg-[#2d2d2d] transition-colors duration-300;
+  }
+
+  .light-text {
+    @apply text-gray-900 dark:text-gray-100 transition-colors duration-300;
+  }
+
+  .light-border {
+    @apply border-gray-200 dark:border-gray-700 transition-colors duration-300;
+  }
+
+  .glass-effect {
+    @apply bg-white/95 dark:bg-[#2d2d2d]/95 backdrop-blur-sm transition-colors duration-300;
+  }
+}

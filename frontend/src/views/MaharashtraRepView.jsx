@@ -23,12 +23,12 @@ const MaharashtraRepView = ({ setView, setLoading, setError, setMaharashtraRepIn
 
   return (
     <div className="mt-6">
-      <h2 className="text-xl font-semibold mb-4 text-center">Find Your Maharashtra MLA</h2>
+      <h2 className="text-xl font-semibold mb-4 text-center text-gray-900 dark:text-white">Find Your Maharashtra MLA</h2>
 
       {!maharashtraRepInfo ? (
         <form onSubmit={handleLookup} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Enter your 6-digit pincode
             </label>
             <input
@@ -36,18 +36,18 @@ const MaharashtraRepView = ({ setView, setLoading, setError, setMaharashtraRepIn
               required
               maxLength="6"
               pattern="[0-9]{6}"
-              className="block w-full rounded-md border-gray-300 shadow-sm p-2 border"
+              className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm p-2 border bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               value={pincode}
               onChange={(e) => setPincode(e.target.value)}
               placeholder="e.g., 411001"
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Currently supporting limited pincodes in Maharashtra (MVP)
             </p>
           </div>
 
           {localError && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700/50 text-red-700 dark:text-red-300 px-4 py-3 rounded">
               {localError}
             </div>
           )}
@@ -55,7 +55,7 @@ const MaharashtraRepView = ({ setView, setLoading, setError, setMaharashtraRepIn
           <button
             type="submit"
             disabled={loading || pincode.length !== 6}
-            className="w-full bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700 transition disabled:opacity-50"
+            className="w-full bg-purple-600 dark:bg-purple-700 text-white py-2 px-4 rounded hover:bg-purple-700 dark:hover:bg-purple-600 transition disabled:opacity-50"
           >
             {loading ? 'Looking up...' : 'Find My Representatives'}
           </button>
@@ -63,7 +63,7 @@ const MaharashtraRepView = ({ setView, setLoading, setError, setMaharashtraRepIn
           <button
             type="button"
             onClick={() => setView('home')}
-            className="mt-2 text-blue-600 underline text-center w-full block"
+            className="mt-2 text-blue-600 dark:text-blue-400 underline hover:text-blue-700 dark:hover:text-blue-300 text-center w-full block transition"
           >
             Cancel
           </button>
@@ -71,9 +71,9 @@ const MaharashtraRepView = ({ setView, setLoading, setError, setMaharashtraRepIn
       ) : (
         <div className="space-y-4">
           {/* Location Info */}
-          <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-            <h3 className="font-bold text-purple-800 mb-2">Your Location</h3>
-            <div className="text-sm space-y-1">
+          <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-700/50">
+            <h3 className="font-bold text-purple-800 dark:text-purple-300 mb-2">Your Location</h3>
+            <div className="text-sm space-y-1 text-gray-900 dark:text-gray-300">
               <p><span className="font-semibold">Pincode:</span> {maharashtraRepInfo.pincode}</p>
               <p><span className="font-semibold">District:</span> {maharashtraRepInfo.district}</p>
               <p><span className="font-semibold">Constituency:</span> {maharashtraRepInfo.assembly_constituency}</p>
@@ -81,15 +81,15 @@ const MaharashtraRepView = ({ setView, setLoading, setError, setMaharashtraRepIn
           </div>
 
           {/* MLA Info */}
-          <div className="bg-white p-4 rounded shadow border">
-            <h3 className="font-bold text-lg mb-3 flex items-center">
-              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm mr-2">Your MLA</span>
+          <div className="bg-white dark:bg-gray-800 p-4 rounded shadow dark:shadow-md border border-gray-200 dark:border-gray-700">
+            <h3 className="font-bold text-lg mb-3 flex items-center text-gray-900 dark:text-white">
+              <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 px-2 py-1 rounded text-sm mr-2">Your MLA</span>
             </h3>
-            <div className="space-y-2">
-              <p className="text-lg font-semibold text-gray-800">{maharashtraRepInfo.mla.name}</p>
-              <p className="text-sm text-gray-600"><span className="font-medium">Party:</span> {maharashtraRepInfo.mla.party}</p>
-              <p className="text-sm text-gray-600"><span className="font-medium">Phone:</span> {maharashtraRepInfo.mla.phone}</p>
-              <p className="text-sm text-gray-600"><span className="font-medium">Email:</span> {maharashtraRepInfo.mla.email}</p>
+            <div className="space-y-2 text-gray-900 dark:text-gray-300">
+              <p className="text-lg font-semibold">{maharashtraRepInfo.mla.name}</p>
+              <p className="text-sm"><span className="font-medium">Party:</span> {maharashtraRepInfo.mla.party}</p>
+              <p className="text-sm"><span className="font-medium">Phone:</span> {maharashtraRepInfo.mla.phone}</p>
+              <p className="text-sm"><span className="font-medium">Email:</span> {maharashtraRepInfo.mla.email}</p>
             </div>
 
             {maharashtraRepInfo.mla.twitter && maharashtraRepInfo.mla.twitter !== "Not Available" && (
@@ -100,7 +100,7 @@ const MaharashtraRepView = ({ setView, setLoading, setError, setMaharashtraRepIn
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block w-full text-center bg-black text-white py-2 rounded hover:bg-gray-800 transition flex items-center justify-center gap-2"
+                  className="block w-full text-center bg-black dark:bg-gray-900 text-white py-2 rounded hover:bg-gray-800 dark:hover:bg-gray-800 transition flex items-center justify-center gap-2"
                 >
                   <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5 fill-current"><g><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></g></svg>
                   Post on X
@@ -109,21 +109,21 @@ const MaharashtraRepView = ({ setView, setLoading, setError, setMaharashtraRepIn
             )}
 
             {maharashtraRepInfo.description && (
-              <div className="mt-3 pt-3 border-t border-gray-200">
-                <p className="text-sm text-gray-700 italic">{maharashtraRepInfo.description}</p>
+              <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                <p className="text-sm text-gray-700 dark:text-gray-400 italic">{maharashtraRepInfo.description}</p>
               </div>
             )}
           </div>
 
           {/* Grievance Links */}
-          <div className="bg-green-50 p-4 rounded shadow border border-green-200">
-            <h3 className="font-bold text-lg mb-3 text-green-800">File a Grievance</h3>
+          <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded shadow dark:shadow-md border border-green-200 dark:border-green-700/50">
+            <h3 className="font-bold text-lg mb-3 text-green-800 dark:text-green-300">File a Grievance</h3>
             <div className="space-y-2">
               <a
                 href={maharashtraRepInfo.grievance_links.central_cpgrams}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block w-full text-center bg-green-600 text-white py-2 rounded hover:bg-green-700 transition"
+                className="block w-full text-center bg-green-600 dark:bg-green-700 text-white py-2 rounded hover:bg-green-700 dark:hover:bg-green-600 transition"
               >
                 Central CPGRAMS Portal
               </a>
@@ -131,12 +131,12 @@ const MaharashtraRepView = ({ setView, setLoading, setError, setMaharashtraRepIn
                 href={maharashtraRepInfo.grievance_links.maharashtra_portal}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block w-full text-center bg-orange-600 text-white py-2 rounded hover:bg-orange-700 transition"
+                className="block w-full text-center bg-orange-600 dark:bg-orange-700 text-white py-2 rounded hover:bg-orange-700 dark:hover:bg-orange-600 transition"
               >
                 Maharashtra Aaple Sarkar Portal
               </a>
             </div>
-            <p className="text-xs text-gray-600 mt-3 text-center">
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-3 text-center">
               {maharashtraRepInfo.grievance_links.note}
             </p>
           </div>
@@ -147,7 +147,7 @@ const MaharashtraRepView = ({ setView, setLoading, setError, setMaharashtraRepIn
               setPincode('');
               setView('home');
             }}
-            className="text-blue-600 underline text-center w-full block"
+            className="text-blue-600 dark:text-blue-400 underline hover:text-blue-700 dark:hover:text-blue-300 text-center w-full block transition"
           >
             Back to Home
           </button>
