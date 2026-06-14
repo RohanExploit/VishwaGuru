@@ -84,9 +84,7 @@ class Grievance(Base):
     created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc), index=True)
     updated_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc), onupdate=lambda: datetime.datetime.now(datetime.timezone.utc))
     resolved_at = Column(DateTime, nullable=True)
-    integrity_hash = Column(String, nullable=True)  # Blockchain integrity seal
-    previous_integrity_hash = Column(String, nullable=True, index=True) # Linked hash for O(1) verification
-
+    
     # Closure confirmation fields
     closure_requested_at = Column(DateTime, nullable=True)
     closure_confirmation_deadline = Column(DateTime, nullable=True)
@@ -94,10 +92,6 @@ class Grievance(Base):
     pending_closure = Column(Boolean, default=False, index=True)
     
     issue_id = Column(Integer, ForeignKey("issues.id"), nullable=True, index=True)
-
-    # Blockchain integrity fields
-    integrity_hash = Column(String, nullable=True)
-    previous_integrity_hash = Column(String, nullable=True, index=True)
 
     # Relationships
     jurisdiction = relationship("Jurisdiction", back_populates="grievances")
@@ -155,7 +149,6 @@ class Issue(Base):
     location = Column(String, nullable=True)
     action_plan = Column(JSON, nullable=True)
     integrity_hash = Column(String, nullable=True)  # Blockchain integrity seal
-    previous_integrity_hash = Column(String, nullable=True, index=True) # Linked hash for O(1) verification
     
     # Voice and Language Support (Issue #291)
     submission_type = Column(String, default="text")  # 'text', 'voice'
@@ -255,73 +248,32 @@ class FieldOfficerVisit(Base):
     
     # Immutability hash (blockchain-like integrity)
     visit_hash = Column(String, nullable=True)  # Hash of visit data for integrity verification
-    previous_visit_hash = Column(String, nullable=True, index=True) # Linked hash for O(1) verification
     
     # Metadata
     created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc), onupdate=lambda: datetime.datetime.now(datetime.timezone.utc))
     is_public = Column(Boolean, default=True)  # Public visibility for transparency
 
-class VerificationStatus(enum.Enum):
-    PENDING = "pending"
-    VERIFIED = "verified"
-    FLAGGED = "flagged"
-    FRAUD_DETECTED = "fraud_detected"
-
-
 class ResolutionEvidence(Base):
     __tablename__ = "resolution_evidence"
     id = Column(Integer, primary_key=True, index=True)
     grievance_id = Column(Integer, ForeignKey("grievances.id"), nullable=False)
-    token_id = Column(Integer, ForeignKey("resolution_proof_tokens.id"), nullable=True)
-    # Legacy fields
-    file_path = Column(String, nullable=True)
+    file_path = Column(String, nullable=False)
     media_type = Column(String, default="image")
     description = Column(Text, nullable=True)
     uploaded_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
-    # Proof fields
-    evidence_hash = Column(String, nullable=True, index=True)
-    gps_latitude = Column(Float, nullable=True)
-    gps_longitude = Column(Float, nullable=True)
-    capture_timestamp = Column(DateTime, nullable=True)
-    device_fingerprint_hash = Column(String, nullable=True)
-    metadata_bundle = Column(JSON, nullable=True)
-    server_signature = Column(String, nullable=True)
-    verification_status = Column(Enum(VerificationStatus), default=VerificationStatus.PENDING)
 
-    # Relationships
+    # Relationship
     grievance = relationship("Grievance", back_populates="resolution_evidence")
-    audit_logs = relationship("EvidenceAuditLog", back_populates="evidence")
-
 
 class ResolutionProofToken(Base):
     __tablename__ = "resolution_proof_tokens"
     id = Column(Integer, primary_key=True, index=True)
     grievance_id = Column(Integer, ForeignKey("grievances.id"), nullable=False)
-    token = Column(String, unique=True, index=True, nullable=True)
-    token_id = Column(String, unique=True, index=True, nullable=True)  # UUID string
-    authority_email = Column(String, nullable=True)
+    token = Column(String, unique=True, index=True)
     generated_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     expires_at = Column(DateTime, nullable=False)
     is_used = Column(Boolean, default=False)
-    used_at = Column(DateTime, nullable=True)
-    geofence_latitude = Column(Float, nullable=True)
-    geofence_longitude = Column(Float, nullable=True)
-    geofence_radius_meters = Column(Float, default=200.0)
-    token_signature = Column(String, nullable=True)
 
     # Relationship
     grievance = relationship("Grievance", back_populates="resolution_tokens")
-
-
-class EvidenceAuditLog(Base):
-    __tablename__ = "evidence_audit_logs"
-    id = Column(Integer, primary_key=True, index=True)
-    evidence_id = Column(Integer, ForeignKey("resolution_evidence.id"), nullable=False)
-    action = Column(String, nullable=False)
-    details = Column(Text, nullable=True)
-    actor_email = Column(String, nullable=True)
-    timestamp = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc), index=True)
-
-    # Relationship
-    evidence = relationship("ResolutionEvidence", back_populates="audit_logs")

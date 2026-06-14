@@ -9,9 +9,13 @@ const VoiceInput = ({ onTranscript, language = 'en' }) => {
 
   // Check support once on mount
   useEffect(() => {
+     let isMounted = true;
      if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
-        setIsSupported(false);
+        if (isMounted) {
+            setTimeout(() => setIsSupported(false), 0);
+        }
      }
+     return () => { isMounted = false; };
   }, []);
 
   const getLanguageCode = (lang) => {
@@ -55,9 +59,13 @@ const VoiceInput = ({ onTranscript, language = 'en' }) => {
       setIsListening(false);
     };
 
-    setRecognition(recognitionInstance);
+    // Use a small timeout to let the component mount fully before updating state
+    const timeoutId = setTimeout(() => {
+      setRecognition(recognitionInstance);
+    }, 0);
 
     return () => {
+      clearTimeout(timeoutId);
       if (recognitionInstance) {
         recognitionInstance.stop();
       }

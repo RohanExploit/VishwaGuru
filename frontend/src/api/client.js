@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || '/api';
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 let authToken = localStorage.getItem('token');
 
@@ -35,9 +35,6 @@ export const apiClient = {
       headers: getHeaders(options.headers)
     });
     if (!response.ok) {
-      if (response.status === 401 || response.status === 403) {
-        window.dispatchEvent(new Event('auth:logout'));
-      }
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const contentType = response.headers.get('content-type');
@@ -54,9 +51,6 @@ export const apiClient = {
         body: JSON.stringify(data),
       });
       if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          window.dispatchEvent(new Event('auth:logout'));
-        }
         const errorData = await response.json().catch(() => ({}));
         const message = errorData.detail || `HTTP error! status: ${response.status}`;
         throw new Error(message);
@@ -81,9 +75,6 @@ export const apiClient = {
       body: formData,
     });
     if (!response.ok) {
-      if (response.status === 401 || response.status === 403) {
-        window.dispatchEvent(new Event('auth:logout'));
-      }
       const errorData = await response.json().catch(() => ({}));
       const message = errorData.detail || `HTTP error! status: ${response.status}`;
       throw new Error(message);

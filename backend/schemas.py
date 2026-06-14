@@ -30,17 +30,8 @@ class ActionPlan(BaseModel):
     x_post: Optional[str] = Field(None, description="X (Twitter) post content")
     relevant_government_rule: Optional[str] = Field(None, description="Relevant government policy or rule")
 
-from pydantic import BaseModel, Field, field_validator
-
 class ChatRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=1000, description="Chat query text")
-
-    @field_validator('query')
-    @classmethod
-    def prevent_whitespace_only(cls, v: str) -> str:
-        if not v.strip():
-            raise ValueError('Query cannot be blank or whitespace-only')
-        return v.strip()
 
 class ChatResponse(BaseModel):
     response: str
@@ -61,24 +52,6 @@ class IssueSummaryResponse(BaseModel):
     longitude: Optional[float] = None
 
     model_config = ConfigDict(from_attributes=True)
-
-    @field_validator('image_path')
-    @classmethod
-    def format_image_url(cls, v: Optional[str]) -> Optional[str]:
-        if not v:
-            return None
-        # Normalize path separators
-        v = v.replace('\\', '/')
-        # If stored as 'data/uploads/filename.jpg', convert to '/uploads/filename.jpg'
-        if 'data/uploads/' in v:
-            return v.replace('data/uploads/', '/uploads/')
-        # If it doesn't start with /, assume it needs /uploads/ prefix if it's just a filename
-        if not v.startswith('/'):
-             if 'uploads/' not in v:
-                 return f"/uploads/{v}"
-             else:
-                 return f"/{v}"
-        return v
 
 class IssueResponse(IssueSummaryResponse):
     action_plan: Optional[Union[Dict[str, Any], Any]] = Field(None, description="Generated action plan")
@@ -304,12 +277,6 @@ class BlockchainVerificationResponse(BaseModel):
     is_valid: bool = Field(..., description="Whether the issue integrity is intact")
     current_hash: Optional[str] = Field(None, description="Current integrity hash stored in DB")
     computed_hash: str = Field(..., description="Hash computed from current issue data and previous issue's hash")
-    message: str = Field(..., description="Verification result message")
-
-class GrievanceBlockchainVerificationResponse(BaseModel):
-    is_valid: bool = Field(..., description="Whether the grievance integrity is intact")
-    current_hash: Optional[str] = Field(None, description="Current integrity hash stored in DB")
-    computed_hash: str = Field(..., description="Hash computed from current grievance data and previous grievance's hash")
     message: str = Field(..., description="Verification result message")
 
 
