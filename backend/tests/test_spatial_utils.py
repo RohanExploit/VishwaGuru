@@ -60,26 +60,26 @@ def test_find_nearby_issues_selection(monkeypatch):
 
     # Mock the distance functions to verify which one is called
     mock_haversine = MagicMock(return_value=5.0)
-    mock_equirect = MagicMock(return_value=5.0)
+
+    # NOTE: The new implementation inlines equirectangular_distance logic,
+    # so we cannot mock it directly to verify it's called.
+    # Instead, we verify that haversine_distance is NOT called for small radius,
+    # and IS called for large radius.
 
     monkeypatch.setattr("backend.spatial_utils.haversine_distance", mock_haversine)
-    monkeypatch.setattr("backend.spatial_utils.equirectangular_distance", mock_equirect)
 
-    # Case 1: Small radius (default 50m) -> Should use equirectangular
+    # Case 1: Small radius (default 50m) -> Should use inlined equirectangular (NO haversine call)
     find_nearby_issues(issues, target_lat, target_lon, radius_meters=50.0)
 
-    assert mock_equirect.called, "Should have called equirectangular_distance for small radius"
     assert not mock_haversine.called, "Should NOT have called haversine_distance for small radius"
 
     # Reset mocks
     mock_haversine.reset_mock()
-    mock_equirect.reset_mock()
 
     # Case 2: Large radius (> 10km) -> Should use haversine
     find_nearby_issues(issues, target_lat, target_lon, radius_meters=15000.0)
 
     assert mock_haversine.called, "Should have called haversine_distance for large radius"
-    assert not mock_equirect.called, "Should NOT have called equirectangular_distance for large radius"
 
 def test_missing_sklearn_handling(monkeypatch):
     """

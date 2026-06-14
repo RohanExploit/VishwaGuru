@@ -37,3 +37,7 @@
 ## 2026-02-08 - Return Type Consistency in Utilities
 **Learning:** Inconsistent return types in shared utility functions (like `process_uploaded_image`) can cause runtime crashes across multiple modules, especially when some expect tuples and others expect single values. This can lead to deployment failures that are hard to debug without full integration logs.
 **Action:** Always maintain strict return type consistency for core utilities. Use type hints and verify all call sites when changing a function's signature. Ensure that performance-oriented optimizations (like returning multiple processed formats) are applied uniformly.
+
+## 2026-05-24 - Unbounded Spatial Queries
+**Learning:** Spatial bounding box queries without a `LIMIT` clause can cause severe performance degradation in dense areas or when using large search radii. The application attempts to load and process all matching records in Python, leading to O(N) memory usage and processing time.
+**Action:** Always apply a safety `.limit()` to spatial candidate queries to prevent worst-case scenarios, even if the primary filter is a bounding box. A reasonable limit (e.g., 100) balances result completeness with system stability.

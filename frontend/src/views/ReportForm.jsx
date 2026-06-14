@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { motion, AnimatePresence } from 'framer-motion';
 import { fakeActionPlan } from '../fakeData';
-import { Camera, Image as ImageIcon, CheckCircle2, AlertTriangle, Loader2, Layers } from 'lucide-react';
+import { Camera, Image as ImageIcon, CheckCircle2, AlertTriangle, Loader2, Layers, FileText, Zap, ChevronRight, MapPin, XCircle, ThumbsUp } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { saveReportOffline, registerBackgroundSync } from '../offlineQueue';
 import VoiceInput from '../components/VoiceInput';
-import { detectorsApi } from '../api';
+import { detectorsApi, analysisApi } from '../api';
 
 // Get API URL from environment variable, fallback to relative URL for local dev
 const API_URL = import.meta.env.VITE_API_URL || '';
@@ -32,6 +33,8 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
   const [analyzingDepth, setAnalyzingDepth] = useState(false);
   const [smartCategory, setSmartCategory] = useState(null);
   const [analyzingSmartScan, setAnalyzingSmartScan] = useState(false);
+  const [suggestedTextCategory, setSuggestedTextCategory] = useState(null);
+  const [analyzingTextCategory, setAnalyzingTextCategory] = useState(false);
   const [submitStatus, setSubmitStatus] = useState({ state: 'idle', message: '' });
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [uploading, setUploading] = useState(false);
@@ -72,6 +75,44 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
       console.error("Urgency analysis failed", e);
     } finally {
       setAnalyzingUrgency(false);
+    }
+  };
+
+  const mapSmartScanToCategory = (label) => {
+    const map = {
+      'pothole': 'road',
+      'garbage': 'garbage',
+      'flooded street': 'water',
+      'fire accident': 'road',
+      'fallen tree': 'road',
+      'stray animal': 'road',
+      'blocked road': 'road',
+      'broken streetlight': 'streetlight',
+      'illegal parking': 'road',
+      'graffiti vandalism': 'college_infra',
+      'normal street': 'road'
+    };
+    return map[label] || 'road';
+  };
+
+  const analyzeTextCategory = async () => {
+    if (!formData.description || formData.description.length < 5) return;
+    setAnalyzingTextCategory(true);
+    setSuggestedTextCategory(null);
+    try {
+        const data = await analysisApi.suggestCategoryText(formData.description);
+        if (data && data.category && data.category !== 'unknown') {
+            const mappedCategory = mapSmartScanToCategory(data.category);
+             setSuggestedTextCategory({
+                original: data.category,
+                mapped: mappedCategory,
+                confidence: data.confidence
+            });
+        }
+    } catch (e) {
+        console.error("Text category analysis failed", e);
+    } finally {
+        setAnalyzingTextCategory(false);
     }
   };
 
@@ -147,23 +188,6 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
     } finally {
       setAnalyzingDepth(false);
     }
-  };
-
-  const mapSmartScanToCategory = (label) => {
-    const map = {
-      'pothole': 'road',
-      'garbage': 'garbage',
-      'flooded street': 'water',
-      'fire accident': 'road',
-      'fallen tree': 'road',
-      'stray animal': 'road',
-      'blocked road': 'road',
-      'broken streetlight': 'streetlight',
-      'illegal parking': 'road',
-      'graffiti vandalism': 'college_infra',
-      'normal street': 'road'
-    };
-    return map[label] || 'road';
   };
 
   const analyzeSmartScan = async (file) => {
@@ -479,6 +503,42 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
                     </div>
                   </motion.div>
                 )}
+
+                {analyzingTextCategory && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="flex items-center gap-3 p-4 bg-purple-50/50 dark:bg-purple-900/20 rounded-2xl border border-purple-100 dark:border-purple-800/50"
+                  >
+                    <Loader2 size={18} className="animate-spin text-purple-600" />
+                    <span className="text-sm font-bold text-purple-800 dark:text-purple-300">AI analyzing text...</span>
+                  </motion.div>
+                )}
+
+                {suggestedTextCategory && !analyzingTextCategory && (
+                   <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    onClick={() => setFormData({ ...formData, category: suggestedTextCategory.mapped })}
+                    className="group relative bg-gradient-to-br from-purple-600/5 to-pink-600/5 dark:from-purple-400/10 dark:to-pink-400/10 border border-purple-100 dark:border-purple-800/50 p-5 rounded-2xl cursor-pointer hover:shadow-lg transition-all mt-2"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="p-2.5 bg-white dark:bg-gray-800 rounded-xl shadow-sm text-purple-600">
+                          <FileText size={20} />
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-purple-500 font-black uppercase tracking-widest">AI TEXT SUGGESTION</p>
+                          <p className="text-base font-black text-gray-900 dark:text-white capitalize">{suggestedTextCategory.original}</p>
+                        </div>
+                      </div>
+                      <button type="button" className="bg-purple-600 text-white px-4 py-2 rounded-xl text-xs font-black shadow-lg shadow-purple-600/20 group-hover:scale-105 transition-transform">
+                        Apply
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
               </AnimatePresence>
             </div>
 
@@ -512,7 +572,7 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
                   rows="4"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  onBlur={analyzeUrgency}
+                  onBlur={() => { analyzeUrgency(); analyzeTextCategory(); }}
                   placeholder="High priority potholes near main signal..."
                 />
                 <div className="absolute bottom-4 right-4 z-10">

@@ -66,11 +66,11 @@ def migrate_db():
                     logger.info("Added action_plan column to issues")
 
                 if not column_exists("issues", "integrity_hash"):
-                    conn.execute(text("ALTER TABLE issues ADD COLUMN integrity_hash VARCHAR"))
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN integrity_hash VARCHAR(255)"))
                     logger.info("Added integrity_hash column to issues")
 
                 if not column_exists("issues", "previous_integrity_hash"):
-                    conn.execute(text("ALTER TABLE issues ADD COLUMN previous_integrity_hash VARCHAR"))
+                    conn.execute(text("ALTER TABLE issues ADD COLUMN previous_integrity_hash VARCHAR(255)"))
                     logger.info("Added previous_integrity_hash column to issues")
 
                 # Indexes (using IF NOT EXISTS syntax where supported or check first)
@@ -94,6 +94,12 @@ def migrate_db():
 
                 if not index_exists("issues", "ix_issues_user_email"):
                     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_issues_user_email ON issues (user_email)"))
+
+                if not index_exists("issues", "ix_issues_integrity_hash"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_issues_integrity_hash ON issues (integrity_hash)"))
+
+                if not index_exists("issues", "ix_issues_previous_integrity_hash"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_issues_previous_integrity_hash ON issues (previous_integrity_hash)"))
 
                 # Voice and Language Support Columns (Issue #291)
                 if not column_exists("issues", "submission_type"):
