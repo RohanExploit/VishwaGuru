@@ -53,7 +53,7 @@
 
 /* Dark mode animated background */
 :root.dark #root::before {
-  background: 
+  background:
     radial-gradient(circle at 20% 50%, rgba(255, 126, 95, 0.04) 0%, transparent 50%),
     radial-gradient(circle at 80% 20%, rgba(106, 17, 203, 0.04) 0%, transparent 50%),
     radial-gradient(circle at 40% 80%, rgba(37, 117, 252, 0.04) 0%, transparent 50%);

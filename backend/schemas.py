@@ -28,6 +28,7 @@ class ActionPlan(BaseModel):
     email_subject: Optional[str] = Field(None, description="Email subject line")
     email_body: Optional[str] = Field(None, description="Email body content")
     x_post: Optional[str] = Field(None, description="X (Twitter) post content")
+    relevant_government_rule: Optional[str] = Field(None, description="Relevant government policy or rule")
 
 class ChatRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=1000, description="Chat query text")
@@ -54,6 +55,8 @@ class IssueSummaryResponse(BaseModel):
 
 class IssueResponse(IssueSummaryResponse):
     action_plan: Optional[Union[Dict[str, Any], Any]] = Field(None, description="Generated action plan")
+    integrity_hash: Optional[str] = Field(None, description="Blockchain integrity seal")
+    previous_integrity_hash: Optional[str] = Field(None, description="Cryptographic link to previous report")
 
 class IssueCreateRequest(BaseModel):
     description: str = Field(..., min_length=10, max_length=1000, description="Issue description")

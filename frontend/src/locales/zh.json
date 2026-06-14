@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - 智能公民问题报告器",
+        "subtitle": "报告并跟踪社区中的公民问题",
+        "privacyActive": "AI驱动的隐私保护已启用",
+        "communityImpact": "社区影响",
+        "makingChange": "我们正在共同改变！",
+        "issuesSolved": "已解决问题",
+        "smartScanner": "智慧城市扫描仪",
+        "aiPoweredDetection": "AI驱动的实时检测",
+        "categories": {
+            "roadTraffic": "道路与交通",
+            "environmentSafety": "环境与安全",
+            "civicServices": "公民服务",
+            "management": "管理"
+        },
+        "issues": {
+            "pothole": "坑洼",
+            "blockedRoad": "道路封锁",
+            "illegalParking": "违章停车",
+            "darkStreet": "路灯不亮",
+            "trafficSign": "交通标志",
+            "abandonedVehicle": "废弃车辆",
+            "garbage": "垃圾",
+            "flood": "洪水",
+            "fireSmoke": "火灾/烟雾",
+            "treeHazard": "树木风险",
+            "strayAnimal": "流浪动物",
+            "pestControl": "害虫控制",
+            "reportIssue": "报告问题",
+            "brokenInfra": "基础设施损坏",
+            "graffiti": "涂鸦",
+            "findMLA": "寻找议员",
+            "grievanceManagement": "投诉管理",
+            "viewStats": "查看数据",
+            "leaderboard": "排行榜",
+            "responsibilityMap": "责任地图",
+            "noise": "噪音",
+            "crowd": "拥挤",
+            "waterLeak": "漏水",
+            "waste": "垃圾分类",
+            "civicEye": "公民之眼",
+            "myReports": "我的报告",
+            "analyzeGrievance": "分析投诉"
+        },
+        "tools": {
+            "whoIsResponsible": "谁负责？",
+            "topReporters": "顶级报告者",
+            "cameraCheck": "相机检查"
+        },
+        "activity": {
+            "communityActivity": "社区动态",
+            "liveFeed": "实时推文",
+            "noActivity": "暂无动态显示。",
+            "loadMore": "加载更多",
+            "verify": "验证"
+        },
+        "stats": {
+            "totalImpact": "总影响",
+            "issuesResolved": "已解决问题",
+            "activeUsers": "活跃用户"
+        },
+        "landing": {
+            "empowering": "赋能公民",
+            "governance": "实现更好治理",
+            "subtitle": "报告公民问题并获得AI生成的解决方案。通过Telegram与官员联系，积极参与治理。",
+            "cta": "报告问题",
+            "cards": {
+                "reportCitizens": "与公民共同报告",
+                "generatedCivic": "智能公民治理",
+                "govServices": "政府服务",
+                "questionGov": "监督政府",
+                "govDesc": "提交查询，要求透明度，并追究官员责任",
+                "communityAction": "社区行动",
+                "joinMovement": "加入行动"
+            },
+            "features": {
+                "publicTrust": "公众信任",
+                "ethics": "& 伦理",
+                "civicIssues": "公民问题",
+                "reportProblems": "报告问题",
+                "voiceVote": "发出你的声音",
+                "shareIdeas": "分享政策建议",
+                "aiDemocracy": "AI助力民主",
+                "civicActions": "& 公民行动",
+                "aiDesc": "利用技术实现透明治理和更快解决问题。",
+                "smartAnalysis": "智能分析",
+                "aiInsights": "AI驱动的洞察",
+                "citizenCount": "1万+ 活跃公民",
+                "secureSafe": "安全可靠",
+                "verifiedReports": "经过验证的报告",
+                "quickAction": "快速行动",
+                "responseTime": "24小时响应"
+            }
+        }
+    },
+    "common": {
+        "loading": "加载中...",
+        "error": "错误",
+        "submit": "提交",
+        "cancel": "取消",
+        "yes": "是",
+        "no": "否",
+        "back": "返回"
+    }
+}

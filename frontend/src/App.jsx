@@ -1,5 +1,6 @@
-import React, { useState, useEffect, Suspense, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { fakeRecentIssues, fakeResponsibilityMap } from './fakeData';
 import { issuesApi, miscApi } from './api';
 import AppHeader from './components/AppHeader';
@@ -37,21 +38,34 @@ const SmartScanner = React.lazy(() => import('./SmartScanner'));
 const GrievanceAnalysis = React.lazy(() => import('./views/GrievanceAnalysis'));
 const NoiseDetector = React.lazy(() => import('./NoiseDetector'));
 const CivicEyeDetector = React.lazy(() => import('./CivicEyeDetector'));
+const TrafficSignDetector = React.lazy(() => import('./TrafficSignDetector'));
+const AbandonedVehicleDetector = React.lazy(() => import('./AbandonedVehicleDetector'));
+const PublicFacilitiesDetector = React.lazy(() => import('./PublicFacilitiesDetector'));
+const ConstructionSafetyDetector = React.lazy(() => import('./ConstructionSafetyDetector'));
+const WaterLeakDetector = React.lazy(() => import('./WaterLeakDetector'));
+const CrowdDetector = React.lazy(() => import('./CrowdDetector'));
+const WasteDetector = React.lazy(() => import('./WasteDetector'));
 const MyReportsView = React.lazy(() => import('./views/MyReportsView'));
+const AirQualityDetector = React.lazy(() => import('./AirQualityDetector'));
+const PlaygroundDetector = React.lazy(() => import('./PlaygroundDetector'));
+const PublicTransportDetector = React.lazy(() => import('./PublicTransportDetector'));
+const CleanlinessDetector = React.lazy(() => import('./CleanlinessDetector'));
 
 
 // Auth Components
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './views/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminDashboard from './views/AdminDashboard';
 
 // Create a wrapper component to handle state management
 function AppContent() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const { isDarkMode } = useDarkMode();
   const [responsibilityMap, setResponsibilityMap] = useState(null);
+  const [stats, setStats] = useState({ total_issues: 0, resolved_issues: 0, pending_issues: 0 });
   const [actionPlan, setActionPlan] = useState(null);
   const [maharashtraRepInfo, setMaharashtraRepInfo] = useState(null);
   const [recentIssues, setRecentIssues] = useState([]);
@@ -59,13 +73,12 @@ function AppContent() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
 
   // Safe navigation helper
   const navigateToView = useCallback((view) => {
-    const validViews = ['home', 'map', 'report', 'action', 'mh-rep', 'pothole', 'garbage', 'vandalism', 'flood', 'infrastructure', 'parking', 'streetlight', 'fire', 'animal', 'blocked', 'tree', 'pest', 'smart-scan', 'grievance-analysis', 'noise', 'safety-check', 'my-reports', 'login', 'signup'];
+    const validViews = ['home', 'map', 'report', 'action', 'mh-rep', 'pothole', 'garbage', 'vandalism', 'flood', 'infrastructure', 'parking', 'streetlight', 'fire', 'animal', 'blocked', 'tree', 'pest', 'smart-scan', 'grievance-analysis', 'noise', 'safety-check', 'my-reports', 'login', 'signup', 'traffic-sign', 'abandoned-vehicle', 'public-facilities', 'construction-safety', 'water-leak', 'crowd', 'waste'];
     if (validViews.includes(view)) {
-      navigate(view === 'home' ? '/' : `/${view}`);
+      navigate(`/${view}`);
     } else {
       console.warn(`Attempted to navigate to invalid view: ${view}`);
       navigate('/');
@@ -114,7 +127,6 @@ function AppContent() {
         issue.id === id ? { ...issue, upvotes: (issue.upvotes || 0) + 1 } : issue
       ));
       await issuesApi.vote(id);
-      setSuccess('Upvote recorded successfully!');
     } catch (error) {
       console.error("Failed to upvote", error);
       setRecentIssues(originalUpvotes);
@@ -130,13 +142,10 @@ function AppContent() {
     try {
       const data = await miscApi.getResponsibilityMap();
       setResponsibilityMap(data);
-      setSuccess('Responsibility map loaded successfully');
-      navigate('/map');
+      // Removed automatic navigate('/map') from here to prevent loops
     } catch (error) {
       console.error("Failed to fetch responsibility map", error);
-      setError("Using sample data - unable to load responsibility map");
       setResponsibilityMap(fakeResponsibilityMap);
-      navigate('/map');
     } finally {
       setLoading(false);
     }
@@ -144,14 +153,29 @@ function AppContent() {
 
   // Initialize on mount
   useEffect(() => {
+    fetchResponsibilityMap();
     fetchRecentIssues();
-  }, [fetchRecentIssues]);
+
+    // Fetch system stats
+    miscApi.getStats()
+      .then(data => setStats(data))
+      .catch(err => console.error("Failed to fetch stats", err));
+  }, [fetchRecentIssues, fetchResponsibilityMap]);
+
+  // Handle Auth Loading to prevent blinking
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-950">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
+      </div>
+    );
+  }
 
   // Check if we're on the landing page
   const isLandingPage = location.pathname === '/';
 
-  // If on landing page, render it without the main layout
-  if (isLandingPage) {
+  // If on landing page and NOT logged in, render it without the main layout
+  if (isLandingPage && !user) {
     return (
       <Suspense fallback={
         <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-950 dark:to-blue-950 transition-colors duration-300">
@@ -174,7 +198,7 @@ function AppContent() {
 
       <FloatingButtonsManager setView={navigateToView} />
 
-      <div className="relative z-10">
+      <div className="relative z-10 flex flex-col w-full">
         <AppHeader />
 
 
@@ -207,6 +231,17 @@ function AppContent() {
               }
             />
             <Route
+              path="/home"
+              element={
+                <Home
+                  setView={navigateToView}
+                  fetchResponsibilityMap={fetchResponsibilityMap}
+                  recentIssues={recentIssues}
+                  handleUpvote={handleUpvote}
+                />
+              }
+            />
+            <Route
               path="/map"
               element={
                 <ProtectedRoute>
@@ -214,6 +249,75 @@ function AppContent() {
                     responsibilityMap={responsibilityMap}
                     setView={navigateToView}
                   />
+                }
+              />
+              <Route
+                path="/mh-rep"
+                element={
+                  <MaharashtraRepView
+                    setView={navigateToView}
+                    setLoading={setLoading}
+                    setError={setError}
+                    setMaharashtraRepInfo={setMaharashtraRepInfo}
+                    maharashtraRepInfo={maharashtraRepInfo}
+                    loading={loading}
+                  />
+                }
+              />
+              <Route path="/verify/:id" element={<VerifyView />} />
+              <Route path="/pothole" element={<PotholeDetector onBack={() => navigate('/')} />} />
+              <Route path="/garbage" element={<GarbageDetector onBack={() => navigate('/')} />} />
+              <Route
+                path="/vandalism"
+                element={
+                  <div className="flex flex-col h-full">
+                    <button onClick={() => navigate('/')} className="self-start text-blue-600 mb-2">
+                      &larr; Back
+                    </button>
+                    <VandalismDetector />
+                  </div>
+                }
+              />
+              <Route
+                path="/flood"
+                element={
+                  <div className="flex flex-col h-full">
+                    <button onClick={() => navigate('/')} className="self-start text-blue-600 mb-2">
+                      &larr; Back
+                    </button>
+                    <FloodDetector />
+                  </div>
+                }
+              />
+              <Route
+                path="/infrastructure"
+                element={<InfrastructureDetector onBack={() => navigate('/')} />}
+              />
+              <Route path="/parking" element={<IllegalParkingDetector onBack={() => navigate('/')} />} />
+              <Route path="/streetlight" element={<StreetLightDetector onBack={() => navigate('/')} />} />
+              <Route path="/fire" element={<FireDetector onBack={() => navigate('/')} />} />
+              <Route path="/animal" element={<StrayAnimalDetector onBack={() => navigate('/')} />} />
+              <Route path="/blocked" element={<BlockedRoadDetector onBack={() => navigate('/')} />} />
+              <Route path="/tree" element={<TreeDetector onBack={() => navigate('/')} />} />
+              <Route path="/pest" element={<PestDetector onBack={() => navigate('/')} />} />
+              <Route path="/smart-scan" element={<SmartScanner onBack={() => navigate('/')} />} />
+              <Route path="/grievance-analysis" element={<GrievanceAnalysis onBack={() => navigate('/')} />} />
+              <Route path="/noise" element={<NoiseDetector onBack={() => navigate('/')} />} />
+              <Route path="/air-quality" element={<AirQualityDetector onBack={() => navigate('/')} />} />
+              <Route path="/playground" element={<PlaygroundDetector onBack={() => navigate('/')} />} />
+              <Route path="/public-transport" element={<PublicTransportDetector onBack={() => navigate('/')} />} />
+              <Route path="/cleanliness" element={<CleanlinessDetector onBack={() => navigate('/')} />} />
+              <Route path="/safety-check" element={
+                <div className="flex flex-col h-full p-4">
+                  <button onClick={() => navigate('/')} className="self-start text-blue-600 mb-2 font-bold">
+                    &larr; Back
+                  </button>
+                  <CivicEyeDetector onBack={() => navigate('/')} />
+                </div>
+              } />
+              <Route path="/my-reports" element={
+                <ProtectedRoute>
+                  <MyReportsView />
                 </ProtectedRoute>
               }
             />
@@ -260,7 +364,7 @@ function AppContent() {
               element={
                 <div className="flex flex-col h-full">
                   <button onClick={() => navigate('/')} className="self-start text-blue-600 mb-2">
-                    &larr; Back
+                    &larr; {t('common.back')}
                   </button>
                   <VandalismDetector />
                 </div>
@@ -271,7 +375,7 @@ function AppContent() {
               element={
                 <div className="flex flex-col h-full">
                   <button onClick={() => navigate('/')} className="self-start text-blue-600 mb-2">
-                    &larr; Back
+                    &larr; {t('common.back')}
                   </button>
                   <FloodDetector />
                 </div>
@@ -291,10 +395,17 @@ function AppContent() {
             <Route path="/smart-scan" element={<SmartScanner onBack={() => navigate('/')} />} />
             <Route path="/grievance-analysis" element={<GrievanceAnalysis onBack={() => navigate('/')} />} />
             <Route path="/noise" element={<NoiseDetector onBack={() => navigate('/')} />} />
+            <Route path="/traffic-sign" element={<TrafficSignDetector onBack={() => navigate('/')} />} />
+            <Route path="/abandoned-vehicle" element={<AbandonedVehicleDetector onBack={() => navigate('/')} />} />
+            <Route path="/public-facilities" element={<PublicFacilitiesDetector onBack={() => navigate('/')} />} />
+            <Route path="/construction-safety" element={<ConstructionSafetyDetector onBack={() => navigate('/')} />} />
+            <Route path="/water-leak" element={<WaterLeakDetector onBack={() => navigate('/')} />} />
+            <Route path="/crowd" element={<CrowdDetector onBack={() => navigate('/')} />} />
+            <Route path="/waste" element={<WasteDetector onBack={() => navigate('/')} />} />
             <Route path="/safety-check" element={
               <div className="flex flex-col h-full p-4">
                 <button onClick={() => navigate('/')} className="self-start text-blue-600 mb-2 font-bold">
-                  &larr; Back
+                  &larr; {t('common.back')}
                 </button>
                 <CivicEyeDetector onBack={() => navigate('/')} />
               </div>

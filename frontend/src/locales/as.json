@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "বিশ্বগুৰু - স্মাৰ্ট নাগৰিক সমস্যা ৰিপোৰ্টাৰ",
+        "subtitle": "আপোনাৰ সমাজৰ নাগৰিক সমস্যাসমূহ ৰিপোৰ্ট কৰক আৰু ট্ৰেক কৰক",
+        "privacyActive": "AI-চালিত গোপনীয়তা সুৰক্ষা সক্ৰিয় হৈ আছে",
+        "communityImpact": "সামাজিক প্ৰভাৱ",
+        "makingChange": "একে লগে আমি পৰিৱৰ্তন আনিছোঁ!",
+        "issuesSolved": "সমস্যা সমাধান কৰা হৈছে",
+        "smartScanner": "স্মাৰ্ট চিটি স্কেনাৰ",
+        "aiPoweredDetection": "AI-চালিত তৎক্ষণাত চিনাক্তকৰণ",
+        "categories": {
+            "roadTraffic": "ৰাস্তা আৰু ট্ৰাফিক",
+            "environmentSafety": "পৰিৱেশ আৰু সুৰক্ষা",
+            "civicServices": "নাগৰিক সেৱা",
+            "management": "ব্যৱস্থাপনা"
+        },
+        "issues": {
+            "pothole": "গাঁত",
+            "blockedRoad": "বন্ধ ৰাস্তা",
+            "illegalParking": "অবৈধ পাৰ্কিং",
+            "darkStreet": "আন্ধাৰ ৰাস্তা",
+            "trafficSign": "ট্ৰাফিক চিহ্ন",
+            "abandonedVehicle": "পৰিত্যক্ত বাহন",
+            "garbage": "আৱৰ্জনা",
+            "flood": "বানপানী",
+            "fireSmoke": "জুই/ধোঁৱা",
+            "treeHazard": "গছৰ বিপদ",
+            "strayAnimal": "বেৱাৰিছ পশু",
+            "pestControl": "কীট-পতংগ নিয়ন্ত্ৰণ",
+            "reportIssue": "সমস্যা ৰিপোৰ্ট কৰক",
+            "brokenInfra": "ভঙা আন্তঃগাঁথনি",
+            "graffiti": "গ্ৰাফিটি",
+            "findMLA": "বিধায়ক বিচাৰক",
+            "grievanceManagement": "অভিযোগ ব্যৱস্থাপনা",
+            "viewStats": "পৰিসংখ্যা চাওক",
+            "leaderboard": "লিডাৰবোৰ্ড",
+            "responsibilityMap": "দায়িত্ব মানচিত্ৰ",
+            "noise": "শব্দ",
+            "crowd": "ভিৰ",
+            "waterLeak": "পানী লিক হোৱা",
+            "waste": "আৱৰ্জনা পৃথকীকৰণ",
+            "civicEye": "নাগৰিক চকু",
+            "myReports": "মোৰ ৰিপোৰ্ট",
+            "analyzeGrievance": "অভিযোগ বিশ্লেষণ কৰক"
+        },
+        "tools": {
+            "whoIsResponsible": "কোন দায়ী?",
+            "topReporters": "শীৰ্ষ ৰিপোৰ্টাৰ",
+            "cameraCheck": "কেমেৰা পৰীক্ষা"
+        },
+        "activity": {
+            "communityActivity": "সামাজিক কাৰ্যকলাপ",
+            "liveFeed": "লাইভ ফিড",
+            "noActivity": "দেখুৱাবলৈ কোনো শেহতীয়া কাৰ্যকলাপ নাই।",
+            "loadMore": "অধিক কাৰ্যকলাপ লোড কৰক",
+            "verify": "পৰীক্ষা কৰক"
+        },
+        "stats": {
+            "totalImpact": "মুঠ প্ৰভাৱ",
+            "issuesResolved": "সমস্যা সমাধান কৰা হৈছে",
+            "activeUsers": "সক্ৰিয় ব্যৱহাৰকাৰী"
+        },
+        "landing": {
+            "empowering": "নাগৰিকৰ সবলীকৰণ",
+            "governance": "উন্নত শাসনৰ বাবে",
+            "subtitle": "নাগৰিক সমস্যা ৰিপোৰ্ট কৰক আৰু AI-উৎপন্ন সমাধান লাভ কৰক। শাসনত সক্ৰিয়ভাৱে অংশগ্ৰহণ কৰিবলৈ টেলিগ্ৰামৰ জৰিয়তে বিষয়াসকলৰ সৈতে সংযোগ হওক।",
+            "cta": "সমস্যা ৰিপোৰ্ট কৰক",
+            "cards": {
+                "reportCitizens": "নাগৰিকৰ সৈতে ৰিপোৰ্ট কৰক",
+                "generatedCivic": "উৎপন্ন নাগৰিক শাসন",
+                "govServices": "চৰকাৰী সেৱা",
+                "questionGov": "চৰকাৰক প্ৰশ্ন কৰক",
+                "govDesc": "প্ৰশ্ন দাখিল কৰক, স্বচ্ছতা দাবী কৰক আৰু বিষয়াসকলক জবাবদিহি কৰক",
+                "communityAction": "সামাজিক কাৰ্য",
+                "joinMovement": "আন্দোলনত যোগ দিয়ক"
+            },
+            "features": {
+                "publicTrust": "জনসাধাৰণৰ বিশ্বাস",
+                "ethics": "& নীতি",
+                "civicIssues": "নাগৰিক সমস্যা",
+                "reportProblems": "সমস্যা ৰিপোৰ্ট কৰক",
+                "voiceVote": "আপোনাৰ মাত মাতক",
+                "shareIdeas": "উন্নত নীতিৰ বাবে ধাৰণা শ্বেয়াৰ কৰক",
+                "aiDemocracy": "গণতন্ত্ৰৰ বাবে AI",
+                "civicActions": "& নাগৰিক পদক্ষেপ",
+                "aiDesc": "স্বচ্ছ শাসন আৰু দ্ৰুত সমাধানৰ বাবে প্ৰযুক্তিৰ ব্যৱহাৰ।",
+                "smartAnalysis": "স্মাৰ্ট বিশ্লেষণ",
+                "aiInsights": "AI-চালিত অন্তৰ্দৃষ্টি",
+                "citizenCount": "১০ হাজাৰতকৈ অধিক সক্ৰিয় নাগৰিক",
+                "secureSafe": "সুৰক্ষিত আৰু নিৰাপদ",
+                "verifiedReports": "পৰীক্ষিত ৰিপোৰ্ট",
+                "quickAction": "দ্ৰুত পদক্ষেপ",
+                "responseTime": "২৪ ঘণ্টাৰ ভিতৰত উত্তৰ"
+            }
+        }
+    },
+    "common": {
+        "loading": "লোড হৈ আছে...",
+        "error": "ত্ৰুটি",
+        "submit": "দাখিল কৰক",
+        "cancel": "বাতিল কৰক",
+        "yes": "হয়",
+        "no": "নহয়",
+        "back": "পিছলৈ"
+    }
+}

@@ -8,6 +8,7 @@ from backend.cache import recent_issues_cache
 from backend.ai_service import generate_action_plan, build_x_post
 from backend.grievance_service import GrievanceService
 from backend.schemas import IssueSummaryResponse
+from backend.adaptive_weights import AdaptiveWeights
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,8 @@ async def process_action_plan_background(issue_id: int, description: str, catego
         # Update issue in DB
         issue = db.query(Issue).filter(Issue.id == issue_id).first()
         if issue:
-            issue.action_plan = action_plan
+            current_plan = issue.action_plan or {}
+            issue.action_plan = {**current_plan, **action_plan}
             db.commit()
 
             # Invalidate cache to ensure users get the updated action plan
@@ -43,22 +45,12 @@ async def create_grievance_from_issue_background(issue_id: int):
         # Get grievance service
         grievance_service = GrievanceService()
 
-        # Map issue category to grievance severity
-        severity_mapping = {
-            'pothole': 'high',
-            'garbage': 'medium',
-            'streetlight': 'medium',
-            'flood': 'critical',
-            'infrastructure': 'high',
-            'parking': 'low',
-            'fire': 'critical',
-            'animal': 'medium',
-            'blocked': 'high',
-            'tree': 'medium',
-            'pest': 'low',
-            'vandalism': 'medium'
-        }
+        # Map issue category to grievance severity using AdaptiveWeights
+        # Load fresh weights to ensure we use the latest optimized mapping
+        weights_manager = AdaptiveWeights()
+        severity_mapping = weights_manager.get_weights().get("severity_mapping", {})
 
+        # Default fallback if mapping fails
         severity = severity_mapping.get(issue.category.lower(), 'medium')
 
         # Create grievance data

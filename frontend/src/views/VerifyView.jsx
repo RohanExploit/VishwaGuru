@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Camera, Upload, CheckCircle, XCircle, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { Camera, Upload, CheckCircle, XCircle, AlertTriangle, ArrowLeft, ShieldCheck, ShieldAlert, RefreshCw } from 'lucide-react';
 import { issuesApi } from '../api/issues';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
@@ -14,20 +14,18 @@ const VerifyView = () => {
   const [image, setImage] = useState(null);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [blockchainResult, setBlockchainResult] = useState(null);
+  const [verifyingBlockchain, setVerifyingBlockchain] = useState(false);
 
   useEffect(() => {
     const fetchIssue = async () => {
       try {
-        const issues = await issuesApi.getRecent();
-        const found = issues.find(i => i.id === parseInt(id));
-        if (found) {
-          setIssue(found);
-        } else {
-          setError("Issue not found in recent list.");
-        }
+        // Optimized: Fetch single issue directly by ID (O(1)) instead of list filtering (O(N))
+        const data = await issuesApi.getById(id);
+        setIssue(data);
       } catch (err) {
         console.error("Load failed", err);
-        setError("Failed to load issue.");
+        setError("Failed to load issue. It might not exist.");
       } finally {
         setLoading(false);
       }
@@ -39,6 +37,18 @@ const VerifyView = () => {
     if (e.target.files && e.target.files[0]) {
       setImage(e.target.files[0]);
       setResult(null); // Reset result on new image
+    }
+  };
+
+  const handleVerifyBlockchain = async () => {
+    setVerifyingBlockchain(true);
+    try {
+      const data = await issuesApi.verifyBlockchain(id);
+      setBlockchainResult(data);
+    } catch (err) {
+      console.error("Blockchain verification failed", err);
+    } finally {
+      setVerifyingBlockchain(false);
     }
   };
 
@@ -84,6 +94,51 @@ const VerifyView = () => {
             </span>
         </div>
         <p className="text-gray-700 mb-4">{issue.description}</p>
+
+        {/* Blockchain Integrity Section */}
+        <div className="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-200">
+            <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                    <ShieldCheck size={18} className="text-blue-600" />
+                    <h3 className="font-bold text-gray-800 text-sm">Blockchain Integrity Seal</h3>
+                </div>
+                {!blockchainResult && (
+                    <button
+                        onClick={handleVerifyBlockchain}
+                        disabled={verifyingBlockchain}
+                        className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 disabled:opacity-50"
+                    >
+                        {verifyingBlockchain ? <RefreshCw size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+                        Verify Seal
+                    </button>
+                )}
+            </div>
+
+            {blockchainResult ? (
+                <div className={`flex items-start gap-3 p-2 rounded ${blockchainResult.is_valid ? 'bg-green-100/50' : 'bg-red-100/50'}`}>
+                    {blockchainResult.is_valid ? (
+                        <ShieldCheck size={20} className="text-green-600 shrink-0" />
+                    ) : (
+                        <ShieldAlert size={20} className="text-red-600 shrink-0" />
+                    )}
+                    <div>
+                        <p className={`text-xs font-bold ${blockchainResult.is_valid ? 'text-green-800' : 'text-red-800'}`}>
+                            {blockchainResult.is_valid ? 'Integrity Verified' : 'Integrity Check Failed'}
+                        </p>
+                        <p className="text-[10px] text-gray-600 font-mono break-all mt-1">
+                            Hash: {blockchainResult.current_hash}
+                        </p>
+                        <p className="text-[10px] text-gray-500 mt-1 italic">
+                            {blockchainResult.message}
+                        </p>
+                    </div>
+                </div>
+            ) : (
+                <p className="text-[10px] text-gray-500 italic">
+                    This report is cryptographically sealed. Click verify to check its integrity on the chain.
+                </p>
+            )}
+        </div>
 
         <div className="border-t pt-4">
             <h3 className="font-semibold mb-3">Upload Proof of Fix</h3>

@@ -10,8 +10,13 @@ __pycache__/
 # Virtual Environment (CRITICAL)
 venv/
 
-# Environment variables
+# Environment variables (CRITICAL - Contains secrets)
 .env
+.env.local
+.env.development
+.env.production
+.env.test
+.env*.local
 
 # =====================
 # Data
