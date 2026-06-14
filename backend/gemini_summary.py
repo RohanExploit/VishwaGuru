@@ -6,7 +6,7 @@ Includes retry logic with exponential backoff for handling transient failures.
 """
 import os
 import google.generativeai as genai
-from typing import Dict, Optional
+from typing import Dict, Optional, Callable, Any
 import warnings
 from async_lru import alru_cache
 from retry_utils import exponential_backoff_retry
@@ -18,12 +18,16 @@ logger = logging.getLogger(__name__)
 # Suppress deprecation warnings from google.generativeai
 warnings.filterwarnings("ignore", category=FutureWarning, module="google.generativeai")
 
-# Configure Gemini (reuses existing configuration)
-# Use provided key as fallback if env var is missing
-api_key = os.environ.get("GEMINI_API_KEY", "AIzaSyB8_i3tbDE3GmX4CsQ8G3mD3pB2WrHi5C8")
+logger = logging.getLogger(__name__)
+
+# Configure Gemini (mandatory environment variable)
+api_key = os.environ.get("GEMINI_API_KEY")
+
 if api_key:
     genai.configure(api_key=api_key)
-
+else:
+    # Gemini disabled (mock/local mode)
+    genai = None
 
 def _get_fallback_summary(mla_name: str, assembly_constituency: str, district: str) -> str:
     """
@@ -89,7 +93,7 @@ async def generate_mla_summary(
         assembly_constituency: Assembly constituency name
         mla_name: Name of the MLA
         issue_category: Optional category of issue for context
-        
+
     Returns:
         A short paragraph describing the MLA's role and responsibilities
     """
