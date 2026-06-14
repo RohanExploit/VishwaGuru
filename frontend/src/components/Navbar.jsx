@@ -6,9 +6,11 @@ import {
     Menu, X, Sun, Moon, ChevronDown,
     LayoutGrid, Camera, XCircle, Truck, Lightbulb,
     Leaf, Trash2, Droplets, Flame, Dog,
-    Monitor, Activity, MapPin, Trophy, Search
+    Monitor, Activity, MapPin, Trophy, Search,
+    User, LogOut, LogIn
 } from 'lucide-react';
 import { useDarkMode } from '../contexts/DarkModeContext';
+import { useAuth } from '../contexts/AuthContext';
 import LanguageSelector from './LanguageSelector';
 
 const Navbar = () => {
@@ -19,6 +21,23 @@ const Navbar = () => {
     const [isServicesOpen, setIsServicesOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
     const { isDarkMode, toggleDarkMode } = useDarkMode();
+    const { user, logout } = useAuth();
+    const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+    const handleLogout = () => {
+        logout();
+        setIsProfileOpen(false);
+        navigate('/login');
+    };
+
+    // Close profile dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = () => setIsProfileOpen(false);
+        if (isProfileOpen) {
+            document.addEventListener('click', handleClickOutside);
+            return () => document.removeEventListener('click', handleClickOutside);
+        }
+    }, [isProfileOpen]);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -84,6 +103,7 @@ const Navbar = () => {
             title: t('home.categories.management'),
             icon: <Monitor size={18} />,
             items: [
+                { id: 'insight', label: "Civic Insight", icon: <Activity size={18} />, path: '/insight' },
                 { id: 'stats', label: t('home.issues.viewStats'), icon: <Activity size={18} />, path: '/stats' },
                 { id: 'map', label: t('home.issues.responsibilityMap'), icon: <MapPin size={18} />, path: '/map' },
                 { id: 'leaderboard', label: t('home.issues.leaderboard'), icon: <Trophy size={18} />, path: '/leaderboard' },
@@ -146,6 +166,53 @@ const Navbar = () => {
                         >
                             {isDarkMode ? <Sun size={20} className="text-yellow-500" /> : <Moon size={20} />}
                         </button>
+
+                        {/* User Profile / Login */}
+                        {user ? (
+                            <div className="relative">
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); setIsProfileOpen(!isProfileOpen); }}
+                                    className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800/50 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all duration-200 shadow-sm"
+                                >
+                                    <User size={18} />
+                                    <span className="text-sm font-bold max-w-[120px] truncate">{user.full_name || user.email}</span>
+                                    <ChevronDown size={14} className={`transition-transform duration-300 ${isProfileOpen ? 'rotate-180' : ''}`} />
+                                </button>
+                                <AnimatePresence>
+                                    {isProfileOpen && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                                            className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden z-50"
+                                        >
+                                            <div className="p-4 border-b border-gray-100 dark:border-gray-800">
+                                                <p className="text-sm font-black text-gray-900 dark:text-white truncate">{user.full_name || 'User'}</p>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
+                                                <span className="inline-block mt-1 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">{user.role}</span>
+                                            </div>
+                                            <div className="p-2">
+                                                <button
+                                                    onClick={handleLogout}
+                                                    className="flex w-full items-center gap-3 px-4 py-3 text-sm font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
+                                                >
+                                                    <LogOut size={16} />
+                                                    Logout
+                                                </button>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+                        ) : (
+                            <button
+                                onClick={() => navigate('/login')}
+                                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-all duration-200 shadow-sm"
+                            >
+                                <LogIn size={16} />
+                                Login
+                            </button>
+                        )}
                     </div>
 
                     {/* Mobile Menu Button */}
@@ -321,6 +388,39 @@ const Navbar = () => {
                                     <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Settings</p>
                                     <LanguageSelector />
                                 </div>
+
+                                {/* Mobile User/Logout */}
+                                <div className="px-4">
+                                    {user ? (
+                                        <div className="p-5 bg-gray-50 dark:bg-gray-900/50 rounded-2xl space-y-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                                                    <User size={20} className="text-blue-600 dark:text-blue-400" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-black text-gray-900 dark:text-white">{user.full_name || 'User'}</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">{user.email}</p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => { handleLogout(); setIsMenuOpen(false); }}
+                                                className="flex w-full items-center justify-center gap-2 py-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl font-bold text-sm"
+                                            >
+                                                <LogOut size={16} />
+                                                Logout
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={() => { navigate('/login'); setIsMenuOpen(false); }}
+                                            className="flex w-full items-center justify-center gap-2 py-4 bg-blue-600 text-white rounded-2xl font-black text-sm shadow-xl"
+                                        >
+                                            <LogIn size={18} />
+                                            Login / Sign Up
+                                        </button>
+                                    )}
+                                </div>
+
                                 <div className="px-4 pb-12">
                                     <div className="p-6 bg-gradient-to-br from-blue-600 to-blue-700 rounded-[2rem] text-white shadow-2xl shadow-blue-600/30">
                                         <h4 className="text-lg font-black mb-2">Need help?</h4>

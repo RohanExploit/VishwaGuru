@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.models import User, UserRole
 from backend.schemas import UserCreate, UserResponse, Token, UserLogin
-from backend.config import get_config
+from backend.config import get_auth_config
 from backend.dependencies import get_current_active_user
 from sqlalchemy.exc import IntegrityError
 from backend.utils import verify_password, get_password_hash
@@ -25,7 +25,7 @@ router = APIRouter(
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    config = get_config()
+    config = get_auth_config()
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
@@ -77,7 +77,7 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    config = get_config()
+    config = get_auth_config()
     access_token_expires = timedelta(minutes=config.access_token_expire_minutes)
     access_token = create_access_token(
         data={"sub": user.email, "role": user.role.value}, # Store role in token
@@ -109,7 +109,7 @@ def login_json(user_credentials: UserLogin, db: Session = Depends(get_db)):
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    config = get_config()
+    config = get_auth_config()
     access_token_expires = timedelta(minutes=config.access_token_expire_minutes)
     access_token = create_access_token(
         data={"sub": user.email, "role": user.role.value},

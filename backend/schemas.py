@@ -55,6 +55,8 @@ class IssueSummaryResponse(BaseModel):
 
 class IssueResponse(IssueSummaryResponse):
     action_plan: Optional[Union[Dict[str, Any], Any]] = Field(None, description="Generated action plan")
+    integrity_hash: Optional[str] = Field(None, description="Current integrity hash")
+    previous_integrity_hash: Optional[str] = Field(None, description="Previous issue integrity hash")
 
 class IssueCreateRequest(BaseModel):
     description: str = Field(..., min_length=10, max_length=1000, description="Issue description")
@@ -276,8 +278,84 @@ class ClosureStatusResponse(BaseModel):
 class BlockchainVerificationResponse(BaseModel):
     is_valid: bool = Field(..., description="Whether the issue integrity is intact")
     current_hash: Optional[str] = Field(None, description="Current integrity hash stored in DB")
+    previous_hash: Optional[str] = Field(None, description="Previous integrity hash used for verification")
     computed_hash: str = Field(..., description="Hash computed from current issue data and previous issue's hash")
     message: str = Field(..., description="Verification result message")
+
+
+# Resolution Proof Schemas (Issue #292)
+
+class GenerateRPTRequest(BaseModel):
+    grievance_id: int = Field(..., description="Grievance ID to generate token for")
+    authority_email: str = Field(..., description="Email of the authority resolving the grievance")
+    geofence_radius_meters: Optional[float] = Field(200.0, ge=50, le=1000, description="Geofence radius in meters")
+
+
+class RPTResponse(BaseModel):
+    token_id: str = Field(..., description="Unique token identifier")
+    grievance_id: int = Field(..., description="Associated grievance ID")
+    geofence_latitude: float = Field(..., description="Geofence center latitude")
+    geofence_longitude: float = Field(..., description="Geofence center longitude")
+    geofence_radius_meters: float = Field(..., description="Geofence radius in meters")
+    valid_from: datetime = Field(..., description="Token validity start time")
+    valid_until: datetime = Field(..., description="Token expiry time")
+    token_signature: str = Field(..., description="Cryptographic signature of the token")
+    message: str = Field(..., description="Status message")
+
+
+class SubmitEvidenceRequest(BaseModel):
+    token_id: str = Field(..., description="Resolution proof token ID")
+    evidence_hash: str = Field(..., min_length=64, max_length=64, description="SHA-256 hash of the evidence media file")
+    gps_latitude: float = Field(..., ge=-90, le=90, description="GPS latitude of capture location")
+    gps_longitude: float = Field(..., ge=-180, le=180, description="GPS longitude of capture location")
+    capture_timestamp: datetime = Field(..., description="Timestamp when evidence was captured")
+    device_fingerprint_hash: Optional[str] = Field(None, description="Hash of device fingerprint")
+
+
+class EvidenceResponse(BaseModel):
+    id: int = Field(..., description="Evidence record ID")
+    grievance_id: int = Field(..., description="Associated grievance ID")
+    evidence_hash: str = Field(..., description="SHA-256 hash of the evidence")
+    gps_latitude: float = Field(..., description="Capture GPS latitude")
+    gps_longitude: float = Field(..., description="Capture GPS longitude")
+    capture_timestamp: datetime = Field(..., description="When evidence was captured")
+    verification_status: str = Field(..., description="Verification status: pending, verified, flagged, fraud_detected")
+    server_signature: str = Field(..., description="Server cryptographic signature")
+    created_at: datetime = Field(..., description="Record creation timestamp")
+    message: str = Field(..., description="Status message")
+
+
+class VerificationResponse(BaseModel):
+    grievance_id: int = Field(..., description="Grievance ID")
+    is_verified: bool = Field(..., description="Whether the resolution is cryptographically verified")
+    verification_status: str = Field(..., description="Status: pending, verified, flagged, fraud_detected")
+    resolution_timestamp: Optional[datetime] = Field(None, description="When the grievance was resolved")
+    location_match: bool = Field(..., description="Whether evidence GPS matches grievance geofence")
+    evidence_integrity: bool = Field(..., description="Whether evidence hash is intact")
+    evidence_hash: Optional[str] = Field(None, description="SHA-256 hash fingerprint for transparency")
+    evidence_count: int = Field(0, description="Number of evidence records")
+    message: str = Field(..., description="Human-readable verification summary")
+
+
+class EvidenceAuditLogResponse(BaseModel):
+    id: int = Field(..., description="Audit log entry ID")
+    evidence_id: int = Field(..., description="Associated evidence ID")
+    action: str = Field(..., description="Action: created, verified, flagged, fraud_detected")
+    details: Optional[str] = Field(None, description="Additional details")
+    actor_email: Optional[str] = Field(None, description="Actor who triggered the action")
+    timestamp: datetime = Field(..., description="When the action occurred")
+
+
+class AuditTrailResponse(BaseModel):
+    grievance_id: int = Field(..., description="Grievance ID")
+    audit_entries: List[EvidenceAuditLogResponse] = Field(default_factory=list, description="Audit trail entries")
+    total_entries: int = Field(0, description="Total number of audit entries")
+
+
+class DuplicateCheckResponse(BaseModel):
+    is_duplicate: bool = Field(..., description="Whether the evidence hash is a duplicate")
+    duplicate_grievance_ids: List[int] = Field(default_factory=list, description="Grievance IDs with matching hash")
+    message: str = Field(..., description="Duplicate check result message")
 
 # Auth Schemas
 class UserBase(BaseModel):
@@ -362,3 +440,101 @@ class SupportedLanguagesResponse(BaseModel):
     """Response model for supported languages"""
     languages: Dict[str, str] = Field(..., description="Dictionary of language code to language name")
     total_count: int = Field(..., description="Total number of supported languages")
+
+# Field Officer Check-In System Schemas (Issue #288)
+
+class OfficerCheckInRequest(BaseModel):
+    """Request model for field officer check-in"""
+    issue_id: int = Field(..., description="ID of the issue being visited")
+    grievance_id: Optional[int] = Field(None, description="Optional grievance ID if linked")
+    officer_email: str = Field(..., description="Officer's email address")
+    officer_name: str = Field(..., min_length=2, max_length=100, description="Officer's full name")
+    officer_department: Optional[str] = Field(None, max_length=100, description="Department name")
+    officer_designation: Optional[str] = Field(None, max_length=100, description="Officer's designation")
+    check_in_latitude: float = Field(..., ge=-90, le=90, description="Check-in GPS latitude")
+    check_in_longitude: float = Field(..., ge=-180, le=180, description="Check-in GPS longitude")
+    visit_notes: Optional[str] = Field(None, max_length=1000, description="Visit notes/observations")
+    geofence_radius_meters: Optional[float] = Field(100.0, ge=10, le=1000, description="Acceptable distance from site (meters)")
+
+class OfficerCheckOutRequest(BaseModel):
+    """Request model for field officer check-out"""
+    visit_id: int = Field(..., description="ID of the visit to check out from")
+    check_out_latitude: float = Field(..., ge=-90, le=90, description="Check-out GPS latitude")
+    check_out_longitude: float = Field(..., ge=-180, le=180, description="Check-out GPS longitude")
+    visit_duration_minutes: Optional[int] = Field(None, ge=0, le=1440, description="Visit duration in minutes")
+    additional_notes: Optional[str] = Field(None, max_length=1000, description="Additional notes at check-out")
+
+class VisitImageUploadResponse(BaseModel):
+    """Response for visit image upload"""
+    visit_id: int = Field(..., description="Visit ID")
+    image_paths: List[str] = Field(..., description="Paths to uploaded images")
+    message: str = Field(..., description="Success message")
+
+class FieldOfficerVisitResponse(BaseModel):
+    """Response model for field officer visit (authenticated users)"""
+    id: int = Field(..., description="Visit ID")
+    issue_id: int = Field(..., description="Issue ID")
+    grievance_id: Optional[int] = Field(None, description="Grievance ID")
+    officer_email: str = Field(..., description="Officer email")
+    officer_name: str = Field(..., description="Officer name")
+    officer_department: Optional[str] = Field(None, description="Department")
+    officer_designation: Optional[str] = Field(None, description="Designation")
+    check_in_latitude: float = Field(..., description="Check-in latitude")
+    check_in_longitude: float = Field(..., description="Check-in longitude")
+    check_in_time: datetime = Field(..., description="Check-in timestamp")
+    check_out_time: Optional[datetime] = Field(None, description="Check-out timestamp")
+    distance_from_site: Optional[float] = Field(None, description="Distance from site in meters")
+    within_geofence: bool = Field(..., description="Whether check-in was within geofence")
+    visit_notes: Optional[str] = Field(None, description="Visit notes")
+    visit_images: Optional[List[str]] = Field(None, description="Visit image paths")
+    visit_duration_minutes: Optional[int] = Field(None, description="Visit duration")
+    status: str = Field(..., description="Visit status")
+    verified_by: Optional[str] = Field(None, description="Verified by")
+    verified_at: Optional[datetime] = Field(None, description="Verification timestamp")
+    is_public: bool = Field(..., description="Public visibility")
+    created_at: datetime = Field(..., description="Creation timestamp")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PublicFieldOfficerVisitResponse(BaseModel):
+    """Public response model for field officer visit (PII removed - no officer_email)"""
+    id: int = Field(..., description="Visit ID")
+    issue_id: int = Field(..., description="Issue ID")
+    grievance_id: Optional[int] = Field(None, description="Grievance ID")
+    officer_name: str = Field(..., description="Officer name")
+    officer_department: Optional[str] = Field(None, description="Department")
+    officer_designation: Optional[str] = Field(None, description="Designation")
+    check_in_latitude: float = Field(..., description="Check-in latitude")
+    check_in_longitude: float = Field(..., description="Check-in longitude")
+    check_in_time: datetime = Field(..., description="Check-in timestamp")
+    check_out_time: Optional[datetime] = Field(None, description="Check-out timestamp")
+    distance_from_site: Optional[float] = Field(None, description="Distance from site in meters")
+    within_geofence: bool = Field(..., description="Whether check-in was within geofence")
+    visit_notes: Optional[str] = Field(None, description="Visit notes")
+    visit_images: Optional[List[str]] = Field(None, description="Visit image paths")
+    visit_duration_minutes: Optional[int] = Field(None, description="Visit duration")
+    status: str = Field(..., description="Visit status")
+    verified_by: Optional[str] = Field(None, description="Verified by")
+    verified_at: Optional[datetime] = Field(None, description="Verification timestamp")
+    is_public: bool = Field(..., description="Public visibility")
+    created_at: datetime = Field(..., description="Creation timestamp")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class VisitHistoryResponse(BaseModel):
+    """Response for visit history of an issue"""
+    issue_id: int = Field(..., description="Issue ID")
+    total_visits: int = Field(..., description="Total number of visits")
+    visits: List[PublicFieldOfficerVisitResponse] = Field(..., description="List of visits (PII removed for public access)")
+
+
+class VisitStatsResponse(BaseModel):
+    """Response for visit statistics"""
+    total_visits: int = Field(..., description="Total visits")
+    verified_visits: int = Field(..., description="Verified visits")
+    within_geofence_count: int = Field(..., description="Visits within geofence")
+    outside_geofence_count: int = Field(..., description="Visits outside geofence")
+    unique_officers: int = Field(..., description="Number of unique officers")
+    average_distance_from_site: Optional[float] = Field(None, description="Average distance in meters")
