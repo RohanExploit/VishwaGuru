@@ -5,16 +5,16 @@ from enum import Enum
 
 class IssueCategory(str, Enum):
     ROAD = "Road"
-
-class UserRole(str, Enum):
-    ADMIN = "admin"
-    USER = "user"
-    OFFICIAL = "official"
     WATER = "Water"
     STREETLIGHT = "Streetlight"
     GARBAGE = "Garbage"
     COLLEGE_INFRA = "College Infra"
     WOMEN_SAFETY = "Women Safety"
+
+class UserRole(str, Enum):
+    ADMIN = "admin"
+    USER = "user"
+    OFFICIAL = "official"
 
 class IssueStatus(str, Enum):
     OPEN = "open"
@@ -271,6 +271,12 @@ class ClosureStatusResponse(BaseModel):
     required_confirmations: int = Field(..., description="Number of confirmations needed")
     confirmation_deadline: Optional[datetime] = Field(None, description="Deadline for confirmations")
     days_remaining: Optional[int] = Field(None, description="Days until deadline")
+
+class BlockchainVerificationResponse(BaseModel):
+    is_valid: bool = Field(..., description="Whether the issue integrity is intact")
+    current_hash: Optional[str] = Field(None, description="Current integrity hash stored in DB")
+    computed_hash: str = Field(..., description="Hash computed from current issue data and previous issue's hash")
+    message: str = Field(..., description="Verification result message")
 
 # Auth Schemas
 class UserBase(BaseModel):
