@@ -6,7 +6,6 @@ google-generativeai
 python-multipart
 psycopg2-binary
 async-lru
-huggingface-hub
 httpx
 pywebpush
 Pillow

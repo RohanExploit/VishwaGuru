@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - Mtaalamu wa Kuripoti Masuala ya Kiraia",
+        "subtitle": "Ripoti na ufuatilie masuala ya kiraia katika jamii yako",
+        "privacyActive": "Ulinzi wa Faragha Unaoendeshwa na AI Umewashwa",
+        "communityImpact": "Athari kwa Jamii",
+        "makingChange": "Pamoja tunaleta mabadiliko!",
+        "issuesSolved": "Masuala Yaliyotatuliwa",
+        "smartScanner": "Scanner ya Mji Mahiri",
+        "aiPoweredDetection": "Ugunduzi wa Papo Hapo Unaoendeshwa na AI",
+        "categories": {
+            "roadTraffic": "Barabara & Trafiki",
+            "environmentSafety": "Mazingira & Usalama",
+            "civicServices": "Huduma za Kiraia",
+            "management": "Usimamizi"
+        },
+        "issues": {
+            "pothole": "Shimo barabarani",
+            "blockedRoad": "Barabara iliyozibwa",
+            "illegalParking": "Maegesho haramu",
+            "darkStreet": "Barabara yenye giza",
+            "trafficSign": "Alama ya barabarani",
+            "abandonedVehicle": "Gari lililotelekezwa",
+            "garbage": "Taka",
+            "flood": "Mafuriko",
+            "fireSmoke": "Moto/Moshi",
+            "treeHazard": "Hatari ya mti",
+            "strayAnimal": "Mnyama aliyepotea",
+            "pestControl": "Uthibiti wa wadudu",
+            "reportIssue": "Ripoti Tatizo",
+            "brokenInfra": "Miundombinu iliyoharibika",
+            "graffiti": "Michoro ya kuta",
+            "findMLA": "Tafuta Mwakilishi",
+            "grievanceManagement": "Usimamizi wa Malalamiko",
+            "viewStats": "Angalia Takwimu",
+            "leaderboard": "Bao za Viongozi",
+            "responsibilityMap": "Ramani ya Majukumu",
+            "noise": "Kelele",
+            "crowd": "Umati",
+            "waterLeak": "Uvujaji wa maji",
+            "waste": "Mchambuzi wa Taka",
+            "civicEye": "Jicho la Kiraia",
+            "myReports": "Ripoti Zangu",
+            "analyzeGrievance": "Changanua Lalamiko"
+        },
+        "tools": {
+            "whoIsResponsible": "Nani Anawajibika?",
+            "topReporters": "Waripoti Wakuu",
+            "cameraCheck": "Ukaguzi wa Kamera"
+        },
+        "activity": {
+            "communityActivity": "Shughuli za Jamii",
+            "liveFeed": "Mlisho wa Moja kwa Moja",
+            "noActivity": "Hakuna shughuli ya hivi karibuni ya kuonyesha.",
+            "loadMore": "Pakia Shughuli Zaidi",
+            "verify": "Thibitisha"
+        },
+        "stats": {
+            "totalImpact": "Athari Jumla",
+            "issuesResolved": "Masuala Yaliyotatuliwa",
+            "activeUsers": "Watumiaighal Amilifu"
+        },
+        "landing": {
+            "empowering": "Kuwawezesha Wananchi",
+            "governance": "kwa Utawala Bora",
+            "subtitle": "Ripoti masuala ya kiraia na upate suluhisho zinazozalishwa na AI. Ungana na maafisa kupitia Telegram.",
+            "cta": "Ripoti Tatizo",
+            "cards": {
+                "reportCitizens": "Ripoti na Wananchi",
+                "generatedCivic": "utawala wa kiraia uliozalishwa",
+                "govServices": "Huduma za Serikali",
+                "questionGov": "Ihoji Serikali",
+                "govDesc": "Wasilisha maswali, dai uwazi na uwashikilie maafisa kuwajibika",
+                "communityAction": "Hatua ya Jamii",
+                "joinMovement": "Jiunge na harakati"
+            },
+            "features": {
+                "publicTrust": "Imani ya Umma",
+                "ethics": "& Maadili",
+                "civicIssues": "Masuala ya Kiraia",
+                "reportProblems": "Ripoti matatizo",
+                "voiceVote": "Sema Sauti Yako",
+                "shareIdeas": "Shiriki mawazo kwa sera bora",
+                "aiDemocracy": "AI kwa Demokrasia",
+                "civicActions": "& Hatua za Kiraia",
+                "aiDesc": "Kutumia teknolojia kwa utawala wa uwazi na utatuzi wa haraka.",
+                "smartAnalysis": "Uchambuzi Mahiri",
+                "aiInsights": "Ufahamu Unaoendeshwa na AI",
+                "citizenCount": "10k+ Wananchi Amilifu",
+                "secureSafe": "Salama & Aminifu",
+                "verifiedReports": "Ripoti Zilizothibitishwa",
+                "quickAction": "Hatua ya Haraka",
+                "responseTime": "Muda wa Kujibu Saa 24"
+            }
+        }
+    },
+    "common": {
+        "loading": "Inapakia...",
+        "error": "Hitilafu",
+        "submit": "Wasilisha",
+        "cancel": "Ghairi",
+        "yes": "Ndiyo",
+        "no": "Hapana",
+        "back": "Rudi"
+    }
+}

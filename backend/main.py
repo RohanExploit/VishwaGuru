@@ -27,7 +27,7 @@ from backend.bot import start_bot_thread, stop_bot_thread
 from backend.init_db import migrate_db
 from backend.maharashtra_locator import load_maharashtra_pincode_data, load_maharashtra_mla_data
 from backend.exceptions import EXCEPTION_HANDLERS
-from backend.routers import issues, detection, grievances, utility, auth, admin
+from backend.routers import issues, detection, grievances, utility, auth, admin, analysis
 from backend.grievance_service import GrievanceService
 import backend.dependencies
 
@@ -58,8 +58,9 @@ async def background_initialization(app: FastAPI):
         logger.info("Maharashtra data pre-loaded successfully.")
 
         # 3. Start Telegram Bot in separate thread
-        await run_in_threadpool(start_bot_thread)
-        logger.info("Telegram bot started in separate thread.")
+        # Temporarily disabled for local testing
+        # await run_in_threadpool(start_bot_thread)
+        logger.info("Telegram bot initialization skipped for local testing.")
     except Exception as e:
         logger.error(f"Error during background initialization: {e}", exc_info=True)
 
@@ -132,18 +133,26 @@ if frontend_url != "*" and not (frontend_url.startswith("http://") or frontend_u
     raise ValueError(
         f"FRONTEND_URL must be a valid HTTP/HTTPS URL or '*'. Got: {frontend_url}"
     )
+    frontend_url = ""
 
-allowed_origins = [frontend_url]
+allowed_origins = []
+if frontend_url:
+    allowed_origins.append(frontend_url)
 
 if not is_production:
     dev_origins = [
         "http://localhost:3000",
         "http://localhost:5173",
+        "http://localhost:5174",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
         "http://localhost:8080",
     ]
     allowed_origins.extend(dev_origins)
+    # Also add the one from .env if it's different
+    if frontend_url not in allowed_origins:
+        allowed_origins.append(frontend_url)
 
 app.add_middleware(
     CORSMiddleware,
@@ -162,6 +171,7 @@ app.include_router(grievances.router, tags=["Grievances"])
 app.include_router(utility.router, tags=["Utility"])
 app.include_router(auth.router, tags=["Authentication"])
 app.include_router(admin.router)
+app.include_router(analysis.router, tags=["Analysis"])
 
 @app.get("/health")
 def health():

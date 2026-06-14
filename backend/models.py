@@ -157,8 +157,8 @@ class Issue(Base):
     user_email = Column(String, nullable=True, index=True)
     assigned_to = Column(String, nullable=True)  # Government official/department
     upvotes = Column(Integer, default=0, index=True)
-    latitude = Column(Float, nullable=True, index=True)
-    longitude = Column(Float, nullable=True, index=True)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
     location = Column(String, nullable=True)
     action_plan = Column(JSONEncodedDict, nullable=True)
     integrity_hash = Column(String, nullable=True)  # Blockchain integrity seal

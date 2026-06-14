@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - Slimme Melder voor Burgerzaken",
+        "subtitle": "Meld en volg burgerzaken in uw gemeenschap",
+        "privacyActive": "AI-gestuurde privacybescherming actief",
+        "communityImpact": "Gemeenschappelijke Impact",
+        "makingChange": "Samen maken we het verschil!",
+        "issuesSolved": "Opgeloste Problemen",
+        "smartScanner": "Smart City Scanner",
+        "aiPoweredDetection": "Directe AI-detectie",
+        "categories": {
+            "roadTraffic": "Weg & Verkeer",
+            "environmentSafety": "Milieu & Veiligheid",
+            "civicServices": "Burgerdiensten",
+            "management": "Management"
+        },
+        "issues": {
+            "pothole": "Gat in de weg",
+            "blockedRoad": "Geblokkeerde weg",
+            "illegalParking": "Foutparkeren",
+            "darkStreet": "Donkere straat",
+            "trafficSign": "Verkeersbord",
+            "abandonedVehicle": "Achtergelaten voertuig",
+            "garbage": "Afval",
+            "flood": "Overstroming",
+            "fireSmoke": "Vuur/Rook",
+            "treeHazard": "Gevaarlijke boom",
+            "strayAnimal": "Zwerfdier",
+            "pestControl": "Ongediertebestrijding",
+            "reportIssue": "Meld Probleem",
+            "brokenInfra": "Kapotte infrastructuur",
+            "graffiti": "Graffiti",
+            "findMLA": "Vind Vertegenwoordiger",
+            "grievanceManagement": "Klachtenmanagement",
+            "viewStats": "Bekijk Statistieken",
+            "leaderboard": "Leaderboard",
+            "responsibilityMap": "Verantwoordelijkheidskaart",
+            "noise": "Geluidsoverlast",
+            "crowd": "Drukte",
+            "waterLeak": "Waterlek",
+            "waste": "Afvalschieter",
+            "civicEye": "Burgeroog",
+            "myReports": "Mijn Rapporten",
+            "analyzeGrievance": "Analyseer Klacht"
+        },
+        "tools": {
+            "whoIsResponsible": "Wie is verantwoordelijk?",
+            "topReporters": "Toprapporteurs",
+            "cameraCheck": "Cameracheck"
+        },
+        "activity": {
+            "communityActivity": "Gemeenschapsactiviteit",
+            "liveFeed": "Live Feed",
+            "noActivity": "Geen recente activiteiten om weer te geven.",
+            "loadMore": "Laad Meer Activiteiten",
+            "verify": "Verifieer"
+        },
+        "stats": {
+            "totalImpact": "Totale Impact",
+            "issuesResolved": "Opgeloste Problemen",
+            "activeUsers": "Actieve Gebruikers"
+        },
+        "landing": {
+            "empowering": "Burgers Versterken",
+            "governance": "voor Beter Bestuur",
+            "subtitle": "Meld burgerzaken en ontvang door AI gegenereerde oplossingen. Maak contact met ambtenaren via Telegram.",
+            "cta": "Meld Probleem",
+            "cards": {
+                "reportCitizens": "Meld met Burgers",
+                "generatedCivic": "gegenereerd burgerbestuur",
+                "govServices": "Overheidsdiensten",
+                "questionGov": "Befrag de Overheid",
+                "govDesc": "Stuur vragen in, eis transparantie en houd ambtenaren verantwoordelijk",
+                "communityAction": "Gemeenschapsactie",
+                "joinMovement": "Sluit je aan bij de beweging"
+            },
+            "features": {
+                "publicTrust": "Publiek Vertrouwen",
+                "ethics": "& Ethiek",
+                "civicIssues": "Burgerzaken",
+                "reportProblems": "Meld problemen",
+                "voiceVote": "Laat uw stem horen",
+                "shareIdeas": "Deel ideeën voor beter beleid",
+                "aiDemocracy": "AI voor Democratie",
+                "civicActions": "& Burgeracties",
+                "aiDesc": "Technologie inzetten voor transparant bestuur en snellere oplossingen.",
+                "smartAnalysis": "Slimme Analyse",
+                "aiInsights": "AI-gestuurde Inzichten",
+                "citizenCount": "10k+ Actieve Burgers",
+                "secureSafe": "Veilig & Vertrouwd",
+                "verifiedReports": "Geverifieerde Rapporten",
+                "quickAction": "Snelle Actie",
+                "responseTime": "24u Reactietijd"
+            }
+        }
+    },
+    "common": {
+        "loading": "Laden...",
+        "error": "Fout",
+        "submit": "Verzenden",
+        "cancel": "Annuleren",
+        "yes": "Ja",
+        "no": "Nee",
+        "back": "Terug"
+    }
+}

@@ -1,0 +1,106 @@
+{
+    "home": {
+        "title": "VishwaGuru - Intelligenter Melder für Bürgeranliegen",
+        "subtitle": "Melden und verfolgen Sie Bürgeranliegen in Ihrer Gemeinde",
+        "privacyActive": "KI-gestützter Datenschutz aktiv",
+        "communityImpact": "Gemeinschaftliche Wirkung",
+        "makingChange": "Gemeinsam bewirken wir etwas!",
+        "issuesSolved": "Gelöste Probleme",
+        "smartScanner": "Smart City Scanner",
+        "aiPoweredDetection": "KI-gestützte Soforterkennung",
+        "categories": {
+            "roadTraffic": "Straße & Verkehr",
+            "environmentSafety": "Umwelt & Sicherheit",
+            "civicServices": "Bürgerdienste",
+            "management": "Management"
+        },
+        "issues": {
+            "pothole": "Schlagloch",
+            "blockedRoad": "Blockierte Straße",
+            "illegalParking": "Falschparken",
+            "darkStreet": "Dunkle Straße",
+            "trafficSign": "Verkehrsschild",
+            "abandonedVehicle": "Verlassenes Fahrzeug",
+            "garbage": "Müll",
+            "flood": "Überschwemmung",
+            "fireSmoke": "Feuer/Rauch",
+            "treeHazard": "Baumgefahr",
+            "strayAnimal": "Streunendes Tier",
+            "pestControl": "Schädlingsbekämpfung",
+            "reportIssue": "Problem melden",
+            "brokenInfra": "Defekte Infrastruktur",
+            "graffiti": "Graffiti",
+            "findMLA": "Abgeordneten finden",
+            "grievanceManagement": "Beschwerdemanagement",
+            "viewStats": "Statistiken ansehen",
+            "leaderboard": "Bestenliste",
+            "responsibilityMap": "Zuständigkeitskarte",
+            "noise": "Lärm",
+            "crowd": "Menschenmenge",
+            "waterLeak": "Wasserleck",
+            "waste": "Müllsortierer",
+            "civicEye": "Bürgerauge",
+            "myReports": "Meine Berichte",
+            "analyzeGrievance": "Beschwerde analysieren"
+        },
+        "tools": {
+            "whoIsResponsible": "Wer ist zuständig?",
+            "topReporters": "Top-Melder",
+            "cameraCheck": "Kameracheck"
+        },
+        "activity": {
+            "communityActivity": "Gemeinschaftsaktivität",
+            "liveFeed": "Live-Feed",
+            "noActivity": "Keine aktuellen Aktivitäten vorhanden.",
+            "loadMore": "Mehr laden",
+            "verify": "Verifizieren"
+        },
+        "stats": {
+            "totalImpact": "Gesamtwirkung",
+            "issuesResolved": "Gelöste Probleme",
+            "activeUsers": "Aktive Nutzer"
+        },
+        "landing": {
+            "empowering": "Bürger stärken",
+            "governance": "für bessere Verwaltung",
+            "subtitle": "Melden Sie Bürgeranliegen und erhalten Sie KI-generierte Lösungen. Kontaktieren Sie Beamte über Telegram.",
+            "cta": "Problem melden",
+            "cards": {
+                "reportCitizens": "Mit Bürgern melden",
+                "generatedCivic": "generierte Bürgerverwaltung",
+                "govServices": "Behördendienste",
+                "questionGov": "Regierung hinterfragen",
+                "govDesc": "Reichen Sie Anfragen ein, fordern Sie Transparenz und ziehen Sie Beamte zur Rechenschaft",
+                "communityAction": "Gemeinschaftsaktion",
+                "joinMovement": "Machen Sie mit"
+            },
+            "features": {
+                "publicTrust": "Öffentliches Vertrauen",
+                "ethics": "& Ethik",
+                "civicIssues": "Bürgeranliegen",
+                "reportProblems": "Probleme melden",
+                "voiceVote": "Verschaffen Sie sich Gehör",
+                "shareIdeas": "Teilen Sie Ideen für bessere Politik",
+                "aiDemocracy": "KI für Demokratie",
+                "civicActions": "& Bürgeraktionen",
+                "aiDesc": "Nutzung von Technologie für transparente Verwaltung und schnellere Lösungen.",
+                "smartAnalysis": "Intelligente Analyse",
+                "aiInsights": "KI-gestützte Einblicke",
+                "citizenCount": "10k+ aktive Bürger",
+                "secureSafe": "Sicher & Geschützt",
+                "verifiedReports": "Verifizierte Berichte",
+                "quickAction": "Schnelles Handeln",
+                "responseTime": "24h Reaktionszeit"
+            }
+        }
+    },
+    "common": {
+        "loading": "Laden...",
+        "error": "Fehler",
+        "submit": "Absenden",
+        "cancel": "Abbrechen",
+        "yes": "Ja",
+        "no": "Nein",
+        "back": "Zurück"
+    }
+}

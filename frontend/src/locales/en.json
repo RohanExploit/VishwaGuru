@@ -34,12 +34,64 @@
       "grievanceManagement": "Grievance Management",
       "viewStats": "View Stats",
       "leaderboard": "Leaderboard",
-      "responsibilityMap": "Responsibility Map"
+      "responsibilityMap": "Responsibility Map",
+      "noise": "Noise",
+      "crowd": "Crowd",
+      "waterLeak": "Water Leak",
+      "waste": "Waste Sorter",
+      "civicEye": "Civic Eye",
+      "myReports": "My Reports",
+      "analyzeGrievance": "Analyze Grievance"
+    },
+    "tools": {
+      "whoIsResponsible": "Who is Responsible?",
+      "topReporters": "Top Reporters",
+      "cameraCheck": "Camera Check"
+    },
+    "activity": {
+      "communityActivity": "Community Activity",
+      "liveFeed": "Live Feed",
+      "noActivity": "No recent activity to show.",
+      "loadMore": "Load More Activity",
+      "verify": "Verify"
     },
     "stats": {
       "totalImpact": "Total Impact",
       "issuesResolved": "Issues Resolved",
       "activeUsers": "Active Users"
+    },
+    "landing": {
+      "empowering": "Empowering Citizens",
+      "governance": "for Better Governance",
+      "subtitle": "Report civic issues and get AI-generated solutions. Connect with officials via Telegram to actively participate in governance.",
+      "cta": "Call Action Issue",
+      "cards": {
+        "reportCitizens": "Report Citizens with",
+        "generatedCivic": "generated civic governance",
+        "govServices": "Government Services",
+        "questionGov": "Question the Government",
+        "govDesc": "Submit queries, demand transparency, and hold officials accountable",
+        "communityAction": "Community Action",
+        "joinMovement": "Join the movement"
+      },
+      "features": {
+        "publicTrust": "Public Trust",
+        "ethics": "& Ethics",
+        "civicIssues": "Civic Issues",
+        "reportProblems": "Report problems",
+        "voiceVote": "Voice Your Vote",
+        "shareIdeas": "Share ideas for better policies",
+        "aiDemocracy": "AI for Democracy",
+        "civicActions": "& Civic Actions",
+        "aiDesc": "Leveraging technology for transparent governance and faster resolutions.",
+        "smartAnalysis": "Smart Analysis",
+        "aiInsights": "AI-Powered Insights",
+        "citizenCount": "10k+ Active Citizens",
+        "secureSafe": "Secure & Safe",
+        "verifiedReports": "Verified Reports",
+        "quickAction": "Quick Action",
+        "responseTime": "24h Response Time"
+      }
     }
   },
   "common": {
@@ -48,6 +100,7 @@
     "submit": "Submit",
     "cancel": "Cancel",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "back": "Back"
   }
 }
