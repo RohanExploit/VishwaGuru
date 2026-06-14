@@ -9,15 +9,26 @@
     "rewrites": [
       {
         "source": "/api/**",
-        "run": {
-          "serviceId": "vishwaguru-backend",
-          "region": "us-central1"
-        }
+        "function": "api"
       },
       {
         "source": "**",
         "destination": "/index.html"
       }
+    ]
+  },
+  "functions": {
+    "source": "functions",
+    "codebase": "default",
+    "ignore": [
+      "venv",
+      ".git",
+      "node_modules"
+    ],
+    "predeploy": [
+      "rm -rf functions/backend functions/data",
+      "cp -R backend functions/backend",
+      "cp -R data functions/data"
     ]
   }
 }
