@@ -16,6 +16,14 @@ except ImportError:
     MAGIC_AVAILABLE = False
 from typing import Optional
 
+# Try to import magic for MIME type detection, fallback to basic methods if unavailable (e.g., on Render)
+try:
+    import magic
+    HAS_MAGIC = True
+except ImportError:
+    HAS_MAGIC = False
+    logging.warning("python-magic not found. File validation will rely on PIL and mimetypes.")
+
 from backend.cache import user_upload_cache
 from backend.models import Issue
 from backend.schemas import DetectionResponse
@@ -76,11 +84,9 @@ def _validate_uploaded_file_sync(file: UploadFile) -> Optional[Image.Image]:
             detail=f"File too large. Maximum size allowed is {MAX_FILE_SIZE // (1024*1024)}MB"
         )
 
-    # Check MIME type from content using python-magic
+    # Check MIME type from content using python-magic (if available) or mimetypes
     try:
-        # Read first 1024 bytes for MIME detection
-        file_content = file.file.read(1024)
-        file.file.seek(0)  # Reset file pointer
+        detected_mime = None
 
         if MAGIC_AVAILABLE:
             detected_mime = magic.from_buffer(file_content, mime=True)

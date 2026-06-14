@@ -3,8 +3,6 @@ Spatial utilities for geospatial operations and deduplication.
 """
 import math
 from typing import List, Tuple, Optional
-from sklearn.cluster import DBSCAN
-import numpy as np
 
 from backend.models import Issue
 
@@ -33,6 +31,30 @@ def get_bounding_box(lat: float, lon: float, radius_meters: float) -> Tuple[floa
     max_lon = lon + lon_offset
 
     return min_lat, max_lat, min_lon, max_lon
+
+
+def equirectangular_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """
+    Calculate the distance between two points using the Equirectangular approximation.
+    Much faster than Haversine, but less accurate for large distances.
+    Suitable for small distances (< 1000km).
+
+    Returns distance in meters.
+    """
+    R = 6371000.0  # Earth's radius in meters
+
+    # Convert to radians
+    lat1_rad = math.radians(lat1)
+    lat2_rad = math.radians(lat2)
+
+    # Calculate longitude difference and normalize to [-pi, pi]
+    dlon_rad = math.radians(lon2 - lon1)
+    dlon_rad = (dlon_rad + math.pi) % (2 * math.pi) - math.pi
+
+    x = dlon_rad * math.cos((lat1_rad + lat2_rad) / 2)
+    y = lat2_rad - lat1_rad
+
+    return R * math.sqrt(x*x + y*y)
 
 
 def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -76,14 +98,24 @@ def find_nearby_issues(
     """
     nearby_issues = []
 
+    # Optimization: Use Equirectangular approximation for small radii (< 10km)
+    # It is significantly faster (avoids multiple trigonometric calls)
+    use_fast_dist = radius_meters < 10000.0
+
     for issue in issues:
         if issue.latitude is None or issue.longitude is None:
             continue
 
-        distance = haversine_distance(
-            target_lat, target_lon,
-            issue.latitude, issue.longitude
-        )
+        if use_fast_dist:
+            distance = equirectangular_distance(
+                target_lat, target_lon,
+                issue.latitude, issue.longitude
+            )
+        else:
+            distance = haversine_distance(
+                target_lat, target_lon,
+                issue.latitude, issue.longitude
+            )
 
         if distance <= radius_meters:
             nearby_issues.append((issue, distance))
@@ -113,6 +145,15 @@ def cluster_issues_dbscan(issues: List[Issue], eps_meters: float = 30.0) -> List
     ]
 
     if not valid_issues:
+        return []
+
+    # Import scikit-learn and numpy only when needed to avoid heavy startup overhead
+    # and potential import errors in environments with limited resources
+    try:
+        from sklearn.cluster import DBSCAN
+        import numpy as np
+    except ImportError:
+        # Fallback if scikit-learn is not installed
         return []
 
     # Convert to numpy array for DBSCAN
