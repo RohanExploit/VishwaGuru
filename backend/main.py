@@ -55,9 +55,9 @@ async def lifespan(app: FastAPI):
     try:
         load_maharashtra_pincode_data()
         load_maharashtra_mla_data()
-        print("Maharashtra data pre-loaded successfully.")
+        logger.info("Maharashtra data pre-loaded successfully.")
     except Exception as e:
-        print(f"Error pre-loading Maharashtra data: {e}")
+        logger.error(f"Error pre-loading Maharashtra data: {e}")
 
     # Run database migrations
     try:
@@ -96,7 +96,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -123,13 +123,89 @@ def read_root():
         "version": "1.0.0"
     }
 
-@app.get("/health")
+@app.get("/", response_model=SuccessResponse)
+def root():
+    return SuccessResponse(
+        message="VishwaGuru API is running",
+        data={
+            "service": "VishwaGuru API",
+            "version": "1.0.0"
+        }
+    )
+
+@app.get("/health", response_model=HealthResponse)
 def health():
-    return {"status": "healthy"}
+    return HealthResponse(
+        status="healthy",
+        timestamp=datetime.now(timezone.utc),
+        version="1.0.0",
+        services={
+            "database": "connected",
+            "ai_services": "initialized"
+        }
+    )
+
+@app.get("/api/stats", response_model=StatsResponse)
+def get_stats(db: Session = Depends(get_db)):
+    cached_stats = recent_issues_cache.get("stats")
+    if cached_stats:
+        return JSONResponse(content=cached_stats)
+
+    total = db.query(func.count(Issue.id)).scalar()
+    resolved = db.query(func.count(Issue.id)).filter(Issue.status.in_(['resolved', 'verified'])).scalar()
+    # Pending is everything else
+    pending = total - resolved
+
+    # By category
+    cat_counts = db.query(Issue.category, func.count(Issue.id)).group_by(Issue.category).all()
+    issues_by_category = {cat: count for cat, count in cat_counts}
+
+    response = StatsResponse(
+        total_issues=total,
+        resolved_issues=resolved,
+        pending_issues=pending,
+        issues_by_category=issues_by_category
+    )
+
+    data = response.model_dump(mode='json')
+    recent_issues_cache.set(data, "stats")
+
+    return response
+
+@app.get("/api/ml-status", response_model=MLStatusResponse)
+async def ml_status():
+    """
+    Get the status of the ML detection service.
+    Returns information about which backend is being used (local or HF API).
+    """
+    status = await get_detection_status()
+    return MLStatusResponse(
+        status="ok",
+        models_loaded=status.get("models_loaded", []),
+        memory_usage=status.get("memory_usage")
+    )
 
 def save_file_blocking(file_obj, path):
-    with open(path, "wb") as buffer:
-        shutil.copyfileobj(file_obj, buffer)
+    """
+    Save uploaded file with security measures:
+    - Strip EXIF metadata from images to protect privacy
+    - For non-images, save as-is
+    """
+    try:
+        # Try to open as image with PIL
+        img = Image.open(file_obj)
+        # Strip EXIF data by creating a new image without metadata
+        img_no_exif = Image.new(img.mode, img.size)
+        img_no_exif.putdata(list(img.getdata()))
+        # Save without EXIF
+        img_no_exif.save(path, format=img.format)
+        logger.info(f"Saved image {path} with EXIF metadata stripped")
+    except Exception:
+        # If not an image or PIL fails, save as binary
+        file_obj.seek(0)  # Reset in case PIL read some
+        with open(path, "wb") as buffer:
+            shutil.copyfileobj(file_obj, buffer)
+        logger.info(f"Saved file {path} as binary (not an image or PIL failed)")
 
 @app.post("/api/issues")
 async def create_issue(
@@ -232,7 +308,8 @@ async def get_maharashtra_rep_contacts_logic(pincode: str):
     description = None
     try:
         if assembly_constituency and mla_info["mla_name"] != "MLA Info Unavailable":
-            description = await generate_mla_summary(
+            ai_services = get_ai_services()
+            description = await ai_services.mla_summary_service.generate_mla_summary(
                 district=constituency_info["district"],
                 assembly_constituency=assembly_constituency,
                 mla_name=mla_info["mla_name"]

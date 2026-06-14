@@ -18,7 +18,7 @@ def test_health_endpoint():
     print(f"Health check response: {response.json()}")
     
     assert response.status_code == 200
-    assert response.json() == {"status": "healthy"}
+    assert response.json()["status"] == "healthy"
 
 def test_root_endpoint():
     """Test that the root endpoint is accessible"""
@@ -28,8 +28,9 @@ def test_root_endpoint():
     print(f"Root response: {response.json()}")
     
     assert response.status_code == 200
-    assert response.json()["status"] == "ok"
-    assert response.json()["service"] == "VishwaGuru API"
+    json_response = response.json()
+    assert "data" in json_response
+    assert json_response["data"]["service"] == "VishwaGuru API"
 
 if __name__ == "__main__":
     print("Testing startup and port binding...")

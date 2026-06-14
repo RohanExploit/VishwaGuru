@@ -1,10 +1,13 @@
 import os
 import logging
 import asyncio
+import threading
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters, ConversationHandler
-from database import engine, SessionLocal
-from models import Base, Issue
+from backend.database import engine, SessionLocal
+
+from backend.models import Base, Issue
+
 
 # Enable logging
 logging.basicConfig(
@@ -192,6 +195,17 @@ async def run_bot():
     return await build_app()
 
 if __name__ == '__main__':
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(run_bot())
-    loop.run_forever()
+    # For standalone bot testing
+    start_bot_thread()
+
+    # Keep main thread alive
+    try:
+        while True:
+            if not _bot_thread or not _bot_thread.is_alive():
+                logging.error("Bot thread died unexpectedly")
+                break
+            asyncio.sleep(5)
+    except KeyboardInterrupt:
+        logging.info("Received interrupt signal")
+    finally:
+        stop_bot_thread()
