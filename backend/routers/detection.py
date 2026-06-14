@@ -35,7 +35,11 @@ from backend.hf_api_service import (
     detect_civic_eye_clip,
     detect_graffiti_art_clip,
     detect_traffic_sign_clip,
-    detect_abandoned_vehicle_clip
+    detect_abandoned_vehicle_clip,
+    detect_air_quality_clip,
+    detect_playground_clip,
+    detect_public_transport_clip,
+    detect_cleanliness_verification_clip
 )
 from backend.dependencies import get_http_client
 import backend.dependencies
@@ -406,11 +410,8 @@ async def detect_graffiti_endpoint(image: UploadFile = File(...)):
 
 @router.post("/api/detect-traffic-sign")
 async def detect_traffic_sign_endpoint(request: Request, image: UploadFile = File(...)):
-    try:
-        image_bytes = await image.read()
-    except Exception as e:
-        logger.error(f"Invalid image file: {e}", exc_info=True)
-        raise HTTPException(status_code=400, detail="Invalid image file")
+    # Optimized Image Processing: Validation + Optimization
+    _, image_bytes = await process_uploaded_image(image)
 
     try:
         client = get_http_client(request)
@@ -423,6 +424,19 @@ async def detect_traffic_sign_endpoint(request: Request, image: UploadFile = Fil
 
 @router.post("/api/detect-abandoned-vehicle")
 async def detect_abandoned_vehicle_endpoint(request: Request, image: UploadFile = File(...)):
+    # Optimized Image Processing: Validation + Optimization
+    _, image_bytes = await process_uploaded_image(image)
+
+    try:
+        client = get_http_client(request)
+        detections = await detect_abandoned_vehicle_clip(image_bytes, client=client)
+        return {"detections": detections}
+    except Exception as e:
+        logger.error(f"Abandoned vehicle detection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.post("/api/detect-air-quality")
+async def detect_air_quality_endpoint(request: Request, image: UploadFile = File(...)):
     try:
         image_bytes = await image.read()
     except Exception as e:
@@ -431,8 +445,56 @@ async def detect_abandoned_vehicle_endpoint(request: Request, image: UploadFile 
 
     try:
         client = get_http_client(request)
-        detections = await detect_abandoned_vehicle_clip(image_bytes, client=client)
+        detections = await detect_air_quality_clip(image_bytes, client=client)
         return {"detections": detections}
     except Exception as e:
-        logger.error(f"Abandoned vehicle detection error: {e}", exc_info=True)
+        logger.error(f"Air quality detection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.post("/api/detect-playground")
+async def detect_playground_endpoint(request: Request, image: UploadFile = File(...)):
+    try:
+        image_bytes = await image.read()
+    except Exception as e:
+        logger.error(f"Invalid image file: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail="Invalid image file")
+
+    try:
+        client = get_http_client(request)
+        detections = await detect_playground_clip(image_bytes, client=client)
+        return {"detections": detections}
+    except Exception as e:
+        logger.error(f"Playground detection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.post("/api/detect-public-transport")
+async def detect_public_transport_endpoint(request: Request, image: UploadFile = File(...)):
+    try:
+        image_bytes = await image.read()
+    except Exception as e:
+        logger.error(f"Invalid image file: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail="Invalid image file")
+
+    try:
+        client = get_http_client(request)
+        detections = await detect_public_transport_clip(image_bytes, client=client)
+        return {"detections": detections}
+    except Exception as e:
+        logger.error(f"Public transport detection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.post("/api/detect-cleanliness")
+async def detect_cleanliness_endpoint(request: Request, image: UploadFile = File(...)):
+    try:
+        image_bytes = await image.read()
+    except Exception as e:
+        logger.error(f"Invalid image file: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail="Invalid image file")
+
+    try:
+        client = get_http_client(request)
+        detections = await detect_cleanliness_verification_clip(image_bytes, client=client)
+        return {"detections": detections}
+    except Exception as e:
+        logger.error(f"Cleanliness detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")

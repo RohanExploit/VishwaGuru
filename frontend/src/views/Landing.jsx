@@ -214,7 +214,7 @@ const Landing = () => {
                             whileHover={{ scale: 1.05, translateY: -3 }}
                             whileTap={{ scale: 0.95 }}
                             transition={{ duration: 0.15 }}
-                            onClick={() => navigate('/home')}
+                            onClick={() => navigate('/login')}
                             className="bg-[#2D60FF] hover:bg-blue-700 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-[0_10px_20px_-5px_rgba(37,99,235,0.3)] hover:shadow-[0_15px_30px_-5px_rgba(37,99,235,0.5)] transition-all duration-150 flex items-center gap-2 group"
                         >
                             {t('home.landing.cta')}

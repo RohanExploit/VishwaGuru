@@ -37,3 +37,7 @@
 ## 2026-02-08 - Return Type Consistency in Utilities
 **Learning:** Inconsistent return types in shared utility functions (like `process_uploaded_image`) can cause runtime crashes across multiple modules, especially when some expect tuples and others expect single values. This can lead to deployment failures that are hard to debug without full integration logs.
 **Action:** Always maintain strict return type consistency for core utilities. Use type hints and verify all call sites when changing a function's signature. Ensure that performance-oriented optimizations (like returning multiple processed formats) are applied uniformly.
+
+## 2026-02-10 - Denormalization for O(1) Integrity Verification
+**Learning:** Storing the preceding block's hash directly in the current record (denormalization) eliminates the need for a second database query during blockchain-style integrity verification. This reduces database I/O and latency by 50% for verification paths.
+**Action:** Use denormalization for cryptographic chains where the "previous" link is frequently queried alongside the current record. Ensure all relevant context (like geographic coordinates) is included in the hash to prevent tampering that skips the chaining logic.

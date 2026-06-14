@@ -33,8 +33,28 @@ class PriorityEngine:
             combined_text += " " + " ".join([l.lower() for l in image_labels])
 
         severity_score, severity_label, severity_reasons = self._calculate_severity(combined_text)
-        urgency_score, urgency_reasons = self._calculate_urgency(combined_text, severity_score)
         categories = self._detect_categories(combined_text)
+
+        # Apply adaptive category weights
+        for cat in categories:
+            boost = adaptive_weights.category_weights.get(cat, 0.0)
+            if boost != 0:
+                # Add boost but clamp to 100
+                old_score = severity_score
+                severity_score = min(100, severity_score + int(boost))
+                severity_reasons.append(f"Adaptive boost for category '{cat}': +{boost} (Base: {old_score})")
+
+                # Recalculate label if score increased
+                if severity_score >= 90:
+                    severity_label = "Critical"
+                elif severity_score >= 70:
+                    severity_label = "High"
+                elif severity_score >= 40:
+                    severity_label = "Medium"
+                else:
+                    severity_label = "Low"
+
+        urgency_score, urgency_reasons = self._calculate_urgency(combined_text, severity_score)
 
         # Explainability
         reasoning = severity_reasons + urgency_reasons
@@ -55,7 +75,7 @@ class PriorityEngine:
         label = "Low"
 
         # Check for critical keywords (highest priority)
-        found_critical = [word for word in self.severity_keywords["critical"] if word in text]
+        found_critical = [word for word in self.severity_keywords.get("critical", []) if word in text]
         if found_critical:
             score = 90
             label = "Critical"
@@ -63,7 +83,7 @@ class PriorityEngine:
 
         # Check for high keywords
         if score < 70:
-            found_high = [word for word in self.severity_keywords["high"] if word in text]
+            found_high = [word for word in self.severity_keywords.get("high", []) if word in text]
             if found_high:
                 score = max(score, 70)
                 label = "High" if score == 70 else label
@@ -71,7 +91,7 @@ class PriorityEngine:
 
         # Check for medium keywords
         if score < 40:
-            found_medium = [word for word in self.severity_keywords["medium"] if word in text]
+            found_medium = [word for word in self.severity_keywords.get("medium", []) if word in text]
             if found_medium:
                 score = max(score, 40)
                 label = "Medium" if score == 40 else label

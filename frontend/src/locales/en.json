@@ -41,7 +41,11 @@
       "waste": "Waste Sorter",
       "civicEye": "Civic Eye",
       "myReports": "My Reports",
-      "analyzeGrievance": "Analyze Grievance"
+      "analyzeGrievance": "Analyze Grievance",
+      "airQuality": "Air Quality",
+      "playground": "Playground",
+      "publicTransport": "Public Transport",
+      "cleanliness": "Cleanliness"
     },
     "tools": {
       "whoIsResponsible": "Who is Responsible?",

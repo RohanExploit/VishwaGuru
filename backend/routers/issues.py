@@ -179,8 +179,10 @@ async def create_issue(
             )
             prev_hash = prev_issue[0] if prev_issue and prev_issue[0] else ""
 
-# Simple but effective SHA-256 chaining
-            hash_content = f"{description}|{category}|{prev_hash}"
+            # Explicit cryptographic link to previous report and geographic context
+            lat_str = f"{latitude:.7f}" if latitude is not None else "0.0000000"
+            lon_str = f"{longitude:.7f}" if longitude is not None else "0.0000000"
+            hash_content = f"{description}|{category}|{lat_str}|{lon_str}|{prev_hash}"
             integrity_hash = hashlib.sha256(hash_content.encode()).hexdigest()
 
             # RAG Retrieval (New)
@@ -200,7 +202,8 @@ async def create_issue(
                 longitude=longitude,
                 location=location,
                 action_plan=initial_action_plan,
-                integrity_hash=integrity_hash
+                integrity_hash=integrity_hash,
+                previous_integrity_hash=prev_hash
             )
 
             # Offload blocking DB operations to threadpool
@@ -619,28 +622,31 @@ def get_user_issues(
 async def verify_blockchain_integrity(issue_id: int, db: Session = Depends(get_db)):
     """
     Verify the cryptographic integrity of a report using the blockchain-style chaining.
-    Optimized: Uses column projection to fetch only needed data.
+    Optimized: O(1) retrieval of all data needed for link validation.
     """
-    # Fetch current issue data
+    # Performance Boost: O(1) retrieval of all data needed for link validation
+    # We store the previous_integrity_hash directly to avoid an extra query.
     current_issue = await run_in_threadpool(
         lambda: db.query(
-            Issue.id, Issue.description, Issue.category, Issue.integrity_hash
+            Issue.description,
+            Issue.category,
+            Issue.latitude,
+            Issue.longitude,
+            Issue.integrity_hash,
+            Issue.previous_integrity_hash
         ).filter(Issue.id == issue_id).first()
     )
 
     if not current_issue:
         raise HTTPException(status_code=404, detail="Issue not found")
 
-    # Fetch previous issue's integrity hash to verify the chain
-    prev_issue_hash = await run_in_threadpool(
-        lambda: db.query(Issue.integrity_hash).filter(Issue.id < issue_id).order_by(Issue.id.desc()).first()
-    )
+    # Recompute hash using stored previous hash and geographic context
+    # Chaining logic: hash(description|category|lat|lon|prev_hash)
+    lat_str = f"{current_issue.latitude:.7f}" if current_issue.latitude is not None else "0.0000000"
+    lon_str = f"{current_issue.longitude:.7f}" if current_issue.longitude is not None else "0.0000000"
+    prev_hash = current_issue.previous_integrity_hash or ""
 
-    prev_hash = prev_issue_hash[0] if prev_issue_hash and prev_issue_hash[0] else ""
-
-    # Recompute hash based on current data and previous hash
-    # Chaining logic: hash(description|category|prev_hash)
-    hash_content = f"{current_issue.description}|{current_issue.category}|{prev_hash}"
+    hash_content = f"{current_issue.description}|{current_issue.category}|{lat_str}|{lon_str}|{prev_hash}"
     computed_hash = hashlib.sha256(hash_content.encode()).hexdigest()
 
     is_valid = (computed_hash == current_issue.integrity_hash)
