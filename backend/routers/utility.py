@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, case
 from datetime import datetime, timezone
 import logging
 
@@ -17,7 +17,6 @@ from backend.ai_service import chat_with_civic_assistant
 from backend.gemini_services import get_ai_services
 from backend.maharashtra_locator import (
     find_constituency_by_pincode,
-    find_mla_by_constituency,
     find_mla_by_constituency
 )
 
@@ -53,9 +52,15 @@ def get_stats(db: Session = Depends(get_db)):
     if cached_stats:
         return JSONResponse(content=cached_stats)
 
-    total = db.query(func.count(Issue.id)).scalar()
-    resolved = db.query(func.count(Issue.id)).filter(Issue.status.in_(['resolved', 'verified'])).scalar()
-    # Pending is everything else
+    # Optimization: Use conditional aggregation to fetch total and resolved counts in a single query
+    # This reduces database round-trips by 50% for core stats aggregation.
+    stats = db.query(
+        func.count(Issue.id).label('total'),
+        func.sum(case((Issue.status.in_(['resolved', 'verified']), 1), else_=0)).label('resolved')
+    ).first()
+
+    total = stats.total if stats else 0
+    resolved = int(stats.resolved) if stats and stats.resolved is not None else 0
     pending = total - resolved
 
     # By category

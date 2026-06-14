@@ -74,11 +74,12 @@ def _validate_uploaded_file_sync(file: UploadFile) -> Optional[Image.Image]:
             detail=f"File too large. Maximum size allowed is {MAX_FILE_SIZE // (1024*1024)}MB"
         )
 
-    # Check MIME type from content using python-magic
+    # Check MIME type from content using python-magic or fallback to mimetypes
     try:
-        # Read first 1024 bytes for MIME detection
-        file_content = file.file.read(1024)
-        file.file.seek(0)  # Reset file pointer
+        if HAS_MAGIC:
+            # Read first 1024 bytes for MIME detection
+            file_content = file.file.read(1024)
+            file.file.seek(0)  # Reset file pointer
 
         if magic:
             detected_mime = magic.from_buffer(file_content, mime=True)

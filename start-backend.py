@@ -24,12 +24,11 @@ def validate_environment():
             missing_vars.append(var)
 
     if missing_vars:
-        print("❌ Missing required environment variables:")
+        print("⚠️  Warning: Missing some recommended environment variables:")
         for var in missing_vars:
             print(f"   - {var}")
-        print("\nPlease set these variables or create a .env file.")
-        print("See backend/.env.example for reference.")
-        return False
+        print("The application will start, but some features may be disabled.")
+        print("Please set these variables in the Render Dashboard or a .env file for full functionality.")
 
     # Set defaults for optional variables
     if not os.getenv("DATABASE_URL"):

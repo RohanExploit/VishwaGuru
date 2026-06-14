@@ -37,3 +37,7 @@
 ## 2026-02-08 - Return Type Consistency in Utilities
 **Learning:** Inconsistent return types in shared utility functions (like `process_uploaded_image`) can cause runtime crashes across multiple modules, especially when some expect tuples and others expect single values. This can lead to deployment failures that are hard to debug without full integration logs.
 **Action:** Always maintain strict return type consistency for core utilities. Use type hints and verify all call sites when changing a function's signature. Ensure that performance-oriented optimizations (like returning multiple processed formats) are applied uniformly.
+
+## 2026-02-18 - Pydantic Validation Overhead
+**Learning:** When returning large lists of manually constructed dictionaries from FastAPI endpoints, defining a `response_model` triggers a second pass of validation and serialization by Pydantic, which can be expensive (e.g., parsing ISO strings back to datetime then serializing again).
+**Action:** For performance-critical read endpoints (like feeds) where data is manually serialized (e.g., for caching), return `JSONResponse(content=data)` directly to bypass the redundant Pydantic validation step while keeping the `response_model` in the decorator for documentation.
