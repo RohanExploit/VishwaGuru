@@ -3,7 +3,8 @@ import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from
 import { useTranslation } from 'react-i18next';
 import { fakeRecentIssues, fakeResponsibilityMap } from './fakeData';
 import { issuesApi, miscApi } from './api';
-import AppHeader from './components/AppHeader';
+import Navbar from './components/Navbar';
+import Footer from './components/Footer';
 import FloatingButtonsManager from './components/FloatingButtonsManager';
 import LoadingSpinner from './components/LoadingSpinner';
 import { DarkModeProvider, useDarkMode } from './contexts/DarkModeContext';
@@ -38,6 +39,16 @@ const SmartScanner = React.lazy(() => import('./SmartScanner'));
 const GrievanceAnalysis = React.lazy(() => import('./views/GrievanceAnalysis'));
 const NoiseDetector = React.lazy(() => import('./NoiseDetector'));
 const CivicEyeDetector = React.lazy(() => import('./CivicEyeDetector'));
+const CrowdDetector = React.lazy(() => import('./CrowdDetector'));
+const WasteDetector = React.lazy(() => import('./WasteDetector'));
+const WaterLeakDetector = React.lazy(() => import('./WaterLeakDetector'));
+const AccessibilityDetector = React.lazy(() => import('./AccessibilityDetector'));
+const AirQualityDetector = React.lazy(() => import('./AirQualityDetector'));
+const PlaygroundDetector = React.lazy(() => import('./PlaygroundDetector'));
+const PublicTransportDetector = React.lazy(() => import('./PublicTransportDetector'));
+const CleanlinessDetector = React.lazy(() => import('./CleanlinessDetector'));
+const TrafficSignDetector = React.lazy(() => import('./TrafficSignDetector'));
+const AbandonedVehicleDetector = React.lazy(() => import('./AbandonedVehicleDetector'));
 const MyReportsView = React.lazy(() => import('./views/MyReportsView'));
 
 
@@ -67,7 +78,14 @@ function AppContent() {
 
   // Safe navigation helper
   const navigateToView = useCallback((view) => {
-    const validViews = ['home', 'map', 'report', 'action', 'mh-rep', 'pothole', 'garbage', 'vandalism', 'flood', 'infrastructure', 'parking', 'streetlight', 'fire', 'animal', 'blocked', 'tree', 'pest', 'smart-scan', 'grievance-analysis', 'noise', 'safety-check', 'my-reports', 'grievance', 'login', 'signup'];
+    const validViews = [
+      'home', 'map', 'report', 'action', 'mh-rep', 'pothole', 'garbage', 'vandalism', 'flood',
+      'infrastructure', 'parking', 'streetlight', 'fire', 'animal', 'blocked', 'tree', 'pest',
+      'smart-scan', 'grievance-analysis', 'noise', 'safety-check', 'my-reports', 'grievance',
+      'login', 'signup',
+      'crowd', 'waste', 'water-leak', 'accessibility', 'air-quality', 'playground',
+      'public-transport', 'cleanliness', 'traffic-sign', 'abandoned-vehicle'
+    ];
     if (validViews.includes(view)) {
       navigate(view === 'home' ? '/' : `/${view}`);
     } else {
@@ -181,7 +199,7 @@ function AppContent() {
 
   // Otherwise render the main app layout
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-100 dark:from-gray-950 dark:via-blue-950/30 dark:to-gray-900 text-gray-900 dark:text-gray-100 font-sans transition-colors duration-300 bg-fixed">
+    <div className={`min-h-screen relative overflow-hidden font-sans transition-colors duration-300 ${isDarkMode ? 'dark bg-gray-950 text-white' : 'bg-gray-50 text-gray-900'}`}>
       {/* Animated background elements - Optimized for performance */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         <div
@@ -196,15 +214,11 @@ function AppContent() {
 
       <FloatingButtonsManager setView={navigateToView} />
 
-      <div className="relative z-10 flex flex-col w-full">
-        <AppHeader />
+      <div className="relative z-10 flex flex-col min-h-screen w-full">
+        <Navbar />
 
         <main className="flex-grow">
-          <Suspense fallback={
-            <div className="flex justify-center my-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-            </div>
-          }>
+          <Suspense fallback={<LoadingSpinner size="lg" />}>
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Login initialIsLogin={false} />} />
@@ -336,6 +350,16 @@ function AppContent() {
               <Route path="/smart-scan" element={<SmartScanner onBack={() => navigate('/')} />} />
               <Route path="/grievance-analysis" element={<GrievanceAnalysis onBack={() => navigate('/')} />} />
               <Route path="/noise" element={<NoiseDetector onBack={() => navigate('/')} />} />
+              <Route path="/crowd" element={<CrowdDetector onBack={() => navigate('/')} />} />
+              <Route path="/waste" element={<WasteDetector onBack={() => navigate('/')} />} />
+              <Route path="/water-leak" element={<WaterLeakDetector onBack={() => navigate('/')} />} />
+              <Route path="/accessibility" element={<AccessibilityDetector onBack={() => navigate('/')} />} />
+              <Route path="/air-quality" element={<AirQualityDetector onBack={() => navigate('/')} />} />
+              <Route path="/playground" element={<PlaygroundDetector onBack={() => navigate('/')} />} />
+              <Route path="/public-transport" element={<PublicTransportDetector onBack={() => navigate('/')} />} />
+              <Route path="/cleanliness" element={<CleanlinessDetector onBack={() => navigate('/')} />} />
+              <Route path="/traffic-sign" element={<TrafficSignDetector onBack={() => navigate('/')} />} />
+              <Route path="/abandoned-vehicle" element={<AbandonedVehicleDetector onBack={() => navigate('/')} />} />
               <Route path="/safety-check" element={
                 <div className="flex flex-col h-full p-4">
                   <button onClick={() => navigate('/')} className="self-start text-blue-600 mb-2 font-bold">
@@ -352,6 +376,11 @@ function AppContent() {
               <Route path="/grievance" element={
                 <ProtectedRoute>
                   <GrievanceView />
+                </ProtectedRoute>
+              } />
+              <Route path="/insight" element={
+                <ProtectedRoute>
+                  <CivicInsight />
                 </ProtectedRoute>
               } />
               <Route path="*" element={<NotFound />} />

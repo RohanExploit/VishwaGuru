@@ -52,6 +52,36 @@ class PriorityEngine:
         urgency_score, urgency_reasons = self._calculate_urgency(combined_text, severity_score)
         categories = self._detect_categories(combined_text)
 
+        # Apply Adaptive Category Weights
+        multipliers = adaptive_weights.get_category_multipliers()
+        max_multiplier = 1.0
+        for cat in categories:
+            mult = multipliers.get(cat, 1.0)
+            if mult > max_multiplier:
+                max_multiplier = mult
+
+        if max_multiplier > 1.05: # Threshold to report boost
+            # Boost score
+            old_score = severity_score
+            severity_score = int(severity_score * max_multiplier)
+            severity_score = min(100, severity_score)
+
+            # Add reasoning
+            if severity_score > old_score:
+                severity_reasons.append(f"Severity score boosted by x{max_multiplier:.2f} based on historical trends for this category.")
+
+            # Re-evaluate label based on boosted score
+            if severity_score >= 90:
+                severity_label = "Critical"
+            elif severity_score >= 70:
+                severity_label = "High"
+            elif severity_score >= 40:
+                severity_label = "Medium"
+            else:
+                # If score boosted from Low to something else, update label
+                if severity_score < 40:
+                    severity_label = "Low"
+
         # Explainability
         reasoning = severity_reasons + urgency_reasons
         if not reasoning:
@@ -69,6 +99,8 @@ class PriorityEngine:
         score = 0
         reasons = []
         label = "Low"
+
+        severity_keywords = adaptive_weights.get_severity_keywords()
 
         # Check for critical keywords (highest priority)
         critical_keywords = self.severity_keywords.get("critical", [])
@@ -109,6 +141,8 @@ class PriorityEngine:
         urgency = severity_score
         reasons = []
 
+        urgency_patterns = adaptive_weights.get_urgency_patterns()
+
         # Apply regex modifiers
         for pattern, weight in self.urgency_patterns:
             try:
@@ -124,11 +158,10 @@ class PriorityEngine:
         return urgency, reasons
 
     def _detect_categories(self, text: str) -> List[str]:
-        # Sort categories by length of match to prioritize specific over general?
-        # Or just count matches.
+        categories_map = adaptive_weights.get_category_keywords()
 
         scored_categories = []
-        for category, keywords in self.categories.items():
+        for category, keywords in categories_map.items():
             count = 0
             for k in keywords:
                 if k in text:

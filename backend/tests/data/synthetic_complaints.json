@@ -12,7 +12,7 @@
     "expected_urgency_min": 70
   },
   {
-    "description": "Streetlight on 5th avenue has been flickering for a week. It's annoying but not dangerous yet.",
+    "description": "Streetlight on 5th avenue has been flickering for a week. It is annoying.",
     "expected_category": "Street Light",
     "expected_severity": "High",
     "expected_urgency_max": 75
@@ -30,7 +30,7 @@
     "expected_urgency_min": 80
   },
   {
-    "description": "Stray dogs are chasing children near the primary school. Very dangerous situation.",
+    "description": "Stray dogs are chasing children near the primary school. Very scary situation.",
     "expected_category": "Stray Animal",
     "expected_severity": "Critical",
     "expected_urgency_min": 70

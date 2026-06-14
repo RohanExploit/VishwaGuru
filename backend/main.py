@@ -25,9 +25,13 @@ from backend.ai_factory import create_all_ai_services
 from backend.ai_interfaces import initialize_ai_services
 from backend.bot import start_bot_thread, stop_bot_thread
 from backend.init_db import migrate_db
+from backend.scheduler import start_scheduler
 from backend.maharashtra_locator import load_maharashtra_pincode_data, load_maharashtra_mla_data
 from backend.exceptions import EXCEPTION_HANDLERS
-from backend.routers import issues, detection, grievances, utility, auth, admin, analysis
+from backend.routers import (
+    issues, detection, grievances, utility, auth,
+    admin, analysis, voice, field_officer, resolution_proof
+)
 from backend.grievance_service import GrievanceService
 import backend.dependencies
 
@@ -74,15 +78,21 @@ async def lifespan(app: FastAPI):
 
     # Startup: Database setup (Blocking but necessary for app consistency)
     try:
-        await run_in_threadpool(Base.metadata.create_all, bind=engine)
-        await run_in_threadpool(migrate_db)
-        logger.info("Database initialized successfully.")
+        logger.info("Starting database initialization...")
+        # Use a timeout for DB operations during startup to prevent hanging
+        await asyncio.wait_for(run_in_threadpool(Base.metadata.create_all, bind=engine), timeout=10)
+        logger.info("Base.metadata.create_all completed.")
+        await asyncio.wait_for(run_in_threadpool(migrate_db), timeout=20)
+        logger.info("migrate_db completed. Database initialized successfully.")
+    except asyncio.TimeoutError:
+        logger.error("Database initialization timed out!")
     except Exception as e:
         logger.error(f"Database initialization failed: {e}", exc_info=True)
         # We continue to allow health checks even if DB has issues (for debugging)
 
     # Startup: Initialize Grievance Service (needed for escalation engine)
     try:
+        logger.info("Initializing grievance service...")
         grievance_service = GrievanceService()
         app.state.grievance_service = grievance_service
         logger.info("Grievance service initialized successfully.")
@@ -92,6 +102,9 @@ async def lifespan(app: FastAPI):
     # Launch background tasks that are non-blocking for startup/health-check
     asyncio.create_task(background_initialization(app))
     
+    # Start the daily civic intelligence refinement scheduler
+    start_scheduler()
+
     yield
     
     # Shutdown: Close Shared HTTP Client
@@ -120,23 +133,34 @@ for exception_type, handler in EXCEPTION_HANDLERS.items():
 # CORS Configuration - Security Enhanced
 frontend_url = os.environ.get("FRONTEND_URL")
 is_production = os.environ.get("ENVIRONMENT", "").lower() == "production"
+allow_origin_regex = None
+
+allowed_origins = []
 
 if not frontend_url:
     if is_production:
-        raise ValueError(
-            "FRONTEND_URL environment variable is required for security in production. "
-            "Set it to your frontend URL (e.g., https://your-app.netlify.app)."
+        logger.warning(
+            "FRONTEND_URL environment variable is not set in production. "
+            "Defaulting to allow all origins via regex to prevent startup failure. "
+            "For better security, set FRONTEND_URL to your frontend domain."
         )
+        allow_origin_regex = ".*"  # Allow all origins if not specified
+        allowed_origins = []
     else:
         logger.warning("FRONTEND_URL not set. Defaulting to http://localhost:5173 for development.")
         frontend_url = "http://localhost:5173"
-
-if not (frontend_url.startswith("http://") or frontend_url.startswith("https://")):
-    raise ValueError(
-        f"FRONTEND_URL must be a valid HTTP/HTTPS URL. Got: {frontend_url}"
-    )
-
-allowed_origins = [frontend_url]
+        allowed_origins = [frontend_url]
+else:
+    if not (frontend_url.startswith("http://") or frontend_url.startswith("https://")):
+        # Log warning instead of crashing
+        logger.warning(f"Invalid FRONTEND_URL: {frontend_url}. Expected HTTP/HTTPS URL.")
+        if is_production:
+            allow_origin_regex = ".*"
+            allowed_origins = []
+        else:
+            allowed_origins = ["http://localhost:5173"]
+    else:
+        allowed_origins = [frontend_url]
 
 if not is_production:
     dev_origins = [
@@ -148,14 +172,17 @@ if not is_production:
         "http://127.0.0.1:5174",
         "http://localhost:8080",
     ]
-    allowed_origins.extend(dev_origins)
-    # Also add the one from .env if it's different
-    if frontend_url not in allowed_origins:
-        allowed_origins.append(frontend_url)
+    # Only extend if allowed_origins is initialized
+    if allowed_origins is not None:
+        allowed_origins.extend(dev_origins)
+        # Also add the one from .env if it's different
+        if frontend_url and frontend_url not in allowed_origins and frontend_url.startswith("http"):
+             allowed_origins.append(frontend_url)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
+    allow_origin_regex=allow_origin_regex,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
@@ -171,6 +198,9 @@ app.include_router(utility.router, tags=["Utility"])
 app.include_router(auth.router, tags=["Authentication"])
 app.include_router(admin.router)
 app.include_router(analysis.router, tags=["Analysis"])
+app.include_router(voice.router, tags=["Voice & Language"])
+app.include_router(field_officer.router, tags=["Field Officer Check-In"])
+app.include_router(resolution_proof.router)
 
 @app.get("/health")
 def health():

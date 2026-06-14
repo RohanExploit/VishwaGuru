@@ -40,6 +40,12 @@ class GrievanceStatus(enum.Enum):
     ESCALATED = "escalated"
     RESOLVED = "resolved"
 
+class VerificationStatus(enum.Enum):
+    PENDING = "pending"
+    VERIFIED = "verified"
+    FLAGGED = "flagged"
+    FRAUD_DETECTED = "fraud_detected"
+
 class EscalationReason(enum.Enum):
     SLA_BREACH = "sla_breach"
     SEVERITY_UPGRADE = "severity_upgrade"
@@ -113,6 +119,8 @@ class Grievance(Base):
     audit_logs = relationship("EscalationAudit", back_populates="grievance")
     followers = relationship("GrievanceFollower", back_populates="grievance")
     closure_confirmations = relationship("ClosureConfirmation", back_populates="grievance")
+    resolution_evidence = relationship("ResolutionEvidence", back_populates="grievance")
+    resolution_tokens = relationship("ResolutionProofToken", back_populates="grievance")
 
 class SLAConfig(Base):
     __tablename__ = "sla_configs"
@@ -162,6 +170,15 @@ class Issue(Base):
     location = Column(String, nullable=True)
     action_plan = Column(JSONEncodedDict, nullable=True)
     integrity_hash = Column(String, nullable=True)  # Blockchain integrity seal
+    previous_integrity_hash = Column(String, nullable=True) # Link to previous issue hash
+    
+    # Voice and Language Support (Issue #291)
+    submission_type = Column(String, default="text")  # 'text', 'voice'
+    original_language = Column(String, nullable=True)  # Language code (e.g., 'hi', 'mr', 'en')
+    original_text = Column(Text, nullable=True)  # Original text in regional language
+    transcription_confidence = Column(Float, nullable=True)  # Confidence score for voice transcriptions
+    manual_correction_applied = Column(Boolean, default=False)  # Flag for manual corrections
+    audio_file_path = Column(String, nullable=True)  # Path to stored audio file
 
 class PushSubscription(Base):
     __tablename__ = "push_subscriptions"
@@ -201,3 +218,107 @@ class ClosureConfirmation(Base):
     
     # Relationship
     grievance = relationship("Grievance", back_populates="closure_confirmations")
+
+
+class FieldOfficerVisit(Base):
+    """
+    Field Officer Check-In System (Issue #288)
+    Tracks government officer visits to grievance sites with GPS verification
+    """
+    __tablename__ = "field_officer_visits"
+    __table_args__ = (
+        Index("ix_visits_issue_timestamp", "issue_id", "check_in_time"),
+        Index("ix_visits_officer_timestamp", "officer_email", "check_in_time"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    
+    # Reference to issue/grievance
+    issue_id = Column(Integer, ForeignKey("issues.id"), nullable=False, index=True)
+    grievance_id = Column(Integer, ForeignKey("grievances.id"), nullable=True, index=True)
+    
+    # Officer details
+    officer_email = Column(String, nullable=False, index=True)
+    officer_name = Column(String, nullable=False)
+    officer_department = Column(String, nullable=True)
+    officer_designation = Column(String, nullable=True)
+    
+    # Check-in location data
+    check_in_latitude = Column(Float, nullable=False)
+    check_in_longitude = Column(Float, nullable=False)
+    check_in_time = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc), nullable=False, index=True)
+    
+    # Geo-fencing verification
+    distance_from_site = Column(Float, nullable=True)  # Distance in meters from reported issue location
+    within_geofence = Column(Boolean, default=False, nullable=False)  # True if within acceptable radius
+    geofence_radius_meters = Column(Float, default=100.0)  # Acceptable radius in meters
+    
+    # Visit details
+    visit_notes = Column(Text, nullable=True)  # Officer's notes about the visit
+    visit_images = Column(JSONEncodedDict, nullable=True)  # Paths to uploaded images
+    visit_duration_minutes = Column(Integer, nullable=True)  # Estimated duration of visit
+    
+    # Check-out (optional)
+    check_out_time = Column(DateTime, nullable=True)
+    check_out_latitude = Column(Float, nullable=True)
+    check_out_longitude = Column(Float, nullable=True)
+    
+    # Status and verification
+    status = Column(String, default="checked_in", nullable=False)  # 'checked_in', 'checked_out', 'verified', 'disputed'
+    verified_by = Column(String, nullable=True)  # Admin/supervisor who verified
+    verified_at = Column(DateTime, nullable=True)
+    
+    # Immutability hash (blockchain-like integrity)
+    visit_hash = Column(String, nullable=True)  # Hash of visit data for integrity verification
+    
+    # Metadata
+    created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc), onupdate=lambda: datetime.datetime.now(datetime.timezone.utc))
+    is_public = Column(Boolean, default=True)  # Public visibility for transparency
+
+class ResolutionEvidence(Base):
+    __tablename__ = "resolution_evidence"
+    id = Column(Integer, primary_key=True, index=True)
+    grievance_id = Column(Integer, ForeignKey("grievances.id"), nullable=False, index=True)
+    token_id = Column(Integer, ForeignKey("resolution_proof_tokens.id"), nullable=True)
+    evidence_hash = Column(String, unique=True, index=True)
+    gps_latitude = Column(Float, nullable=False)
+    gps_longitude = Column(Float, nullable=False)
+    capture_timestamp = Column(DateTime, nullable=False)
+    device_fingerprint_hash = Column(String, nullable=True)
+    metadata_bundle = Column(JSONEncodedDict, nullable=True)
+    server_signature = Column(String, nullable=False)
+    verification_status = Column(Enum(VerificationStatus), default=VerificationStatus.PENDING)
+    created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+
+    # Relationship
+    grievance = relationship("Grievance", back_populates="resolution_evidence")
+
+class ResolutionProofToken(Base):
+    __tablename__ = "resolution_proof_tokens"
+    id = Column(Integer, primary_key=True, index=True)
+    token_id = Column(String, unique=True, index=True)  # UUID
+    grievance_id = Column(Integer, ForeignKey("grievances.id"), nullable=False, index=True)
+    authority_email = Column(String, nullable=False)
+    geofence_latitude = Column(Float, nullable=False)
+    geofence_longitude = Column(Float, nullable=False)
+    geofence_radius_meters = Column(Float, default=200.0)
+    valid_from = Column(DateTime, nullable=False)
+    valid_until = Column(DateTime, nullable=False)
+    nonce = Column(String, nullable=False)
+    token_signature = Column(String, nullable=False)
+    is_used = Column(Boolean, default=False)
+    used_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+
+    # Relationship
+    grievance = relationship("Grievance", back_populates="resolution_tokens")
+
+class EvidenceAuditLog(Base):
+    __tablename__ = "evidence_audit_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    evidence_id = Column(Integer, ForeignKey("resolution_evidence.id"), nullable=False, index=True)
+    action = Column(String, nullable=False)  # 'created', 'verified', 'flagged', 'fraud_detected'
+    details = Column(Text, nullable=True)
+    actor_email = Column(String, nullable=False)
+    timestamp = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc), index=True)
