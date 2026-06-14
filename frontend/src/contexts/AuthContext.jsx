@@ -7,7 +7,13 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [token, setToken] = useState(localStorage.getItem('token'));
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(!!localStorage.getItem('token'));
+
+    const logout = () => {
+        setToken(null);
+        setUser(null);
+        apiClient.removeToken();
+    };
 
     useEffect(() => {
         if (token) {
@@ -22,7 +28,6 @@ export const AuthProvider = ({ children }) => {
                 .finally(() => setLoading(false));
         } else {
             apiClient.removeToken();
-            setLoading(false);
         }
     }, [token]);
 
@@ -40,19 +45,13 @@ export const AuthProvider = ({ children }) => {
             const userData = await authApi.me();
             setUser(userData);
             return userData;
-        } catch (e) {
+        } catch {
             return null;
         }
     };
 
     const signup = async (userData) => {
         return await authApi.signup(userData);
-    };
-
-    const logout = () => {
-        setToken(null);
-        setUser(null);
-        apiClient.removeToken();
     };
 
     return (
@@ -62,4 +61,5 @@ export const AuthProvider = ({ children }) => {
     );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext);

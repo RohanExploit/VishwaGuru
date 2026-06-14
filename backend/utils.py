@@ -7,8 +7,14 @@ import os
 import shutil
 import logging
 import io
-import magic
 from typing import Optional
+
+try:
+    import magic
+    HAS_MAGIC = True
+except ImportError:
+    HAS_MAGIC = False
+    logger.warning("python-magic not available (libmagic missing?). Falling back to basic validation.")
 
 from backend.cache import user_upload_cache
 from backend.models import Issue
@@ -70,19 +76,23 @@ def _validate_uploaded_file_sync(file: UploadFile) -> Optional[Image.Image]:
             detail=f"File too large. Maximum size allowed is {MAX_FILE_SIZE // (1024*1024)}MB"
         )
 
-    # Check MIME type from content using python-magic
+    # Check MIME type from content using python-magic (if available)
     try:
-        # Read first 1024 bytes for MIME detection
-        file_content = file.file.read(1024)
-        file.file.seek(0)  # Reset file pointer
+        if HAS_MAGIC:
+            # Read first 1024 bytes for MIME detection
+            file_content = file.file.read(1024)
+            file.file.seek(0)  # Reset file pointer
 
-        detected_mime = magic.from_buffer(file_content, mime=True)
-
-        if detected_mime not in ALLOWED_MIME_TYPES:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid file type. Only image files are allowed. Detected: {detected_mime}"
-            )
+            try:
+                detected_mime = magic.from_buffer(file_content, mime=True)
+                if detected_mime not in ALLOWED_MIME_TYPES:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Invalid file type. Only image files are allowed. Detected: {detected_mime}"
+                    )
+            except Exception as e:
+                logger.warning(f"Magic validation failed (skipping): {e}")
+                file.file.seek(0)
 
         # Additional content validation: Try to open with PIL to ensure it's a valid image
         try:
@@ -157,15 +167,18 @@ def process_uploaded_image_sync(file: UploadFile) -> io.BytesIO:
 
     # Check MIME type
     try:
-        file_content = file.file.read(1024)
-        file.file.seek(0)
-        detected_mime = magic.from_buffer(file_content, mime=True)
-
-        if detected_mime not in ALLOWED_MIME_TYPES:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid file type. Only image files are allowed. Detected: {detected_mime}"
-            )
+        if HAS_MAGIC:
+            file_content = file.file.read(1024)
+            file.file.seek(0)
+            try:
+                detected_mime = magic.from_buffer(file_content, mime=True)
+                if detected_mime not in ALLOWED_MIME_TYPES:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Invalid file type. Only image files are allowed. Detected: {detected_mime}"
+                    )
+            except Exception:
+                file.file.seek(0)
 
         try:
             img = Image.open(file.file)

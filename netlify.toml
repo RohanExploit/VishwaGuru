@@ -8,6 +8,7 @@
 [build.environment]
   NODE_VERSION = "20"
   CI = "false"
+  NPM_FLAGS = "--no-audit --no-fund"
 
 # Redirects for SPA
 [[redirects]]

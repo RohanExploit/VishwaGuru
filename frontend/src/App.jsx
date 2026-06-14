@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import ChatWidget from './components/ChatWidget';
 import { fakeRecentIssues, fakeResponsibilityMap } from './fakeData';
@@ -63,7 +63,9 @@ function AppContent() {
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loading, setLoading] = useState(false);
+  // eslint-disable-next-line no-unused-vars
   const [error, setError] = useState(null);
+  // eslint-disable-next-line no-unused-vars
   const [success, setSuccess] = useState(null);
 
   // Safe navigation helper
@@ -207,6 +209,9 @@ function AppContent() {
                   fetchResponsibilityMap={fetchResponsibilityMap}
                   recentIssues={recentIssues}
                   handleUpvote={handleUpvote}
+                  loadMoreIssues={loadMoreIssues}
+                  hasMore={hasMore}
+                  loadingMore={loadingMore}
                 />
               }
             />

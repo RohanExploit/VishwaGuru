@@ -13,26 +13,26 @@ const AdminDashboard = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true);
+            setError(null);
+            try {
+                if (activeTab === 'users') {
+                    const data = await adminApi.getUsers();
+                    setUsers(data);
+                } else if (activeTab === 'stats') {
+                    const data = await adminApi.getStats();
+                    setStats(data);
+                }
+            } catch (err) {
+                setError(err.message || 'Failed to fetch data');
+            } finally {
+                setLoading(false);
+            }
+        };
+
         fetchData();
     }, [activeTab]);
-
-    const fetchData = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            if (activeTab === 'users') {
-                const data = await adminApi.getUsers();
-                setUsers(data);
-            } else if (activeTab === 'stats') {
-                const data = await adminApi.getStats();
-                setStats(data);
-            }
-        } catch (err) {
-            setError(err.message || 'Failed to fetch data');
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const handleLogout = () => {
         logout();
