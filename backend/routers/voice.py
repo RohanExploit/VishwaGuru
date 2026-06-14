@@ -39,7 +39,7 @@ os.makedirs(AUDIO_STORAGE_DIR, exist_ok=True)
 MAX_AUDIO_SIZE = 10 * 1024 * 1024
 
 
-@router.post("/voice/transcribe", response_model=VoiceTranscriptionResponse)
+@router.post("/api/voice/transcribe", response_model=VoiceTranscriptionResponse)
 async def transcribe_voice(
     audio_file: UploadFile = File(..., description="Audio file (WAV, MP3, FLAC, etc.)"),
     preferred_language: str = Form('auto', description="Preferred language code")
@@ -105,7 +105,7 @@ async def transcribe_voice(
         raise HTTPException(status_code=500, detail=f"Voice transcription failed: {str(e)}")
 
 
-@router.post("/voice/translate", response_model=TextTranslationResponse)
+@router.post("/api/voice/translate", response_model=TextTranslationResponse)
 def translate_text(request: TextTranslationRequest):
     """
     Translate text from one language to another
@@ -152,7 +152,7 @@ def translate_text(request: TextTranslationRequest):
         raise HTTPException(status_code=500, detail=f"Text translation failed: {str(e)}")
 
 
-@router.post("/voice/submit-issue", response_model=IssueCreateResponse)
+@router.post("/api/voice/submit-issue", response_model=IssueCreateResponse)
 async def submit_voice_issue(
     audio_file: UploadFile = File(..., description="Audio file with grievance description"),
     category: str = Form(..., description="Issue category"),
@@ -295,7 +295,7 @@ async def submit_voice_issue(
         raise HTTPException(status_code=500, detail=f"Failed to submit voice issue: {str(e)}")
 
 
-@router.get("/voice/supported-languages", response_model=SupportedLanguagesResponse)
+@router.get("/api/voice/supported-languages", response_model=SupportedLanguagesResponse)
 def get_supported_languages():
     """
     Get list of supported languages for voice transcription and translation
@@ -316,7 +316,7 @@ def get_supported_languages():
         raise HTTPException(status_code=500, detail="Failed to retrieve supported languages")
 
 
-@router.get("/voice/issue/{issue_id}/audio")
+@router.get("/api/voice/issue/{issue_id}/audio")
 def get_issue_audio(issue_id: int, db: Session = Depends(get_db)):
     """
     Get the original audio file for a voice-submitted issue

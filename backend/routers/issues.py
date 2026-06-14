@@ -236,7 +236,6 @@ async def create_issue(
         # Invalidate cache so new issue appears
         try:
             recent_issues_cache.clear()
-            user_issues_cache.clear()
         except Exception as e:
             logger.error(f"Error clearing cache: {e}")
 
@@ -283,11 +282,6 @@ async def upvote_issue(issue_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Issue not found")
 
     await run_in_threadpool(db.commit)
-
-    try:
-        user_issues_cache.clear()
-    except Exception as e:
-        logger.error(f"Error clearing cache: {e}")
 
     # Fetch only the updated upvote count using column projection
     new_upvotes = await run_in_threadpool(
@@ -346,27 +340,24 @@ def get_nearby_issues(
         )
 
         # Convert to response format and limit results
-        # Performance Boost: Map directly to dictionaries to avoid Pydantic overhead
-        nearby_data = []
-        for issue, distance in nearby_issues_with_distance[:limit]:
-            desc = issue.description or ""
-            short_desc = desc[:100] + "..." if len(desc) > 100 else desc
-
-            nearby_data.append({
-                "id": issue.id,
-                "description": short_desc,
-                "category": issue.category,
-                "latitude": issue.latitude,
-                "longitude": issue.longitude,
-                "distance_meters": distance,
-                "upvotes": issue.upvotes or 0,
-                "created_at": issue.created_at.isoformat() if issue.created_at else None,
-                "status": issue.status
-            })
+        nearby_responses = [
+            NearbyIssueResponse(
+                id=issue.id,
+                description=issue.description[:100] + "..." if len(issue.description) > 100 else issue.description,
+                category=issue.category,
+                latitude=issue.latitude,
+                longitude=issue.longitude,
+                distance_meters=distance,
+                upvotes=issue.upvotes or 0,
+                created_at=issue.created_at,
+                status=issue.status
+            )
+            for issue, distance in nearby_issues_with_distance[:limit]
+        ]
 
         # Performance Boost: Cache serialized JSON to bypass redundant Pydantic validation
         # and serialization on cache hits.
-        json_data = json.dumps(nearby_data)
+        json_data = json.dumps([r.model_dump(mode='json') for r in nearby_responses])
         nearby_issues_cache.set(json_data, cache_key)
 
         return Response(content=json_data, media_type="application/json")
@@ -535,11 +526,6 @@ def update_issue_status(
     db.commit()
     db.refresh(issue)
 
-    try:
-        user_issues_cache.clear()
-    except Exception as e:
-        logger.error(f"Error clearing cache: {e}")
-
     # Send notification to citizen
     background_tasks.add_task(send_status_notification, issue.id, old_status, request.status.value, request.notes)
 
@@ -591,8 +577,6 @@ def subscribe_push_notifications(
         message="Push subscription created"
     )
 
-from backend.cache import user_issues_cache
-
 @router.get("/issues/user", response_model=List[IssueSummaryResponse])
 def get_user_issues(
     user_email: str = Query(..., description="Email of the user"),
@@ -604,11 +588,6 @@ def get_user_issues(
     Get issues reported by a specific user (identified by email).
     Optimized: Uses column projection to avoid loading full model instances and large fields.
     """
-    cache_key = f"user_{user_email}_{limit}_{offset}"
-    cached_json = user_issues_cache.get(cache_key)
-    if cached_json:
-        return Response(content=cached_json, media_type="application/json")
-
     results = db.query(
         Issue.id,
         Issue.category,
@@ -634,7 +613,7 @@ def get_user_issues(
             "id": row.id,
             "category": row.category,
             "description": short_desc,
-            "created_at": row.created_at.isoformat() if row.created_at else None,
+            "created_at": row.created_at,
             "image_path": row.image_path,
             "status": row.status,
             "upvotes": row.upvotes if row.upvotes is not None else 0,
@@ -643,9 +622,7 @@ def get_user_issues(
             "longitude": row.longitude
         })
 
-    json_data = json.dumps(data)
-    user_issues_cache.set(data=json_data, key=cache_key)
-    return Response(content=json_data, media_type="application/json")
+    return data
 
 @router.get("/issues/{issue_id}/blockchain-verify", response_model=BlockchainVerificationResponse)
 async def verify_blockchain_integrity(issue_id: int, db: Session = Depends(get_db)):

@@ -31,7 +31,6 @@ DEPTH_API_URL = "https://router.huggingface.co/models/Intel/dpt-hybrid-midas"
 AUDIO_CLASS_API_URL = "https://router.huggingface.co/models/MIT/ast-finetuned-audioset-10-10-0.4593"
 
 # Speech-to-Text Model (Whisper)
-FACIAL_EMOTION_API_URL = "https://router.huggingface.co/models/dima806/facial_emotions_image_detection"
 WHISPER_API_URL = "https://router.huggingface.co/models/openai/whisper-large-v3-turbo"
 
 async def _make_request(client, url, payload):
@@ -457,34 +456,3 @@ async def detect_abandoned_vehicle_clip(image: Union[Image.Image, bytes], client
     labels = ["abandoned car", "rusted vehicle", "car with flat tires", "wrecked car", "normal parked car"]
     targets = ["abandoned car", "rusted vehicle", "car with flat tires", "wrecked car"]
     return await _detect_clip_generic(image, labels, targets, client)
-
-
-async def detect_facial_emotion(image: Union[Image.Image, bytes], client: httpx.AsyncClient = None):
-    """
-    Detects facial emotions in an image using Hugging Face's dima806/facial_emotions_image_detection model.
-    """
-    img_bytes = _prepare_image_bytes(image)
-
-    try:
-        headers_bin = {"Authorization": f"Bearer {token}"} if token else {}
-        async def do_post(c):
-             return await c.post(FACIAL_EMOTION_API_URL, headers=headers_bin, content=img_bytes, timeout=30.0)
-
-        if client:
-            response = await do_post(client)
-        else:
-            async with httpx.AsyncClient() as new_client:
-                response = await do_post(new_client)
-
-        if response.status_code == 200:
-            data = response.json()
-            if isinstance(data, list) and len(data) > 0:
-                return {"emotions": data[:3]} # Return top 3 emotions
-            return {"emotions": []}
-        else:
-            logger.error(f"Emotion API Error: {response.status_code} - {response.text}")
-            return {"error": "Failed to analyze emotions", "details": response.text}
-
-    except Exception as e:
-        logger.error(f"Emotion Estimation Error: {e}")
-        return {"error": str(e)}

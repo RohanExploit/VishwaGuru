@@ -3,11 +3,9 @@ from fastapi.concurrency import run_in_threadpool
 from PIL import Image
 import logging
 import time
-import hashlib
 
 from backend.utils import process_and_detect, validate_uploaded_file, process_uploaded_image
 from backend.schemas import DetectionResponse, UrgencyAnalysisRequest, UrgencyAnalysisResponse
-from backend.cache import ThreadSafeCache
 from backend.pothole_detection import detect_potholes, validate_image_for_processing
 from backend.unified_detection_service import (
     detect_vandalism as detect_vandalism_unified,
@@ -37,9 +35,7 @@ from backend.hf_api_service import (
     detect_civic_eye_clip,
     detect_graffiti_art_clip,
     detect_traffic_sign_clip,
-    detect_abandoned_vehicle_clip,
-    detect_facial_emotion,
-
+    detect_abandoned_vehicle_clip
 )
 from backend.dependencies import get_http_client
 import backend.dependencies
@@ -50,14 +46,27 @@ router = APIRouter()
 
 # Cached Functions
 
-# Use ThreadSafeCache for better performance and proper TTL/LRU management
-detection_cache = ThreadSafeCache(ttl=3600, max_size=500)
+# Simple Cache Implementation to avoid async-lru dependency issues on Render
+_cache_store = {}
+CACHE_TTL = 3600  # 1 hour
+MAX_CACHE_SIZE = 500
 
 async def _get_cached_result(key: str, func, *args, **kwargs):
+    current_time = time.time()
+
     # Check cache
-    cached_result = detection_cache.get(key)
-    if cached_result is not None:
-        return cached_result
+    if key in _cache_store:
+        result, timestamp = _cache_store[key]
+        if current_time - timestamp < CACHE_TTL:
+            return result
+        else:
+            del _cache_store[key]
+
+    # Prune cache if too large
+    if len(_cache_store) > MAX_CACHE_SIZE:
+        keys_to_remove = list(_cache_store.keys())[:int(MAX_CACHE_SIZE * 0.2)]
+        for k in keys_to_remove:
+            del _cache_store[k]
 
     # Execute function
     if 'client' not in kwargs:
@@ -65,48 +74,39 @@ async def _get_cached_result(key: str, func, *args, **kwargs):
         kwargs['client'] = backend.dependencies.SHARED_HTTP_CLIENT
 
     result = await func(*args, **kwargs)
-    detection_cache.set(data=result, key=key)
+    _cache_store[key] = (result, current_time)
     return result
 
 async def _cached_detect_severity(image_bytes: bytes):
-    # Stable cache key using MD5 (hash() is unstable across processes)
-    image_hash = hashlib.md5(image_bytes).hexdigest()
-    key = f"severity_{image_hash}"
+    key = f"severity_{hash(image_bytes)}"
     return await _get_cached_result(key, detect_severity_clip, image_bytes)
 
 async def _cached_detect_smart_scan(image_bytes: bytes):
-    image_hash = hashlib.md5(image_bytes).hexdigest()
-    key = f"smart_scan_{image_hash}"
+    key = f"smart_scan_{hash(image_bytes)}"
     return await _get_cached_result(key, detect_smart_scan_clip, image_bytes)
 
 async def _cached_generate_caption(image_bytes: bytes):
-    image_hash = hashlib.md5(image_bytes).hexdigest()
-    key = f"caption_{image_hash}"
+    key = f"caption_{hash(image_bytes)}"
     return await _get_cached_result(key, generate_image_caption, image_bytes)
 
 async def _cached_detect_waste(image_bytes: bytes):
-    image_hash = hashlib.md5(image_bytes).hexdigest()
-    key = f"waste_{image_hash}"
+    key = f"waste_{hash(image_bytes)}"
     return await _get_cached_result(key, detect_waste_clip, image_bytes)
 
 async def _cached_detect_civic_eye(image_bytes: bytes):
-    image_hash = hashlib.md5(image_bytes).hexdigest()
-    key = f"civic_eye_{image_hash}"
+    key = f"civic_eye_{hash(image_bytes)}"
     return await _get_cached_result(key, detect_civic_eye_clip, image_bytes)
 
 async def _cached_detect_graffiti(image_bytes: bytes):
-    image_hash = hashlib.md5(image_bytes).hexdigest()
-    key = f"graffiti_{image_hash}"
+    key = f"graffiti_{hash(image_bytes)}"
     return await _get_cached_result(key, detect_graffiti_art_clip, image_bytes)
 
 async def _cached_detect_traffic_sign(image_bytes: bytes):
-    image_hash = hashlib.md5(image_bytes).hexdigest()
-    key = f"traffic_sign_{image_hash}"
+    key = f"traffic_sign_{hash(image_bytes)}"
     return await _get_cached_result(key, detect_traffic_sign_clip, image_bytes)
 
 async def _cached_detect_abandoned_vehicle(image_bytes: bytes):
-    image_hash = hashlib.md5(image_bytes).hexdigest()
-    key = f"abandoned_vehicle_{image_hash}"
+    key = f"abandoned_vehicle_{hash(image_bytes)}"
     return await _get_cached_result(key, detect_abandoned_vehicle_clip, image_bytes)
 
 # Endpoints
@@ -443,7 +443,7 @@ async def detect_graffiti_endpoint(image: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.post("/detect-traffic-sign")
+@router.post("/api/detect-traffic-sign")
 async def detect_traffic_sign_endpoint(image: UploadFile = File(...)):
     # Optimized Image Processing: Validation + Optimization
     _, image_bytes = await process_uploaded_image(image)
@@ -455,7 +455,7 @@ async def detect_traffic_sign_endpoint(image: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.post("/detect-abandoned-vehicle")
+@router.post("/api/detect-abandoned-vehicle")
 async def detect_abandoned_vehicle_endpoint(image: UploadFile = File(...)):
     # Optimized Image Processing: Validation + Optimization
     _, image_bytes = await process_uploaded_image(image)
@@ -465,24 +465,3 @@ async def detect_abandoned_vehicle_endpoint(image: UploadFile = File(...)):
     except Exception as e:
         logger.error(f"Abandoned vehicle detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
-
-@router.post("/detect-emotion")
-async def detect_emotion_endpoint(
-    request: Request,
-    image: UploadFile = File(...)
-):
-    """
-    Analyze facial emotions in the image using Hugging Face inference.
-    """
-    img_data = await validate_uploaded_file(image)
-    if "error" in img_data:
-        raise HTTPException(status_code=400, detail=img_data["error"])
-
-    processed_bytes = await run_in_threadpool(process_uploaded_image, img_data["bytes"])
-    client = get_http_client(request)
-    result = await detect_facial_emotion(processed_bytes, client)
-
-    if "error" in result:
-        raise HTTPException(status_code=500, detail=result["error"])
-
-    return result

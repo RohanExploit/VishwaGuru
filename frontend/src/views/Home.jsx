@@ -36,7 +36,7 @@ const CameraCheckModal = ({ onClose }) => {
     };
   }, []);
 
-  return createPortal(
+  return (
     <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center">
         <h3 className="text-lg font-bold mb-4">Camera Diagnostics</h3>
@@ -48,8 +48,7 @@ const CameraCheckModal = ({ onClose }) => {
         {status === 'active' && <p className="text-green-600 font-medium text-sm mb-4">Camera is working correctly!</p>}
         <button onClick={onClose} className="w-full bg-blue-600 text-white py-2 rounded-lg font-bold">Close</button>
       </div>
-    </div>,
-    document.body
+    </div>
   );
 };
 

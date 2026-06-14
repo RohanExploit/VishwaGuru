@@ -87,10 +87,10 @@ describe('API Index Exports', () => {
     // issues: issuesApi (1)
     // detectors: detectorsApi (1)
     // misc: miscApi (1)
-    // Check all exported modules
+    // Total: 5 top-level exports
     const exportKeys = Object.keys(api);
+    expect(exportKeys.length).toBe(5);
 
-    // Core exports expected
     const expectedKeys = ['apiClient', 'getApiUrl', 'issuesApi', 'detectorsApi', 'miscApi'];
     expectedKeys.forEach(key => {
       expect(exportKeys).toContain(key);

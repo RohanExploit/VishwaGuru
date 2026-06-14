@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import func, case
+from sqlalchemy import func
 from datetime import datetime, timezone
 import logging
 
@@ -53,7 +53,6 @@ def get_stats(db: Session = Depends(get_db)):
     if cached_stats:
         return JSONResponse(content=cached_stats)
 
-    # Optimized: Single aggregate query to calculate total and resolved issues
     stats = db.query(
         func.count(Issue.id).label("total"),
         func.sum(case((Issue.status.in_(['resolved', 'verified']), 1), else_=0)).label("resolved")
