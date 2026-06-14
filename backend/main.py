@@ -3,44 +3,66 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.concurrency import run_in_threadpool
-from fastapi.staticfiles import StaticFiles
+from sqlalchemy import func
+from sqlalchemy.orm import Session, defer, joinedload
+from pydantic import BaseModel
 from contextlib import asynccontextmanager
 from functools import lru_cache
-from typing import List
+from typing import List, Union, Any, Dict, Optional
+from datetime import datetime, timedelta, timezone
+from PIL import Image
+
+import json
 import os
-import sys
-from pathlib import Path
-import httpx
+import shutil
+import uuid
+import asyncio
 import logging
+import io
+import hashlib
 import time
+from pywebpush import webpush, WebPushException
 import magic
 import httpx
-from backend.grievance_classifier import get_grievance_classifier
-from backend.schemas import GrievanceRequest, ChatRequest, IssueResponse
-from backend.grievance_service import GrievanceService
-from backend.database import Base, engine, get_db, SessionLocal
-from sqlalchemy.orm import Session
-import backend.dependencies
-from backend.models import Issue
-from backend.ai_factory import create_all_ai_services
-from backend.ai_interfaces import initialize_ai_services, get_ai_services
-from backend.ai_service import chat_with_civic_assistant, generate_action_plan
-from backend.bot import run_bot, start_bot_thread, stop_bot_thread
+from async_lru import alru_cache
+
+from backend.cache import recent_issues_cache, user_upload_cache
+from backend.database import engine, Base, SessionLocal, get_db
+from backend.models import Issue, PushSubscription, Grievance, EscalationAudit, Jurisdiction
+from backend.schemas import (
+    IssueResponse, IssueSummaryResponse, IssueCreateRequest, IssueCreateResponse, ChatRequest, ChatResponse,
+    VoteRequest, VoteResponse, DetectionResponse, UrgencyAnalysisRequest,
+    UrgencyAnalysisResponse, HealthResponse, MLStatusResponse, ResponsibilityMapResponse,
+    ErrorResponse, SuccessResponse, StatsResponse, IssueCategory, IssueStatus,
+    IssueStatusUpdateRequest, IssueStatusUpdateResponse,
+    PushSubscriptionRequest, PushSubscriptionResponse,
+    NearbyIssueResponse, DeduplicationCheckResponse, IssueCreateWithDeduplicationResponse,
+    LeaderboardResponse, LeaderboardEntry,
+    EscalationAuditResponse, GrievanceSummaryResponse, EscalationStatsResponse
+)
 from backend.exceptions import EXCEPTION_HANDLERS
+from backend.bot import run_bot, start_bot_thread, stop_bot_thread
+from backend.ai_factory import create_all_ai_services
+from backend.ai_service import generate_action_plan, chat_with_civic_assistant
+from backend.maharashtra_locator import (
+    load_maharashtra_pincode_data,
+    load_maharashtra_mla_data,
+    find_constituency_by_pincode,
+    find_mla_by_constituency
+)
 from backend.init_db import migrate_db
-from backend.maharashtra_locator import load_maharashtra_pincode_data, load_maharashtra_mla_data, find_constituency_by_pincode, find_mla_by_constituency
-from backend.cache import recent_issues_cache
-from backend.pothole_detection import detect_potholes
-from backend.garbage_detection import detect_garbage
-from backend.local_ml_service import (
-    detect_infrastructure_local,
-    detect_flooding_local,
+from backend.pothole_detection import detect_potholes, validate_image_for_processing, is_model_available
+from backend.grievance_service import GrievanceService
+from backend.unified_detection_service import (
+    detect_vandalism as detect_vandalism_unified,
+    detect_infrastructure as detect_infrastructure_unified,
+    detect_flooding as detect_flooding_unified,
+    detect_garbage as detect_garbage_unified,
     get_detection_status
 )
 from backend.gemini_services import get_ai_services, initialize_ai_services
 from backend.spatial_utils import find_nearby_issues, get_bounding_box
 from backend.hf_api_service import (
-    detect_vandalism_clip,
     detect_illegal_parking_clip,
     detect_street_light_clip,
     detect_fire_clip,
@@ -50,12 +72,19 @@ from backend.hf_api_service import (
     detect_pest_clip,
     detect_severity_clip,
     detect_smart_scan_clip,
-    generate_image_caption
+    generate_image_caption,
+    analyze_urgency_text,
+    verify_resolution_vqa,
+    detect_depth_map,
+    detect_water_leak_clip,
+    detect_accessibility_issue_clip,
+    detect_crowd_density_clip,
+    detect_audio_event,
+    transcribe_audio,
+    detect_waste_clip,
+    detect_civic_eye_clip,
+    detect_pothole_clip
 )
-
-def validate_image_for_processing(image):
-    if not image:
-        pass
 
 # Configure structured logging
 logging.basicConfig(
@@ -64,12 +93,260 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-async def background_initialization(app: FastAPI):
-    """Perform non-critical startup tasks in background to speed up app availability"""
+# Shared HTTP Client for cached functions
+SHARED_HTTP_CLIENT: Optional[httpx.AsyncClient] = None
+
+# File upload validation constants
+MAX_FILE_SIZE = 20 * 1024 * 1024  # 20MB (increased for better user experience)
+ALLOWED_MIME_TYPES = {
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'image/webp',
+    'image/bmp',
+    'image/tiff'
+}
+
+# User upload limits
+UPLOAD_LIMIT_PER_USER = 5  # max uploads per user per hour
+UPLOAD_LIMIT_PER_IP = 10  # max uploads per IP per hour
+
+# Image processing cache to avoid duplicate API calls
+# Replaced custom cache with async_lru for better performance and memory management
+
+def check_upload_limits(identifier: str, limit: int) -> None:
+    """
+    Check if the user/IP has exceeded upload limits using thread-safe cache.
+    """
+    current_uploads = user_upload_cache.get(identifier) or []
+    now = datetime.now()
+    one_hour_ago = now - timedelta(hours=1)
+    
+    # Filter out old timestamps (older than 1 hour)
+    recent_uploads = [ts for ts in current_uploads if ts > one_hour_ago]
+    
+    if len(recent_uploads) >= limit:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Upload limit exceeded. Maximum {limit} uploads per hour allowed."
+        )
+    
+    # Add current timestamp and update cache atomically
+    recent_uploads.append(now)
+    user_upload_cache.set(recent_uploads, identifier)
+
+def _validate_uploaded_file_sync(file: UploadFile) -> None:
+    """
+    Synchronous validation logic to be run in a threadpool.
+    
+    Security measures:
+    - File size limits
+    - MIME type validation using content detection
+    - Image content validation using PIL
+    - TODO: Add virus/malware scanning (consider integrating ClamAV or similar)
+    """
+    # Check file size
+    file.file.seek(0, 2)  # Seek to end
+    file_size = file.file.tell()
+    file.file.seek(0)  # Reset to beginning
+    
+    if file_size > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=413, 
+            detail=f"File too large. Maximum size allowed is {MAX_FILE_SIZE // (1024*1024)}MB"
+        )
+    
+    # Check MIME type from content using python-magic
     try:
-        # 1. AI Services initialization
-        # These can take a few seconds due to imports and configuration
-        action_plan_service, chat_service, mla_summary_service = await run_in_threadpool(create_all_ai_services)
+        # Read first 1024 bytes for MIME detection
+        file_content = file.file.read(1024)
+        file.file.seek(0)  # Reset file pointer
+        
+        detected_mime = magic.from_buffer(file_content, mime=True)
+        
+        if detected_mime not in ALLOWED_MIME_TYPES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid file type. Only image files are allowed. Detected: {detected_mime}"
+            )
+        
+        # Additional content validation: Try to open with PIL to ensure it's a valid image
+        try:
+            img = Image.open(file.file)
+            img.verify()  # Verify the image is not corrupted
+            file.file.seek(0)  # Reset after PIL operations
+            
+            # Resize large images for better performance
+            img = Image.open(file.file)
+            if img.width > 1024 or img.height > 1024:
+                # Calculate new size maintaining aspect ratio
+                ratio = min(1024 / img.width, 1024 / img.height)
+                new_width = int(img.width * ratio)
+                new_height = int(img.height * ratio)
+                
+                img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                
+                # Save resized image back to file
+                output = io.BytesIO()
+                img.save(output, format=img.format or 'JPEG', quality=85)
+                output.seek(0)
+                
+                # Replace file content
+                file.file = output
+                file.size = output.tell()
+                output.seek(0)
+                
+        except Exception as pil_error:
+            logger.error(f"PIL validation failed for {file.filename}: {pil_error}")
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid image file. The file appears to be corrupted or not a valid image."
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error validating file {file.filename}: {e}")
+        raise HTTPException(
+            status_code=400,
+            detail="Unable to validate file content. Please ensure it's a valid image file."
+        )
+
+async def validate_uploaded_file(file: UploadFile) -> None:
+    """
+    Validate uploaded file for security and safety (async wrapper).
+
+    Args:
+        file: The uploaded file to validate
+
+    Raises:
+        HTTPException: If validation fails
+    """
+    await run_in_threadpool(_validate_uploaded_file_sync, file)
+
+async def process_and_detect(image: UploadFile, detection_func) -> DetectionResponse:
+    """
+    Helper to process uploaded image and run detection.
+    Handles validation, loading, and error handling.
+    """
+    # Validate uploaded file
+    await validate_uploaded_file(image)
+
+    # Convert to PIL Image directly from file object to save memory
+    try:
+        pil_image = await run_in_threadpool(Image.open, image.file)
+        # Validate image for processing
+        await run_in_threadpool(validate_image_for_processing, pil_image)
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions from validation
+    except Exception as e:
+        logger.error(f"Invalid image file during processing: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail="Invalid image file")
+
+    # Run detection
+    try:
+        detections = await detection_func(pil_image)
+        return DetectionResponse(detections=detections)
+    except Exception as e:
+        logger.error(f"Detection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Detection service temporarily unavailable")
+
+# Create tables if they don't exist
+Base.metadata.create_all(bind=engine)
+
+async def process_action_plan_background(issue_id: int, description: str, category: str, language: str, image_path: str):
+    db = SessionLocal()
+    try:
+        # Generate Action Plan (AI)
+        action_plan = await generate_action_plan(description, category, language, image_path)
+
+        # Update issue in DB
+        issue = db.query(Issue).filter(Issue.id == issue_id).first()
+        if issue:
+            issue.action_plan = action_plan
+            db.commit()
+
+            # Invalidate cache to ensure users get the updated action plan
+            recent_issues_cache.invalidate("recent_issues")
+    except Exception as e:
+        logger.error(f"Background action plan generation failed for issue {issue_id}: {e}", exc_info=True)
+    finally:
+        db.close()
+
+async def create_grievance_from_issue_background(issue_id: int):
+    """Background task to create a grievance from an issue for escalation management"""
+    db = SessionLocal()
+    try:
+        # Get the issue
+        issue = db.query(Issue).filter(Issue.id == issue_id).first()
+        if not issue:
+            logger.error(f"Issue {issue_id} not found for grievance creation")
+            return
+
+        # Get grievance service
+        grievance_service = GrievanceService()
+
+        # Map issue category to grievance severity
+        severity_mapping = {
+            'pothole': 'high',
+            'garbage': 'medium',
+            'streetlight': 'medium',
+            'flood': 'critical',
+            'infrastructure': 'high',
+            'parking': 'low',
+            'fire': 'critical',
+            'animal': 'medium',
+            'blocked': 'high',
+            'tree': 'medium',
+            'pest': 'low',
+            'vandalism': 'medium'
+        }
+
+        severity = severity_mapping.get(issue.category.lower(), 'medium')
+
+        # Create grievance data
+        grievance_data = {
+            'category': issue.category,
+            'severity': severity,
+            'pincode': None,  # Will be determined by routing service
+            'description': issue.description,
+            'location': {
+                'latitude': issue.latitude,
+                'longitude': issue.longitude,
+                'address': issue.location
+            },
+            'reporter_info': {
+                'email': issue.user_email,
+                'source': issue.source
+            }
+        }
+
+        # Create grievance
+        grievance = grievance_service.create_grievance(grievance_data, db)
+        if grievance:
+            logger.info(f"Created grievance {grievance.id} from issue {issue_id}")
+        else:
+            logger.error(f"Failed to create grievance from issue {issue_id}")
+
+    except Exception as e:
+        logger.error(f"Error creating grievance from issue {issue_id}: {e}", exc_info=True)
+    finally:
+        db.close()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global SHARED_HTTP_CLIENT
+    # Startup: Migrate DB
+    migrate_db()
+
+    # Startup: Initialize Shared HTTP Client for external APIs (Connection Pooling)
+    app.state.http_client = httpx.AsyncClient()
+    SHARED_HTTP_CLIENT = app.state.http_client
+    logger.info("Shared HTTP Client initialized.")
+
+    # Startup: Initialize AI services
+    try:
+        action_plan_service, chat_service, mla_summary_service = create_all_ai_services()
 
         initialize_ai_services(
             action_plan_service=action_plan_service,
@@ -77,69 +354,44 @@ async def background_initialization(app: FastAPI):
             mla_summary_service=mla_summary_service
         )
         logger.info("AI services initialized successfully.")
-
-        # 2. Static data pre-loading (loads large JSONs into memory)
-        await run_in_threadpool(load_maharashtra_pincode_data)
-        await run_in_threadpool(load_maharashtra_mla_data)
-        logger.info("Maharashtra data pre-loaded successfully.")
-
-        # Ensure uploads directory exists
-        os.makedirs("data/uploads", exist_ok=True)
-
-        # 3. Start Telegram Bot in separate thread
-        # Temporarily disabled for local testing
-        # await run_in_threadpool(start_bot_thread)
-        logger.info("Telegram bot initialization skipped for local testing.")
     except Exception as e:
-        logger.error(f"Error during background initialization: {e}", exc_info=True)
+        logger.error(f"Error initializing AI services: {e}", exc_info=True)
+        raise
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Startup: Initialize Shared HTTP Client for external APIs (Connection Pooling)
-    app.state.http_client = httpx.AsyncClient()
-    # Set global shared client in dependencies for cached functions
-    backend.dependencies.SHARED_HTTP_CLIENT = app.state.http_client
-    logger.info("Shared HTTP Client initialized.")
-
-    # Startup: Database setup (Blocking but necessary for app consistency)
+    # Startup: Initialize Grievance Service
     try:
-        logger.info("Starting database initialization...")
-        await run_in_threadpool(Base.metadata.create_all, bind=engine)
-        logger.info("Base.metadata.create_all completed.")
-        # Enabled database migrations for production deployment
-        await run_in_threadpool(migrate_db)
-        logger.info("Database initialized successfully with migrations.")
-    except Exception as e:
-        logger.error(f"Database initialization failed: {e}", exc_info=True)
-        # We continue to allow health checks even if DB has issues (for debugging)
-
-    # Startup: Initialize Grievance Service (needed for escalation engine)
-    try:
-        logger.info("Initializing grievance service...")
-        # Enabled grievance service for escalation logic
         grievance_service = GrievanceService()
         app.state.grievance_service = grievance_service
         logger.info("Grievance service initialized successfully.")
     except Exception as e:
         logger.error(f"Error initializing grievance service: {e}", exc_info=True)
+        raise
 
-    # Launch background tasks that are non-blocking for startup/health-check
-    asyncio.create_task(background_initialization(app))
+    # Startup: Load static data to avoid first-request latency
+    try:
+        # These functions use lru_cache, so calling them once loads the data into memory
+        load_maharashtra_pincode_data()
+        load_maharashtra_mla_data()
+        logger.info("Maharashtra data pre-loaded successfully.")
+    except Exception as e:
+        logger.error(f"Error pre-loading Maharashtra data: {e}")
 
-    # Start the daily civic intelligence refinement scheduler (temporarily disabled for local dev)
-    # start_scheduler()
-    logger.info("Scheduler skipped for local development")
-
+    # Startup: Start Telegram Bot in separate thread (non-blocking for FastAPI)
+    try:
+        start_bot_thread()
+        logger.info("Telegram bot started in separate thread.")
+    except Exception as e:
+        logger.error(f"Error starting bot thread: {e}")
+    
     yield
     
     # Shutdown: Close Shared HTTP Client
-    if app.state.http_client:
-        await app.state.http_client.aclose()
+    await app.state.http_client.aclose()
     logger.info("Shared HTTP Client closed.")
 
     # Shutdown: Stop Telegram Bot thread
     try:
-        await run_in_threadpool(stop_bot_thread)
+        stop_bot_thread()
         logger.info("Telegram bot thread stopped.")
     except Exception as e:
         logger.error(f"Error stopping bot thread: {e}")
@@ -148,7 +400,6 @@ app = FastAPI(
     title="VishwaGuru Backend",
     description="AI-powered civic issue reporting and resolution platform",
     version="1.0.0",
-    # Enable lifespan context manager for resource management and startup tasks
     lifespan=lifespan
 )
 
@@ -157,41 +408,40 @@ for exception_type, handler in EXCEPTION_HANDLERS.items():
     app.add_exception_handler(exception_type, handler)
 
 # CORS Configuration - Security Enhanced
+# For separate frontend/backend deployment (e.g., Netlify + Render)
+# FRONTEND_URL environment variable is REQUIRED for security
+# Example: https://your-app.netlify.app
+
 frontend_url = os.environ.get("FRONTEND_URL")
-is_production = os.environ.get("ENVIRONMENT", "").lower() == "production"
-
 if not frontend_url:
-    if is_production:
-        raise ValueError(
-            "FRONTEND_URL environment variable is required for security in production. "
-            "Set it to your frontend URL (e.g., https://your-app.netlify.app)."
-        )
-    else:
-        logger.warning("FRONTEND_URL not set. Defaulting to http://localhost:5173 for development.")
-        frontend_url = "http://localhost:5173"
+    raise ValueError(
+        "FRONTEND_URL environment variable is required for security. "
+        "Set it to your frontend URL (e.g., https://your-app.netlify.app). "
+        "For development, use http://localhost:5173 or similar."
+    )
 
+# Validate URL format (basic check)
 if not (frontend_url.startswith("http://") or frontend_url.startswith("https://")):
     raise ValueError(
         f"FRONTEND_URL must be a valid HTTP/HTTPS URL. Got: {frontend_url}"
     )
 
+# Build allowed origins list
 allowed_origins = [frontend_url]
 
-if not is_production:
+# Allow localhost origins for development
+if os.environ.get("ENVIRONMENT", "").lower() != "production":
+    # Add common development origins
     dev_origins = [
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://localhost:5174",
+        "http://localhost:3000",  # React default
+        "http://localhost:5173",  # Vite default
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5173",
-        "http://127.0.0.1:5174",
-        "http://localhost:8080",
+        "http://localhost:8080",  # Alternative dev port
     ]
     allowed_origins.extend(dev_origins)
-    # Also add the one from .env if it's different
-    if frontend_url not in allowed_origins:
-        allowed_origins.append(frontend_url)
 
+# Allow CORS for frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
@@ -200,36 +450,479 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Enable Gzip compression
 app.add_middleware(GZipMiddleware, minimum_size=500)
 
-# Mount static files for uploads
-# check if directory exists, if not create it (redundant but safe)
-os.makedirs("data/uploads", exist_ok=True)
-app.mount("/uploads", StaticFiles(directory="data/uploads"), name="uploads")
-
-# Include Modular Routers
-app.include_router(issues.router, tags=["Issues"])
-app.include_router(detection.router, tags=["Detection"])
-app.include_router(grievances.router, tags=["Grievances"])
-app.include_router(utility.router, tags=["Utility"])
-app.include_router(auth.router, tags=["Authentication"])
-app.include_router(admin.router)
-app.include_router(analysis.router, tags=["Analysis"])
-app.include_router(voice.router, tags=["Voice & Language"])
-app.include_router(field_officer.router, tags=["Field Officer Check-In"])
-app.include_router(hf.router, tags=["Hugging Face"])
-app.include_router(resolution_proof.router, tags=["Resolution Proof"])
-
-@app.get("/health")
-def health():
-    return {"status": "healthy"}
-
-@app.get("/")
+@app.get("/", response_model=SuccessResponse)
 def root():
-    return {
-        "status": "ok",
-        "service": "VishwaGuru API",
-        "version": "1.0.0"
+    return SuccessResponse(
+        message="VishwaGuru API is running",
+        data={
+            "service": "VishwaGuru API",
+            "version": "1.0.0"
+        }
+    )
+
+@app.get("/health", response_model=HealthResponse)
+def health():
+    return HealthResponse(
+        status="healthy",
+        timestamp=datetime.now(timezone.utc),
+        version="1.0.0",
+        services={
+            "database": "connected",
+            "ai_services": "initialized"
+        }
+    )
+
+@app.get("/api/stats", response_model=StatsResponse)
+def get_stats(db: Session = Depends(get_db)):
+    cached_stats = recent_issues_cache.get("stats")
+    if cached_stats:
+        return JSONResponse(content=cached_stats)
+
+    total = db.query(func.count(Issue.id)).scalar()
+    resolved = db.query(func.count(Issue.id)).filter(Issue.status.in_(['resolved', 'verified'])).scalar()
+    # Pending is everything else
+    pending = total - resolved
+
+    # By category
+    cat_counts = db.query(Issue.category, func.count(Issue.id)).group_by(Issue.category).all()
+    issues_by_category = {cat: count for cat, count in cat_counts}
+
+    response = StatsResponse(
+        total_issues=total,
+        resolved_issues=resolved,
+        pending_issues=pending,
+        issues_by_category=issues_by_category
+    )
+
+    data = response.model_dump(mode='json')
+    recent_issues_cache.set(data, "stats")
+
+    return response
+
+@app.get("/api/ml-status", response_model=MLStatusResponse)
+async def ml_status():
+    """
+    Get the status of the ML detection service.
+    Returns information about which backend is being used (local or HF API).
+    """
+    status = await get_detection_status()
+    return MLStatusResponse(
+        status="ok",
+        models_loaded=status.get("models_loaded", []),
+        memory_usage=status.get("memory_usage")
+    )
+
+def save_file_blocking(file_obj, path):
+    """
+    Save uploaded file with security measures:
+    - Strip EXIF metadata from images to protect privacy
+    - For non-images, save as-is
+    """
+    try:
+        # Try to open as image with PIL
+        img = Image.open(file_obj)
+        # Strip EXIF data by creating a new image without metadata
+        img_no_exif = Image.new(img.mode, img.size)
+        img_no_exif.putdata(list(img.getdata()))
+        # Save without EXIF
+        img_no_exif.save(path, format=img.format)
+        logger.info(f"Saved image {path} with EXIF metadata stripped")
+    except Exception:
+        # If not an image or PIL fails, save as binary
+        file_obj.seek(0)  # Reset in case PIL read some
+        with open(path, "wb") as buffer:
+            shutil.copyfileobj(file_obj, buffer)
+        logger.info(f"Saved file {path} as binary (not an image or PIL failed)")
+
+def save_issue_db(db: Session, issue: Issue):
+    db.add(issue)
+    db.commit()
+    db.refresh(issue)
+    return issue
+
+@app.post("/api/issues", response_model=IssueCreateWithDeduplicationResponse, status_code=201)
+async def create_issue(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    description: str = Form(..., min_length=10, max_length=1000),
+    category: str = Form(..., pattern=f"^({'|'.join([cat.value for cat in IssueCategory])})$"),
+    language: str = Form('en'),
+    user_email: str = Form(None),
+    latitude: float = Form(None, ge=-90, le=90),
+    longitude: float = Form(None, ge=-180, le=180),
+    location: str = Form(None, max_length=200),
+    image: UploadFile = File(None),
+    db: Session = Depends(get_db)
+):
+    image_path = None
+    
+    # Check upload limits if image is being uploaded
+    if image:
+        # Get client IP
+        client_ip = request.client.host if request.client else "unknown"
+        # Use user_email if provided, otherwise IP
+        identifier = user_email if user_email else client_ip
+        limit = UPLOAD_LIMIT_PER_USER if user_email else UPLOAD_LIMIT_PER_IP
+        check_upload_limits(identifier, limit)
+    
+    try:
+        # Validate uploaded image if provided
+        if image:
+            await validate_uploaded_file(image)
+        
+        # Save image if provided
+        if image:
+            upload_dir = "data/uploads"
+            os.makedirs(upload_dir, exist_ok=True)
+            filename = f"{uuid.uuid4()}_{image.filename}"
+            image_path = os.path.join(upload_dir, filename)
+            await run_in_threadpool(save_file_blocking, image.file, image_path)
+    except HTTPException:
+        # Re-raise HTTP exceptions (from validation)
+        raise
+    except OSError as e:
+        logger.error(f"File I/O error while saving image: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to save uploaded file")
+    except Exception as e:
+        logger.error(f"Unexpected error during file processing: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+    # Spatial deduplication check
+    deduplication_info = None
+    linked_issue_id = None
+
+    if latitude is not None and longitude is not None:
+        try:
+            # Find existing open issues within 50 meters
+            # Optimization: Use bounding box to filter candidates in SQL
+            min_lat, max_lat, min_lon, max_lon = get_bounding_box(latitude, longitude, 50.0)
+
+            open_issues = await run_in_threadpool(
+                lambda: db.query(Issue).filter(
+                    Issue.status == "open",
+                    Issue.latitude >= min_lat,
+                    Issue.latitude <= max_lat,
+                    Issue.longitude >= min_lon,
+                    Issue.longitude <= max_lon
+                ).all()
+            )
+
+            nearby_issues_with_distance = find_nearby_issues(
+                open_issues, latitude, longitude, radius_meters=50.0
+            )
+
+            if nearby_issues_with_distance:
+                # Found nearby issues - prepare deduplication response
+                nearby_responses = [
+                    NearbyIssueResponse(
+                        id=issue.id,
+                        description=issue.description[:100] + "..." if len(issue.description) > 100 else issue.description,
+                        category=issue.category,
+                        latitude=issue.latitude,
+                        longitude=issue.longitude,
+                        distance_meters=distance,
+                        upvotes=issue.upvotes or 0,
+                        created_at=issue.created_at,
+                        status=issue.status
+                    )
+                    for issue, distance in nearby_issues_with_distance[:3]  # Limit to top 3 closest
+                ]
+
+                deduplication_info = DeduplicationCheckResponse(
+                    has_nearby_issues=True,
+                    nearby_issues=nearby_responses,
+                    recommended_action="upvote_existing"
+                )
+
+                # Automatically upvote the closest issue and link this report to it
+                closest_issue, _ = nearby_issues_with_distance[0]
+                closest_issue.upvotes = (closest_issue.upvotes or 0) + 1
+                linked_issue_id = closest_issue.id
+
+                # Update the database with the upvote
+                await run_in_threadpool(db.commit)
+
+                logger.info(f"Spatial deduplication: Linked new report to existing issue {closest_issue.id}, upvoted to {closest_issue.upvotes}")
+
+        except Exception as e:
+            logger.error(f"Error during spatial deduplication check: {e}", exc_info=True)
+            # Continue with issue creation if deduplication fails
+
+    try:
+        # Save to DB only if no nearby issues found or deduplication failed
+        if deduplication_info is None or not deduplication_info.has_nearby_issues:
+            new_issue = Issue(
+                reference_id=str(uuid.uuid4()),
+                description=description,
+                category=category,
+                image_path=image_path,
+                source="web",
+                user_email=user_email,
+                latitude=latitude,
+                longitude=longitude,
+                location=location,
+                action_plan=None
+            )
+
+            # Offload blocking DB operations to threadpool
+            await run_in_threadpool(save_issue_db, db, new_issue)
+        else:
+            # Don't create new issue, just return deduplication info
+            new_issue = None
+    except Exception as e:
+        # Clean up uploaded file if DB save failed
+        if image_path and os.path.exists(image_path):
+            try:
+                os.remove(image_path)
+            except OSError:
+                pass  # Ignore cleanup errors
+        
+        logger.error(f"Database error while creating issue: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to save issue to database")
+
+    # Add background task for AI generation only if new issue was created
+    if new_issue:
+        background_tasks.add_task(process_action_plan_background, new_issue.id, description, category, language, image_path)
+        
+        # Create grievance for escalation management
+        background_tasks.add_task(create_grievance_from_issue_background, new_issue.id)
+
+        # Optimistic Cache Update with thread-safe operations
+        try:
+            current_cache = recent_issues_cache.get("recent_issues")
+            if current_cache:
+                # Create a dict representation of the new issue
+                # Using IssueSummaryResponse to match the list view optimization
+                new_issue_dict = IssueSummaryResponse(
+                    id=new_issue.id,
+                    category=new_issue.category,
+                    description=new_issue.description[:100] + "..." if len(new_issue.description) > 100 else new_issue.description,
+                    created_at=new_issue.created_at,
+                    image_path=new_issue.image_path,
+                    status=new_issue.status,
+                    upvotes=new_issue.upvotes if new_issue.upvotes is not None else 0,
+                    location=new_issue.location,
+                    latitude=new_issue.latitude,
+                    longitude=new_issue.longitude
+                    # action_plan excluded
+                ).model_dump(mode='json')
+
+                # Prepend new issue to the list (atomic operation)
+                current_cache.insert(0, new_issue_dict)
+
+                # Keep only last 10 entries
+                if len(current_cache) > 10:
+                    current_cache.pop()
+
+                # Atomic cache update
+                recent_issues_cache.set(current_cache, "recent_issues")
+        except Exception as e:
+            logger.error(f"Error updating cache optimistically: {e}")
+            # Failure to update cache is not critical, don't fail the request
+
+    # Prepare deduplication info if not already set
+    if deduplication_info is None:
+        deduplication_info = DeduplicationCheckResponse(
+            has_nearby_issues=False,
+            nearby_issues=[],
+            recommended_action="create_new"
+        )
+
+    # Return response with deduplication information
+    if new_issue:
+        return IssueCreateWithDeduplicationResponse(
+            id=new_issue.id,
+            message="Issue reported successfully. Action plan will be generated shortly.",
+            action_plan=None,
+            deduplication_info=deduplication_info,
+            linked_issue_id=linked_issue_id
+        )
+    else:
+        return IssueCreateWithDeduplicationResponse(
+            id=None,
+            message="Similar issue found nearby. Your report has been linked to the existing issue to increase its priority.",
+            action_plan=None,
+            deduplication_info=deduplication_info,
+            linked_issue_id=linked_issue_id
+        )
+
+@app.post("/api/issues/{issue_id}/vote", response_model=VoteResponse)
+def upvote_issue(issue_id: int, db: Session = Depends(get_db)):
+    issue = db.query(Issue).filter(Issue.id == issue_id).first()
+    if not issue:
+        raise HTTPException(status_code=404, detail="Issue not found")
+
+    # Increment upvotes
+    if issue.upvotes is None:
+        issue.upvotes = 0
+    issue.upvotes += 1
+
+    db.commit()
+    db.refresh(issue)
+
+    return VoteResponse(
+        id=issue.id,
+        upvotes=issue.upvotes,
+        message="Issue upvoted successfully"
+    )
+
+@app.get("/api/issues/nearby", response_model=List[NearbyIssueResponse])
+def get_nearby_issues(
+    latitude: float = Query(..., ge=-90, le=90, description="Latitude of the location"),
+    longitude: float = Query(..., ge=-180, le=180, description="Longitude of the location"),
+    radius: float = Query(50.0, ge=10, le=500, description="Search radius in meters"),
+    limit: int = Query(10, ge=1, le=50, description="Maximum number of results"),
+    db: Session = Depends(get_db)
+):
+    """
+    Get issues near a specific location for deduplication purposes.
+    Returns issues within the specified radius, sorted by distance.
+    """
+    try:
+        # Query open issues with coordinates
+        # Optimization: Use bounding box to filter candidates in SQL
+        min_lat, max_lat, min_lon, max_lon = get_bounding_box(latitude, longitude, radius)
+
+        open_issues = db.query(Issue).filter(
+            Issue.status == "open",
+            Issue.latitude >= min_lat,
+            Issue.latitude <= max_lat,
+            Issue.longitude >= min_lon,
+            Issue.longitude <= max_lon
+        ).all()
+
+        nearby_issues_with_distance = find_nearby_issues(
+            open_issues, latitude, longitude, radius_meters=radius
+        )
+
+        # Convert to response format and limit results
+        nearby_responses = [
+            NearbyIssueResponse(
+                id=issue.id,
+                description=issue.description[:100] + "..." if len(issue.description) > 100 else issue.description,
+                category=issue.category,
+                latitude=issue.latitude,
+                longitude=issue.longitude,
+                distance_meters=distance,
+                upvotes=issue.upvotes or 0,
+                created_at=issue.created_at,
+                status=issue.status
+            )
+            for issue, distance in nearby_issues_with_distance[:limit]
+        ]
+
+        return nearby_responses
+
+    except Exception as e:
+        logger.error(f"Error getting nearby issues: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to retrieve nearby issues")
+
+@app.post("/api/issues/{issue_id}/verify", response_model=Union[VoteResponse, Dict[str, Any]])
+async def verify_issue_endpoint(
+    issue_id: int,
+    request: Request,
+    image: UploadFile = File(None),
+    db: Session = Depends(get_db)
+):
+    issue = await run_in_threadpool(lambda: db.query(Issue).filter(Issue.id == issue_id).first())
+    if not issue:
+        raise HTTPException(status_code=404, detail="Issue not found")
+
+    if image:
+        # AI Verification Logic
+        # Validate uploaded file
+        await validate_uploaded_file(image)
+
+        try:
+            image_bytes = await image.read()
+        except Exception as e:
+            logger.error(f"Invalid image file: {e}", exc_info=True)
+            raise HTTPException(status_code=400, detail="Invalid image file")
+
+        # Construct question
+        category = issue.category.lower() if issue.category else "issue"
+        question = f"Is there a {category} in this image?"
+
+        # Custom questions for common categories
+        if "pothole" in category:
+            question = "Is there a pothole on the road?"
+        elif "garbage" in category or "waste" in category:
+            question = "Is there garbage or trash on the ground?"
+        elif "light" in category:
+            question = "Is the streetlight broken?"
+        elif "water" in category or "flood" in category:
+            question = "Is the street flooded?"
+        elif "tree" in category:
+            question = "Is there a fallen tree?"
+
+        try:
+            client = request.app.state.http_client
+            result = await verify_resolution_vqa(image_bytes, question, client)
+
+            answer = result.get('answer', 'unknown')
+            confidence = result.get('confidence', 0)
+
+            # If the answer is "no" (meaning the issue is NOT present), we consider it resolved.
+            is_resolved = False
+            if answer.lower() in ["no", "none", "nothing"] and confidence > 0.5:
+                is_resolved = True
+                # Update status if not already resolved
+                if issue.status != "resolved":
+                    issue.status = "verified" # Mark as verified (resolved usually implies closed)
+                    issue.verified_at = datetime.now(timezone.utc)
+                    await run_in_threadpool(db.commit)
+
+            return {
+                "is_resolved": is_resolved,
+                "ai_answer": answer,
+                "confidence": confidence,
+                "question_asked": question
+            }
+        except Exception as e:
+            logger.error(f"Resolution verification error: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail="Verification service temporarily unavailable")
+    else:
+        # Manual Verification Logic (Vote)
+        # Increment upvotes (verification counts as strong support)
+        if issue.upvotes is None:
+            issue.upvotes = 0
+        issue.upvotes += 2  # Verification counts as 2 upvotes
+
+        # If issue has enough verifications, consider upgrading status
+        if issue.upvotes >= 5 and issue.status == "open":
+            issue.status = "verified"
+            logger.info(f"Issue {issue_id} automatically verified due to {issue.upvotes} upvotes")
+
+        await run_in_threadpool(db.commit)
+        await run_in_threadpool(db.refresh, issue)
+
+        return VoteResponse(
+            id=issue.id,
+            upvotes=issue.upvotes,
+            message="Issue verified successfully"
+        )
+
+@app.put("/api/issues/status", response_model=IssueStatusUpdateResponse)
+def update_issue_status(
+    request: IssueStatusUpdateRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    """Update issue status via secure reference ID (for government portals)"""
+    issue = db.query(Issue).filter(Issue.reference_id == request.reference_id).first()
+    if not issue:
+        raise HTTPException(status_code=404, detail="Issue not found")
+
+    # Validate status transition (simple state machine)
+    valid_transitions = {
+        "open": ["verified"],
+        "verified": ["assigned", "open"],
+        "assigned": ["in_progress", "verified"],
+        "in_progress": ["resolved", "assigned"],
+        "resolved": []  # Terminal state
     }
 
     if request.status.value not in valid_transitions.get(issue.status, []):
@@ -423,7 +1116,7 @@ def get_recent_issues(db: Session = Depends(get_db)):
     return Response(content=json_data, media_type="application/json")
 
 @app.post("/api/detect-pothole", response_model=DetectionResponse)
-async def detect_pothole_endpoint(image: UploadFile = File(...)):
+async def detect_pothole_endpoint(request: Request, image: UploadFile = File(...)):
     # Validate uploaded file
     await validate_uploaded_file(image)
 
@@ -438,116 +1131,37 @@ async def detect_pothole_endpoint(image: UploadFile = File(...)):
         logger.error(f"Invalid image file for pothole detection: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail="Invalid image file")
 
-    # Run detection (blocking, so run in threadpool)
+    # Run detection
     try:
-        detections = await run_in_threadpool(detect_potholes, pil_image)
+        if is_model_available():
+            # Use local model if available (blocking)
+            detections = await run_in_threadpool(detect_potholes, pil_image)
+        else:
+            # Fallback to Hugging Face API
+            logger.info("Local pothole model unavailable, falling back to HF API")
+            client = request.app.state.http_client
+            detections = await detect_pothole_clip(pil_image, client=client)
+
         return DetectionResponse(detections=detections)
     except Exception as e:
         logger.error(f"Pothole detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Pothole detection service temporarily unavailable")
 
 @app.post("/api/detect-infrastructure", response_model=DetectionResponse)
-async def detect_infrastructure_endpoint(request: Request, image: UploadFile = File(...)):
-    # Validate uploaded file
-    await validate_uploaded_file(image)
-
-    # Convert to PIL Image directly from file object to save memory
-    try:
-        pil_image = await run_in_threadpool(Image.open, image.file)
-        # Validate image for processing
-        await run_in_threadpool(validate_image_for_processing, pil_image)
-    except HTTPException:
-        raise  # Re-raise HTTP exceptions from validation
-    except Exception as e:
-        logger.error(f"Invalid image file for infrastructure detection: {e}", exc_info=True)
-        raise HTTPException(status_code=400, detail="Invalid image file")
-
-    # Run detection using unified service (local ML by default)
-    try:
-        # Use shared HTTP client from app state
-        client = request.app.state.http_client
-        detections = await detect_infrastructure_local(pil_image, client=client)
-        return DetectionResponse(detections=detections)
-    except Exception as e:
-        logger.error(f"Infrastructure detection error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Infrastructure detection service temporarily unavailable")
+async def detect_infrastructure_endpoint(image: UploadFile = File(...)):
+    return await process_and_detect(image, detect_infrastructure_unified)
 
 @app.post("/api/detect-flooding", response_model=DetectionResponse)
-async def detect_flooding_endpoint(request: Request, image: UploadFile = File(...)):
-    # Validate uploaded file
-    await validate_uploaded_file(image)
-    
-    # Convert to PIL Image directly from file object to save memory
-    try:
-        pil_image = await run_in_threadpool(Image.open, image.file)
-        # Validate image for processing
-        await run_in_threadpool(validate_image_for_processing, pil_image)
-    except HTTPException:
-        raise  # Re-raise HTTP exceptions from validation
-    except Exception as e:
-        logger.error(f"Invalid image file for flooding detection: {e}", exc_info=True)
-        raise HTTPException(status_code=400, detail="Invalid image file")
+async def detect_flooding_endpoint(image: UploadFile = File(...)):
+    return await process_and_detect(image, detect_flooding_unified)
 
-    # Run detection using unified service (local ML by default)
-    try:
-        # Use shared HTTP client from app state
-        client = request.app.state.http_client
-        detections = await detect_flooding_local(pil_image, client=client)
-        return DetectionResponse(detections=detections)
-    except Exception as e:
-        logger.error(f"Flooding detection error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Flooding detection service temporarily unavailable")
-
-# FIXED: Standardized Detection Endpoints with Consistent Validation
 @app.post("/api/detect-vandalism", response_model=DetectionResponse)
-async def detect_vandalism_endpoint(request: Request, image: UploadFile = File(...)):
-    # Validate uploaded file
-    await validate_uploaded_file(image)
-    
-    # Convert to PIL Image directly from file object to save memory
-    try:
-        pil_image = await run_in_threadpool(Image.open, image.file)
-        # Validate image for processing
-        await run_in_threadpool(validate_image_for_processing, pil_image)
-    except HTTPException:
-        raise  # Re-raise HTTP exceptions from validation
-    except Exception as e:
-        logger.error(f"Invalid image file for vandalism detection: {e}", exc_info=True)
-        raise HTTPException(status_code=400, detail="Invalid image file")
-
-    # Run detection using HF API (Lightweight)
-    try:
-        # Use shared HTTP client from app state
-        client = request.app.state.http_client
-        detections = await detect_vandalism_clip(pil_image, client=client)
-        return DetectionResponse(detections=detections)
-    except Exception as e:
-        logger.error(f"Vandalism detection error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Detection service temporarily unavailable")
+async def detect_vandalism_endpoint(image: UploadFile = File(...)):
+    return await process_and_detect(image, detect_vandalism_unified)
 
 @app.post("/api/detect-garbage", response_model=DetectionResponse)
 async def detect_garbage_endpoint(image: UploadFile = File(...)):
-    # Validate uploaded file
-    await validate_uploaded_file(image)
-    
-    # Convert to PIL Image directly from file object to save memory
-    try:
-        pil_image = await run_in_threadpool(Image.open, image.file)
-        # Validate image for processing
-        await run_in_threadpool(validate_image_for_processing, pil_image)
-    except HTTPException:
-        raise  # Re-raise HTTP exceptions from validation
-    except Exception as e:
-        logger.error(f"Invalid image file for garbage detection: {e}", exc_info=True)
-        raise HTTPException(status_code=400, detail="Invalid image file")
-
-    # Run detection (blocking, so run in threadpool)
-    try:
-        detections = await run_in_threadpool(detect_garbage, pil_image)
-        return DetectionResponse(detections=detections)
-    except Exception as e:
-        logger.error(f"Garbage detection error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Detection service temporarily unavailable")
+    return await process_and_detect(image, detect_garbage_unified)
 
 @app.post("/api/detect-illegal-parking")
 async def detect_illegal_parking_endpoint(request: Request, image: UploadFile = File(...)):
@@ -756,33 +1370,34 @@ async def detect_audio_endpoint(request: Request, file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-async def get_cached_or_compute(cache_key: str, compute_func, *args, **kwargs):
-    """Get cached result or compute and cache it."""
-    global _cache_cleanup_counter
-    now = datetime.now(timezone.utc).timestamp()
-    
-    # Clean expired entries periodically
-    _cache_cleanup_counter += 1
-    if _cache_cleanup_counter > 100 or len(image_processing_cache) > 1000:
-        _cache_cleanup_counter = 0
-        expired_keys = [k for k, v in image_processing_cache.items() if now - v['timestamp'] > CACHE_EXPIRY]
-        for k in expired_keys:
-            del image_processing_cache[k]
-    
-    if cache_key in image_processing_cache:
-        return image_processing_cache[cache_key]['result']
-    
-    # Compute and cache
-    result = await compute_func(*args, **kwargs)
-    image_processing_cache[cache_key] = {
-        'result': result,
-        'timestamp': now
-    }
-    return result
+@alru_cache(maxsize=100)
+async def _cached_detect_severity(image_bytes: bytes):
+    from backend.hf_api_service import detect_severity_clip
+    return await detect_severity_clip(image_bytes, client=SHARED_HTTP_CLIENT)
+
+@alru_cache(maxsize=100)
+async def _cached_detect_smart_scan(image_bytes: bytes):
+    from backend.hf_api_service import detect_smart_scan_clip
+    return await detect_smart_scan_clip(image_bytes, client=SHARED_HTTP_CLIENT)
+
+@alru_cache(maxsize=100)
+async def _cached_generate_caption(image_bytes: bytes):
+    from backend.hf_api_service import generate_image_caption
+    return await generate_image_caption(image_bytes, client=SHARED_HTTP_CLIENT)
+
+@alru_cache(maxsize=100)
+async def _cached_detect_waste(image_bytes: bytes):
+    from backend.hf_api_service import detect_waste_clip
+    return await detect_waste_clip(image_bytes, client=SHARED_HTTP_CLIENT)
+
+@alru_cache(maxsize=100)
+async def _cached_detect_civic_eye(image_bytes: bytes):
+    from backend.hf_api_service import detect_civic_eye_clip
+    return await detect_civic_eye_clip(image_bytes, client=SHARED_HTTP_CLIENT)
 
 
 @app.post("/api/detect-severity")
-async def detect_severity_endpoint(request: Request, image: UploadFile = File(...)):
+async def detect_severity_endpoint(image: UploadFile = File(...)):
     try:
         image_bytes = await image.read()
     except Exception as e:
@@ -790,21 +1405,14 @@ async def detect_severity_endpoint(request: Request, image: UploadFile = File(..
         raise HTTPException(status_code=400, detail="Invalid image file")
 
     try:
-        # Create cache key from image hash
-        import hashlib
-        image_hash = hashlib.md5(image_bytes).hexdigest()
-        cache_key = f"severity_{image_hash}"
-        
-        client = request.app.state.http_client
-        result = get_cached_or_compute(cache_key, detect_severity_clip, image_bytes, client)
-        return result
+        return await _cached_detect_severity(image_bytes)
     except Exception as e:
         logger.error(f"Severity detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.post("/api/detect-smart-scan")
-async def detect_smart_scan_endpoint(request: Request, image: UploadFile = File(...)):
+async def detect_smart_scan_endpoint(image: UploadFile = File(...)):
     try:
         image_bytes = await image.read()
     except Exception as e:
@@ -812,22 +1420,14 @@ async def detect_smart_scan_endpoint(request: Request, image: UploadFile = File(
         raise HTTPException(status_code=400, detail="Invalid image file")
 
     try:
-        # Create cache key from image hash
-        image_hash = hashlib.md5(image_bytes).hexdigest()
-        cache_key = f"smart_scan_{image_hash}"
-        
-        client = request.app.state.http_client
-        result = await get_cached_or_compute(cache_key, detect_smart_scan_clip, image_bytes, client)
-        return result
+        return await _cached_detect_smart_scan(image_bytes)
     except Exception as e:
         logger.error(f"Smart scan detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-
-
 @app.post("/api/generate-description")
-async def generate_description_endpoint(request: Request, image: UploadFile = File(...)):
+async def generate_description_endpoint(image: UploadFile = File(...)):
     try:
         image_bytes = await image.read()
     except Exception as e:
@@ -835,12 +1435,7 @@ async def generate_description_endpoint(request: Request, image: UploadFile = Fi
         raise HTTPException(status_code=400, detail="Invalid image file")
 
     try:
-        # Create cache key from image hash
-        image_hash = hashlib.md5(image_bytes).hexdigest()
-        cache_key = f"description_{image_hash}"
-        
-        client = request.app.state.http_client
-        description = await get_cached_or_compute(cache_key, generate_image_caption, image_bytes, client)
+        description = await _cached_generate_caption(image_bytes)
         if not description:
             return {"description": "", "error": "Could not generate description"}
         return {"description": description}
@@ -1168,12 +1763,13 @@ def get_escalation_stats(db: Session = Depends(get_db)):
 @app.post("/api/grievances/{grievance_id}/escalate")
 def manual_escalate_grievance(
     grievance_id: int,
+    request: Request,
     reason: str = Query(..., description="Reason for manual escalation"),
     db: Session = Depends(get_db)
 ):
     """Manually escalate a grievance"""
     try:
-        grievance_service = getattr(db.get_bind()._app.state, 'grievance_service', None)
+        grievance_service = getattr(request.app.state, 'grievance_service', None)
         if not grievance_service:
             raise HTTPException(status_code=500, detail="Grievance service not available")
 
@@ -1222,7 +1818,7 @@ async def transcribe_audio_endpoint(request: Request, file: UploadFile = File(..
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.post("/api/detect-waste")
-async def detect_waste_endpoint(request: Request, image: UploadFile = File(...)):
+async def detect_waste_endpoint(image: UploadFile = File(...)):
     # Validate uploaded file
     await validate_uploaded_file(image)
 
@@ -1233,19 +1829,13 @@ async def detect_waste_endpoint(request: Request, image: UploadFile = File(...))
         raise HTTPException(status_code=400, detail="Invalid image file")
 
     try:
-        client = request.app.state.http_client
-        # Cache key
-        image_hash = hashlib.md5(image_bytes).hexdigest()
-        cache_key = f"waste_{image_hash}"
-
-        result = await get_cached_or_compute(cache_key, detect_waste_clip, image_bytes, client)
-        return result
+        return await _cached_detect_waste(image_bytes)
     except Exception as e:
         logger.error(f"Waste detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.post("/api/detect-civic-eye")
-async def detect_civic_eye_endpoint(request: Request, image: UploadFile = File(...)):
+async def detect_civic_eye_endpoint(image: UploadFile = File(...)):
     # Validate uploaded file
     await validate_uploaded_file(image)
 
@@ -1256,13 +1846,7 @@ async def detect_civic_eye_endpoint(request: Request, image: UploadFile = File(.
         raise HTTPException(status_code=400, detail="Invalid image file")
 
     try:
-        client = request.app.state.http_client
-        # Cache key
-        image_hash = hashlib.md5(image_bytes).hexdigest()
-        cache_key = f"civic_eye_{image_hash}"
-
-        result = await get_cached_or_compute(cache_key, detect_civic_eye_clip, image_bytes, client)
-        return result
+        return await _cached_detect_civic_eye(image_bytes)
     except Exception as e:
         logger.error(f"Civic Eye detection error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
