@@ -30,7 +30,7 @@ from backend.tasks import (
     send_status_notification
 )
 from backend.spatial_utils import get_bounding_box, find_nearby_issues
-from backend.cache import recent_issues_cache, nearby_issues_cache
+from backend.cache import recent_issues_cache, nearby_issues_cache, blockchain_last_hash_cache
 from backend.hf_api_service import verify_resolution_vqa
 from backend.dependencies import get_http_client
 from backend.rag_service import rag_service
@@ -53,6 +53,10 @@ async def create_issue(
     image: UploadFile = File(None),
     db: Session = Depends(get_db)
 ):
+    """
+    Create a new civic issue report.
+    Includes spatial deduplication and blockchain-style cryptographic chaining.
+    """
     image_path = None
 
     # Check upload limits if image is being uploaded
@@ -172,13 +176,13 @@ async def create_issue(
         # Save to DB only if no nearby issues found or deduplication failed
         if deduplication_info is None or not deduplication_info.has_nearby_issues:
             # Blockchain feature: calculate integrity hash for the report
-            # Optimization: Fetch only the last hash to maintain the chain with minimal overhead
+            # Use DB-level locking to ensure atomic chain extension (prevents forking)
             prev_issue = await run_in_threadpool(
-                lambda: db.query(Issue.integrity_hash).order_by(Issue.id.desc()).first()
+                lambda: db.query(Issue.integrity_hash).order_by(Issue.id.desc()).with_for_update().first()
             )
             prev_hash = prev_issue[0] if prev_issue and prev_issue[0] else ""
 
-# Simple but effective SHA-256 chaining
+            # Simple but effective SHA-256 chaining
             hash_content = f"{description}|{category}|{prev_hash}"
             integrity_hash = hashlib.sha256(hash_content.encode()).hexdigest()
 
@@ -199,11 +203,15 @@ async def create_issue(
                 longitude=longitude,
                 location=location,
                 action_plan=initial_action_plan,
-                integrity_hash=integrity_hash
+                integrity_hash=integrity_hash,
+                previous_integrity_hash=prev_hash
             )
 
             # Offload blocking DB operations to threadpool
             await run_in_threadpool(save_issue_db, db, new_issue)
+
+            # Update cache with new hash for next report
+            blockchain_last_hash_cache.set(data=integrity_hash, key="last_hash")
         else:
             # Don't create new issue, just return deduplication info
             new_issue = None
@@ -620,34 +628,44 @@ def get_user_issues(
 async def verify_blockchain_integrity(issue_id: int, db: Session = Depends(get_db)):
     """
     Verify the cryptographic integrity of a report using the blockchain-style chaining.
-    Optimized: Uses column projection to fetch only needed data.
+    Optimized: Uses stored previous_integrity_hash to enable faster verification.
+    Ensures the stored link actually matches the predecessor in the database.
     """
-    # Fetch current issue data
+    # Fetch current issue data including the link to the previous hash
     current_issue = await run_in_threadpool(
         lambda: db.query(
-            Issue.id, Issue.description, Issue.category, Issue.integrity_hash
+            Issue.id, Issue.description, Issue.category, Issue.integrity_hash, Issue.previous_integrity_hash
         ).filter(Issue.id == issue_id).first()
     )
 
     if not current_issue:
         raise HTTPException(status_code=404, detail="Issue not found")
 
-    # Fetch previous issue's integrity hash to verify the chain
-    prev_issue_hash = await run_in_threadpool(
+    # Determine previous hash: fallback to DB lookup for both legacy records and validation
+    # Performance Note: While we store previous_integrity_hash for O(1) verification,
+    # we must ensure it matches the actual predecessor for full chain audit.
+    actual_prev_issue = await run_in_threadpool(
         lambda: db.query(Issue.integrity_hash).filter(Issue.id < issue_id).order_by(Issue.id.desc()).first()
     )
+    actual_prev_hash = actual_prev_issue[0] if actual_prev_issue and actual_prev_issue[0] else ""
 
-    prev_hash = prev_issue_hash[0] if prev_issue_hash and prev_issue_hash[0] else ""
+    # Verify that the stored link hasn't been tampered with
+    link_valid = True
+    if current_issue.previous_integrity_hash is not None:
+        if current_issue.previous_integrity_hash != actual_prev_hash:
+            link_valid = False
 
-    # Recompute hash based on current data and previous hash
+    # Recompute hash based on current data and the actual previous hash from DB
     # Chaining logic: hash(description|category|prev_hash)
-    hash_content = f"{current_issue.description}|{current_issue.category}|{prev_hash}"
+    hash_content = f"{current_issue.description}|{current_issue.category}|{actual_prev_hash}"
     computed_hash = hashlib.sha256(hash_content.encode()).hexdigest()
 
-    is_valid = (computed_hash == current_issue.integrity_hash)
+    is_valid = (computed_hash == current_issue.integrity_hash) and link_valid
 
     if is_valid:
         message = "Integrity verified. This report is cryptographically sealed and has not been tampered with."
+    elif not link_valid:
+        message = "Integrity check failed! The link to the previous report hash is invalid or tampered with."
     else:
         message = "Integrity check failed! The report data does not match its cryptographic seal."
 
