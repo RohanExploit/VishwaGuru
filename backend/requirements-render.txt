@@ -17,7 +17,8 @@ passlib[bcrypt]
 bcrypt<4.0.0
 SpeechRecognition
 pydub
-googletrans==4.0.2
+# Use deep-translator to avoid httpcore version conflicts with python-telegram-bot
+deep-translator
 langdetect
 # scikit-learn includes numpy, scipy, joblib dependencies
 scikit-learn

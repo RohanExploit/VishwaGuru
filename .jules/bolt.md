@@ -45,3 +45,7 @@
 ## 2026-02-10 - Group-By for Multi-Count Statistics
 **Learning:** Executing multiple `count()` queries with different filters (e.g., for different statuses) causes redundant database scans and network round-trips.
 **Action:** Use a single SQL `GROUP BY` query to fetch counts for all categories/statuses at once, then process the results in Python.
+
+## 2026-02-12 - O(1) LRU vs O(N) LFU in High-Concurrency Cache
+**Learning:** Using a simple dictionary with an access counter for eviction results in O(N) complexity for every `set` operation when the cache is full, as it must scan all keys to find the minimum. Under high concurrency and large cache sizes, this introduces significant latency and lock contention.
+**Action:** Use `collections.OrderedDict` to implement an O(1) LRU cache. `move_to_end()` on `get` and `popitem(last=False)` on `set` (when full) ensures constant time complexity for eviction, keeping the event loop responsive even under load.

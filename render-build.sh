@@ -10,10 +10,11 @@ else
     pip install --no-cache-dir -r backend/requirements.txt
 fi
 
-echo "Building Frontend..."
-cd frontend
-npm install
-npm run build
-cd ..
+# Skip frontend build on Render backend service to save resources/time
+# echo "Building Frontend..."
+# cd frontend
+# npm install
+# npm run build
+# cd ..
 
 echo "Build complete."
