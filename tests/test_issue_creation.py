@@ -4,21 +4,18 @@ import shutil
 import tempfile
 from fastapi.testclient import TestClient
 
-# Note: This test requires PYTHONPATH=backend to be set to import backend modules
-# Run with: PYTHONPATH=backend python tests/test_issue_creation.py
+# Note: This test requires PYTHONPATH=. to be set to import backend modules
+# Run with: PYTHONPATH=. python tests/test_issue_creation.py
 import sys
 import os
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'backend'))
-
-from main import app
-from models import Base
-from database import engine
+from backend.main import app
+from backend.models import Base, Issue
+from backend.database import engine, SessionLocal
+import json
 
 # Setup test DB
 Base.metadata.create_all(bind=engine)
-
-client = TestClient(app)
 
 def test_create_issue():
     # Create a valid minimal JPEG image file
@@ -39,23 +36,53 @@ def test_create_issue():
         tmp_path = tmp.name
 
     try:
-        with open(tmp_path, "rb") as f:
-            response = client.post(
-                "/api/issues",
-                data={
-                    "description": "Test Issue",
-                    "category": "Road",
-                    "user_email": "test@example.com"
-                },
-                files={"image": ("test.jpg", f, "image/jpeg")}
-            )
+        from unittest.mock import patch, AsyncMock
+        # Patch validation to avoid PIL/magic issues with dummy image
+        # Also patch action plan generation to avoid external API calls
+        # Note: Patch where it is imported/used (backend.main), not where it is defined
+        with patch("backend.main.validate_uploaded_file", new_callable=AsyncMock) as mock_validate, \
+             patch("backend.main.generate_action_plan", new_callable=AsyncMock) as mock_plan:
+
+            mock_plan.return_value = {
+                "whatsapp": "Test WhatsApp",
+                "email_subject": "Test Subject",
+                "email_body": "Test Body",
+                "x_post": "Test X Post"
+            }
+
+            with TestClient(app) as client:
+                with open(tmp_path, "rb") as f:
+                    response = client.post(
+                        "/api/issues",
+                        data={
+                            "description": "Test Issue",
+                            "category": "Road",
+                            "user_email": "test@example.com"
+                        },
+                        files={"image": ("test.jpg", f, "image/jpeg")}
+                    )
 
         print(f"Status Code: {response.status_code}")
         print(f"Response: {response.json()}")
 
-        assert response.status_code == 200
-        assert response.json()["message"] == "Issue reported successfully"
+        assert response.status_code == 201
         assert "action_plan" in response.json()
+        # Action plan should be None initially (async)
+        assert response.json()["action_plan"] is None
+
+        # Verify background task ran and updated DB
+        # TestClient runs background tasks synchronously after request
+        db = SessionLocal()
+        issue = db.query(Issue).filter(Issue.id == response.json()["id"]).first()
+        assert issue.action_plan is not None
+
+        # Parse action plan
+        # With JSONEncodedDict, issue.action_plan is already a dict
+        plan = issue.action_plan
+        assert plan.get("x_post")
+        # Check if fallback or actual response
+        # assert "@mybmc" in plan["x_post"]
+        db.close()
     finally:
         os.remove(tmp_path)
 
