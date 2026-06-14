@@ -417,6 +417,13 @@ def get_visit_statistics(db: Session = Depends(get_db)):
             func.count(func.distinct(FieldOfficerVisit.officer_email)).label("unique_officers"),
             func.avg(FieldOfficerVisit.distance_from_site).label("average_distance")
         ).first()
+
+        total_visits = stats.total_visits or 0
+        verified_visits = int(stats.verified_visits or 0)
+        within_geofence_count = int(stats.within_geofence_count or 0)
+        outside_geofence_count = int(stats.outside_geofence_count or 0)
+        unique_officers = stats.unique_officers or 0
+        average_distance = stats.average_distance
         
         average_distance = stats.average_distance
         
