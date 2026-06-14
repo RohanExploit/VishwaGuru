@@ -5,8 +5,8 @@
 
 ## 🎯 YOUR CO-AUTHOR
 
-**Name**: Sneha  
-**GitHub**: fy23-ssvhankade-star  
+**Name**: Sneha
+**GitHub**: fy23-ssvhankade-star
 **Email**: fy23-ssvhankade@sswcoe.edu.in
 
 ---
@@ -458,7 +458,7 @@ gh pr create --title "docs: enhance .env.example"
 ```
 Hey Sneha!
 
-I'm working on accelerating my GitHub profile for VishwaGuru 
+I'm working on accelerating my GitHub profile for VishwaGuru
 and would love to collaborate with you on some PRs.
 
 Would you be interested in:
@@ -466,7 +466,7 @@ Would you be interested in:
 - Code reviewing my PRs and suggesting improvements
 - Working on features together (I handle backend, you handle frontend/docs)
 
-We'd both get credit as co-authors on GitHub, and it would 
+We'd both get credit as co-authors on GitHub, and it would
 help both our profiles!
 
 Interested? We can start with some documentation improvements today.
@@ -478,7 +478,7 @@ Project: https://github.com/Ewocs/VishwaGuru
 ```
 Hey Sneha,
 
-Working on [PR description]. 
+Working on [PR description].
 Could you review and suggest improvements?
 
 Branch: [branch-name]

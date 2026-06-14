@@ -131,3 +131,53 @@ async def test_detect_abandoned_vehicle_found(client):
     data = response.json()
     assert len(data["detections"]) == 1
     assert data["detections"][0]["label"] == "abandoned car"
+
+@pytest.mark.asyncio
+async def test_detect_public_facilities_damaged(client):
+    mock_http_client = client.app.state.http_client
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = [
+        {"label": "broken bench", "score": 0.95},
+        {"label": "intact bench", "score": 0.05}
+    ]
+    mock_http_client.post.return_value = mock_response
+
+    img_bytes = create_test_image()
+
+    with patch('backend.utils.validate_uploaded_file'):
+        response = client.post(
+            "/api/detect-public-facilities",
+            files={"image": ("bench.jpg", img_bytes, "image/jpeg")}
+        )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "detections" in data
+    assert len(data["detections"]) == 1
+    assert data["detections"][0]["label"] == "broken bench"
+
+@pytest.mark.asyncio
+async def test_detect_construction_safety_unsafe(client):
+    mock_http_client = client.app.state.http_client
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = [
+        {"label": "unsafe scaffolding", "score": 0.95},
+        {"label": "safe construction site", "score": 0.05}
+    ]
+    mock_http_client.post.return_value = mock_response
+
+    img_bytes = create_test_image()
+
+    with patch('backend.utils.validate_uploaded_file'):
+        response = client.post(
+            "/api/detect-construction-safety",
+            files={"image": ("site.jpg", img_bytes, "image/jpeg")}
+        )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "detections" in data
+    assert len(data["detections"]) == 1
+    assert data["detections"][0]["label"] == "unsafe scaffolding"

@@ -42,7 +42,7 @@
 5. **Create 10 documentation improvement issues**
    - Use the bug/feature templates
    - Close 5 immediately with quick fixes (Quickdraw boost)
-   
+
 6. **Generate 5 micro-PRs** (Pull Shark acceleration)
    - PR #1: Add badges to README
    - PR #2: Fix typos in docs
@@ -423,10 +423,10 @@ Co-authored-by: Arjun Patel <arjun@example.com>"
 ```
 Hey [Name],
 
-I'm working on VishwaGuru, an AI-powered civic engagement platform 
+I'm working on VishwaGuru, an AI-powered civic engagement platform
 for India. I noticed you're interested in [React/Python/civic tech].
 
-Would you be interested in collaborating on [specific feature]? 
+Would you be interested in collaborating on [specific feature]?
 We could pair program and both get credit as co-authors.
 
 Check it out: [GitHub link]

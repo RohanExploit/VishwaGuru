@@ -324,22 +324,22 @@ graph TB
         A[React App]
         B[Vite Dev Server]
     end
-    
+
     subgraph "Backend (Render)"
         C[FastAPI Server]
         D[Telegram Bot]
         E[AI Services]
     end
-    
+
     subgraph "Database (Neon)"
         F[(PostgreSQL)]
     end
-    
+
     subgraph "External Services"
         G[Google Gemini]
         H[Hugging Face]
     end
-    
+
     A -->|REST API| C
     D -->|Webhook| C
     C -->|SQL| F
@@ -490,20 +490,20 @@ logger = logging.getLogger(__name__)
 async def log_requests(request: Request, call_next):
     """Log all incoming requests"""
     start_time = time.time()
-    
+
     # Log request
     logger.info(f"Request: {request.method} {request.url.path}")
-    
+
     # Process request
     response = await call_next(request)
-    
+
     # Log response
     process_time = time.time() - start_time
     logger.info(
         f"Response: {response.status_code} | "
         f"Time: {process_time:.2f}s"
     )
-    
+
     response.headers["X-Process-Time"] = str(process_time)
     return response
 ```
@@ -580,27 +580,27 @@ class RateLimiter:
         self.calls = calls
         self.period = period
         self.requests = defaultdict(list)
-    
+
     async def __call__(self, request: Request, call_next):
         client_ip = request.client.host
         now = time.time()
-        
+
         # Clean old requests
         self.requests[client_ip] = [
             req_time for req_time in self.requests[client_ip]
             if now - req_time < self.period
         ]
-        
+
         # Check rate limit
         if len(self.requests[client_ip]) >= self.calls:
             raise HTTPException(
                 status_code=429,
                 detail="Too many requests. Please try again later."
             )
-        
+
         # Add current request
         self.requests[client_ip].append(now)
-        
+
         return await call_next(request)
 ```
 

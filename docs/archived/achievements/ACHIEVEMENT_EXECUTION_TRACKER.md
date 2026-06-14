@@ -498,6 +498,6 @@ Before you stop working each day:
 **Let's make this the most productive week of your GitHub career!**
 
 **Achievement unlocked: 🎯 Strategic Planning Complete**
-**Next achievement: 🦈 Pull Shark Tier 2** 
+**Next achievement: 🦈 Pull Shark Tier 2**
 
 **GO! GO! GO! 🚀🚀🚀**
