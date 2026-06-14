@@ -24,13 +24,13 @@ class TestMaharashtraLocator:
     def test_load_pincode_data(self):
         """Test loading pincode data"""
         data = load_maharashtra_pincode_data()
-        assert isinstance(data, list)
+        assert isinstance(data, dict)
         assert len(data) > 0
         
     def test_load_mla_data(self):
         """Test loading MLA data"""
         data = load_maharashtra_mla_data()
-        assert isinstance(data, list)
+        assert isinstance(data, dict)
         assert len(data) > 0
     
     def test_find_constituency_valid_pincode(self):
