@@ -1,0 +1,57 @@
+{
+  "categories": {
+    "health": {
+      "jurisdiction_level": "district",
+      "authority": "District Health Department"
+    },
+    "education": {
+      "jurisdiction_level": "state",
+      "authority": "State Education Department"
+    },
+    "infrastructure": {
+      "jurisdiction_level": "local",
+      "authority": "Municipal Corporation"
+    },
+    "police": {
+      "jurisdiction_level": "district",
+      "authority": "District Police"
+    },
+    "revenue": {
+      "jurisdiction_level": "state",
+      "authority": "State Revenue Department"
+    }
+  },
+  "geographic_rules": {
+    "states": {
+      "Maharashtra": {
+        "departments": ["health", "education", "infrastructure"],
+        "default_level": "district"
+      },
+      "Karnataka": {
+        "departments": ["health", "education"],
+        "default_level": "state"
+      }
+    },
+    "districts": {
+      "Mumbai": {
+        "default_level": "local"
+      },
+      "Pune": {
+        "default_level": "district"
+      }
+    }
+  },
+  "escalation_rules": {
+    "auto_escalate_on_sla_breach": true,
+    "severity_escalation_threshold": 2,
+    "max_escalation_level": "national",
+    "notification_enabled": true
+  },
+  "sla_defaults": {
+    "default_hours": 48,
+    "critical_multiplier": 0.5,
+    "high_multiplier": 0.75,
+    "medium_multiplier": 1.0,
+    "low_multiplier": 2.0
+  }
+}
