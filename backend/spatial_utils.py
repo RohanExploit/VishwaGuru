@@ -2,11 +2,24 @@
 Spatial utilities for geospatial operations and deduplication.
 """
 import math
+import logging
 from typing import List, Tuple, Optional
-from sklearn.cluster import DBSCAN
+try:
+    from sklearn.cluster import DBSCAN
+except ImportError:
+    DBSCAN = None
 import numpy as np
+import logging
 
 from backend.models import Issue
+
+logger = logging.getLogger(__name__)
+
+try:
+    from sklearn.cluster import DBSCAN
+    HAS_SKLEARN = True
+except ImportError:
+    HAS_SKLEARN = False
 
 
 def get_bounding_box(lat: float, lon: float, radius_meters: float) -> Tuple[float, float, float, float]:
@@ -106,6 +119,10 @@ def cluster_issues_dbscan(issues: List[Issue], eps_meters: float = 30.0) -> List
     Returns:
         List of clusters, where each cluster is a list of Issue objects
     """
+    if DBSCAN is None:
+        logging.warning("DBSCAN clustering unavailable: scikit-learn not installed.")
+        return [[issue] for issue in issues if issue.latitude is not None and issue.longitude is not None]
+
     # Filter issues with valid coordinates
     valid_issues = [
         issue for issue in issues
@@ -125,20 +142,32 @@ def cluster_issues_dbscan(issues: List[Issue], eps_meters: float = 30.0) -> List
     # 1 degree longitude ≈ 111,000 * cos(latitude) meters
     eps_degrees = eps_meters / 111000  # Rough approximation
 
+    if DBSCAN is None:
+        # Fallback if scikit-learn is not installed
+        return [[issue] for issue in valid_issues]
+
     # Perform DBSCAN clustering
     db = DBSCAN(eps=eps_degrees, min_samples=1, metric='haversine').fit(
         np.radians(coordinates)
     )
 
-    # Group issues by cluster
-    clusters = {}
-    for i, label in enumerate(db.labels_):
-        if label not in clusters:
-            clusters[label] = []
-        clusters[label].append(valid_issues[i])
+            # Group issues by cluster
+            clusters = {}
+            for i, label in enumerate(db.labels_):
+                if label not in clusters:
+                    clusters[label] = []
+                clusters[label].append(valid_issues[i])
 
-    # Return clusters as list of lists (exclude noise points labeled as -1)
-    return [cluster for label, cluster in clusters.items() if label != -1]
+            # Return clusters as list of lists (exclude noise points labeled as -1)
+            return [cluster for label, cluster in clusters.items() if label != -1]
+        except Exception as e:
+            logger.error(f"DBSCAN clustering failed: {e}")
+            # Fallback to individual clusters
+            return [[issue] for issue in valid_issues]
+    else:
+        # Fallback when scikit-learn is not available
+        # Treat each issue as its own cluster
+        return [[issue] for issue in valid_issues]
 
 
 def get_cluster_representative(cluster: List[Issue]) -> Issue:

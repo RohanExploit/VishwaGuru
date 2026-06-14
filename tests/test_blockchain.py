@@ -56,6 +56,7 @@ def test_blockchain_verification_success(client, db_session):
     data = response.json()
     assert data["is_valid"] == True
     assert data["current_hash"] == hash1
+    assert "unbroken chain" in data["message"]
 
     # Verify second issue
     response = client.get(f"/api/issues/{issue2.id}/blockchain-verify")
@@ -63,6 +64,33 @@ def test_blockchain_verification_success(client, db_session):
     data = response.json()
     assert data["is_valid"] == True
     assert data["current_hash"] == hash2
+    assert "unbroken chain" in data["message"]
+
+def test_blockchain_with_previous_column(client, db_session):
+    # Test creating issues via API to ensure columns are populated
+    resp1 = client.post("/api/issues", data={
+        "description": "API Issue 1",
+        "category": "Road"
+    })
+    assert resp1.status_code == 201
+    id1 = resp1.json()["id"]
+
+    resp2 = client.post("/api/issues", data={
+        "description": "API Issue 2",
+        "category": "Garbage"
+    })
+    assert resp2.status_code == 201
+    id2 = resp2.json()["id"]
+
+    # Verify columns in DB
+    issue1 = db_session.query(Issue).get(id1)
+    issue2 = db_session.query(Issue).get(id2)
+    assert issue2.previous_integrity_hash == issue1.integrity_hash
+
+    # Verify via endpoint
+    response = client.get(f"/api/issues/{id2}/blockchain-verify")
+    assert response.status_code == 200
+    assert response.json()["is_valid"] == True
 
 def test_blockchain_duplicate_creation(client, db_session):
     # 1. Create original issue

@@ -595,7 +595,7 @@ def get_user_issues(
             "id": row.id,
             "category": row.category,
             "description": short_desc,
-            "created_at": row.created_at,
+            "created_at": row.created_at.isoformat() if row.created_at else None,
             "image_path": row.image_path,
             "status": row.status,
             "upvotes": row.upvotes if row.upvotes is not None else 0,
@@ -604,7 +604,7 @@ def get_user_issues(
             "longitude": row.longitude
         })
 
-    return data
+    return JSONResponse(content=data)
 
 @router.get("/api/issues/{issue_id}/blockchain-verify", response_model=BlockchainVerificationResponse)
 async def verify_blockchain_integrity(issue_id: int, db: Session = Depends(get_db)):
@@ -652,7 +652,10 @@ async def verify_blockchain_integrity(issue_id: int, db: Session = Depends(get_d
     elif not chain_valid:
         message = f"Chain integrity broken! Stored predecessor hash ({prev_hash[:8]}...) does not match actual predecessor hash ({actual_prev_hash[:8]}...)."
     else:
-        message = "Integrity check failed! The report data does not match its cryptographic seal."
+        if current_issue.previous_integrity_hash is None:
+             message = "Integrity check failed! The chain might be broken due to deleted records, or data tampering occurred."
+        else:
+             message = "Integrity check failed! The report data does not match its cryptographic seal."
 
     return BlockchainVerificationResponse(
         is_valid=is_valid,
@@ -709,4 +712,4 @@ def get_recent_issues(
 
     # Thread-safe cache update
     recent_issues_cache.set(data, cache_key)
-    return data
+    return JSONResponse(content=data)

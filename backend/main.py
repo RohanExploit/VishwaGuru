@@ -117,7 +117,7 @@ for exception_type, handler in EXCEPTION_HANDLERS.items():
     app.add_exception_handler(exception_type, handler)
 
 # CORS Configuration - Security Enhanced
-frontend_url = os.environ.get("FRONTEND_URL")
+frontend_url = os.environ.get("FRONTEND_URL", "").strip()
 is_production = os.environ.get("ENVIRONMENT", "").lower() == "production"
 
 if not frontend_url:
