@@ -1,0 +1,39 @@
+
+> frontend@0.0.0 dev
+> vite
+
+
+  VITE v7.3.1  ready in 263 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+10:05:43 AM [vite] (client) ✨ new dependencies optimized: react-router-dom
+10:05:43 AM [vite] (client) ✨ optimized dependencies changed. reloading
+10:05:45 AM [vite] (client) ✨ new dependencies optimized: lucide-react
+10:05:45 AM [vite] (client) ✨ optimized dependencies changed. reloading
+10:05:46 AM [vite] http proxy error: /api/issues/recent
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+10:05:46 AM [vite] http proxy error: /api/issues/recent
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+10:07:00 AM [vite] http proxy error: /api/issues/recent
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+10:07:00 AM [vite] http proxy error: /api/issues/recent
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+10:07:00 AM [vite] (client) ✨ new dependencies optimized: framer-motion
+10:07:00 AM [vite] (client) ✨ optimized dependencies changed. reloading
+10:07:01 AM [vite] http proxy error: /api/issues/recent
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+10:07:01 AM [vite] http proxy error: /api/issues/recent
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
