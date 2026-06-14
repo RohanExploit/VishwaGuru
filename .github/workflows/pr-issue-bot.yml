@@ -1,0 +1,154 @@
+name: PR and Issue Bot
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize]
+  issues:
+    types: [opened, labeled]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  pr-labeler:
+    if: github.event_name == 'pull_request_target'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Label PR based on size
+        uses: codelytv/pr-size-labeler@v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          xs_label: 'size/xs'
+          xs_max_size: '10'
+          s_label: 'size/s'
+          s_max_size: '100'
+          m_label: 'size/m'
+          m_max_size: '500'
+          l_label: 'size/l'
+          l_max_size: '1000'
+          xl_label: 'size/xl'
+          fail_if_xl: 'false'
+
+  welcome-message:
+    if: github.event.action == 'opened'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Comment on new PR
+        if: github.event_name == 'pull_request_target'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prAuthor = context.payload.pull_request.user.login;
+            const prNumber = context.payload.pull_request.number;
+            const prTitle = context.payload.pull_request.title;
+            
+            const message = `## 🙏 Thank you for your contribution, @${prAuthor}!
+
+            **PR Details:**
+            - **Title:** ${prTitle}
+            - **Number:** #${prNumber}
+
+            **Quality Checklist:**
+            Please ensure your PR meets the following criteria:
+            - [ ] Code follows the project's style guidelines
+            - [ ] Self-review of code completed
+            - [ ] Code is commented where necessary
+            - [ ] Documentation updated (if applicable)
+            - [ ] No new warnings generated
+            - [ ] Tests added/updated (if applicable)
+            - [ ] All tests passing locally
+            - [ ] No breaking changes to existing functionality
+
+            **Review Process:**
+            1. Automated checks will run on your code
+            2. A maintainer will review your changes
+            3. Address any requested changes promptly
+            4. Once approved, your PR will be merged! 🎉
+
+            *Note: The maintainers will monitor code quality and ensure the overall project flow isn't broken.*`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: message
+            });
+
+      - name: Comment on new issue
+        if: github.event_name == 'issues'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issueAuthor = context.payload.issue.user.login;
+            const issueNumber = context.payload.issue.number;
+            const issueTitle = context.payload.issue.title;
+            
+            const message = `## 👋 Hello @${issueAuthor}!
+
+            Thank you for opening this issue on **VishwaGuru**.
+
+            **Issue Details:**
+            - **Title:** ${issueTitle}
+            - **Number:** #${issueNumber}
+
+            **Next Steps:**
+            1. A maintainer will review your issue
+            2. The issue may be labeled for categorization
+            3. Additional information might be requested
+            4. Once triaged, work can begin!
+
+            **Tips for a great issue:**
+            - Provide clear steps to reproduce (if it's a bug)
+            - Include expected vs actual behavior
+            - Add screenshots or logs if relevant
+            - Mention your environment details (OS, browser, versions, etc.)
+
+            We appreciate your contribution to making VishwaGuru better! 🚀`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: message
+            });
+
+  quality-reminder:
+    if: github.event_name == 'pull_request_target' && github.event.action == 'synchronize'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Remind about code quality on updates
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            
+            // Only post reminder on 2nd update (to avoid spam)
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+            });
+            
+            const reminderExists = comments.data.some(comment => 
+              comment.body.includes('Quality Reminder')
+            );
+            
+            if (!reminderExists && context.payload.pull_request.commits > 2) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: `## 🔍 Quality Reminder
+
+                Thanks for the updates! Please ensure:
+                - Your changes don't break existing functionality
+                - All tests still pass
+                - Code quality standards are maintained
+                
+                *The maintainers will verify that the overall project flow remains intact.*`
+              });
+            }

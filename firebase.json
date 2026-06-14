@@ -1,0 +1,34 @@
+{
+  "hosting": {
+    "public": "frontend/dist",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/api/**",
+        "function": "api"
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "functions": {
+    "source": "functions",
+    "codebase": "default",
+    "ignore": [
+      "venv",
+      ".git",
+      "node_modules"
+    ],
+    "predeploy": [
+      "rm -rf functions/backend functions/data",
+      "cp -R backend functions/backend",
+      "cp -R data functions/data"
+    ]
+  }
+}

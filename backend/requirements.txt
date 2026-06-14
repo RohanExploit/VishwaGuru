@@ -2,10 +2,18 @@ fastapi
 uvicorn
 sqlalchemy
 python-telegram-bot
-google-genai
+google-generativeai
 python-multipart
 psycopg2-binary
 async-lru
-ultralyticsplus==0.0.28
-ultralytics
-opencv-python-headless
+huggingface-hub
+httpx
+python-magic
+pywebpush
+Pillow
+firebase-functions
+firebase-admin
+a2wsgi
+# Spatial deduplication dependencies
+scikit-learn
+numpy
