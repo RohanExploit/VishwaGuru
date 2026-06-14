@@ -28,7 +28,10 @@ from backend.init_db import migrate_db
 from backend.scheduler import start_scheduler
 from backend.maharashtra_locator import load_maharashtra_pincode_data, load_maharashtra_mla_data
 from backend.exceptions import EXCEPTION_HANDLERS
-from backend.routers import issues, detection, grievances, utility, auth, admin, analysis, voice, field_officer
+from backend.routers import (
+    issues, detection, grievances, utility, auth,
+    admin, analysis, voice, field_officer, resolution_proof
+)
 from backend.grievance_service import GrievanceService
 import backend.dependencies
 
@@ -128,22 +131,24 @@ for exception_type, handler in EXCEPTION_HANDLERS.items():
 frontend_url = os.environ.get("FRONTEND_URL")
 is_production = os.environ.get("ENVIRONMENT", "").lower() == "production"
 
+allowed_origins = []
+
 if not frontend_url:
     if is_production:
-        raise ValueError(
-            "FRONTEND_URL environment variable is required for security in production. "
-            "Set it to your frontend URL (e.g., https://your-app.netlify.app)."
+        logger.critical(
+            "FRONTEND_URL environment variable is MISSING in production! "
+            "CORS will be disabled (no origins allowed) for security. "
+            "Set it to your frontend URL in Render dashboard."
         )
     else:
         logger.warning("FRONTEND_URL not set. Defaulting to http://localhost:5173 for development.")
         frontend_url = "http://localhost:5173"
 
-if not (frontend_url.startswith("http://") or frontend_url.startswith("https://")):
-    raise ValueError(
-        f"FRONTEND_URL must be a valid HTTP/HTTPS URL. Got: {frontend_url}"
-    )
-
-allowed_origins = [frontend_url]
+if frontend_url:
+    if not (frontend_url.startswith("http://") or frontend_url.startswith("https://")):
+        logger.error(f"FRONTEND_URL must be a valid HTTP/HTTPS URL. Got: {frontend_url}")
+    else:
+        allowed_origins.append(frontend_url)
 
 if not is_production:
     dev_origins = [
@@ -180,6 +185,7 @@ app.include_router(admin.router)
 app.include_router(analysis.router, tags=["Analysis"])
 app.include_router(voice.router, tags=["Voice & Language"])
 app.include_router(field_officer.router, tags=["Field Officer Check-In"])
+app.include_router(resolution_proof.router)
 
 @app.get("/health")
 def health():

@@ -185,6 +185,49 @@ def migrate_db():
                 if not index_exists("field_officer_visits", "ix_field_officer_visits_check_in_time"):
                     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_field_officer_visits_check_in_time ON field_officer_visits (check_in_time)"))
 
+            # Resolution Proof Tables (Issue #292)
+            if not inspector.has_table("resolution_proof_tokens"):
+                logger.info("Creating resolution_proof_tokens table...")
+                Base.metadata.tables['resolution_proof_tokens'].create(bind=conn)
+            else:
+                # Migration for resolution_proof_tokens
+                if not column_exists("resolution_proof_tokens", "token_id"):
+                    conn.execute(text("ALTER TABLE resolution_proof_tokens ADD COLUMN token_id VARCHAR"))
+                if not column_exists("resolution_proof_tokens", "authority_email"):
+                    conn.execute(text("ALTER TABLE resolution_proof_tokens ADD COLUMN authority_email VARCHAR"))
+                if not column_exists("resolution_proof_tokens", "geofence_latitude"):
+                    conn.execute(text("ALTER TABLE resolution_proof_tokens ADD COLUMN geofence_latitude FLOAT"))
+                if not column_exists("resolution_proof_tokens", "valid_from"):
+                    conn.execute(text("ALTER TABLE resolution_proof_tokens ADD COLUMN valid_from TIMESTAMP"))
+                if not column_exists("resolution_proof_tokens", "valid_until"):
+                    conn.execute(text("ALTER TABLE resolution_proof_tokens ADD COLUMN valid_until TIMESTAMP"))
+                if not column_exists("resolution_proof_tokens", "nonce"):
+                    conn.execute(text("ALTER TABLE resolution_proof_tokens ADD COLUMN nonce VARCHAR"))
+                if not column_exists("resolution_proof_tokens", "token_signature"):
+                    conn.execute(text("ALTER TABLE resolution_proof_tokens ADD COLUMN token_signature VARCHAR"))
+
+            if not inspector.has_table("resolution_evidence"):
+                logger.info("Creating resolution_evidence table...")
+                Base.metadata.tables['resolution_evidence'].create(bind=conn)
+            else:
+                # Migration for resolution_evidence
+                if not column_exists("resolution_evidence", "token_id"):
+                    conn.execute(text("ALTER TABLE resolution_evidence ADD COLUMN token_id INTEGER"))
+                if not column_exists("resolution_evidence", "evidence_hash"):
+                    conn.execute(text("ALTER TABLE resolution_evidence ADD COLUMN evidence_hash VARCHAR"))
+                if not column_exists("resolution_evidence", "gps_latitude"):
+                    conn.execute(text("ALTER TABLE resolution_evidence ADD COLUMN gps_latitude FLOAT"))
+                if not column_exists("resolution_evidence", "metadata_bundle"):
+                    conn.execute(text("ALTER TABLE resolution_evidence ADD COLUMN metadata_bundle TEXT"))
+                if not column_exists("resolution_evidence", "server_signature"):
+                    conn.execute(text("ALTER TABLE resolution_evidence ADD COLUMN server_signature VARCHAR"))
+                if not column_exists("resolution_evidence", "verification_status"):
+                    conn.execute(text("ALTER TABLE resolution_evidence ADD COLUMN verification_status VARCHAR DEFAULT 'PENDING'"))
+
+            if not inspector.has_table("evidence_audit_logs"):
+                logger.info("Creating evidence_audit_logs table...")
+                Base.metadata.tables['evidence_audit_logs'].create(bind=conn)
+
             logger.info("Database migration check completed successfully.")
 
     except Exception as e:

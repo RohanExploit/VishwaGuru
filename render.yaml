@@ -4,7 +4,7 @@ services:
     name: vishwaguru-backend
     runtime: python
     buildCommand: "pip install -r backend/requirements-render.txt"
-    startCommand: "python start-backend.py"
+    startCommand: "uvicorn backend.main:app --host 0.0.0.0 --port $PORT"
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.0
@@ -48,7 +48,8 @@ services:
         value: 60
     healthCheckPath: /health
     # Add disk for SQLite database (if using SQLite)
+    # Mounted at data/db to avoid hiding other repo files in data/
     disk:
       name: vishwaguru-data
-      mountPath: /opt/render/project/src/data
+      mountPath: /opt/render/project/src/data/db
       sizeGB: 1

@@ -45,6 +45,7 @@ class ThreadSafeCache:
         """
         with self._lock:
             current_time = time.time()
+            expiry = current_time + self._ttl
             
             # If updating existing key, move to end
             if key in self._cache:
