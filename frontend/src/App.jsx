@@ -7,8 +7,8 @@ import VandalismDetector from './VandalismDetector';
 import ChatWidget from './components/ChatWidget';
 import { AlertTriangle, MapPin, Search, Activity, Camera, Trash2, ThumbsUp, Volume2, SprayCan } from 'lucide-react';
 
-// Get API URL from environment variable, fallback to relative URL for local dev
-const API_URL = import.meta.env.VITE_API_URL || '';
+// Lazy loaded components
+const ChatWidget = React.lazy(() => import('./components/ChatWidget'));
 
 function App() {
   const [view, setView] = useState('home'); // home, map, report, action, mh-rep, pothole, garbage, noise, vandalism
@@ -18,6 +18,15 @@ function App() {
   const [recentIssues, setRecentIssues] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+
+  // Safe navigation helper
+  const navigateToView = (view) => {
+    const validViews = ['home', 'map', 'report', 'action', 'mh-rep', 'pothole', 'garbage', 'vandalism', 'flood', 'infrastructure', 'parking', 'streetlight', 'fire', 'animal', 'blocked', 'tree'];
+    if (validViews.includes(view)) {
+      navigate(view === 'home' ? '/' : `/${view}`);
+    }
+  };
 
   // Fetch recent issues on mount
   const fetchRecentIssues = async () => {
@@ -26,46 +35,34 @@ function App() {
       if (response.ok) {
         const data = await response.json();
         setRecentIssues(data);
+      } else {
+        throw new Error("Failed to fetch");
       }
     } catch (e) {
-      console.error("Failed to fetch recent issues", e);
+      console.error("Failed to fetch recent issues, using fake data", e);
+      setRecentIssues(fakeRecentIssues);
     }
   };
 
   useEffect(() => {
-    fetchRecentIssues();
-  }, []);
-
-  const handleUpvote = async (id) => {
-    try {
-        const response = await fetch(`${API_URL}/api/issues/${id}/vote`, {
-            method: 'POST'
-        });
-        if (response.ok) {
-            // Update local state to reflect change immediately (optimistic UI or re-fetch)
-            setRecentIssues(prev => prev.map(issue =>
-                issue.id === id ? { ...issue, upvotes: (issue.upvotes || 0) + 1 } : issue
-            ));
-        }
-    } catch (e) {
-        console.error("Failed to upvote", e);
+    if (error || success) {
+      const timer = setTimeout(() => {
+        setError(null);
+        setSuccess(null);
+      }, 5000);
+      return () => clearTimeout(timer);
     }
-  };
+  }, [error, success]);
 
-  // Home View Components
-  const Home = () => (
-    <div className="space-y-6">
-      {/* Quick Actions Grid */}
-      <div className="grid grid-cols-2 gap-4">
-        <button
-          onClick={() => setView('report')}
-          className="flex flex-col items-center justify-center bg-blue-50 border-2 border-blue-100 p-4 rounded-xl hover:bg-blue-100 transition shadow-sm h-32"
-        >
-          <div className="bg-blue-500 text-white p-3 rounded-full mb-2">
-            <AlertTriangle size={24} />
-          </div>
-          <span className="font-semibold text-blue-800">Report Issue</span>
-        </button>
+  // Safe navigation helper with validation
+  const navigateToView = useCallback((view) => {
+    if (VALID_VIEWS.includes(view.split('/')[0])) {
+      navigate(`/${view}`);
+    } else {
+      console.warn(`Attempted to navigate to invalid view: ${view}`);
+      navigate('/home');
+    }
+  }, [navigate]);
 
         <button
           onClick={() => setView('pothole')}
@@ -179,347 +176,76 @@ function App() {
   // Responsibility Map Logic
   const fetchResponsibilityMap = async () => {
     setLoading(true);
-    setError(null);
     try {
-      const response = await fetch(`${API_URL}/api/responsibility-map`);
-      if (!response.ok) throw new Error('Failed to fetch data');
-      const data = await response.json();
-      setResponsibilityMap(data);
-      setView('map');
-    } catch (err) {
-      setError(err.message);
+      const data = await issuesApi.getRecent();
+      setRecentIssues(data);
+      setSuccess('Recent issues updated successfully');
+    } catch (error) {
+      console.error("Failed to fetch recent issues, using fake data", error);
+      setRecentIssues(fakeRecentIssues);
+      setError("Using sample data - unable to connect to server");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const MapView = () => (
-    <div className="mt-6 border-t pt-4">
-      <h2 className="text-xl font-semibold mb-4 text-center">Responsibility Map</h2>
-      <div className="grid gap-4 sm:grid-cols-2">
-        {responsibilityMap && Object.entries(responsibilityMap).map(([key, value]) => (
-          <div key={key} className="bg-gray-50 p-4 rounded shadow-sm border">
-            <h3 className="font-bold text-lg capitalize mb-2">{key.replace('_', ' ')}</h3>
-            <p className="font-medium text-gray-800">{value.authority}</p>
-            <p className="text-sm text-gray-600 mt-1">{value.description}</p>
-          </div>
-        ))}
-      </div>
-      <button onClick={() => setView('home')} className="mt-6 text-blue-600 underline text-center w-full block">Back to Home</button>
-    </div>
-  );
+  // Handle upvote with optimistic update
+  const handleUpvote = useCallback(async (id) => {
+    const originalUpvotes = [...recentIssues];
+    try {
+      setRecentIssues(prev => prev.map(issue =>
+        issue.id === id ? { ...issue, upvotes: (issue.upvotes || 0) + 1 } : issue
+      ));
+      await issuesApi.vote(id);
+      setSuccess('Upvote recorded successfully!');
+    } catch (error) {
+      console.error("Failed to upvote", error);
+      setRecentIssues(originalUpvotes);
+      setError("Failed to record upvote. Please try again.");
+    }
+  }, [recentIssues]);
 
-  // Report Issue Logic
-  const ReportForm = () => {
-    const [formData, setFormData] = useState({ description: '', category: 'road', image: null });
+  // Responsibility Map Logic
+  const fetchResponsibilityMap = useCallback(async () => {
+    setLoading(true);
+    setError(null);
 
-    const handleSubmit = async (e) => {
-      e.preventDefault();
-      setLoading(true);
-      setError(null);
+    try {
+      const data = await miscApi.getResponsibilityMap();
+      setResponsibilityMap(data);
+      setSuccess('Responsibility map loaded successfully');
+      navigate('/map');
+    } catch (error) {
+      console.error("Failed to fetch responsibility map", error);
+      setError("Using sample data - unable to load responsibility map");
+      setResponsibilityMap(fakeResponsibilityMap);
+      navigate('/map');
+    } finally {
+      setLoading(false);
+    }
+  }, [navigate]);
 
-      const payload = new FormData();
-      payload.append('description', formData.description);
-      payload.append('category', formData.category);
-      if (formData.image) {
-        payload.append('image', formData.image);
-      }
-
-      try {
-        const response = await fetch(`${API_URL}/api/issues`, {
-          method: 'POST',
-          body: payload,
-        });
-
-        if (!response.ok) throw new Error('Failed to submit issue');
-
-        const data = await response.json();
-        setActionPlan(data.action_plan);
-        setView('action');
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    return (
-      <div className="mt-6">
-         <h2 className="text-xl font-semibold mb-4 text-center">Report an Issue</h2>
-         <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Category</label>
-              <select
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
-                value={formData.category}
-                onChange={(e) => setFormData({...formData, category: e.target.value})}
-              >
-                <option value="road">Road / Potholes</option>
-                <option value="water">Water Supply</option>
-                <option value="garbage">Garbage / Sanitation</option>
-                <option value="streetlight">Streetlight</option>
-                <option value="college_infra">College Infrastructure</option>
-                <option value="women_safety">Women Safety</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Description</label>
-              <textarea
-                required
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
-                rows="3"
-                value={formData.description}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
-                placeholder="Describe the issue..."
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Photo (Optional)</label>
-              <input
-                type="file"
-                accept="image/*"
-                className="mt-1 block w-full text-sm text-gray-500"
-                onChange={(e) => setFormData({...formData, image: e.target.files[0]})}
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition disabled:opacity-50"
-            >
-              {loading ? 'Analyzing...' : 'Generate Action Plan'}
-            </button>
-            <button type="button" onClick={() => setView('home')} className="mt-2 text-blue-600 underline text-center w-full block">Cancel</button>
-         </form>
-      </div>
-    );
-  };
-
-  // Action Plan View
-  const ActionView = () => {
-    if (!actionPlan) return null;
-
-    return (
-      <div className="mt-6 space-y-6">
-        <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-          <h2 className="text-xl font-bold text-green-800 mb-2">Action Plan Generated!</h2>
-          <p className="text-green-700">Here are ready-to-use drafts to send to authorities.</p>
-        </div>
-
-        <div className="bg-white p-4 rounded shadow border">
-          <h3 className="font-bold text-lg mb-2 flex items-center">
-            <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm mr-2">WhatsApp</span>
-          </h3>
-          <div className="bg-gray-100 p-3 rounded text-sm mb-3 whitespace-pre-wrap">
-            {actionPlan.whatsapp}
-          </div>
-          <a
-            href={`https://wa.me/?text=${encodeURIComponent(actionPlan.whatsapp)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block w-full text-center bg-green-500 text-white py-2 rounded hover:bg-green-600 transition"
-          >
-            Send on WhatsApp
-          </a>
-        </div>
-
-        <div className="bg-white p-4 rounded shadow border">
-          <h3 className="font-bold text-lg mb-2">Email Draft</h3>
-          <div className="mb-2">
-            <span className="font-semibold text-gray-700">Subject:</span> {actionPlan.email_subject}
-          </div>
-          <div className="bg-gray-100 p-3 rounded text-sm mb-3 whitespace-pre-wrap">
-            {actionPlan.email_body}
-          </div>
-          <a
-            href={`mailto:?subject=${encodeURIComponent(actionPlan.email_subject)}&body=${encodeURIComponent(actionPlan.email_body)}`}
-             className="block w-full text-center bg-blue-500 text-white py-2 rounded hover:bg-blue-600 transition"
-          >
-            Open in Email App
-          </a>
-        </div>
-
-        <button onClick={() => setView('home')} className="text-blue-600 underline text-center w-full block">Back to Home</button>
-      </div>
-    );
-  };
-
-  // Maharashtra Representative Lookup
-  const MaharashtraRepView = () => {
-    const [pincode, setPincode] = useState('');
-    const [localError, setLocalError] = useState(null);
-
-    const handleLookup = async (e) => {
-      e.preventDefault();
-      setLoading(true);
-      setLocalError(null);
-      setError(null);
-
-      try {
-        const data = await getMaharashtraRepContacts(pincode);
-        setMaharashtraRepInfo(data);
-      } catch (err) {
-        setLocalError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    return (
-      <div className="mt-6">
-        <h2 className="text-xl font-semibold mb-4 text-center">Find Your Maharashtra MLA</h2>
-        
-        {!maharashtraRepInfo ? (
-          <form onSubmit={handleLookup} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Enter your 6-digit pincode
-              </label>
-              <input
-                type="text"
-                required
-                maxLength="6"
-                pattern="[0-9]{6}"
-                className="block w-full rounded-md border-gray-300 shadow-sm p-2 border"
-                value={pincode}
-                onChange={(e) => setPincode(e.target.value)}
-                placeholder="e.g., 411001"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Currently supporting limited pincodes in Maharashtra (MVP)
-              </p>
-            </div>
-
-            {localError && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-                {localError}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading || pincode.length !== 6}
-              className="w-full bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700 transition disabled:opacity-50"
-            >
-              {loading ? 'Looking up...' : 'Find My Representatives'}
-            </button>
-            
-            <button 
-              type="button" 
-              onClick={() => setView('home')} 
-              className="mt-2 text-blue-600 underline text-center w-full block"
-            >
-              Cancel
-            </button>
-          </form>
-        ) : (
-          <div className="space-y-4">
-            {/* Location Info */}
-            <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-              <h3 className="font-bold text-purple-800 mb-2">Your Location</h3>
-              <div className="text-sm space-y-1">
-                <p><span className="font-semibold">Pincode:</span> {maharashtraRepInfo.pincode}</p>
-                <p><span className="font-semibold">District:</span> {maharashtraRepInfo.district}</p>
-                <p><span className="font-semibold">Constituency:</span> {maharashtraRepInfo.assembly_constituency}</p>
-              </div>
-            </div>
-
-            {/* MLA Info */}
-            <div className="bg-white p-4 rounded shadow border">
-              <h3 className="font-bold text-lg mb-3 flex items-center">
-                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm mr-2">Your MLA</span>
-              </h3>
-              <div className="space-y-2">
-                <p className="text-lg font-semibold text-gray-800">{maharashtraRepInfo.mla.name}</p>
-                <p className="text-sm text-gray-600"><span className="font-medium">Party:</span> {maharashtraRepInfo.mla.party}</p>
-                <p className="text-sm text-gray-600"><span className="font-medium">Phone:</span> {maharashtraRepInfo.mla.phone}</p>
-                <p className="text-sm text-gray-600"><span className="font-medium">Email:</span> {maharashtraRepInfo.mla.email}</p>
-              </div>
-
-              {maharashtraRepInfo.mla.twitter && maharashtraRepInfo.mla.twitter !== "Not Available" && (
-                <div className="mt-3">
-                  <a
-                    href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
-                      `Hello ${maharashtraRepInfo.mla.twitter}, I am a resident of ${maharashtraRepInfo.assembly_constituency} (Pincode: ${maharashtraRepInfo.pincode}). I want to bring to your attention... @PMOIndia @CMOMaharashtra`
-                    )}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block w-full text-center bg-black text-white py-2 rounded hover:bg-gray-800 transition flex items-center justify-center gap-2"
-                  >
-                    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5 fill-current"><g><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></g></svg>
-                    Post on X
-                  </a>
-                </div>
-              )}
-              
-              {maharashtraRepInfo.description && (
-                <div className="mt-3 pt-3 border-t border-gray-200">
-                  <p className="text-sm text-gray-700 italic">{maharashtraRepInfo.description}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Grievance Links */}
-            <div className="bg-green-50 p-4 rounded shadow border border-green-200">
-              <h3 className="font-bold text-lg mb-3 text-green-800">File a Grievance</h3>
-              <div className="space-y-2">
-                <a
-                  href={maharashtraRepInfo.grievance_links.central_cpgrams}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-full text-center bg-green-600 text-white py-2 rounded hover:bg-green-700 transition"
-                >
-                  Central CPGRAMS Portal
-                </a>
-                <a
-                  href={maharashtraRepInfo.grievance_links.maharashtra_portal}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-full text-center bg-orange-600 text-white py-2 rounded hover:bg-orange-700 transition"
-                >
-                  Maharashtra Aaple Sarkar Portal
-                </a>
-              </div>
-              <p className="text-xs text-gray-600 mt-3 text-center">
-                {maharashtraRepInfo.grievance_links.note}
-              </p>
-            </div>
-
-            <button
-              onClick={() => {
-                setMaharashtraRepInfo(null);
-                setPincode('');
-                setView('home');
-              }}
-              className="text-blue-600 underline text-center w-full block"
-            >
-              Back to Home
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  };
+  // Initialize on mount
+  useEffect(() => {
+    fetchRecentIssues();
+  }, [fetchRecentIssues]);
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center p-4">
-      <ChatWidget />
-      <div className="bg-white shadow-xl rounded-2xl p-6 max-w-lg w-full mt-6 mb-24 border border-gray-100">
-        <header className="text-center mb-6">
-          <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-blue-600">
-            VishwaGuru
-          </h1>
-          <p className="text-gray-500 text-sm mt-1">
-            Empowering Citizens, Solving Problems.
-          </p>
-        </header>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-100 text-gray-900 font-sans overflow-hidden">
+      {/* Animated background elements */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-orange-300/10 rounded-full blur-3xl animate-pulse-slow"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-300/10 rounded-full blur-3xl animate-pulse-slow animation-delay-1000"></div>
+      </div>
 
-        {loading && !['report', 'mh-rep'].includes(view) && (
+      <FloatingButtonsManager setView={navigateToView} />
+
+      <div className="relative z-10">
+        <AppHeader />
+
+        <Suspense fallback={
           <div className="flex justify-center my-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
           </div>
         )}
 
@@ -546,6 +272,149 @@ function App() {
 
       </div>
     </div>
+  );
+}
+
+// Add custom animations to global styles
+const GlobalStyles = () => (
+  <style jsx global>{`
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes gradient {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    
+    @keyframes gradient-slow {
+      0%, 100% { opacity: 0.3; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.02); }
+    }
+    
+    @keyframes pulse-slow {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 0.8; }
+    }
+    
+    @keyframes loading-bar {
+      0% { transform: translateX(-100%); }
+      50% { transform: translateX(20%); }
+      100% { transform: translateX(100%); }
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+    
+    .animate-fadeIn {
+      animation: fadeIn 0.5s ease-out;
+    }
+    
+    .animate-fadeInUp {
+      animation: fadeInUp 0.6s ease-out;
+    }
+    
+    .animate-gradient {
+      background-size: 200% auto;
+      animation: gradient 3s ease infinite;
+    }
+    
+    .animate-gradient-slow {
+      animation: gradient-slow 6s ease-in-out infinite;
+    }
+    
+    .animate-pulse-slow {
+      animation: pulse-slow 3s ease-in-out infinite;
+    }
+    
+    .animate-loading-bar {
+      animation: loading-bar 1.5s ease-in-out infinite;
+    }
+    
+    .animate-float {
+      animation: float 3s ease-in-out infinite;
+    }
+    
+    .animation-delay-1000 {
+      animation-delay: 1s;
+    }
+    
+    .animation-delay-2000 {
+      animation-delay: 2s;
+    }
+    
+    /* Smooth scroll behavior */
+    html {
+      scroll-behavior: smooth;
+    }
+    
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 10px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.05);
+      border-radius: 5px;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(to bottom, #f97316, #3b82f6);
+      border-radius: 5px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(to bottom, #ea580c, #2563eb);
+    }
+    
+    /* Selection color */
+    ::selection {
+      background: rgba(249, 115, 22, 0.3);
+      color: #1f2937;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .floating-actions {
+        bottom: 100px;
+        right: 16px;
+      }
+      
+      .floating-chat {
+        bottom: 24px;
+        right: 16px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .floating-actions {
+        bottom: 120px;
+        right: 12px;
+      }
+      
+      .floating-chat {
+        bottom: 20px;
+        right: 12px;
+      }
+    }
+  `}</style>
+);
+
+// Main App Component
+function App() {
+  return (
+    <Router>
+      <AppContent />
+      <GlobalStyles />
+    </Router>
   );
 }
 
