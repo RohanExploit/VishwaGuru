@@ -67,7 +67,7 @@ const AppHeader = () => {
                 )}
               </div>
             ) : (
-              <Link to="/login" className="text-sm font-bold text-white bg-orange-600 hover:bg-orange-700 px-6 py-2 rounded-full shadow-md transition-all duration-200 transform hover:scale-105">Login</Link>
+              <Link to="/login" className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 px-4 py-2 rounded-full hover:bg-blue-50 dark:hover:bg-gray-800 transition-colors duration-200">Login</Link>
             )}
           </div>
         </div>

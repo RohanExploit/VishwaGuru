@@ -1,15 +1,5 @@
 import os
 import sys
-
-# Fix for googletrans compatibility with newer httpcore (Issue #290)
-# This monkeypatch must happen before any imports of googletrans or httpx
-try:
-    import httpcore
-    if not hasattr(httpcore, "SyncHTTPTransport"):
-        httpcore.SyncHTTPTransport = object
-except ImportError:
-    pass
-
 import uvicorn
 
 # Ensure the backend directory is in the Python path

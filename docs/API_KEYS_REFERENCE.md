@@ -14,8 +14,6 @@ Your API keys and credentials have been securely added to the `.env` file, which
 |---------|---------------|--------|
 | **Jules AI** | `JULES_API_KEY` | ✅ Configured (Pro) |
 | **Hugging Face** | `HF_TOKEN` | ✅ Configured |
-| **HF Text Gen API** | `HF_TEXT_API_URL` | ✅ Configured (Featherless AI) |
-| **HF Text Model** | `HF_TEXT_MODEL` | ✅ Meta-Llama-3-8B-Instruct |
 | **Google Gemini** | `GEMINI_API_KEY` | ⚠️ Needs update |
 | **Telegram Bot** | `TELEGRAM_BOT_TOKEN` | ⚠️ Needs update |
 
@@ -53,21 +51,9 @@ git check-ignore -v .env
 ## 🚀 Where These Keys Are Used
 
 ### **Hugging Face Token** (`HF_TOKEN`)
-- **Purpose**: Access Hugging Face models and APIs (image + text)
-- **Used in**: Backend ML inference, model downloads, text generation
+- **Purpose**: Access Hugging Face models and API
+- **Used in**: Backend ML inference, model downloads
 - **Fallback**: Enabled via `ENABLE_HF_FALLBACK=true`
-- **Scope**: Server-side only (backend)
-
-### **HF Text Generation API** (`HF_TEXT_API_URL` / `HF_TEXT_MODEL`)
-- **Purpose**: LLM text generation via Featherless AI router on Hugging Face
-- **Endpoint**: `https://router.huggingface.co/featherless-ai/v1/completions`
-- **Default Model**: `meta-llama/Meta-Llama-3-8B-Instruct`
-- **Used in**: Civic responses, chat assistant, MLA summaries (as Gemini fallback)
-- **API Endpoints**:
-  - `POST /api/hf/generate` — Raw text generation
-  - `POST /api/hf/civic-response` — Civic action plans
-  - `POST /api/hf/chat` — Chat with assistant
-  - `GET  /api/hf/health` — Health check
 - **Scope**: Server-side only (backend)
 
 ### **Jules API Key** (`JULES_API_KEY`)
@@ -221,7 +207,7 @@ cat .env.example
 
 ---
 
-**Last Updated**: 2026-02-19  
+**Last Updated**: 2026-02-16  
 **🔒 Security Level**: Protected
 
 Your API keys are secure and ready to use! 🎉

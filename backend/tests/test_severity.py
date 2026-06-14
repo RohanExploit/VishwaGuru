@@ -53,20 +53,13 @@ async def test_detect_severity_endpoint():
         }
 
         # Create a dummy image file
-        import io
-        from PIL import Image
-        img = Image.new('RGB', (100, 100), color='white')
-        img_byte_arr = io.BytesIO()
-        img.save(img_byte_arr, format='JPEG')
-        file_content = img_byte_arr.getvalue()
-
+        file_content = b"fake image content"
         files = {"image": ("test.jpg", file_content, "image/jpeg")}
 
         # Use TestClient as context manager to trigger lifespan (startup/shutdown)
         with TestClient(app) as client:
             # Call the endpoint
-            with patch('backend.utils.validate_uploaded_file'):
-                response = client.post("/api/detect-severity", files=files)
+            response = client.post("/api/detect-severity", files=files)
 
             # Assertions
             assert response.status_code == 200

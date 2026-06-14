@@ -31,9 +31,6 @@ services:
         value: production
       - key: DEBUG
         value: false
-      # Disable local ML on Render to prevent OOM errors (Issue #290)
-      - key: USE_LOCAL_ML
-        value: false
       # CORS settings
       - key: CORS_ORIGINS
         sync: false  # Set to your frontend URL

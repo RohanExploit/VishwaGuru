@@ -12,8 +12,6 @@ class AdaptiveWeights:
     _instance = None
     _weights = None
     _last_loaded = 0
-    _last_check_time = 0
-    _reload_count = 0
 
     def __new__(cls):
         if cls._instance is None:
@@ -35,7 +33,6 @@ class AdaptiveWeights:
                 with open(DATA_FILE, 'r') as f:
                     self._weights = json.load(f)
                 self._last_loaded = mtime
-                self._reload_count += 1
                 logger.info("Adaptive weights loaded/reloaded.")
         except Exception as e:
             logger.error(f"Error loading adaptive weights: {e}")
@@ -43,18 +40,8 @@ class AdaptiveWeights:
                 self._weights = {}
 
     def _check_reload(self):
-        # Optimization: Throttle stat calls to at most once every 5 seconds
-        # This reduces system call overhead in hot paths.
-        current_time = time.time()
-        if current_time - self._last_check_time > 5:
-            self._last_check_time = current_time
-            self._load_weights()
-
-    @property
-    def reload_count(self) -> int:
-        """Returns the number of times weights have been reloaded."""
-        self._check_reload()
-        return self._reload_count
+        # Optimization: Checking mtime is fast (stat call).
+        self._load_weights()
 
     def _save_weights(self):
         try:
