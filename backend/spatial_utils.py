@@ -60,6 +60,8 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
 
     # Haversine formula
     a = math.sin(dphi / 2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2)**2
+    # Optimization & Stability: Clamp 'a' to [0, 1] to prevent math domain errors due to precision
+    a = max(0.0, min(1.0, a))
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
     return R * c

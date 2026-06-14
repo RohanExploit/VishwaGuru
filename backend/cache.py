@@ -22,6 +22,7 @@ class ThreadSafeCache:
     def get(self, key: str = "default") -> Optional[Any]:
         """
         Thread-safe get operation with automatic cleanup.
+        O(1) complexity.
         """
         with self._lock:
             current_time = time.time()
@@ -47,9 +48,11 @@ class ThreadSafeCache:
     def set(self, data: Any, key: str = "default") -> None:
         """
         Thread-safe set operation with memory management.
+        O(1) complexity.
         """
         with self._lock:
             current_time = time.time()
+            expiry = current_time + self._ttl
             
             # If key already exists, update and move to end
             if key in self._data:

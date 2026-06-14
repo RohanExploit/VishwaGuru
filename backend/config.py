@@ -48,6 +48,8 @@ class Config:
     secret_key: str
     algorithm: str
     access_token_expire_minutes: int
+
+    hf_token: Optional[str] = None
     
     @classmethod
     def from_env(cls) -> "Config":
@@ -65,6 +67,8 @@ class Config:
         telegram_bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
         if not telegram_bot_token:
             errors.append("TELEGRAM_BOT_TOKEN is required")
+
+        hf_token = os.getenv("HF_TOKEN")
         
         # Database with default
         database_url = os.getenv(
@@ -121,6 +125,7 @@ class Config:
         return cls(
             gemini_api_key=gemini_api_key,
             telegram_bot_token=telegram_bot_token,
+            hf_token=hf_token,
             database_url=database_url,
             environment=environment,
             debug=debug,
@@ -160,6 +165,8 @@ class Config:
             "gemini_api_key": len(self.gemini_api_key) > 20,
             "telegram_bot_token": ":" in self.telegram_bot_token and len(self.telegram_bot_token) > 40,
         }
+        if self.hf_token:
+            validations["hf_token"] = len(self.hf_token) > 10
         return validations
     
     def __repr__(self) -> str:
@@ -170,7 +177,8 @@ class Config:
             f"  database={self.get_database_type()},\n"
             f"  debug={self.debug},\n"
             f"  gemini_api_key={'*' * 10 if self.gemini_api_key else 'NOT SET'},\n"
-            f"  telegram_bot_token={'*' * 10 if self.telegram_bot_token else 'NOT SET'}\n"
+            f"  telegram_bot_token={'*' * 10 if self.telegram_bot_token else 'NOT SET'},\n"
+            f"  hf_token={'*' * 10 if self.hf_token else 'NOT SET'}\n"
             f")"
         )
 
@@ -272,6 +280,10 @@ def get_gemini_api_key() -> str:
 def get_telegram_bot_token() -> str:
     """Get Telegram bot token from config."""
     return get_config().telegram_bot_token
+
+def get_hf_token() -> Optional[str]:
+    """Get Hugging Face token from config."""
+    return get_config().hf_token
 
 
 def get_database_url() -> str:

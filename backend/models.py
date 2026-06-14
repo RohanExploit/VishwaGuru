@@ -40,6 +40,12 @@ class GrievanceStatus(enum.Enum):
     ESCALATED = "escalated"
     RESOLVED = "resolved"
 
+class VerificationStatus(enum.Enum):
+    PENDING = "pending"
+    VERIFIED = "verified"
+    FLAGGED = "flagged"
+    FRAUD_DETECTED = "fraud_detected"
+
 class EscalationReason(enum.Enum):
     SLA_BREACH = "sla_breach"
     SEVERITY_UPGRADE = "severity_upgrade"
@@ -163,7 +169,8 @@ class Issue(Base):
     longitude = Column(Float, nullable=True, index=True)
     location = Column(String, nullable=True)
     action_plan = Column(JSONEncodedDict, nullable=True)
-    integrity_hash = Column(String, nullable=True)  # Blockchain integrity seal
+    integrity_hash = Column(String, nullable=True, index=True)  # Blockchain integrity seal
+    previous_integrity_hash = Column(String, nullable=True, index=True)  # Link to previous block for O(1) verification
     
     # Voice and Language Support (Issue #291)
     submission_type = Column(String, default="text")  # 'text', 'voice'
@@ -272,11 +279,17 @@ class FieldOfficerVisit(Base):
 class ResolutionEvidence(Base):
     __tablename__ = "resolution_evidence"
     id = Column(Integer, primary_key=True, index=True)
-    grievance_id = Column(Integer, ForeignKey("grievances.id"), nullable=False)
-    file_path = Column(String, nullable=False)
-    media_type = Column(String, default="image")
-    description = Column(Text, nullable=True)
-    uploaded_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    grievance_id = Column(Integer, ForeignKey("grievances.id"), nullable=False, index=True)
+    token_id = Column(Integer, ForeignKey("resolution_proof_tokens.id"), nullable=True)
+    evidence_hash = Column(String, unique=True, index=True)
+    gps_latitude = Column(Float, nullable=False)
+    gps_longitude = Column(Float, nullable=False)
+    capture_timestamp = Column(DateTime, nullable=False)
+    device_fingerprint_hash = Column(String, nullable=True)
+    metadata_bundle = Column(JSONEncodedDict, nullable=True)
+    server_signature = Column(String, nullable=False)
+    verification_status = Column(Enum(VerificationStatus), default=VerificationStatus.PENDING)
+    created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
 
     # Relationship
     grievance = relationship("Grievance", back_populates="resolution_evidence")
@@ -284,11 +297,28 @@ class ResolutionEvidence(Base):
 class ResolutionProofToken(Base):
     __tablename__ = "resolution_proof_tokens"
     id = Column(Integer, primary_key=True, index=True)
-    grievance_id = Column(Integer, ForeignKey("grievances.id"), nullable=False)
-    token = Column(String, unique=True, index=True)
-    generated_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
-    expires_at = Column(DateTime, nullable=False)
+    token_id = Column(String, unique=True, index=True)  # UUID
+    grievance_id = Column(Integer, ForeignKey("grievances.id"), nullable=False, index=True)
+    authority_email = Column(String, nullable=False)
+    geofence_latitude = Column(Float, nullable=False)
+    geofence_longitude = Column(Float, nullable=False)
+    geofence_radius_meters = Column(Float, default=200.0)
+    valid_from = Column(DateTime, nullable=False)
+    valid_until = Column(DateTime, nullable=False)
+    nonce = Column(String, nullable=False)
+    token_signature = Column(String, nullable=False)
     is_used = Column(Boolean, default=False)
+    used_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
 
     # Relationship
     grievance = relationship("Grievance", back_populates="resolution_tokens")
+
+class EvidenceAuditLog(Base):
+    __tablename__ = "evidence_audit_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    evidence_id = Column(Integer, ForeignKey("resolution_evidence.id"), nullable=False, index=True)
+    action = Column(String, nullable=False)  # 'created', 'verified', 'flagged', 'fraud_detected'
+    details = Column(Text, nullable=True)
+    actor_email = Column(String, nullable=False)
+    timestamp = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc), index=True)
