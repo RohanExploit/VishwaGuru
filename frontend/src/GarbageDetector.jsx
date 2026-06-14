@@ -56,6 +56,29 @@ const GarbageDetector = ({ onBack }) => {
         }
     };
 
+    const drawDetections = (detections, context) => {
+        context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+
+        context.strokeStyle = '#FF4500'; // OrangeRed
+        context.lineWidth = 4;
+        context.font = 'bold 18px Arial';
+        context.fillStyle = '#FF4500';
+
+        detections.forEach(det => {
+            const [x1, y1, x2, y2] = det.box;
+            context.strokeRect(x1, y1, x2 - x1, y2 - y1);
+
+            // Draw label background
+            const label = `${det.label} ${(det.confidence * 100).toFixed(0)}%`;
+            const textWidth = context.measureText(label).width;
+            context.fillStyle = 'rgba(0,0,0,0.5)';
+            context.fillRect(x1, y1 > 20 ? y1 - 25 : y1, textWidth + 10, 25);
+
+            context.fillStyle = '#FF4500';
+            context.fillText(label, x1 + 5, y1 > 20 ? y1 - 7 : y1 + 18);
+        });
+    };
+
     const detectFrame = async () => {
         if (!videoRef.current || !canvasRef.current || !isDetecting) return;
 
@@ -104,29 +127,6 @@ const GarbageDetector = ({ onBack }) => {
                 console.error("Detection error:", err);
             }
         }, 'image/jpeg', 0.8);
-    };
-
-    const drawDetections = (detections, context) => {
-        context.clearRect(0, 0, context.canvas.width, context.canvas.height);
-
-        context.strokeStyle = '#FF4500'; // OrangeRed
-        context.lineWidth = 4;
-        context.font = 'bold 18px Arial';
-        context.fillStyle = '#FF4500';
-
-        detections.forEach(det => {
-            const [x1, y1, x2, y2] = det.box;
-            context.strokeRect(x1, y1, x2 - x1, y2 - y1);
-
-            // Draw label background
-            const label = `${det.label} ${(det.confidence * 100).toFixed(0)}%`;
-            const textWidth = context.measureText(label).width;
-            context.fillStyle = 'rgba(0,0,0,0.5)';
-            context.fillRect(x1, y1 > 20 ? y1 - 25 : y1, textWidth + 10, 25);
-
-            context.fillStyle = '#FF4500';
-            context.fillText(label, x1 + 5, y1 > 20 ? y1 - 7 : y1 + 18);
-        });
     };
 
     return (

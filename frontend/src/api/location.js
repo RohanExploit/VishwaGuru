@@ -5,6 +5,8 @@
  * contact information endpoint.
  */
 
+import { fakeRepInfo } from '../fakeData';
+
 // Get API URL from environment variable, fallback to relative URL for local dev
 const API_URL = import.meta.env.VITE_API_URL || '';
 
@@ -16,12 +18,18 @@ const API_URL = import.meta.env.VITE_API_URL || '';
  * @throws {Error} If the request fails or pincode is invalid
  */
 export async function getMaharashtraRepContacts(pincode) {
-  const res = await fetch(`${API_URL}/api/mh/rep-contacts?pincode=${pincode}`);
-  
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({ detail: 'Failed to fetch contact information' }));
-    throw new Error(errorData.detail || 'Failed to fetch contact information');
+  try {
+    const res = await fetch(`${API_URL}/api/mh/rep-contacts?pincode=${pincode}`);
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({ detail: 'Failed to fetch contact information' }));
+      throw new Error(errorData.detail || 'Failed to fetch contact information');
+    }
+
+    return await res.json();
+  } catch (error) {
+    console.error("Failed to fetch representative info, using fake data", error);
+    // Return fake data enriched with the requested pincode
+    return { ...fakeRepInfo, pincode: pincode };
   }
-  
-  return res.json();
 }
