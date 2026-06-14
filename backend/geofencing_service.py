@@ -90,45 +90,32 @@ def is_within_geofence(
     return within_fence, distance
 
 
-def generate_visit_hash(visit_data: dict, prev_hash: str = "") -> str:
+def generate_visit_hash(visit_data: dict) -> str:
     """
     Generate a tamper-resistant HMAC hash for visit data (blockchain-like integrity).
     
     Uses HMAC-SHA256 with server secret to prevent forgery.
-    Normalizes datetime to ISO format for deterministic hashing.
-    Supports chaining by including the previous record's hash.
+    Normalizes datetime to UTC ISO format for deterministic hashing.
     
     Args:
         visit_data: Dictionary containing visit information
-        prev_hash: Hash of the previous visit record for chaining
         
     Returns:
         HMAC-SHA256 hash of visit data
     """
     try:
-        # Normalize check_in_time for determinism
+        # Normalize check_in_time to UTC ISO format string for determinism
+        # Ensure microseconds are stripped for consistent comparison across DBs
         check_in_time = visit_data.get('check_in_time')
         if isinstance(check_in_time, datetime):
-            # Normalize to UTC and format consistently without timezone string
-            # This ensures consistency even if DB strips timezone info
-            if check_in_time.tzinfo:
-                check_in_time = check_in_time.astimezone(timezone.utc).replace(tzinfo=None)
-            check_in_time_str = check_in_time.strftime('%Y-%m-%dT%H:%M:%S')
-        elif isinstance(check_in_time, str):
-            # Try to parse and re-format for normalization
-            try:
-                # Handle ISO format with Z or +00:00
-                ts = check_in_time.replace('Z', '+00:00')
-                dt = datetime.fromisoformat(ts)
-                if dt.tzinfo:
-                    dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
-                check_in_time_str = dt.strftime('%Y-%m-%dT%H:%M:%S')
-            except Exception:
-                check_in_time_str = check_in_time
+            # Normalize timestamp to UTC and remove microseconds for consistent hashing across databases
+            if check_in_time.tzinfo is None:
+                check_in_time = check_in_time.replace(tzinfo=timezone.utc)
+            check_in_time_str = check_in_time.astimezone(timezone.utc).replace(microsecond=0).strftime('%Y-%m-%dT%H:%M:%S')
         else:
             check_in_time_str = str(check_in_time) if check_in_time else ""
         
-        # Create a deterministic string from visit data including the previous hash
+        # Create a deterministic string from visit data, including previous hash for chaining
         data_string = (
             f"{visit_data.get('issue_id')}"
             f"{visit_data.get('officer_email')}"
@@ -136,7 +123,7 @@ def generate_visit_hash(visit_data: dict, prev_hash: str = "") -> str:
             f"{visit_data.get('check_in_longitude')}"
             f"{check_in_time_str}"
             f"{visit_data.get('visit_notes', '')}"
-            f"{prev_hash}"
+            f"{visit_data.get('previous_visit_hash', '')}"
         )
         
         # Generate HMAC-SHA256 hash for tamper-resistance
@@ -155,20 +142,19 @@ def generate_visit_hash(visit_data: dict, prev_hash: str = "") -> str:
         return ""
 
 
-def verify_visit_integrity(visit_data: dict, stored_hash: str, prev_hash: str = "") -> bool:
+def verify_visit_integrity(visit_data: dict, stored_hash: str) -> bool:
     """
     Verify the integrity of visit data against stored hash.
     
     Args:
         visit_data: Dictionary containing visit information
         stored_hash: Previously stored hash
-        prev_hash: Previous record hash for chained verification
         
     Returns:
         True if data is unmodified, False otherwise
     """
     try:
-        computed_hash = generate_visit_hash(visit_data, prev_hash=prev_hash)
+        computed_hash = generate_visit_hash(visit_data)
         is_valid = computed_hash == stored_hash
         
         if not is_valid:

@@ -24,6 +24,7 @@ const NotFound = React.lazy(() => import('./views/NotFound'));
 
 // Lazy Load Detectors
 const PotholeDetector = React.lazy(() => import('./PotholeDetector'));
+const EmotionDetector = React.lazy(() => import('./EmotionDetector'));
 const GarbageDetector = React.lazy(() => import('./GarbageDetector'));
 const VandalismDetector = React.lazy(() => import('./VandalismDetector'));
 const FloodDetector = React.lazy(() => import('./FloodDetector'));
@@ -48,7 +49,6 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './views/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminDashboard from './views/AdminDashboard';
-import EmotionDetector from './views/EmotionDetector';
 
 // Create a wrapper component to handle state management
 function AppContent() {
@@ -70,7 +70,7 @@ function AppContent() {
 
   // Safe navigation helper
   const navigateToView = useCallback((view) => {
-    const validViews = ['home', 'map', 'report', 'action', 'mh-rep', 'pothole', 'garbage', 'vandalism', 'flood', 'infrastructure', 'parking', 'streetlight', 'fire', 'animal', 'blocked', 'tree', 'pest', 'smart-scan', 'grievance-analysis', 'noise', 'safety-check', 'insight', 'my-reports', 'grievance', 'login', 'signup', 'emotion'];
+    const validViews = ['home', 'map', 'report', 'action', 'mh-rep', 'pothole', 'garbage', 'vandalism', 'flood', 'infrastructure', 'parking', 'streetlight', 'fire', 'animal', 'blocked', 'tree', 'pest', 'smart-scan', 'grievance-analysis', 'noise', 'safety-check', 'insight', 'my-reports', 'grievance', 'login', 'signup'];
     if (validViews.includes(view)) {
       navigate(view === 'home' ? '/' : `/${view}`);
     } else {
@@ -298,6 +298,7 @@ function AppContent() {
               />
               <Route path="/verify/:id" element={<VerifyView />} />
               <Route path="/pothole" element={<PotholeDetector onBack={() => navigate('/')} />} />
+              <Route path="/emotion" element={<EmotionDetector onBack={() => navigate('/')} />} />
               <Route path="/garbage" element={<GarbageDetector onBack={() => navigate('/')} />} />
               <Route
                 path="/vandalism"
@@ -335,7 +336,6 @@ function AppContent() {
               <Route path="/smart-scan" element={<SmartScanner onBack={() => navigate('/')} />} />
               <Route path="/grievance-analysis" element={<GrievanceAnalysis onBack={() => navigate('/')} />} />
               <Route path="/noise" element={<NoiseDetector onBack={() => navigate('/')} />} />
-              <Route path="/emotion" element={<EmotionDetector onBack={() => navigate('/')} />} />
               <Route path="/safety-check" element={
                 <div className="flex flex-col h-full p-4">
                   <button onClick={() => navigate('/')} className="self-start text-blue-600 mb-2 font-bold">
