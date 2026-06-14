@@ -53,14 +53,30 @@ def get_stats(db: Session = Depends(get_db)):
     if cached_stats:
         return JSONResponse(content=cached_stats)
 
-    total = db.query(func.count(Issue.id)).scalar()
-    resolved = db.query(func.count(Issue.id)).filter(Issue.status.in_(['resolved', 'verified'])).scalar()
+    # Optimization: Use a single query with GROUP BY on category and status
+    # to aggregate all needed statistics in one pass, reducing DB round-trips.
+    results = db.query(
+        Issue.category,
+        Issue.status,
+        func.count(Issue.id)
+    ).group_by(Issue.category, Issue.status).all()
+
+    total = 0
+    resolved = 0
+    issues_by_category = {}
+
+    for category, status, count in results:
+        # Map None category to 'Uncategorized' for schema compliance
+        cat = category if category else "Uncategorized"
+
+        total += count
+        if status in ['resolved', 'verified']:
+            resolved += count
+
+        issues_by_category[cat] = issues_by_category.get(cat, 0) + count
+
     # Pending is everything else
     pending = total - resolved
-
-    # By category
-    cat_counts = db.query(Issue.category, func.count(Issue.id)).group_by(Issue.category).all()
-    issues_by_category = {cat: count for cat, count in cat_counts}
 
     response = StatsResponse(
         total_issues=total,

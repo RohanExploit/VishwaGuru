@@ -1,13 +1,13 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   AlertTriangle, MapPin, Search, Activity, Camera, Trash2, ThumbsUp, Brush,
   Droplets, Zap, Truck, Flame, Dog, XCircle, Lightbulb, TreeDeciduous, Bug,
   Scan, ChevronRight, LayoutGrid, Shield, Leaf, Building, CheckCircle, Trophy, Monitor,
-  Volume2, Users, Waves, Accessibility, Siren, Recycle, Eye, ChevronUp, Signpost, Car
+  Volume2, Users, Waves, Accessibility, Siren, Recycle, Eye, ChevronUp, Signpost, Car,
+  Wind, Smile, Bus, Sparkles
 } from 'lucide-react';
 
 const CameraCheckModal = ({ onClose }) => {
@@ -52,12 +52,12 @@ const CameraCheckModal = ({ onClose }) => {
   );
 };
 
-const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loadMoreIssues, hasMore, loadingMore }) => {
+const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loadMoreIssues, hasMore, loadingMore, stats }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [showCameraCheck, setShowCameraCheck] = React.useState(false);
   const [showScrollTop, setShowScrollTop] = React.useState(false);
-  const totalImpact = 1240 + (recentIssues ? recentIssues.length : 0);
+  const totalImpact = stats?.resolved_issues || 0;
 
   // Scroll to top function
   const scrollToTop = () => {
@@ -84,12 +84,16 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loa
         { id: 'streetlight', label: t('home.issues.darkStreet'), icon: <Lightbulb size={24} />, color: 'text-slate-600', bg: 'bg-slate-50' },
         { id: 'traffic-sign', label: t('home.issues.trafficSign'), icon: <Signpost size={24} />, color: 'text-yellow-600', bg: 'bg-yellow-50' },
         { id: 'abandoned-vehicle', label: t('home.issues.abandonedVehicle'), icon: <Car size={24} />, color: 'text-gray-600', bg: 'bg-gray-50' },
+        { id: 'public-transport', label: t('home.issues.publicTransport'), icon: <Bus size={24} />, color: 'text-blue-600', bg: 'bg-blue-50' },
       ]
     },
     {
       title: t('home.categories.environmentSafety'),
       icon: <Leaf size={20} className="text-green-600" />,
       items: [
+        { id: 'air-quality', label: t('home.issues.airQuality'), icon: <Wind size={24} />, color: 'text-sky-600', bg: 'bg-sky-50' },
+        { id: 'playground', label: t('home.issues.playground'), icon: <Smile size={24} />, color: 'text-pink-600', bg: 'bg-pink-50' },
+        { id: 'cleanliness', label: t('home.issues.cleanliness'), icon: <Sparkles size={24} />, color: 'text-emerald-600', bg: 'bg-emerald-50' },
         { id: 'garbage', label: t('home.issues.garbage'), icon: <Trash2 size={24} />, color: 'text-orange-600', bg: 'bg-orange-50' },
         { id: 'flood', label: t('home.issues.flood'), icon: <Droplets size={24} />, color: 'text-cyan-600', bg: 'bg-cyan-50' },
         { id: 'fire', label: t('home.issues.fireSmoke'), icon: <Flame size={24} />, color: 'text-red-600', bg: 'bg-red-50' },
@@ -118,7 +122,7 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loa
 
   return (
     <>
-      <div className="space-y-8 pb-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 pb-12 relative z-10">
 
 
 
@@ -458,27 +462,23 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loa
       </div>
 
       {/* Scroll to Top Button - Appears on scroll */}
-      {/* Scroll to Top Button - Portal to Body */}
-      {createPortal(
-        <AnimatePresence>
-          {showScrollTop && (
-            <motion.button
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              transition={{ duration: 0.2 }}
-              onClick={scrollToTop}
-              className="fixed right-8 bottom-[447px] bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg hover:shadow-2xl z-[9999] cursor-pointer"
-              aria-label="Scroll to top"
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-            >
-              <ChevronUp size={24} strokeWidth={2.5} />
-            </motion.button>
-          )}
-        </AnimatePresence>,
-        document.body
-      )}
+      <AnimatePresence>
+        {showScrollTop && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.2 }}
+            onClick={scrollToTop}
+            className="fixed right-8 bottom-8 bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg hover:shadow-2xl z-[9999] cursor-pointer"
+            aria-label="Scroll to top"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+          >
+            <ChevronUp size={24} strokeWidth={2.5} />
+          </motion.button>
+        )}
+      </AnimatePresence>
     </>
   );
 };

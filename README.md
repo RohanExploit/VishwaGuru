@@ -105,6 +105,7 @@ VishwaGuru follows a modern client-server architecture:
 - [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) - Step-by-step deployment instructions
 - [CONTRIBUTING.md](CONTRIBUTING.md) - Guidelines for contributors
 - [backend/README.md](backend/README.md) - Backend-specific details
+- [Historic Reports](docs/archived/README.md) - Archived strategies and issue reports
 
 ---
 

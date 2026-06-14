@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build --emptyOutDir",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "jest",
@@ -16,13 +16,16 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.95.3",
     "@tensorflow-models/mobilenet": "^2.1.1",
     "@tensorflow/tfjs": "^4.22.0",
+    "autoprefixer": "^10.4.23",
     "dexie": "^4.2.1",
     "framer-motion": "^12.29.2",
     "i18next": "^25.8.0",
     "i18next-browser-languagedetector": "^8.2.0",
     "lucide-react": "^0.562.0",
+    "postcss": "^8.5.6",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-i18next": "^16.5.3",

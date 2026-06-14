@@ -9,6 +9,13 @@ from typing import Optional
 from dataclasses import dataclass
 from pathlib import Path
 
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # dotenv not installed, rely on system env vars
+
 
 @dataclass
 class Config:

@@ -378,11 +378,8 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
         return;
       }
 
-      if (data.action_plan) {
-        setActionPlan(data.action_plan);
-      } else {
-        setActionPlan({ id: data.id, status: 'generating' });
-      }
+      // Always set status to generating initially, merging any immediate data (like RAG rules)
+      setActionPlan({ ...(data.action_plan || {}), id: data.id, status: 'generating' });
       setSubmitStatus({ state: 'success', message: 'Issue submitted. Preparing your action plan…' });
       setView('action');
     } catch (err) {
