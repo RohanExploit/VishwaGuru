@@ -1,6 +1,5 @@
 fastapi
 uvicorn
-python-dotenv
 sqlalchemy
 python-telegram-bot
 google-generativeai
@@ -31,3 +30,5 @@ SpeechRecognition
 pydub
 googletrans==4.0.2
 langdetect
+indic-nlp-library
+async_lru

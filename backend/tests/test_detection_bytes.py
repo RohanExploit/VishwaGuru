@@ -33,9 +33,14 @@ mock_telegram = MagicMock()
 sys.modules['telegram'] = mock_telegram
 sys.modules['telegram.ext'] = mock_telegram.ext
 
-# Import main (will trigger app creation)
-import backend.main
-from backend.main import app
+# Mock dependencies before importing app
+with patch("backend.main.create_all_ai_services") as mock_create_ai:
+    mock_action = AsyncMock()
+    mock_chat = AsyncMock()
+    mock_summary = AsyncMock()
+    mock_create_ai.return_value = (mock_action, mock_chat, mock_summary)
+
+    from backend.main import app
 
 @pytest.fixture
 def client():
@@ -60,9 +65,6 @@ def client():
     # Let's rely on patching httpx.AsyncClient class constructor
     with patch("httpx.AsyncClient", return_value=mock_client):
          with TestClient(app) as c:
-            c.app.state.http_client = mock_client
-            import backend.dependencies
-            backend.dependencies.SHARED_HTTP_CLIENT = mock_client
             yield c
 
 @pytest.mark.asyncio
