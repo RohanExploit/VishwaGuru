@@ -46,27 +46,18 @@ router = APIRouter()
 
 # Cached Functions
 
-# Simple Cache Implementation to avoid async-lru dependency issues on Render
-_cache_store = {}
+# Robust Cache Implementation using ThreadSafeCache (OrderedDict + LRU)
+from backend.cache import ThreadSafeCache
+
 CACHE_TTL = 3600  # 1 hour
 MAX_CACHE_SIZE = 500
+_detection_cache = ThreadSafeCache(ttl=CACHE_TTL, max_size=MAX_CACHE_SIZE)
 
 async def _get_cached_result(key: str, func, *args, **kwargs):
-    current_time = time.time()
-
     # Check cache
-    if key in _cache_store:
-        result, timestamp = _cache_store[key]
-        if current_time - timestamp < CACHE_TTL:
-            return result
-        else:
-            del _cache_store[key]
-
-    # Prune cache if too large
-    if len(_cache_store) > MAX_CACHE_SIZE:
-        keys_to_remove = list(_cache_store.keys())[:int(MAX_CACHE_SIZE * 0.2)]
-        for k in keys_to_remove:
-            del _cache_store[k]
+    cached_result = _detection_cache.get(key)
+    if cached_result is not None:
+        return cached_result
 
     # Execute function
     if 'client' not in kwargs:
@@ -74,7 +65,7 @@ async def _get_cached_result(key: str, func, *args, **kwargs):
         kwargs['client'] = backend.dependencies.SHARED_HTTP_CLIENT
 
     result = await func(*args, **kwargs)
-    _cache_store[key] = (result, current_time)
+    _detection_cache.set(result, key)
     return result
 
 async def _cached_detect_severity(image_bytes: bytes):

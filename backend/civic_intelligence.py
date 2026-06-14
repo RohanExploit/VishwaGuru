@@ -19,6 +19,23 @@ class CivicIntelligenceEngine:
     def __init__(self):
         os.makedirs(SNAPSHOT_DIR, exist_ok=True)
 
+    def _get_previous_snapshot(self) -> Dict[str, Any]:
+        """
+        Retrieves the most recent daily snapshot file, if available.
+        """
+        try:
+            files = sorted([f for f in os.listdir(SNAPSHOT_DIR) if f.endswith('.json')])
+            if not files:
+                return {}
+
+            # Use the most recent file
+            latest_file = files[-1]
+            with open(os.path.join(SNAPSHOT_DIR, latest_file), 'r') as f:
+                return json.load(f)
+        except Exception as e:
+            logger.warning(f"Failed to load previous snapshot: {e}")
+            return {}
+
     def run_daily_cycle(self):
         """
         Main entry point for the daily refinement job.
@@ -26,6 +43,8 @@ class CivicIntelligenceEngine:
         """
         logger.info("Starting Daily Civic Intelligence Refinement...")
         db = SessionLocal()
+        weight_changes = [] # For auditability
+
         try:
             now = datetime.now(timezone.utc)
             last_24h = now - timedelta(hours=24)
@@ -36,8 +55,25 @@ class CivicIntelligenceEngine:
 
             # 2. Trend Analysis
             trends = trend_analyzer.analyze(issues_24h)
-            # Avoiding logging top_keywords directly to prevent PII leakage in logs
             logger.info(f"Analyzed {len(issues_24h)} issues.")
+
+            # 2a. Spike Detection
+            previous_snapshot = self._get_previous_snapshot()
+            previous_dist = previous_snapshot.get('trends', {}).get('category_distribution', {})
+            current_dist = trends.get('category_distribution', {})
+
+            spikes = []
+            for category, count in current_dist.items():
+                prev_count = previous_dist.get(category, 0)
+                # Spike definition: > 50% increase AND significant volume (> 5)
+                if prev_count > 0 and count > 5:
+                    increase = (count - prev_count) / prev_count
+                    if increase > 0.5:
+                        spikes.append(category)
+                elif prev_count == 0 and count > 5:
+                     spikes.append(category) # New surge
+
+            trends['spikes'] = spikes
 
             # 3. Adaptive Weight Optimization (Severity)
             # Find manual severity upgrades in the last 24h
@@ -65,8 +101,22 @@ class CivicIntelligenceEngine:
             # Update weights if threshold met
             for category, count in upgrade_counts.items():
                 if count >= 3: # Threshold for auto-adjustment
+                    old_multipliers = adaptive_weights.get_category_multipliers()
+                    old_weight = old_multipliers.get(category, 1.0)
+
                     # Increase weight by 10%
                     adaptive_weights.update_category_weight(category, 1.1)
+
+                    # Verify new weight (fetch fresh)
+                    new_multipliers = adaptive_weights.get_category_multipliers()
+                    new_weight = new_multipliers.get(category, 1.1)
+
+                    weight_changes.append({
+                        "category": category,
+                        "old_weight": old_weight,
+                        "new_weight": new_weight,
+                        "reason": f"Manual severity upgrades count: {count}"
+                    })
                     logger.info(f"Increased severity weight for {category} due to {count} manual upgrades.")
 
             # 4. Duplicate Pattern Learning (Radius Adjustment)
@@ -75,15 +125,28 @@ class CivicIntelligenceEngine:
             clusters = trends.get('clusters', [])
             cluster_count = len(clusters)
 
+            current_radius = adaptive_weights.get_duplicate_search_radius()
+            radius_update_factor = 1.0
+
             if cluster_count > 5:
                 # High clustering activity, increase radius slightly to ensure we catch neighbors
-                adaptive_weights.update_duplicate_radius(1.05)
+                radius_update_factor = 1.05
             elif cluster_count == 0 and len(issues_24h) > 50:
                 # Many issues but no clusters detected - radius might be too small
-                adaptive_weights.update_duplicate_radius(1.05)
-            elif len(issues_24h) < 10 and adaptive_weights.get_duplicate_search_radius() > 50:
+                radius_update_factor = 1.05
+            elif len(issues_24h) < 10 and current_radius > 50:
                 # Low volume, maybe decay radius back to default if it grew too large
-                adaptive_weights.update_duplicate_radius(0.95)
+                radius_update_factor = 0.95
+
+            if radius_update_factor != 1.0:
+                adaptive_weights.update_duplicate_radius(radius_update_factor)
+                new_radius = adaptive_weights.get_duplicate_search_radius()
+                weight_changes.append({
+                    "category": "GLOBAL_DUPLICATE_RADIUS",
+                    "old_weight": current_radius,
+                    "new_weight": new_radius,
+                    "reason": f"Cluster density analysis (clusters: {cluster_count}, issues: {len(issues_24h)})"
+                })
 
             # 5. Civic Intelligence Index
             index_data = self._calculate_index(db, issues_24h, trends)
@@ -94,6 +157,7 @@ class CivicIntelligenceEngine:
                 "trends": trends,
                 "civic_index": index_data,
                 "weight_updates": upgrade_counts,
+                "weight_changes": weight_changes,
                 "model_weights": adaptive_weights._weights if adaptive_weights._weights else {}
             }
 
