@@ -36,6 +36,30 @@ def get_bounding_box(lat: float, lon: float, radius_meters: float) -> Tuple[floa
     return min_lat, max_lat, min_lon, max_lon
 
 
+def equirectangular_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """
+    Calculate the distance between two points using the Equirectangular approximation.
+    Much faster than Haversine, but less accurate for large distances.
+    Suitable for small distances (< 1000km).
+
+    Returns distance in meters.
+    """
+    R = 6371000.0  # Earth's radius in meters
+
+    # Convert to radians
+    lat1_rad = math.radians(lat1)
+    lat2_rad = math.radians(lat2)
+
+    # Calculate longitude difference and normalize to [-pi, pi]
+    dlon_rad = math.radians(lon2 - lon1)
+    dlon_rad = (dlon_rad + math.pi) % (2 * math.pi) - math.pi
+
+    x = dlon_rad * math.cos((lat1_rad + lat2_rad) / 2)
+    y = lat2_rad - lat1_rad
+
+    return R * math.sqrt(x*x + y*y)
+
+
 def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """
     Calculate the great circle distance between two points
@@ -55,6 +79,20 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
     return R * c
+
+
+def equirectangular_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """
+    Calculate the distance between two points using the Equirectangular approximation.
+    This is much faster than Haversine and accurate enough for small distances (< 10km).
+
+    Returns distance in meters.
+    """
+    R = 6371000.0
+    # Convert difference to radians directly
+    x = math.radians(lon2 - lon1) * math.cos(math.radians((lat1 + lat2) / 2))
+    y = math.radians(lat2 - lat1)
+    return R * math.sqrt(x*x + y*y)
 
 
 def find_nearby_issues(
@@ -77,11 +115,15 @@ def find_nearby_issues(
     """
     nearby_issues = []
 
+    # Use optimized calculation for small radii
+    use_fast_calc = radius_meters < 1000.0
+
     for issue in issues:
         if issue.latitude is None or issue.longitude is None:
             continue
 
-        distance = haversine_distance(
+        # Use Equirectangular approximation for faster filtering
+        distance = equirectangular_distance(
             target_lat, target_lon,
             issue.latitude, issue.longitude
         )

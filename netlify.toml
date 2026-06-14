@@ -8,9 +8,7 @@
 [build.environment]
   NODE_VERSION = "20"
   CI = "false"
-
-# Environment variables (set these in Netlify dashboard)
-# VITE_API_URL = https://your-backend.onrender.com
+  NODE_OPTIONS = "--max-old-space-size=4096"
 
 # Redirects for SPA
 [[redirects]]
@@ -22,7 +20,7 @@
 [[headers]]
   for = "/*"
   [headers.values]
-    X-Frame-Options = "DENY"
+    X-Frame-Options = "SAMEORIGIN"
     X-Content-Type-Options = "nosniff"
     X-XSS-Protection = "1; mode=block"
     Referrer-Policy = "strict-origin-when-cross-origin"

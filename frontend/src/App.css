@@ -8,6 +8,13 @@
   --shadow-medium: 0 20px 40px rgba(0, 0, 0, 0.12);
   --shadow-intense: 0 30px 60px rgba(0, 0, 0, 0.15);
   --transition-smooth: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* Dark mode variables */
+  --dark-glass-bg: rgba(45, 45, 45, 0.95);
+  --dark-glass-border: rgba(64, 64, 64, 0.2);
+  --dark-shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --dark-shadow-medium: 0 20px 40px rgba(0, 0, 0, 0.4);
+  --dark-shadow-intense: 0 30px 60px rgba(0, 0, 0, 0.5);
 }
 
 * {
@@ -26,6 +33,12 @@
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   position: relative;
   overflow-x: hidden;
+  transition: background 0.3s ease;
+}
+
+/* Dark mode background */
+html.dark #root {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
 }
 
 /* Animated Background Effect */
@@ -42,6 +55,15 @@
     radial-gradient(circle at 40% 80%, rgba(37, 117, 252, 0.08) 0%, transparent 50%);
   z-index: -1;
   animation: float 20s ease-in-out infinite;
+  transition: background 0.3s ease;
+}
+
+/* Dark mode animated background */
+html.dark #root::before {
+  background: 
+    radial-gradient(circle at 20% 50%, rgba(255, 126, 95, 0.04) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(106, 17, 203, 0.04) 0%, transparent 50%),
+    radial-gradient(circle at 40% 80%, rgba(37, 117, 252, 0.04) 0%, transparent 50%);
 }
 
 @keyframes float {

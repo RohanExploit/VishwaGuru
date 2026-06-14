@@ -1,4 +1,3 @@
-import joblib
 import os
 import logging
 
@@ -10,13 +9,26 @@ class GrievanceClassifier:
     def __init__(self):
         self.model = None
         self._initialized = False
+        # Lazy load logic moved to load_model
 
     def load_model(self):
+        # Check for dependencies first
+        try:
+            import joblib
+            # Note: scikit-learn is required to load the model but imported by joblib during deserialization
+            # We can check for it explicitly to be safe
+            import sklearn
+        except ImportError as e:
+            logger.warning(f"Grievance classifier disabled: Missing dependency {e}. This is expected on lightweight deployments.")
+            self.model = None
+            return
+
         if os.path.exists(MODEL_PATH):
             try:
                 self.model = joblib.load(MODEL_PATH)
                 logger.info("Grievance model loaded successfully.")
             except Exception as e:
+                # Catch sklearn deserialization errors or other issues
                 logger.error(f"Failed to load grievance model: {e}")
                 self.model = None
         else:
@@ -24,8 +36,11 @@ class GrievanceClassifier:
 
     def predict(self, text: str):
         if not self.model:
-            # Try reloading if it failed previously or file was created later
-            self.load_model()
+            # Try reloading (once) if it wasn't initialized
+            if not self._initialized:
+                self.load_model()
+                self._initialized = True
+
             if not self.model:
                 return "Unknown (Model Unavailable)"
 
