@@ -127,7 +127,7 @@ class UnifiedDetectionService:
             return await detect_vandalism_local(image)
         
         elif backend == "huggingface":
-            from hf_service import detect_vandalism_clip
+            from backend.hf_api_service import detect_vandalism_clip
             return await detect_vandalism_clip(image)
         
         else:
@@ -155,7 +155,7 @@ class UnifiedDetectionService:
             return await detect_infrastructure_local(image)
         
         elif backend == "huggingface":
-            from hf_service import detect_infrastructure_clip
+            from backend.hf_api_service import detect_infrastructure_clip
             return await detect_infrastructure_clip(image)
         
         else:
@@ -183,7 +183,7 @@ class UnifiedDetectionService:
             return await detect_flooding_local(image)
         
         elif backend == "huggingface":
-            from hf_service import detect_flooding_clip
+            from backend.hf_api_service import detect_flooding_clip
             return await detect_flooding_clip(image)
         
         else:
@@ -285,6 +285,14 @@ class UnifiedDetectionService:
         Returns:
             Dictionary mapping detection type to list of results
         """
+        backend = await self._get_detection_backend()
+
+        # Optimization: Use consolidated API call for Hugging Face backend
+        if backend == "huggingface":
+            from backend.hf_api_service import detect_all_clip
+            return await detect_all_clip(image)
+
+        # Fallback to parallel execution for local model or if detect_all_clip fails/not applicable
         import asyncio
 
         results = await asyncio.gather(

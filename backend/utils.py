@@ -16,6 +16,14 @@ except ImportError:
 import mimetypes
 from typing import Optional
 
+try:
+    import magic
+    MAGIC_AVAILABLE = True
+except ImportError:
+    MAGIC_AVAILABLE = False
+    logger = logging.getLogger(__name__)
+    logger.warning("python-magic not available, falling back to mimetypes/PIL validation")
+
 from backend.cache import user_upload_cache
 from backend.models import Issue
 from backend.schemas import DetectionResponse
@@ -76,11 +84,11 @@ def _validate_uploaded_file_sync(file: UploadFile) -> Optional[Image.Image]:
             detail=f"File too large. Maximum size allowed is {MAX_FILE_SIZE // (1024*1024)}MB"
         )
 
-    # Check MIME type from content using python-magic
     try:
-        # Read first 1024 bytes for MIME detection
-        file_content = file.file.read(1024)
-        file.file.seek(0)  # Reset file pointer
+        if magic:
+            # Read first 1024 bytes for MIME detection
+            file_content = file.file.read(1024)
+            file.file.seek(0)  # Reset file pointer
 
         if HAVE_MAGIC:
             detected_mime = magic.from_buffer(file_content, mime=True)
@@ -98,7 +106,7 @@ def _validate_uploaded_file_sync(file: UploadFile) -> Optional[Image.Image]:
                     detail=f"Invalid file type. Only image files are allowed. Detected: {guessed_mime}"
                 )
 
-        # Additional content validation: Try to open with PIL to ensure it's a valid image
+        # content validation: Try to open with PIL to ensure it's a valid image
         try:
             img = Image.open(file.file)
             # Optimization: Skip img.verify() to avoid full file read.
@@ -169,7 +177,6 @@ def process_uploaded_image_sync(file: UploadFile) -> tuple[Image.Image, bytes]:
             detail=f"File too large. Maximum size allowed is {MAX_FILE_SIZE // (1024*1024)}MB"
         )
 
-    # Check MIME type
     try:
         file_content = file.file.read(1024)
         file.file.seek(0)
