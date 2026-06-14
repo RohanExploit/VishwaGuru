@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.models import User, UserRole
 from backend.schemas import TokenData
-from backend.config import get_config
+from backend.config import get_config, get_auth_config
 
 def get_http_client(request: Request) -> httpx.AsyncClient:
     """
@@ -26,7 +26,7 @@ def get_http_client(request: Request) -> httpx.AsyncClient:
 
 # Auth Dependencies
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    config = get_config()
+    config = get_auth_config()
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",

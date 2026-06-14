@@ -48,6 +48,8 @@ class Config:
     secret_key: str
     algorithm: str
     access_token_expire_minutes: int
+
+    hf_token: Optional[str] = None
     
     @classmethod
     def from_env(cls) -> "Config":
@@ -65,6 +67,8 @@ class Config:
         telegram_bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
         if not telegram_bot_token:
             errors.append("TELEGRAM_BOT_TOKEN is required")
+
+        hf_token = os.getenv("HF_TOKEN")
         
         # Database with default
         database_url = os.getenv(
@@ -121,6 +125,7 @@ class Config:
         return cls(
             gemini_api_key=gemini_api_key,
             telegram_bot_token=telegram_bot_token,
+            hf_token=hf_token,
             database_url=database_url,
             environment=environment,
             debug=debug,
@@ -160,6 +165,8 @@ class Config:
             "gemini_api_key": len(self.gemini_api_key) > 20,
             "telegram_bot_token": ":" in self.telegram_bot_token and len(self.telegram_bot_token) > 40,
         }
+        if self.hf_token:
+            validations["hf_token"] = len(self.hf_token) > 10
         return validations
     
     def __repr__(self) -> str:
@@ -170,13 +177,51 @@ class Config:
             f"  database={self.get_database_type()},\n"
             f"  debug={self.debug},\n"
             f"  gemini_api_key={'*' * 10 if self.gemini_api_key else 'NOT SET'},\n"
-            f"  telegram_bot_token={'*' * 10 if self.telegram_bot_token else 'NOT SET'}\n"
+            f"  telegram_bot_token={'*' * 10 if self.telegram_bot_token else 'NOT SET'},\n"
+            f"  hf_token={'*' * 10 if self.hf_token else 'NOT SET'}\n"
             f")"
         )
 
 
-# Global config instance
+@dataclass
+class AuthConfig:
+    """Lightweight auth-only configuration that doesn't require external API keys."""
+    secret_key: str
+    algorithm: str
+    access_token_expire_minutes: int
+
+    @classmethod
+    def from_env(cls) -> "AuthConfig":
+        environment = os.getenv("ENVIRONMENT", "development")
+        secret_key = os.getenv("SECRET_KEY")
+        if not secret_key:
+            if environment.lower() == "production":
+                raise ValueError("SECRET_KEY is required in production environment")
+            else:
+                secret_key = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
+        algorithm = os.getenv("ALGORITHM", "HS256")
+        access_token_expire_minutes = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+        return cls(
+            secret_key=secret_key,
+            algorithm=algorithm,
+            access_token_expire_minutes=access_token_expire_minutes,
+        )
+
+
+# Global config instances
 _config: Optional[Config] = None
+_auth_config: Optional[AuthConfig] = None
+
+
+def get_auth_config() -> AuthConfig:
+    """
+    Get auth-only configuration. Does NOT require GEMINI_API_KEY or TELEGRAM_BOT_TOKEN.
+    Safe to use in auth endpoints.
+    """
+    global _auth_config
+    if _auth_config is None:
+        _auth_config = AuthConfig.from_env()
+    return _auth_config
 
 
 def get_config() -> Config:
@@ -235,6 +280,10 @@ def get_gemini_api_key() -> str:
 def get_telegram_bot_token() -> str:
     """Get Telegram bot token from config."""
     return get_config().telegram_bot_token
+
+def get_hf_token() -> Optional[str]:
+    """Get Hugging Face token from config."""
+    return get_config().hf_token
 
 
 def get_database_url() -> str:

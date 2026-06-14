@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { grievancesApi } from '../api';
+import ResolutionVerification from '../components/ResolutionVerification';
 
 const GrievanceView = () => {
   const [grievances, setGrievances] = useState([]);
@@ -143,7 +144,7 @@ const GrievanceView = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <select
               value={filters.status}
-              onChange={(e) => setFilters({...filters, status: e.target.value})}
+              onChange={(e) => setFilters({ ...filters, status: e.target.value })}
               className="border rounded px-3 py-2"
             >
               <option value="">All Statuses</option>
@@ -156,27 +157,27 @@ const GrievanceView = () => {
               type="text"
               placeholder="Filter by category"
               value={filters.category}
-              onChange={(e) => setFilters({...filters, category: e.target.value})}
+              onChange={(e) => setFilters({ ...filters, category: e.target.value })}
               className="border rounded px-3 py-2"
             />
             <input
               type="number"
               placeholder="Limit"
               value={filters.limit}
-              onChange={(e) => setFilters({...filters, limit: parseInt(e.target.value) || 20})}
+              onChange={(e) => setFilters({ ...filters, limit: parseInt(e.target.value) || 20 })}
               className="border rounded px-3 py-2"
               min="1"
               max="200"
             />
             <button
-              onClick={() => setFilters({...filters, offset: Math.max(0, filters.offset - filters.limit)})}
+              onClick={() => setFilters({ ...filters, offset: Math.max(0, filters.offset - filters.limit) })}
               disabled={filters.offset === 0}
               className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50"
             >
               Previous
             </button>
             <button
-              onClick={() => setFilters({...filters, offset: filters.offset + filters.limit})}
+              onClick={() => setFilters({ ...filters, offset: filters.offset + filters.limit })}
               disabled={grievances.length < filters.limit}
               className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50"
             >
@@ -229,9 +230,14 @@ const GrievanceView = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(grievance.status)}`}>
-                        {grievance.status.replace('_', ' ')}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(grievance.status)}`}>
+                          {grievance.status.replace('_', ' ')}
+                        </span>
+                        {grievance.status === 'resolved' && (
+                          <ResolutionVerification grievanceId={grievance.id} compact />
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {grievance.assigned_authority}
@@ -308,6 +314,14 @@ const GrievanceView = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Resolution Verification */}
+              {selectedGrievance.status === 'resolved' && (
+                <div className="mt-6">
+                  <h4 className="font-medium mb-2">Resolution Verification</h4>
+                  <ResolutionVerification grievanceId={selectedGrievance.id} />
+                </div>
+              )}
 
               <div className="mt-6">
                 <h4 className="font-medium mb-2">Escalation History</h4>
