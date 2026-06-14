@@ -1,6 +1,8 @@
 // Resolution Proof API functions (Issue #292)
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
+import { getApiUrl } from './client';
+
+const API_BASE = getApiUrl();
 
 export const resolutionProofApi = {
     // Generate a Resolution Proof Token for a grievance

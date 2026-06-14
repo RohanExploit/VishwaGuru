@@ -30,7 +30,7 @@ from backend.tasks import (
     send_status_notification
 )
 from backend.spatial_utils import get_bounding_box, find_nearby_issues
-from backend.cache import recent_issues_cache, nearby_issues_cache, blockchain_last_hash_cache
+from backend.cache import recent_issues_cache, nearby_issues_cache
 from backend.hf_api_service import verify_resolution_vqa
 from backend.dependencies import get_http_client
 from backend.rag_service import rag_service
@@ -180,7 +180,7 @@ async def create_issue(
             )
             prev_hash = prev_issue[0] if prev_issue and prev_issue[0] else ""
 
-            # Simple but effective SHA-256 chaining
+# Simple but effective SHA-256 chaining
             hash_content = f"{description}|{category}|{prev_hash}"
             integrity_hash = hashlib.sha256(hash_content.encode()).hexdigest()
 
@@ -201,8 +201,7 @@ async def create_issue(
                 longitude=longitude,
                 location=location,
                 action_plan=initial_action_plan,
-                integrity_hash=integrity_hash,
-                previous_integrity_hash=prev_hash
+                integrity_hash=integrity_hash
             )
 
             # Offload blocking DB operations to threadpool
@@ -637,11 +636,7 @@ async def verify_blockchain_integrity(issue_id: int, db: Session = Depends(get_d
     # Fetch current issue data including the stored link to previous hash
     current_issue = await run_in_threadpool(
         lambda: db.query(
-            Issue.id,
-            Issue.description,
-            Issue.category,
-            Issue.integrity_hash,
-            Issue.previous_integrity_hash
+            Issue.id, Issue.description, Issue.category, Issue.integrity_hash
         ).filter(Issue.id == issue_id).first()
     )
 

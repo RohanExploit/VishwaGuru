@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }) => {
                 .finally(() => setLoading(false));
         } else {
             apiClient.removeToken();
-            setLoading(false);
+            setTimeout(() => setLoading(false), 0);
         }
     }, [token]);
 

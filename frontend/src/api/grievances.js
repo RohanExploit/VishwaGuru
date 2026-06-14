@@ -1,6 +1,8 @@
 // Grievance and Escalation API functions
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
+import { getApiUrl } from './client';
+
+const API_BASE = getApiUrl();
 
 export const grievancesApi = {
   // Get list of grievances with escalation history
