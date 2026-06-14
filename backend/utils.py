@@ -268,18 +268,19 @@ def save_file_blocking(file_obj, path, image: Optional[Image.Image] = None):
     try:
         # Try to open as image with PIL
         if image:
-             img = image
+             # Create a copy to avoid modifying the original image object in-place (side effect)
+             img = image.copy()
         else:
              img = Image.open(file_obj)
 
-        # Strip EXIF data by creating a new image without metadata
-        # Use paste() instead of getdata() for O(1) performance (vs O(N) list creation)
-        img_no_exif = Image.new(img.mode, img.size)
-        img_no_exif.paste(img)
+        # Strip EXIF data by clearing metadata in-place
+        # Optimization: O(1) metadata clear vs O(N) pixel copy
+        img.info.clear()
+        img_no_exif = img
         # Save without EXIF
         # Use original format if available, otherwise default to JPEG if mode is RGB, PNG if RGBA
         fmt = img.format or ('PNG' if img.mode == 'RGBA' else 'JPEG')
-        img_no_exif.save(path, format=fmt)
+        img.save(path, format=fmt)
         logger.info(f"Saved image {path} with EXIF metadata stripped")
     except Exception:
         # If not an image or PIL fails, save as binary

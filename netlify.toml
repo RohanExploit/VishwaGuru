@@ -8,15 +8,7 @@
 [build.environment]
   NODE_VERSION = "20"
   CI = "false"
-
-# Environment variables (set these in Netlify dashboard)
-# VITE_API_URL = https://your-backend.onrender.com
-
-# Redirects for SPA
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+  # NODE_ENV is set to "production" by default on Netlify
 
 # Headers for security
 [[headers]]
