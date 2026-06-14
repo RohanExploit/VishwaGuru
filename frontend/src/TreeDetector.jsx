@@ -24,6 +24,7 @@ const TreeDetector = ({ onBack }) => {
     setDetections([]);
 
     try {
+        // Convert base64 to blob
         const res = await fetch(imgSrc);
         const blob = await res.blob();
         const file = new File([blob], "image.jpg", { type: "image/jpeg" });
@@ -31,6 +32,7 @@ const TreeDetector = ({ onBack }) => {
         const formData = new FormData();
         formData.append('image', file);
 
+        // Call Backend API
         const response = await fetch('/api/detect-tree-hazard', {
             method: 'POST',
             body: formData,
@@ -40,7 +42,7 @@ const TreeDetector = ({ onBack }) => {
             const data = await response.json();
             setDetections(data.detections);
             if (data.detections.length === 0) {
-                alert("No tree hazards detected.");
+                alert("No tree hazard detected.");
             }
         } else {
             console.error("Detection failed");
@@ -55,14 +57,11 @@ const TreeDetector = ({ onBack }) => {
   };
 
   return (
-    <div className="flex flex-col h-full p-4 max-w-md mx-auto">
-      {onBack && (
-        <button onClick={onBack} className="self-start text-blue-600 mb-2">
-          &larr; Back
-        </button>
-      )}
+    <div className="p-4 max-w-md mx-auto h-full flex flex-col">
+       <button onClick={onBack} className="self-start text-blue-600 mb-2">
+            &larr; Back
+       </button>
       <h2 className="text-2xl font-bold mb-4 text-green-800">Tree Hazard Detector</h2>
-      <p className="text-gray-600 mb-4 text-sm">Detect fallen trees, leaning branches, or overgrowth.</p>
 
       {cameraError ? (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
@@ -77,11 +76,12 @@ const TreeDetector = ({ onBack }) => {
                 ref={webcamRef}
                 screenshotFormat="image/jpeg"
                 className="w-full h-full object-cover"
-                onUserMediaError={() => setCameraError("Could not access camera. Please check permissions.")}
+                onUserMediaError={(err) => setCameraError("Could not access camera. Please check permissions.")}
               />
             ) : (
               <div className="relative">
                   <img src={imgSrc} alt="Captured" className="w-full" />
+                  {/* Since CLIP doesn't give boxes, we just show a banner if detected */}
                   {detections.length > 0 && (
                       <div className="absolute top-0 left-0 right-0 bg-red-600 text-white p-2 text-center font-bold opacity-90">
                           DETECTED: {detections.map(d => d.label).join(', ')}
@@ -92,12 +92,12 @@ const TreeDetector = ({ onBack }) => {
           </div>
       )}
 
-      <div className="flex justify-center gap-4 mt-auto mb-4">
+      <div className="flex justify-center gap-4">
         {!imgSrc ? (
           <button
             onClick={capture}
             disabled={!!cameraError}
-            className={`bg-green-600 text-white px-6 py-3 rounded-full font-semibold shadow-md hover:bg-green-700 transition w-full ${cameraError ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`bg-blue-600 text-white px-6 py-2 rounded-full font-semibold shadow-md hover:bg-blue-700 transition ${cameraError ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             Capture Photo
           </button>
@@ -105,20 +105,32 @@ const TreeDetector = ({ onBack }) => {
           <>
             <button
               onClick={retake}
-              className="bg-gray-500 text-white px-6 py-3 rounded-full font-semibold shadow-md hover:bg-gray-600 transition flex-1"
+              className="bg-gray-500 text-white px-6 py-2 rounded-full font-semibold shadow-md hover:bg-gray-600 transition"
             >
               Retake
             </button>
             <button
               onClick={detectTreeHazard}
               disabled={loading}
-              className={`bg-red-600 text-white px-6 py-3 rounded-full font-semibold shadow-md hover:bg-red-700 transition flex-1 flex items-center justify-center ${loading ? 'opacity-70 cursor-wait' : ''}`}
+              className={`bg-green-600 text-white px-6 py-2 rounded-full font-semibold shadow-md hover:bg-green-700 transition flex items-center ${loading ? 'opacity-70 cursor-wait' : ''}`}
             >
-              {loading ? 'Analyzing...' : 'Detect Hazard'}
+              {loading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Analyzing...
+                  </>
+              ) : 'Detect Hazard'}
             </button>
           </>
         )}
       </div>
+
+      <p className="mt-4 text-sm text-gray-600 text-center">
+        Point camera at fallen trees or dangerous branches.
+      </p>
     </div>
   );
 };

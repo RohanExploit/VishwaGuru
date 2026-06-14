@@ -129,7 +129,7 @@ class ThreadSafeCache:
         """
         if not self._access_count:
             return
-
+        
         # Find key with lowest access count
         lru_key = min(self._access_count.keys(), key=lambda k: self._access_count[k])
         self._remove_key(lru_key)
@@ -154,8 +154,4 @@ class SimpleCache:
 
 # Global instances with improved configuration
 recent_issues_cache = ThreadSafeCache(ttl=300, max_size=20)  # 5 minutes TTL, max 20 entries
-nearby_issues_cache = ThreadSafeCache(ttl=60, max_size=100)  # 1 minute TTL, max 100 entries
 user_upload_cache = ThreadSafeCache(ttl=3600, max_size=1000)  # 1 hour TTL for upload limits
-
-# Blockchain optimization: cache the most recent integrity hash to avoid redundant DB queries during chaining
-blockchain_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=1)

@@ -8,17 +8,7 @@
 import { fakeRepInfo } from '../fakeData';
 
 // Get API URL from environment variable, fallback to relative URL for local dev
-const getApiUrl = () => {
-  if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'test') {
-    return '';
-  }
-  try {
-    return import.meta.env.VITE_API_URL || '';
-  } catch (e) {
-    return '';
-  }
-};
-const API_URL = getApiUrl();
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 /**
  * Get Maharashtra representative contact information by pincode

@@ -9,13 +9,6 @@ from typing import Optional
 from dataclasses import dataclass
 from pathlib import Path
 
-# Load environment variables from .env file
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except ImportError:
-    pass  # dotenv not installed, rely on system env vars
-
 
 @dataclass
 class Config:
@@ -43,11 +36,6 @@ class Config:
     # Rate Limiting
     rate_limit_enabled: bool
     max_requests_per_minute: int
-
-    # Authentication
-    secret_key: str
-    algorithm: str
-    access_token_expire_minutes: int
     
     @classmethod
     def from_env(cls) -> "Config":
@@ -99,18 +87,6 @@ class Config:
         # Rate limiting
         rate_limit_enabled = os.getenv("RATE_LIMIT_ENABLED", "true").lower() == "true"
         max_requests_per_minute = int(os.getenv("MAX_REQUESTS_PER_MINUTE", "60"))
-
-        # Auth settings
-        secret_key = os.getenv("SECRET_KEY")
-        if not secret_key:
-            if environment.lower() == "production":
-                errors.append("SECRET_KEY is required in production environment")
-            else:
-                secret_key = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7" # Fallback for dev only
-                # logger.warning("Using default SECRET_KEY - not safe for production")
-
-        algorithm = os.getenv("ALGORITHM", "HS256")
-        access_token_expire_minutes = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
         
         # If there are errors, raise with all missing variables
         if errors:
@@ -129,9 +105,6 @@ class Config:
             allowed_file_types=allowed_file_types,
             rate_limit_enabled=rate_limit_enabled,
             max_requests_per_minute=max_requests_per_minute,
-            secret_key=secret_key,
-            algorithm=algorithm,
-            access_token_expire_minutes=access_token_expire_minutes,
         )
     
     def is_production(self) -> bool:
@@ -175,45 +148,8 @@ class Config:
         )
 
 
-@dataclass
-class AuthConfig:
-    """Lightweight auth-only configuration that doesn't require external API keys."""
-    secret_key: str
-    algorithm: str
-    access_token_expire_minutes: int
-
-    @classmethod
-    def from_env(cls) -> "AuthConfig":
-        environment = os.getenv("ENVIRONMENT", "development")
-        secret_key = os.getenv("SECRET_KEY")
-        if not secret_key:
-            if environment.lower() == "production":
-                raise ValueError("SECRET_KEY is required in production environment")
-            else:
-                secret_key = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
-        algorithm = os.getenv("ALGORITHM", "HS256")
-        access_token_expire_minutes = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
-        return cls(
-            secret_key=secret_key,
-            algorithm=algorithm,
-            access_token_expire_minutes=access_token_expire_minutes,
-        )
-
-
-# Global config instances
+# Global config instance
 _config: Optional[Config] = None
-_auth_config: Optional[AuthConfig] = None
-
-
-def get_auth_config() -> AuthConfig:
-    """
-    Get auth-only configuration. Does NOT require GEMINI_API_KEY or TELEGRAM_BOT_TOKEN.
-    Safe to use in auth endpoints.
-    """
-    global _auth_config
-    if _auth_config is None:
-        _auth_config = AuthConfig.from_env()
-    return _auth_config
 
 
 def get_config() -> Config:

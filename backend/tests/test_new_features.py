@@ -34,10 +34,17 @@ def client_with_mock_http():
 
          # Mock http client
          mock_http = AsyncMock()
+         # Ensure app state has http_client before dependencies try to use it?
+         # The lifespan sets it up. TestClient runs lifespan.
+         # But we want to override it.
+         # If we set it here, lifespan might overwrite it.
+
          # Option: Patch httpx.AsyncClient to return our mock
          mock_http.__aenter__.return_value = mock_http
          with patch("httpx.AsyncClient", return_value=mock_http):
              with TestClient(app) as c:
+                 # After startup, app.state.http_client should be set.
+                 # Since we patched AsyncClient, it should be our mock_http.
                  yield c, mock_http
 
 def create_test_image():
@@ -61,7 +68,7 @@ def test_detect_waste(client_with_mock_http):
 
     img_bytes = create_test_image()
 
-    with patch('backend.utils.validate_uploaded_file'):
+    with patch('backend.main.validate_uploaded_file'):
         response = client.post(
             "/api/detect-waste",
             files={"image": ("test.jpg", img_bytes, "image/jpeg")}
@@ -89,7 +96,7 @@ def test_detect_civic_eye(client_with_mock_http):
 
     img_bytes = create_test_image()
 
-    with patch('backend.utils.validate_uploaded_file'):
+    with patch('backend.main.validate_uploaded_file'):
         response = client.post(
             "/api/detect-civic-eye",
             files={"image": ("test.jpg", img_bytes, "image/jpeg")}

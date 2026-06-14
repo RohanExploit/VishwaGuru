@@ -40,7 +40,7 @@ async def test_detect_severity_endpoint():
     # Mock AI services initialization to prevent startup failure
     with patch('backend.main.create_all_ai_services') as mock_create_services, \
          patch('backend.main.initialize_ai_services') as mock_init_services, \
-         patch('backend.routers.detection.detect_severity_clip', new_callable=AsyncMock) as mock_detect:
+         patch('backend.main.detect_severity_clip', new_callable=AsyncMock) as mock_detect:
 
         # Setup mocks
         mock_create_services.return_value = (MagicMock(), MagicMock(), MagicMock())
