@@ -13,10 +13,10 @@ token = os.environ.get("HF_TOKEN")
 headers = {"Authorization": f"Bearer {token}"} if token else {}
 
 # Zero-Shot Image Classification Model
-CLIP_API_URL = "https://router.huggingface.co/models/openai/clip-vit-base-patch32"
+CLIP_API_URL = "https://router.huggingface.co/models/google/siglip-so400m-patch14-384"
 
 # Image Captioning Model
-CAPTION_API_URL = "https://router.huggingface.co/models/Salesforce/blip-image-captioning-large"
+CAPTION_API_URL = "https://router.huggingface.co/models/Salesforce/blip-image-captioning-base"
 
 # Sentiment Analysis / Text Classification Model
 SENTIMENT_API_URL = "https://router.huggingface.co/models/cardiffnlp/twitter-roberta-base-sentiment-latest"
