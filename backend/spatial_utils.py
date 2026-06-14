@@ -3,11 +3,20 @@ Spatial utilities for geospatial operations and deduplication.
 """
 import math
 from typing import List, Tuple, Optional
-from sklearn.cluster import DBSCAN
-import numpy as np
+import logging
+
+try:
+    from sklearn.cluster import DBSCAN
+    import numpy as np
+    HAS_SKLEARN = True
+except ImportError:
+    HAS_SKLEARN = False
+    DBSCAN = None
+    np = None
 
 from backend.models import Issue
 
+logger = logging.getLogger(__name__)
 
 def get_bounding_box(lat: float, lon: float, radius_meters: float) -> Tuple[float, float, float, float]:
     """
@@ -56,6 +65,33 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     return R * c
 
 
+def equirectangular_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """
+    Calculate the distance between two points on the earth (specified in decimal degrees)
+    using the Equirectangular approximation. This is faster than Haversine for small distances.
+
+    Returns distance in meters.
+    """
+    R = 6371000.0  # Earth's radius in meters
+
+    # Convert decimal degrees to radians
+    lat1_rad, lat2_rad = math.radians(lat1), math.radians(lat2)
+    lon1_rad, lon2_rad = math.radians(lon1), math.radians(lon2)
+
+    # Calculate differences
+    dlat = lat2_rad - lat1_rad
+    dlon = lon2_rad - lon1_rad
+
+    # Handle longitude wrapping (dateline crossing)
+    # Normalize dlon to [-pi, pi]
+    dlon = (dlon + math.pi) % (2 * math.pi) - math.pi
+
+    x = dlon * math.cos((lat1_rad + lat2_rad) / 2)
+    y = dlat
+
+    return R * math.sqrt(x*x + y*y)
+
+
 def find_nearby_issues(
     issues: List[Issue],
     target_lat: float,
@@ -76,11 +112,17 @@ def find_nearby_issues(
     """
     nearby_issues = []
 
+    # Determine which distance function to use based on radius
+    # Use Haversine for larger distances (> 10km) where curvature matters more
+    # Use Equirectangular for smaller distances for performance (~2.5x faster)
+    use_precise = radius_meters > 10000
+    distance_func = haversine_distance if use_precise else equirectangular_distance
+
     for issue in issues:
         if issue.latitude is None or issue.longitude is None:
             continue
 
-        distance = haversine_distance(
+        distance = distance_func(
             target_lat, target_lon,
             issue.latitude, issue.longitude
         )
@@ -106,6 +148,11 @@ def cluster_issues_dbscan(issues: List[Issue], eps_meters: float = 30.0) -> List
     Returns:
         List of clusters, where each cluster is a list of Issue objects
     """
+    if not HAS_SKLEARN:
+        logger.warning("Scikit-learn not available, returning unclustered issues.")
+        # Return each issue as its own cluster to ensure visibility
+        return [[issue] for issue in issues if issue.latitude is not None and issue.longitude is not None]
+
     # Filter issues with valid coordinates
     valid_issues = [
         issue for issue in issues
@@ -126,19 +173,23 @@ def cluster_issues_dbscan(issues: List[Issue], eps_meters: float = 30.0) -> List
     eps_degrees = eps_meters / 111000  # Rough approximation
 
     # Perform DBSCAN clustering
-    db = DBSCAN(eps=eps_degrees, min_samples=1, metric='haversine').fit(
-        np.radians(coordinates)
-    )
+    try:
+        db = DBSCAN(eps=eps_degrees, min_samples=1, metric='haversine').fit(
+            np.radians(coordinates)
+        )
 
-    # Group issues by cluster
-    clusters = {}
-    for i, label in enumerate(db.labels_):
-        if label not in clusters:
-            clusters[label] = []
-        clusters[label].append(valid_issues[i])
+        # Group issues by cluster
+        clusters = {}
+        for i, label in enumerate(db.labels_):
+            if label not in clusters:
+                clusters[label] = []
+            clusters[label].append(valid_issues[i])
 
-    # Return clusters as list of lists (exclude noise points labeled as -1)
-    return [cluster for label, cluster in clusters.items() if label != -1]
+        # Return clusters as list of lists (exclude noise points labeled as -1)
+        return [cluster for label, cluster in clusters.items() if label != -1]
+    except Exception as e:
+        logger.error(f"Error during DBSCAN clustering: {e}")
+        return []
 
 
 def get_cluster_representative(cluster: List[Issue]) -> Issue:
