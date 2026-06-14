@@ -1,89 +1,199 @@
-# VishwaGuru
+# 🌍 VishwaGuru
 
-VishwaGuru is an open source platform empowering India's youth to engage with democracy. It uses AI to simplify contacting representatives, filing grievances, and organizing community action. Built for India's languages and governance, it turns selfies and videos into real civic impact.
+ optimize-lazy-loading-313
+VishwaGuru is an AI-powered platform designed to help users analyze issues and generate actionable solutions using modern web technologies and AI models.
 
-## Features
+---
 
-- **AI-Powered Action Plans**: Generates WhatsApp messages and email drafts for civic issues using Google's Gemini API.
-- **Issue Reporting**: Users can report issues via a web interface or a Telegram bot.
-- **Local & Production Ready**: Supports SQLite for local development and PostgreSQL for production.
-- **Modern Stack**: Built with React (Vite) and FastAPI.
+## ✨ Features
 
-## Prerequisites
+- 🤖 AI-generated action plans using Google Gemini
+- ⚡ FastAPI-powered backend
+- 🎨 Modern React + Vite frontend
+- 📱 Telegram bot integration
+- 🗄️ SQLite (dev) & PostgreSQL (prod) support
+- ☁️ Flexible deployment options
 
-Before you begin, ensure you have the following installed:
+---
 
-- **Python 3.8+**
-- **Node.js 18+** and **npm**
-- **Git**
+## 🛠️ Project Setup (Local)
 
-## Installation & Deployment Guides
-
-This project is structured to be easily deployable on **Firebase** (Google Cloud) or other platforms like Render/Netlify.
-
-For specific installation and deployment instructions, please verify the `README.md` in each folder:
-
-*   **[Frontend Documentation](./frontend/README.md)**: Instructions for installing dependencies, running locally, and deploying to **Firebase Hosting**.
-*   **[Backend Documentation](./backend/README.md)**: Instructions for setting up the API, running with Docker, and deploying to **Google Cloud Run** (Firebase Backend).
-*   **[Data Documentation](./data/README.md)**: Details about the static data files used by the application.
-
-## Quick Start (Local)
-
-### 1. Clone the Repository
-
+### 📥 Clone the Repository
 ```bash
-git clone <repository_url>
-cd vishwaguru
+git clone https://github.com/Ewocs/VishwaGuru.git
+cd VishwaGuru
 ```
 
-### 2. Backend Setup
+---
 
-1.  Create a virtual environment:
-    ```bash
-    python -m venv venv
-    source venv/bin/activate  # On Windows: venv\Scripts\activate
-    ```
-2.  Install dependencies:
-    ```bash
-    pip install -r backend/requirements.txt
-    ```
-3.  Run the server:
-    ```bash
-    python -m uvicorn backend.main:app --reload
-    ```
+## ⚙️ Backend Setup
 
-### 3. Frontend Setup
+### Create Virtual Environment
+```bash
+# Linux/macOS
+python3 -m venv venv
+source venv/bin/activate
 
-1.  Navigate to frontend:
-    ```bash
-    cd frontend
-    ```
-2.  Install dependencies:
-    ```bash
-    npm install
-    ```
-3.  Run the dev server:
-    ```bash
-    npm run dev
-    ```
+# Windows
+python -m venv venv
+venv\Scripts\activate
+```
 
-## Deployment (Firebase)
+### Install Dependencies
+```bash
+pip install -r backend/requirements.txt
+```
 
-The project includes a `firebase.json` for easy deployment to the Firebase ecosystem.
+### 🔐 Environment Configuration
+```bash
+cp .env.example .env
+```
 
-1.  **Frontend**: Deployed to Firebase Hosting.
-2.  **Backend**: Deployed to Google Cloud Run, with Firebase Hosting configured to rewrite `/api` requests to the backend service.
+```env
+TELEGRAM_BOT_TOKEN=your_bot_token
+GEMINI_API_KEY=your_api_key
+DATABASE_URL=sqlite:///./data/issues.db
+```
 
-See the [Frontend README](./frontend/README.md) and [Backend README](./backend/README.md) for detailed steps.
+---
 
-## Contributing
+## 🎨 Frontend Setup
+```bash
+cd frontend
+npm install
+```
 
-1.  Fork the repository.
-2.  Create a new branch (`git checkout -b feature/YourFeature`).
-3.  Commit your changes (`git commit -m 'Add some feature'`).
-4.  Push to the branch (`git push origin feature/YourFeature`).
-5.  Open a Pull Request.
+---
 
-## License
+## 🏃‍♂️ Running Locally
 
-This project is licensed under the **AGPL-3.0** License.
+| Service | Command | URL |
+|------|--------|-----|
+| Backend | PYTHONPATH=backend python -m uvicorn main:app --reload | http://localhost:8000 |
+| Frontend | cd frontend && npm run dev | http://localhost:5173 |
+
+### Windows Note
+```bash
+set PYTHONPATH=backend & python -m uvicorn main:app --reload
+```
+
+---
+
+## ☁️ Deployment Options
+
+- Firebase  
+- Netlify + Render  
+- Railway  
+
+---
+
+## 🛠️ Tech Stack
+
+- React, Vite, Tailwind CSS  
+- Python, FastAPI  
+- SQLite, PostgreSQL  
+- Google Gemini API  
+
+---
+
+## 📚 Documentation
+
+- ARCHITECTURE.md  
+- DEPLOYMENT_GUIDE.md  
+- frontend/README.md  
+- backend/README.md  
+
+---
+
+## 📄 License
+
+GNU Affero General Public License v3.0 (AGPL-3.0)
+
+<div align="center">
+
+![VishwaGuru Banner](https://img.shields.io/badge/VishwaGuru-Civic%20Engagement-blue?style=for-the-badge&logo=github)
+![License](https://img.shields.io/badge/License-AGPL--3.0-green?style=flat-square)
+![Python](https://img.shields.io/badge/Python-3.8+-blue?style=flat-square&logo=python)
+![Visitors](https://visitor-badge.laobi.icu/badge?page_id=RohanExploit.VishwaGuru&style=flat-square)
+![React](https://img.shields.io/badge/React-18+-61dafb?style=flat-square&logo=react)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi)
+![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=flat-square&logo=firebase)
+
+**Empowering India's youth to engage with democracy through AI-powered civic action** 🚀
+
+[📖 Documentation](#documentation) • [🚀 Quick Start](#installation) • [🤝 Contributing](#development--contribution-guide) • [📋 Issues](https://github.com/Ewocs/VishwaGuru/issues)
+
+---
+
+</div>
+
+## ✨ What is VishwaGuru?
+
+VishwaGuru is an open source platform that **transforms civic engagement** in India. Using cutting-edge AI, it simplifies contacting representatives, filing grievances, and organizing community actions. 
+
+> 🎯 **Mission**: Make democracy accessible to every Indian citizen through technology
+
+---
+
+# Contributors
+
+- **[RohanExploit](https://github.com/RohanExploit)**  
+
+---
+
+## 🌟 Key Features
+
+<table>
+<tr>
+<td align="center">
+<img src="https://img.shields.io/badge/🤖-AI--Powered-blue?style=for-the-badge" />
+<br>
+<strong>AI Action Plans</strong>
+<br>
+Generates personalized WhatsApp messages and email drafts using Google's Gemini API
+</td>
+<td align="center">
+<img src="https://img.shields.io/badge/📱-Multi--Platform-green?style=for-the-badge" />
+<br>
+<strong>Multi-Platform</strong>
+<br>
+Report issues via modern web interface or Telegram bot
+</td>
+<td align="center">
+<img src="https://img.shields.io/badge/⚡-Production--Ready-orange?style=for-the-badge" />
+<br>
+<strong>Production Ready</strong>
+<br>
+SQLite for development, PostgreSQL for production
+</td>
+</tr>
+<tr>
+<td align="center">
+<img src="https://img.shields.io/badge/🎨-Modern--Stack-purple?style=for-the-badge" />
+<br>
+<strong>Modern Stack</strong>
+<br>
+React + Vite frontend, FastAPI backend
+</td>
+<td align="center">
+<img src="https://img.shields.io/badge/🌐-Indian--Focused-red?style=for-the-badge" />
+<br>
+<strong>India-Centric</strong>
+<br>
+Built for Indian languages and governance systems
+</td>
+<td align="center">
+<img src="https://img.shields.io/badge/🔒-Open--Source-yellow?style=for-the-badge" />
+<br>
+<strong>Open Source</strong>
+<br>
+Free, transparent, and community-driven
+</td>
+</tr>
+</table>
+
+---
+
+## 🏗️ Architecture & Data Flow
+The content continues as it was...
+
