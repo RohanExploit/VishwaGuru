@@ -11,11 +11,12 @@ from sqlalchemy.orm import Session, joinedload
 from datetime import datetime, timezone, timedelta
 
 from backend.models import Grievance, Jurisdiction, GrievanceStatus, SeverityLevel, Issue
-from backend.database import SessionLocal
 from backend.cache import grievance_last_hash_cache
+from backend.database import SessionLocal
 from backend.routing_service import RoutingService
 from backend.sla_config_service import SLAConfigService
 from backend.escalation_engine import EscalationEngine
+from backend.cache import grievance_last_hash_cache
 
 class GrievanceService:
     """
@@ -86,7 +87,7 @@ class GrievanceService:
             # Generate unique ID
             unique_id = str(uuid.uuid4())[:8].upper()
 
-            # Blockchain feature: calculate integrity hash for the grievance
+            # Blockchain chaining logic (Issue #290 optimization)
             # Performance Boost: Use thread-safe cache to eliminate DB query for last hash
             prev_hash = grievance_last_hash_cache.get("last_hash")
             if prev_hash is None:
@@ -95,12 +96,9 @@ class GrievanceService:
                 prev_hash = prev_grievance[0] if prev_grievance and prev_grievance[0] else ""
                 grievance_last_hash_cache.set(data=prev_hash, key="last_hash")
 
-            # SHA-256 chaining for grievance integrity
+            # SHA-256 chaining based on key grievance fields
             hash_content = f"{unique_id}|{grievance_data.get('category', 'general')}|{severity.value}|{prev_hash}"
             integrity_hash = hashlib.sha256(hash_content.encode()).hexdigest()
-
-            # Update cache for next grievance
-            grievance_last_hash_cache.set(data=integrity_hash, key="last_hash")
 
             # Extract location data
             location_data = grievance_data.get('location', {})
@@ -131,7 +129,14 @@ class GrievanceService:
 
             db.add(grievance)
             db.commit()
+
+            # Update cache for next grievance only AFTER successful commit (Issue #290 optimization)
+            grievance_last_hash_cache.set(data=integrity_hash, key="last_hash")
+
             db.refresh(grievance)
+
+            # Update cache after successful commit
+            grievance_last_hash_cache.set(data=integrity_hash, key="last_hash")
 
             return grievance
 

@@ -1,6 +1,6 @@
 import json
-from sqlalchemy import Column, Integer, String, DateTime, Float, Text, ForeignKey, Enum, Index
-from sqlalchemy.types import TypeDecorator
+from sqlalchemy import Column, Integer, String, DateTime, Float, Text, ForeignKey, Enum, Index, Boolean
+from sqlalchemy.types import JSON
 from backend.database import Base
 from sqlalchemy.orm import relationship
 
@@ -84,9 +84,20 @@ class Grievance(Base):
     created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc), index=True)
     updated_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc), onupdate=lambda: datetime.datetime.now(datetime.timezone.utc))
     resolved_at = Column(DateTime, nullable=True)
-    issue_id = Column(Integer, ForeignKey("issues.id"), nullable=True, index=True)
     integrity_hash = Column(String, nullable=True)  # Blockchain integrity seal
     previous_integrity_hash = Column(String, nullable=True, index=True) # Linked hash for O(1) verification
+
+    # Closure confirmation fields
+    closure_requested_at = Column(DateTime, nullable=True)
+    closure_confirmation_deadline = Column(DateTime, nullable=True)
+    closure_approved = Column(Boolean, default=False)
+    pending_closure = Column(Boolean, default=False, index=True)
+    
+    issue_id = Column(Integer, ForeignKey("issues.id"), nullable=True, index=True)
+
+    # Blockchain integrity fields
+    integrity_hash = Column(String, nullable=True)
+    previous_integrity_hash = Column(String, nullable=True, index=True)
 
     # Relationships
     jurisdiction = relationship("Jurisdiction", back_populates="grievances")
@@ -122,7 +133,7 @@ class EscalationAudit(Base):
 class Issue(Base):
     __tablename__ = "issues"
     __table_args__ = (
-        Index('ix_issues_status_lat_lon', 'status', 'latitude', 'longitude'),
+        Index("ix_issues_status_lat_lon", "status", "latitude", "longitude"),
     )
 
     id = Column(Integer, primary_key=True, index=True)
@@ -153,9 +164,6 @@ class Issue(Base):
     transcription_confidence = Column(Float, nullable=True)  # Confidence score for voice transcriptions
     manual_correction_applied = Column(Boolean, default=False)  # Flag for manual corrections
     audio_file_path = Column(String, nullable=True)  # Path to stored audio file
-
-    # Relationships
-    grievances = relationship("Grievance", backref="issue")
 
 class PushSubscription(Base):
     __tablename__ = "push_subscriptions"
@@ -247,6 +255,7 @@ class FieldOfficerVisit(Base):
     
     # Immutability hash (blockchain-like integrity)
     visit_hash = Column(String, nullable=True)  # Hash of visit data for integrity verification
+    previous_visit_hash = Column(String, nullable=True, index=True) # Linked hash for O(1) verification
     
     # Metadata
     created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))

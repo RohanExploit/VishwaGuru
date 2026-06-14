@@ -22,6 +22,11 @@ jobs:
             // Get the PR author's username
             const author = pr.user.login;
 
+            if (pr.user.type === 'Bot' || author.includes('[bot]')) {
+              console.log(`Skipping assignment for bot: @${author}`);
+              return;
+            }
+
             // Assign PR to the author
             await github.rest.issues.addAssignees({
               owner: context.repo.owner,

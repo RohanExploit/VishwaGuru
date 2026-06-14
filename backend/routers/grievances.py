@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, case
-from typing import List, Optional, Union, Dict, Any
+from typing import List, Optional
 import os
 import json
 import logging
@@ -16,7 +16,7 @@ from backend.schemas import (
     FollowGrievanceRequest, FollowGrievanceResponse,
     RequestClosureRequest, RequestClosureResponse,
     ConfirmClosureRequest, ConfirmClosureResponse,
-    ClosureStatusResponse, BlockchainVerificationResponse
+    ClosureStatusResponse, GrievanceBlockchainVerificationResponse
 )
 from backend.grievance_service import GrievanceService
 from backend.closure_service import ClosureService
@@ -388,93 +388,31 @@ def confirm_grievance_closure(
         raise HTTPException(status_code=500, detail="Failed to confirm closure")
 
 
-@router.get("/grievances/{grievance_id}/blockchain-verify", response_model=BlockchainVerificationResponse)
-def verify_grievance_blockchain_integrity(grievance_id: int, db: Session = Depends(get_db)):
-    """
-    Verify the cryptographic integrity of a grievance using blockchain-style chaining.
-    Optimized: Uses previous_integrity_hash column for O(1) verification.
-    """
-    # Fetch current grievance data including the link to previous hash
-    # Performance Boost: Use projected previous_integrity_hash to avoid N+1 or secondary lookups
-    current_grievance = db.query(
-        Grievance.id,
-        Grievance.unique_id,
-        Grievance.category,
-        Grievance.severity,
-        Grievance.integrity_hash,
-        Grievance.previous_integrity_hash
-    ).filter(Grievance.id == grievance_id).first()
-
-    if not current_grievance:
-        raise HTTPException(status_code=404, detail="Grievance not found")
-
-    # Determine previous hash (use stored link or fallback for legacy records)
-    prev_hash = current_grievance.previous_integrity_hash
-
-    if prev_hash is None:
-        # Fallback for legacy records created before O(1) optimization
-        prev_grievance_hash = db.query(Grievance.integrity_hash).filter(Grievance.id < grievance_id).order_by(Grievance.id.desc()).first()
-        prev_hash = prev_grievance_hash[0] if prev_grievance_hash and prev_grievance_hash[0] else ""
-
-    # Recompute hash based on current data and previous hash
-    # Chaining logic from GrievanceService: hash(unique_id|category|severity|prev_hash)
-    severity_val = current_grievance.severity.value if hasattr(current_grievance.severity, 'value') else str(current_grievance.severity)
-    hash_content = f"{current_grievance.unique_id}|{current_grievance.category}|{severity_val}|{prev_hash}"
-    computed_hash = hashlib.sha256(hash_content.encode()).hexdigest()
-
-    is_valid = (computed_hash == current_grievance.integrity_hash)
-
-    if is_valid:
-        message = "Integrity verified. This grievance is cryptographically sealed and has not been tampered with."
-    else:
-        message = "Integrity check failed! The grievance data does not match its cryptographic seal."
-
-    return BlockchainVerificationResponse(
-        is_valid=is_valid,
-        current_hash=current_grievance.integrity_hash,
-        computed_hash=computed_hash,
-        message=message
-    )
-
-
 @router.get("/grievances/{grievance_id}/closure-status", response_model=ClosureStatusResponse)
 def get_closure_status(
     grievance_id: int,
     db: Session = Depends(get_db)
 ):
-    """
-    Get current closure confirmation status for a grievance.
-    Optimized: Uses single aggregate queries to reduce database round-trips.
-    """
+    """Get current closure confirmation status for a grievance"""
     try:
-        grievance = db.query(
-            Grievance.id,
-            Grievance.pending_closure,
-            Grievance.closure_approved,
-            Grievance.closure_confirmation_deadline
-        ).filter(Grievance.id == grievance_id).first()
-
+        grievance = db.query(Grievance).filter(Grievance.id == grievance_id).first()
         if not grievance:
             raise HTTPException(status_code=404, detail="Grievance not found")
         
-        # Combined count for followers and confirmation types in fewer round-trips
+        # Optimized: Use a single aggregate query to calculate total followers, confirmations and disputes in one database roundtrip
         total_followers = db.query(func.count(GrievanceFollower.id)).filter(
             GrievanceFollower.grievance_id == grievance_id
         ).scalar()
         
-        # Optimized: Consolidate multiple aggregate queries into a single database roundtrip
-        stats = db.query(
+        # Get all confirmation counts in a single query instead of multiple round-trips
+        counts = db.query(
             ClosureConfirmation.confirmation_type,
             func.count(ClosureConfirmation.id)
         ).filter(ClosureConfirmation.grievance_id == grievance_id).group_by(ClosureConfirmation.confirmation_type).all()
         
-        confirmations_count = 0
-        disputes_count = 0
-        for t, c in stats:
-            if t == "confirmed":
-                confirmations_count = c
-            elif t == "disputed":
-                disputes_count = c
+        counts_dict = {ctype: count for ctype, count in counts}
+        confirmations_count = counts_dict.get("confirmed", 0)
+        disputes_count = counts_dict.get("disputed", 0)
         
         required_confirmations = max(1, int(total_followers * ClosureService.CONFIRMATION_THRESHOLD))
         
@@ -500,3 +438,52 @@ def get_closure_status(
     except Exception as e:
         logger.error(f"Error getting closure status for grievance {grievance_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to get closure status")
+
+
+@router.get("/grievances/{grievance_id}/blockchain-verify", response_model=GrievanceBlockchainVerificationResponse)
+def verify_grievance_blockchain(grievance_id: int, db: Session = Depends(get_db)):
+    """
+    Verify the cryptographic integrity of a grievance using blockchain-style chaining.
+    Optimized: Uses previous_integrity_hash column for O(1) verification.
+    """
+    # Fetch current grievance data including the link to previous hash
+    # Performance Boost: Use projected previous_integrity_hash to avoid N+1 or secondary lookups
+    grievance = db.query(
+        Grievance.id,
+        Grievance.unique_id,
+        Grievance.category,
+        Grievance.severity,
+        Grievance.integrity_hash,
+        Grievance.previous_integrity_hash
+    ).filter(Grievance.id == grievance_id).first()
+
+    if not grievance:
+        raise HTTPException(status_code=404, detail="Grievance not found")
+
+    # Determine previous hash (use stored link or fallback for legacy records)
+    prev_hash = grievance.previous_integrity_hash
+
+    if prev_hash is None:
+        # Fallback for legacy records created before O(1) optimization
+        prev_grievance_hash = db.query(Grievance.integrity_hash).filter(Grievance.id < grievance_id).order_by(Grievance.id.desc()).first()
+        prev_hash = prev_grievance_hash[0] if prev_grievance_hash and prev_grievance_hash[0] else ""
+
+    # Recompute hash based on current data and previous hash
+    # Chaining logic matches grievance_service.py: hash(unique_id|category|severity|prev_hash)
+    severity_value = grievance.severity.value if hasattr(grievance.severity, 'value') else str(grievance.severity)
+    hash_content = f"{grievance.unique_id}|{grievance.category}|{severity_value}|{prev_hash}"
+    computed_hash = hashlib.sha256(hash_content.encode()).hexdigest()
+
+    is_valid = (computed_hash == grievance.integrity_hash)
+
+    if is_valid:
+        message = "Integrity verified. This grievance is cryptographically sealed and has not been tampered with."
+    else:
+        message = "Integrity check failed! The grievance data does not match its cryptographic seal."
+
+    return GrievanceBlockchainVerificationResponse(
+        is_valid=is_valid,
+        current_hash=grievance.integrity_hash,
+        computed_hash=computed_hash,
+        message=message
+    )

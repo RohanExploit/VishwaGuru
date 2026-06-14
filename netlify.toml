@@ -1,28 +1,8 @@
-# Netlify Configuration for VishwaGuru Frontend
-
 [build]
-  # Base directory for the build (where package.json lives)
   base = "frontend"
-  # Directory to publish (relative to base)
-  publish = "dist"
-  # Build command
   command = "npm install && npm run build"
+  publish = "dist"
 
 [build.environment]
   NODE_VERSION = "20"
   CI = "false"
-
-# Redirects for SPA
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-
-# Headers for security
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Frame-Options = "DENY"
-    X-Content-Type-Options = "nosniff"
-    X-XSS-Protection = "1; mode=block"
-    Referrer-Policy = "strict-origin-when-cross-origin"
