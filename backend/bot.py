@@ -1,9 +1,13 @@
 import os
 import logging
+import asyncio
+import threading
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters, ConversationHandler
-from .database import engine, SessionLocal
-from .models import Base, Issue
+from backend.database import engine, SessionLocal
+
+from backend.models import Base, Issue
+
 
 # Enable logging
 logging.basicConfig(
@@ -16,6 +20,9 @@ PHOTO, DESCRIPTION, CATEGORY = range(3)
 
 # Initialize Database
 Base.metadata.create_all(bind=engine)
+
+# Create a global application instance placeholder
+application = None
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
@@ -57,12 +64,11 @@ async def receive_description(update: Update, context: ContextTypes.DEFAULT_TYPE
     )
     return CATEGORY
 
-async def receive_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    category = update.message.text
-    photo_path = context.user_data.get('photo_path')
-    description = context.user_data.get('description')
-
-    # Save to Database
+def save_issue_to_db(description, category, photo_path):
+    """
+    Synchronous helper to save issue to DB.
+    To be run in a threadpool to avoid blocking the async event loop.
+    """
     db = SessionLocal()
     try:
         new_issue = Issue(
@@ -74,20 +80,33 @@ async def receive_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
         db.add(new_issue)
         db.commit()
         db.refresh(new_issue)
-        issue_id = new_issue.id
+        return new_issue.id
     except Exception as e:
         logging.error(f"Error saving to DB: {e}")
-        await update.message.reply_text("Sorry, something went wrong while saving your issue.")
-        return ConversationHandler.END
+        raise e
     finally:
         db.close()
 
-    await update.message.reply_text(
-        f"Thank you! Your issue has been reported.\n"
-        f"Reference ID: #{issue_id}\n\n"
-        f"We will generate an action plan for you soon.",
-        reply_markup=ReplyKeyboardRemove()
-    )
+async def receive_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    category = update.message.text
+    photo_path = context.user_data.get('photo_path')
+    description = context.user_data.get('description')
+
+    try:
+        # Save to Database using threadpool to prevent blocking the event loop
+        # asyncio.to_thread runs the synchronous function in a separate thread (Python 3.9+)
+        issue_id = await asyncio.to_thread(save_issue_to_db, description, category, photo_path)
+
+        await update.message.reply_text(
+            f"Thank you! Your issue has been reported.\n"
+            f"Reference ID: #{issue_id}\n\n"
+            f"We will generate an action plan for you soon.",
+            reply_markup=ReplyKeyboardRemove()
+        )
+    except Exception:
+        await update.message.reply_text("Sorry, something went wrong while saving your issue.")
+        return ConversationHandler.END
+
     return ConversationHandler.END
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -96,13 +115,22 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return ConversationHandler.END
 
-async def run_bot():
+# Global variable to hold the bot application
+application = None
+
+async def build_app():
+    """Builds and returns the bot application."""
     token = os.environ.get("TELEGRAM_BOT_TOKEN")
     if not token:
         print("Warning: TELEGRAM_BOT_TOKEN environment variable not set. Bot will not start.")
-        return
+        # Return a dummy mock if token is missing so imports don't fail,
+        # but startup checks in main.py will handle it.
+        # Actually, for the purpose of 'import application' to work in main.py,
+        # we need to initialize 'application' at module level or provide a getter.
+        # But ApplicationBuilder() requires a token.
+        return None
 
-    application = ApplicationBuilder().token(token).build()
+    app = ApplicationBuilder().token(token).build()
 
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
@@ -114,27 +142,70 @@ async def run_bot():
         fallbacks=[CommandHandler("cancel", cancel)],
     )
 
-    application.add_handler(conv_handler)
+    app.add_handler(conv_handler)
+    return app
 
-    print("Bot is starting...")
-    # Initialize and start the application
-    await application.initialize()
-    await application.start()
-    await application.updater.start_polling()
+# We try to build it at import time if token exists,
+# otherwise we might need to lazy load it or handle it in main.py differently.
+# Ideally, main.py should not import 'application' directly if it's conditional.
+# But existing main.py did: 'from bot import application'.
+# To support that, we need 'application' to be defined here.
+try:
+    token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    if token:
+        application = ApplicationBuilder().token(token).build()
+        conv_handler = ConversationHandler(
+            entry_points=[CommandHandler("start", start)],
+            states={
+                PHOTO: [MessageHandler(filters.PHOTO, receive_photo)],
+                DESCRIPTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_description)],
+                CATEGORY: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_category)],
+            },
+            fallbacks=[CommandHandler("cancel", cancel)],
+        )
+        application.add_handler(conv_handler)
+    else:
+        # Create a dummy object or None
+        # If None, main.py might crash if it tries to use it without check.
+        # main.py code:
+        # await application.initialize()
+        # So it expects an object.
+        class MockApp:
+            async def initialize(self): pass
+            class Updater:
+                async def start_polling(self): pass
+                async def stop(self): pass
+            updater = Updater()
+            async def start(self): pass
+            async def stop(self): pass
+            async def shutdown(self): pass
 
-    # Keep the bot running
-    # In a real asyncio loop, we might wait on a future or similar.
-    # But since this is a background task in FastAPI, it will run until the loop stops.
-    # However, application.updater.start_polling() is non-blocking (starts background task).
-    # We don't need to block here.
+        application = MockApp()
+        print("Telegram Bot Token missing, using Mock Application.")
 
-    # Wait for stop signal?
-    # For MVP simplicity in FastAPI lifespan:
-    # We just return application so we can stop it later.
-    return application
+except Exception as e:
+    print(f"Error building bot app at module level: {e}")
+    application = None
+
+async def run_bot():
+    """Legacy entry point, reused if needed"""
+    if application:
+         # If already built
+         return application
+    return await build_app()
 
 if __name__ == '__main__':
-    import asyncio
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(run_bot())
-    loop.run_forever()
+    # For standalone bot testing
+    start_bot_thread()
+
+    # Keep main thread alive
+    try:
+        while True:
+            if not _bot_thread or not _bot_thread.is_alive():
+                logging.error("Bot thread died unexpectedly")
+                break
+            asyncio.sleep(5)
+    except KeyboardInterrupt:
+        logging.info("Received interrupt signal")
+    finally:
+        stop_bot_thread()

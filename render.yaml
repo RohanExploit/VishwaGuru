@@ -1,0 +1,54 @@
+services:
+  # VishwaGuru Backend Service
+  - type: web
+    name: vishwaguru-backend
+    runtime: python
+    buildCommand: "pip install -r backend/requirements.txt"
+    startCommand: "python start-backend.py"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: PORT
+        fromService:
+          type: web
+          name: vishwaguru-backend
+          property: port
+      - key: PYTHONPATH
+        value: backend
+      # Required API Keys (must be set in Render dashboard)
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: HF_TOKEN
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      # Frontend URL (must be set to your Netlify deployment URL)
+      - key: FRONTEND_URL
+        sync: false
+      # Database URL (use Neon, Supabase, or similar)
+      - key: DATABASE_URL
+        sync: false
+      # Application settings
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: false
+      # CORS settings
+      - key: CORS_ORIGINS
+        sync: false  # Set to your frontend URL
+      # File upload settings
+      - key: MAX_UPLOAD_SIZE_MB
+        value: 10
+      - key: ALLOWED_FILE_TYPES
+        value: image/jpeg,image/png,image/jpg,video/mp4
+      # Rate limiting
+      - key: RATE_LIMIT_ENABLED
+        value: true
+      - key: MAX_REQUESTS_PER_MINUTE
+        value: 60
+    healthCheckPath: /health
+    # Add disk for SQLite database (if using SQLite)
+    disk:
+      name: vishwaguru-data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1
