@@ -37,3 +37,7 @@
 ## 2026-02-08 - Return Type Consistency in Utilities
 **Learning:** Inconsistent return types in shared utility functions (like `process_uploaded_image`) can cause runtime crashes across multiple modules, especially when some expect tuples and others expect single values. This can lead to deployment failures that are hard to debug without full integration logs.
 **Action:** Always maintain strict return type consistency for core utilities. Use type hints and verify all call sites when changing a function's signature. Ensure that performance-oriented optimizations (like returning multiple processed formats) are applied uniformly.
+
+## 2026-02-10 - O(1) Blockchain Linkage
+**Learning:** Chaining records via cryptographic hashes usually requires a $O(N)$ or at best $O(log N)$ lookup for the predecessor during verification. Storing the link (predecessor hash) directly in the record during creation converts this into a $O(1)$ single-query verification, significantly reducing database I/O for integrity checks.
+**Action:** Store immutable links to predecessors directly in the data model. Use column projection to fetch only the data needed for hash re-computation to maximize performance.

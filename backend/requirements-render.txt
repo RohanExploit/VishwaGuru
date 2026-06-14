@@ -14,4 +14,6 @@ firebase-functions
 firebase-admin
 a2wsgi
 python-jose[cryptography]
+cryptography
 passlib[bcrypt]
+bcrypt==3.2.0

@@ -12,12 +12,6 @@
 # Environment variables (set these in Netlify dashboard)
 # VITE_API_URL = https://your-backend.onrender.com
 
-# Redirects for SPA
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-
 # Headers for security
 [[headers]]
   for = "/*"

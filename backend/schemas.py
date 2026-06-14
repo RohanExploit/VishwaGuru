@@ -55,6 +55,8 @@ class IssueSummaryResponse(BaseModel):
 
 class IssueResponse(IssueSummaryResponse):
     action_plan: Optional[Union[Dict[str, Any], Any]] = Field(None, description="Generated action plan")
+    integrity_hash: Optional[str] = Field(None, description="Blockchain integrity seal")
+    previous_integrity_hash: Optional[str] = Field(None, description="Link to previous report")
 
 class IssueCreateRequest(BaseModel):
     description: str = Field(..., min_length=10, max_length=1000, description="Issue description")
