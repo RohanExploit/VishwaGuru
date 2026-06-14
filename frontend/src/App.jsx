@@ -5,6 +5,7 @@ import { issuesApi, miscApi } from './api';
 import AppHeader from './components/AppHeader';
 import FloatingButtonsManager from './components/FloatingButtonsManager';
 import LoadingSpinner from './components/LoadingSpinner';
+import { DarkModeProvider, useDarkMode } from './contexts/DarkModeContext';
 
 // Lazy Load Views
 const Landing = React.lazy(() => import('./views/Landing'));
@@ -36,7 +37,13 @@ const SmartScanner = React.lazy(() => import('./SmartScanner'));
 const GrievanceAnalysis = React.lazy(() => import('./views/GrievanceAnalysis'));
 const NoiseDetector = React.lazy(() => import('./NoiseDetector'));
 const CivicEyeDetector = React.lazy(() => import('./CivicEyeDetector'));
+const PublicFacilitiesDetector = React.lazy(() => import('./PublicFacilitiesDetector'));
+const ConstructionSafetyDetector = React.lazy(() => import('./ConstructionSafetyDetector'));
 const MyReportsView = React.lazy(() => import('./views/MyReportsView'));
+const TrafficSignDetector = React.lazy(() => import('./TrafficSignDetector'));
+const AbandonedVehicleDetector = React.lazy(() => import('./AbandonedVehicleDetector'));
+const PublicFacilitiesDetector = React.lazy(() => import('./PublicFacilitiesDetector'));
+const ConstructionSafetyDetector = React.lazy(() => import('./ConstructionSafetyDetector'));
 
 
 // Auth Components
@@ -49,6 +56,7 @@ import AdminDashboard from './views/AdminDashboard';
 function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isDarkMode } = useDarkMode();
   const [responsibilityMap, setResponsibilityMap] = useState(null);
   const [actionPlan, setActionPlan] = useState(null);
   const [maharashtraRepInfo, setMaharashtraRepInfo] = useState(null);
@@ -61,9 +69,9 @@ function AppContent() {
 
   // Safe navigation helper
   const navigateToView = useCallback((view) => {
-    const validViews = ['home', 'map', 'report', 'action', 'mh-rep', 'pothole', 'garbage', 'vandalism', 'flood', 'infrastructure', 'parking', 'streetlight', 'fire', 'animal', 'blocked', 'tree', 'pest', 'smart-scan', 'grievance-analysis', 'noise', 'safety-check', 'my-reports', 'login', 'signup'];
+    const validViews = ['home', 'map', 'report', 'action', 'mh-rep', 'pothole', 'garbage', 'vandalism', 'flood', 'infrastructure', 'parking', 'streetlight', 'fire', 'animal', 'blocked', 'tree', 'pest', 'smart-scan', 'grievance-analysis', 'noise', 'safety-check', 'public-facilities', 'construction-safety', 'my-reports', 'login', 'signup'];
     if (validViews.includes(view)) {
-      navigate(view === 'home' ? '/' : `/${view}`);
+      navigate(view === 'home' ? '/home' : `/${view}`);
     } else {
       console.warn(`Attempted to navigate to invalid view: ${view}`);
       navigate('/');
@@ -152,7 +160,7 @@ function AppContent() {
   if (isLandingPage) {
     return (
       <Suspense fallback={
-        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-950 dark:to-blue-950 transition-colors duration-300">
           <LoadingSpinner size="xl" variant="primary" />
         </div>
       }>
@@ -163,17 +171,18 @@ function AppContent() {
 
   // Otherwise render the main app layout
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-100 text-gray-900 font-sans overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-100 dark:from-gray-950 dark:via-blue-950/30 dark:to-gray-900 text-gray-900 dark:text-gray-100 font-sans overflow-hidden transition-colors duration-300">
       {/* Animated background elements */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-orange-300/10 rounded-full blur-3xl animate-pulse-slow"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-300/10 rounded-full blur-3xl animate-pulse-slow animation-delay-1000"></div>
+        <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-orange-300/10 dark:bg-orange-300/5 rounded-full blur-3xl animate-pulse-slow transition-colors duration-300"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-300/10 dark:bg-blue-300/5 rounded-full blur-3xl animate-pulse-slow animation-delay-1000 transition-colors duration-300"></div>
       </div>
 
       <FloatingButtonsManager setView={navigateToView} />
 
       <div className="relative z-10">
         <AppHeader />
+
 
         <Suspense fallback={
           <div className="flex justify-center my-8">
@@ -193,7 +202,7 @@ function AppContent() {
             />
 
             <Route
-              path="/"
+              path="/home"
               element={
                 <Home
                   setView={navigateToView}
@@ -288,6 +297,8 @@ function AppContent() {
             <Route path="/smart-scan" element={<SmartScanner onBack={() => navigate('/')} />} />
             <Route path="/grievance-analysis" element={<GrievanceAnalysis onBack={() => navigate('/')} />} />
             <Route path="/noise" element={<NoiseDetector onBack={() => navigate('/')} />} />
+            <Route path="/public-facilities" element={<PublicFacilitiesDetector onBack={() => navigate('/')} />} />
+            <Route path="/construction-safety" element={<ConstructionSafetyDetector onBack={() => navigate('/')} />} />
             <Route path="/safety-check" element={
               <div className="flex flex-col h-full p-4">
                 <button onClick={() => navigate('/')} className="self-start text-blue-600 mb-2 font-bold">
@@ -296,6 +307,10 @@ function AppContent() {
                 <CivicEyeDetector onBack={() => navigate('/')} />
               </div>
             } />
+            <Route path="/traffic-sign" element={<TrafficSignDetector onBack={() => navigate('/')} />} />
+            <Route path="/abandoned-vehicle" element={<AbandonedVehicleDetector onBack={() => navigate('/')} />} />
+            <Route path="/public-facilities" element={<PublicFacilitiesDetector onBack={() => navigate('/')} />} />
+            <Route path="/construction-safety" element={<ConstructionSafetyDetector onBack={() => navigate('/')} />} />
             <Route path="/my-reports" element={
               <ProtectedRoute>
                 <MyReportsView />
@@ -314,9 +329,11 @@ function AppContent() {
 function App() {
   return (
     <Router>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <DarkModeProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </DarkModeProvider>
     </Router>
   );
 }

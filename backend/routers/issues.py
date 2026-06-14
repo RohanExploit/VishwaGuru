@@ -89,6 +89,13 @@ async def create_issue(
     deduplication_info = None
     linked_issue_id = None
 
+    # Fetch the last hash to maintain the chain with minimal overhead
+    # We do this early to ensure the chain is consistent
+    prev_issue = await run_in_threadpool(
+        lambda: db.query(Issue.integrity_hash).order_by(Issue.id.desc()).first()
+    )
+    prev_hash = prev_issue[0] if prev_issue and prev_issue[0] else ""
+
     if latitude is not None and longitude is not None:
         try:
             # Find existing open issues within 50 meters
@@ -154,10 +161,8 @@ async def create_issue(
                     }, synchronize_session=False)
                 )
 
-                # Commit the upvote
-                await run_in_threadpool(db.commit)
-
-                logger.info(f"Spatial deduplication: Linked new report to existing issue {linked_issue_id}")
+                # We don't commit here anymore, we'll commit together with the new (duplicate) issue record
+                logger.info(f"Spatial deduplication: Identified duplicate for issue {linked_issue_id}")
 
         except Exception as e:
             logger.error(f"Error during spatial deduplication check: {e}", exc_info=True)
@@ -179,9 +184,9 @@ async def create_issue(
                 )
                 prev_hash = prev_issue[0] if prev_issue and prev_issue[0] else ""
 
-            # Simple but effective SHA-256 chaining
-            hash_content = f"{description}|{category}|{prev_hash}"
-            integrity_hash = hashlib.sha256(hash_content.encode()).hexdigest()
+        # Simple but effective SHA-256 chaining
+        hash_content = f"{description}|{category}|{prev_hash}"
+        integrity_hash = hashlib.sha256(hash_content.encode()).hexdigest()
 
             new_issue = Issue(
                 reference_id=str(uuid.uuid4()),
@@ -194,14 +199,10 @@ async def create_issue(
                 longitude=longitude,
                 location=location,
                 action_plan=None,
-                integrity_hash=integrity_hash
+                integrity_hash=integrity_hash,
+                previous_integrity_hash=prev_hash
             )
 
-            # Offload blocking DB operations to threadpool
-            await run_in_threadpool(save_issue_db, db, new_issue)
-        else:
-            # Don't create new issue, just return deduplication info
-            new_issue = None
     except Exception as e:
         # Clean up uploaded file if DB save failed
         if image_path and os.path.exists(image_path):
@@ -213,8 +214,8 @@ async def create_issue(
         logger.error(f"Database error while creating issue: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to save issue to database")
 
-    # Add background task for AI generation only if new issue was created
-    if new_issue:
+    # Add background task for AI generation only if it's a new primary issue
+    if new_issue and new_issue.status != "duplicate":
         background_tasks.add_task(process_action_plan_background, new_issue.id, description, category, language, image_path)
 
         # Create grievance for escalation management
@@ -239,9 +240,12 @@ async def create_issue(
         )
 
     # Return response with deduplication information
-    if new_issue:
+    # If it was a duplicate, return id=None to maintain frontend behavior
+    return_id = new_issue.id if (new_issue and new_issue.status != "duplicate") else None
+
+    if return_id:
         return IssueCreateWithDeduplicationResponse(
-            id=new_issue.id,
+            id=return_id,
             message="Issue reported successfully. Action plan will be generated shortly.",
             action_plan=None,
             deduplication_info=deduplication_info,
@@ -602,7 +606,7 @@ def get_user_issues(
             "id": row.id,
             "category": row.category,
             "description": short_desc,
-            "created_at": row.created_at,
+            "created_at": row.created_at.isoformat() if row.created_at else None,
             "image_path": row.image_path,
             "status": row.status,
             "upvotes": row.upvotes if row.upvotes is not None else 0,
@@ -611,7 +615,7 @@ def get_user_issues(
             "longitude": row.longitude
         })
 
-    return data
+    return JSONResponse(content=data)
 
 @router.get("/api/issues/{issue_id}/blockchain-verify", response_model=BlockchainVerificationResponse)
 async def verify_blockchain_integrity(issue_id: int, db: Session = Depends(get_db)):
@@ -643,12 +647,15 @@ async def verify_blockchain_integrity(issue_id: int, db: Session = Depends(get_d
     is_valid = (computed_hash == current_issue.integrity_hash)
 
     if is_valid:
-        message = "Integrity verified. This report is cryptographically sealed and has not been tampered with."
-    else:
+        message = "Integrity verified. This report is cryptographically sealed and its chain link is intact."
+    elif not hashes_match:
         message = "Integrity check failed! The report data does not match its cryptographic seal."
+    else:
+        message = "Integrity check failed! The report's link to the previous record has been tampered with."
 
+    # We return internal validity as primary 'is_valid' to avoid false negatives on deletions
     return BlockchainVerificationResponse(
-        is_valid=is_valid,
+        is_valid=internal_valid,
         current_hash=current_issue.integrity_hash,
         computed_hash=computed_hash,
         message=message
@@ -702,4 +709,4 @@ def get_recent_issues(
 
     # Thread-safe cache update. Note: ThreadSafeCache uses set(data, key) signature.
     recent_issues_cache.set(data, cache_key)
-    return data
+    return JSONResponse(content=data)

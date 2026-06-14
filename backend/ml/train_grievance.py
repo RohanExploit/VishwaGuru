@@ -1,11 +1,20 @@
 import pandas as pd
-from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.pipeline import Pipeline
-import joblib
 import os
 
+try:
+    from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
+    from sklearn.naive_bayes import MultinomialNB
+    from sklearn.pipeline import Pipeline
+    import joblib
+    HAS_ML_LIBS = True
+except ImportError:
+    HAS_ML_LIBS = False
+
 def train_model():
+    if not HAS_ML_LIBS:
+        print("ML libraries (scikit-learn, joblib) not installed. Skipping training.")
+        return
+
     # Paths
     current_dir = os.path.dirname(os.path.abspath(__file__))
     data_path = os.path.join(current_dir, '../data/grievances.csv')

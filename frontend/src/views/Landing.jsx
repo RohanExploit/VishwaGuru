@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
     Building2, MessageCircle, Users, Shield, Star, FileText,
-    Search, ArrowRight
+    Search, ArrowRight, Sun, Moon
 } from 'lucide-react';
+import { useDarkMode } from '../contexts/DarkModeContext';
 
 const Landing = () => {
     const navigate = useNavigate();
+    const { isDarkMode, toggleDarkMode } = useDarkMode();
 
     // Animation variants
     const containerVariants = {
@@ -61,7 +63,7 @@ const Landing = () => {
     };
 
     return (
-        <div className="min-h-screen relative overflow-hidden font-sans bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 selection:bg-blue-200">
+        <div className="min-h-screen relative overflow-hidden font-sans bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 selection:bg-blue-200 dark:selection:bg-blue-800 transition-colors duration-300">
             {/* Animated Gradient Background */}
 
             {/* Top Left - Blue Gradient with Animation */}
@@ -109,7 +111,7 @@ const Landing = () => {
 
             {/* Header - Fixed and Stable */}
             <header
-                className="bg-white/90 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100 shadow-sm"
+                className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100 dark:border-gray-800 shadow-sm transition-colors duration-300"
             >
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between h-20">
@@ -119,7 +121,7 @@ const Landing = () => {
                             <div className="w-10 h-10 relative flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                                 <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-sm" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     {/* Glass Circle - Perfectly Centered */}
-                                    <circle cx="50" cy="50" r="38" stroke="#2D60FF" strokeWidth="8" fill="white" />
+                                    <circle cx="50" cy="50" r="38" stroke="#2D60FF" strokeWidth="8" fill="white" className="dark:fill-gray-800" />
 
                                     {/* Handle */}
                                     <path d="M77 77L92 92" stroke="#2D60FF" strokeWidth="10" strokeLinecap="round" />
@@ -135,12 +137,23 @@ const Landing = () => {
                                     <path d="M70 28H58M70 28V40" stroke="#16A34A" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
                                 </svg>
                             </div>
-                            <h1 className="text-xl font-bold text-gray-800 tracking-tight">
-                                FixMyIndia / <span className="text-blue-600">VishwaGuru</span>
+                            <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100 tracking-tight transition-colors duration-200">
+                                FixMyIndia / <span className="text-blue-600 dark:text-blue-400">VishwaGuru</span>
                             </h1>
                         </div>
 
-
+                        {/* Dark Mode Toggle */}
+                        <button
+                            onClick={toggleDarkMode}
+                            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
+                            title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+                        >
+                            {isDarkMode ? (
+                                <Sun size={20} className="text-yellow-400" />
+                            ) : (
+                                <Moon size={20} className="text-gray-700" />
+                            )}
+                        </button>
                     </div>
                 </div>
             </header>
@@ -161,7 +174,7 @@ const Landing = () => {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.3, delay: 0.1 }}
-                                className="text-4xl md:text-5xl lg:text-6xl font-black text-gray-900 leading-[1.1] tracking-tight"
+                                className="text-4xl md:text-5xl lg:text-6xl font-black text-gray-900 dark:text-white leading-[1.1] tracking-tight transition-colors duration-300"
                             >
                                 <motion.span
                                     initial={{ opacity: 0, x: -20 }}
@@ -176,7 +189,7 @@ const Landing = () => {
                                     initial={{ opacity: 0, x: -20 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ duration: 0.3, delay: 0.3 }}
-                                    className="text-gray-400 font-bold inline-block"
+                                    className="text-gray-400 dark:text-gray-500 font-bold inline-block transition-colors duration-300"
                                 >
                                     for Better Governance
                                 </motion.span>
@@ -185,7 +198,7 @@ const Landing = () => {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.3, delay: 0.4 }}
-                                className="text-lg text-gray-600 leading-relaxed max-w-lg"
+                                className="text-lg text-gray-600 dark:text-gray-300 leading-relaxed max-w-lg transition-colors duration-300"
                             >
                                 Report civic issues and get AI-generated solutions. Connect with officials via Telegram to actively participate in governance.
                             </motion.p>
@@ -211,7 +224,7 @@ const Landing = () => {
                         className="lg:col-span-7 grid grid-cols-1 md:grid-cols-2 gap-6 relative"
                     >
                         {/* Decorative background blur */}
-                        <div className="absolute -inset-10 bg-blue-50/50 rounded-full blur-3xl -z-10" />
+                        <div className="absolute -inset-10 bg-blue-50 dark:bg-blue-900/20 rounded-full blur-3xl -z-10 transition-colors duration-300" />
 
                         <div className="space-y-6">
                             {/* DepMyIndia Card */}
@@ -243,20 +256,20 @@ const Landing = () => {
                             <motion.div
                                 whileHover={{ y: -8, scale: 1.02 }}
                                 transition={{ duration: 0.15 }}
-                                className="bg-white rounded-3xl p-6 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.05)] hover:shadow-xl border-2 border-gray-100 hover:border-orange-400 group transition-all duration-150"
+                                className="bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.05)] dark:shadow-[0_10px_30px_-5px_rgba(0,0,0,0.3)] hover:shadow-xl border-2 border-gray-100 dark:border-gray-700 hover:border-orange-400 dark:hover:border-orange-500 group transition-all duration-150"
                             >
                                 <div className="flex justify-between items-center mb-6">
-                                    <h3 className="font-bold text-gray-800">Government Services</h3>
-                                    <div className="text-gray-400">•••</div>
+                                    <h3 className="font-bold text-gray-800 dark:text-gray-100">Government Services</h3>
+                                    <div className="text-gray-400 dark:text-gray-500">•••</div>
                                 </div>
-                                <div className="bg-gradient-to-br from-orange-50 to-white border border-orange-100 rounded-2xl p-5 group-hover:border-orange-200 transition-colors">
+                                <div className="bg-gradient-to-br from-orange-50 dark:from-orange-900/30 to-white dark:to-gray-800 border border-orange-100 dark:border-orange-800 rounded-2xl p-5 group-hover:border-orange-200 dark:group-hover:border-orange-600 transition-colors">
                                     <div className="flex items-start gap-4">
-                                        <div className="w-10 h-10 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                        <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900 text-orange-600 dark:text-orange-400 rounded-full flex items-center justify-center flex-shrink-0">
                                             <MessageCircle className="w-5 h-5" />
                                         </div>
                                         <div>
-                                            <h4 className="font-bold text-gray-900 mb-1">Question the Government</h4>
-                                            <p className="text-sm text-gray-500 leading-snug">Submit queries, demand transparency, and hold officials accountable</p>
+                                            <h4 className="font-bold text-gray-900 dark:text-white mb-1">Question the Government</h4>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400 leading-snug">Submit queries, demand transparency, and hold officials accountable</p>
                                         </div>
                                     </div>
                                 </div>
@@ -266,16 +279,16 @@ const Landing = () => {
                         {/* Community Image Card */}
                         <motion.div
                             whileHover={{ y: -5 }}
-                            className="bg-gray-900 rounded-3xl overflow-hidden shadow-xl h-full min-h-[300px] relative group"
+                            className="bg-gray-900 dark:bg-gray-800 rounded-3xl overflow-hidden shadow-xl h-full min-h-[300px] relative group"
                         >
                             <img
                                 src="https://images.unsplash.com/photo-1557804506-669a67965ba0?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
                                 alt="Community"
                                 className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-60 transition-opacity duration-500"
                             />
-                            <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/80 to-transparent">
+                            <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/80 dark:from-black/90 to-transparent">
                                 <p className="text-white font-medium mb-1">Community Action</p>
-                                <p className="text-gray-300 text-sm">Join the movement</p>
+                                <p className="text-gray-300 dark:text-gray-400 text-sm">Join the movement</p>
                             </div>
                         </motion.div>
                     </motion.div>
@@ -293,16 +306,16 @@ const Landing = () => {
                         variants={itemVariants}
                         whileHover={{ y: -8, scale: 1.02 }}
                         transition={{ duration: 0.15 }}
-                        className="bg-white p-8 rounded-3xl border-2 border-gray-100 hover:border-blue-400 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.02)] hover:shadow-xl text-center group transition-all duration-150"
+                        className="bg-white dark:bg-gray-800 p-8 rounded-3xl border-2 border-gray-100 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.02)] dark:shadow-[0_4px_20px_-2px_rgba(0,0,0,0.2)] hover:shadow-xl text-center group transition-all duration-150"
                     >
                         <div className="w-16 h-16 mx-auto mb-6 relative">
-                            <div className="absolute inset-0 bg-gray-100 rounded-2xl transform rotate-3 group-hover:rotate-12 transition-transform"></div>
-                            <div className="absolute inset-0 bg-white border-2 border-gray-100 rounded-2xl flex items-center justify-center relative z-10">
-                                <Building2 className="w-8 h-8 text-gray-700" />
+                            <div className="absolute inset-0 bg-gray-100 dark:bg-gray-700 rounded-2xl transform rotate-3 group-hover:rotate-12 transition-transform"></div>
+                            <div className="absolute inset-0 bg-white dark:bg-gray-700 border-2 border-gray-100 dark:border-gray-600 rounded-2xl flex items-center justify-center relative z-10">
+                                <Building2 className="w-8 h-8 text-gray-700 dark:text-gray-300" />
                             </div>
                         </div>
-                        <h3 className="font-bold text-gray-900 mb-1">Public Trust</h3>
-                        <p className="text-gray-500 text-sm">& Ethics</p>
+                        <h3 className="font-bold text-gray-900 dark:text-white mb-1">Public Trust</h3>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm">& Ethics</p>
                     </motion.div>
 
                     {/* Feature 2 (Green Accent) */}
@@ -310,13 +323,13 @@ const Landing = () => {
                         variants={itemVariants}
                         whileHover={{ y: -8, scale: 1.02 }}
                         transition={{ duration: 0.15 }}
-                        className="bg-white p-8 rounded-3xl border-2 border-gray-100 hover:border-green-400 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.02)] hover:shadow-xl text-center group transition-all duration-150"
+                        className="bg-white dark:bg-gray-800 p-8 rounded-3xl border-2 border-gray-100 dark:border-gray-700 hover:border-green-400 dark:hover:border-green-500 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.02)] dark:shadow-[0_4px_20px_-2px_rgba(0,0,0,0.2)] hover:shadow-xl text-center group transition-all duration-150"
                     >
-                        <div className="w-16 h-16 mx-auto mb-6 bg-green-50 border border-green-100 rounded-2xl flex items-center justify-center">
-                            <MessageCircle className="w-8 h-8 text-green-600" />
+                        <div className="w-16 h-16 mx-auto mb-6 bg-green-50 dark:bg-green-900/30 border border-green-100 dark:border-green-800 rounded-2xl flex items-center justify-center">
+                            <MessageCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
                         </div>
-                        <h3 className="font-bold text-gray-900 mb-1">Civic Issues</h3>
-                        <p className="text-gray-500 text-sm">Report problems</p>
+                        <h3 className="font-bold text-gray-900 dark:text-white mb-1">Civic Issues</h3>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm">Report problems</p>
                     </motion.div>
 
                     {/* Feature 3 */}
@@ -324,13 +337,13 @@ const Landing = () => {
                         variants={itemVariants}
                         whileHover={{ y: -8, scale: 1.02 }}
                         transition={{ duration: 0.15 }}
-                        className="bg-white p-8 rounded-3xl border-2 border-gray-100 hover:border-purple-400 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.02)] hover:shadow-xl text-center transition-all duration-150"
+                        className="bg-white dark:bg-gray-800 p-8 rounded-3xl border-2 border-gray-100 dark:border-gray-700 hover:border-purple-400 dark:hover:border-purple-500 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.02)] dark:shadow-[0_4px_20px_-2px_rgba(0,0,0,0.2)] hover:shadow-xl text-center transition-all duration-150"
                     >
-                        <div className="w-16 h-16 mx-auto mb-6 bg-blue-50 border border-blue-100 rounded-2xl flex items-center justify-center">
-                            <Star className="w-8 h-8 text-blue-600" />
+                        <div className="w-16 h-16 mx-auto mb-6 bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 rounded-2xl flex items-center justify-center">
+                            <Star className="w-8 h-8 text-blue-600 dark:text-blue-400" />
                         </div>
-                        <h3 className="font-bold text-gray-900 mb-1">Voice Your Vote</h3>
-                        <p className="text-gray-500 text-xs">Share ideas for better policies</p>
+                        <h3 className="font-bold text-gray-900 dark:text-white mb-1">Voice Your Vote</h3>
+                        <p className="text-gray-500 dark:text-gray-400 text-xs">Share ideas for better policies</p>
                     </motion.div>
 
                     {/* AI Header (Span 4th col) */}
@@ -338,10 +351,10 @@ const Landing = () => {
                         variants={itemVariants}
                         className="space-y-4 flex flex-col justify-center pl-4"
                     >
-                        <h2 className="text-2xl font-bold text-gray-900 leading-tight">
+                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white leading-tight transition-colors duration-300">
                             AI for Democracy <br /> & Civic Actions
                         </h2>
-                        <p className="text-gray-500 text-sm">
+                        <p className="text-gray-500 dark:text-gray-400 text-sm transition-colors duration-300">
                             Leveraging technology for transparent governance and faster resolutions.
                         </p>
                     </motion.div>
@@ -355,54 +368,54 @@ const Landing = () => {
                             icon: <Star className="w-6 h-6" />,
                             title: "Smart Analysis",
                             subtitle: "AI-Powered Insights",
-                            bg: "bg-blue-50",
-                            color: "text-blue-600",
-                            border: "hover:border-blue-200"
+                            bg: "bg-blue-50 dark:bg-blue-900/30",
+                            color: "text-blue-600 dark:text-blue-400",
+                            border: "hover:border-blue-200 dark:hover:border-blue-600"
                         },
                         {
                             icon: <Users className="w-6 h-6" />,
                             title: "Community",
                             subtitle: "10k+ Active Citizens",
-                            bg: "bg-purple-50",
-                            color: "text-purple-600",
-                            border: "hover:border-purple-200"
+                            bg: "bg-purple-50 dark:bg-purple-900/30",
+                            color: "text-purple-600 dark:text-purple-400",
+                            border: "hover:border-purple-200 dark:hover:border-purple-600"
                         },
                         {
                             icon: <Shield className="w-6 h-6" />,
                             title: "Secure & Safe",
                             subtitle: "Verified Reports",
-                            bg: "bg-emerald-50",
-                            color: "text-emerald-600",
-                            border: "hover:border-emerald-200"
+                            bg: "bg-emerald-50 dark:bg-emerald-900/30",
+                            color: "text-emerald-600 dark:text-emerald-400",
+                            border: "hover:border-emerald-200 dark:hover:border-emerald-600"
                         },
                         {
                             icon: <FileText className="w-6 h-6" />,
                             title: "Quick Action",
                             subtitle: "24h Response Time",
-                            bg: "bg-orange-50",
-                            color: "text-orange-600",
-                            border: "hover:border-orange-200"
+                            bg: "bg-orange-50 dark:bg-orange-900/30",
+                            color: "text-orange-600 dark:text-orange-400",
+                            border: "hover:border-orange-200 dark:hover:border-orange-600"
                         }
                     ].map((item, index) => (
                         <motion.div
                             key={index}
                             whileHover={{ y: -5 }}
-                            className={`bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 group ${item.border}`}
+                            className={`bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-xl transition-all duration-300 group ${item.border}`}
                         >
                             <div className="flex items-center justify-between mb-4">
                                 <div className={`w-12 h-12 ${item.bg} ${item.color} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
                                     {item.icon}
                                 </div>
                             </div>
-                            <h3 className="font-bold text-gray-900 text-lg">{item.title}</h3>
-                            <p className="text-gray-500 text-sm font-medium mt-1">{item.subtitle}</p>
+                            <h3 className="font-bold text-gray-900 dark:text-white text-lg">{item.title}</h3>
+                            <p className="text-gray-500 dark:text-gray-400 text-sm font-medium mt-1">{item.subtitle}</p>
                         </motion.div>
                     ))}
                 </div>
             </div>
 
             {/* Simple Footer */}
-            <div className="text-center py-8 bg-black text-white text-sm border-t border-gray-800 mt-12">
+            <div className="text-center py-8 bg-black dark:bg-gray-950 text-white text-sm border-t border-gray-800 dark:border-gray-700 mt-12 transition-colors duration-300">
                 © {new Date().getFullYear()} VishwaGuru. All rights reserved.
             </div>        </div>
     );
