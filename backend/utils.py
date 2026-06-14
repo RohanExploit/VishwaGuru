@@ -86,11 +86,11 @@ def _validate_uploaded_file_sync(file: UploadFile) -> Optional[Image.Image]:
             # Fallback to mimetypes based on filename
             detected_mime, _ = mimetypes.guess_type(file.filename or "")
 
-        if detected_mime not in ALLOWED_MIME_TYPES:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid file type. Only image files are allowed. Detected: {detected_mime}"
-            )
+            if detected_mime not in ALLOWED_MIME_TYPES:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid file type. Only image files are allowed. Detected: {detected_mime}"
+                )
 
         # Additional content validation: Try to open with PIL to ensure it's a valid image
         try:
@@ -172,11 +172,11 @@ def process_uploaded_image_sync(file: UploadFile) -> tuple[Image.Image, bytes]:
         else:
             detected_mime, _ = mimetypes.guess_type(file.filename or "")
 
-        if detected_mime not in ALLOWED_MIME_TYPES:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid file type. Only image files are allowed. Detected: {detected_mime}"
-            )
+            if detected_mime not in ALLOWED_MIME_TYPES:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid file type. Only image files are allowed. Detected: {detected_mime}"
+                )
 
         try:
             img = Image.open(file.file)
