@@ -56,6 +56,10 @@ async def create_issue(
     image: UploadFile = File(None),
     db: Session = Depends(get_db)
 ):
+    """
+    Create a new civic issue report.
+    Includes spatial deduplication and blockchain-style cryptographic chaining.
+    """
     image_path = None
 
     # Check upload limits if image is being uploaded
@@ -216,6 +220,9 @@ async def create_issue(
 
             # Offload blocking DB operations to threadpool
             await run_in_threadpool(save_issue_db, db, new_issue)
+
+            # Update last hash cache
+            blockchain_last_hash_cache.set(data=integrity_hash, key="latest")
         else:
             # Don't create new issue, just return deduplication info
             new_issue = None
@@ -677,7 +684,7 @@ async def verify_blockchain_integrity(issue_id: int, db: Session = Depends(get_d
     hash_content = f"{current_issue.description}|{current_issue.category}|{prev_hash}"
     computed_hash = hashlib.sha256(hash_content.encode()).hexdigest()
 
-    is_valid = (computed_hash == current_issue.integrity_hash)
+    is_valid = (computed_hash == current_issue.integrity_hash) and link_valid
 
     # Verify that the stored previous hash actually matches the hash of the preceding issue
     if is_valid and issue_id > 1:
