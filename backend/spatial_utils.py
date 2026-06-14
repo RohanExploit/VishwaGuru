@@ -35,6 +35,30 @@ def get_bounding_box(lat: float, lon: float, radius_meters: float) -> Tuple[floa
     return min_lat, max_lat, min_lon, max_lon
 
 
+def equirectangular_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """
+    Calculate the distance between two points using the Equirectangular approximation.
+    Much faster than Haversine, but less accurate for large distances.
+    Suitable for small distances (< 1000km).
+
+    Returns distance in meters.
+    """
+    R = 6371000.0  # Earth's radius in meters
+
+    # Convert to radians
+    lat1_rad = math.radians(lat1)
+    lat2_rad = math.radians(lat2)
+
+    # Calculate longitude difference and normalize to [-pi, pi]
+    dlon_rad = math.radians(lon2 - lon1)
+    dlon_rad = (dlon_rad + math.pi) % (2 * math.pi) - math.pi
+
+    x = dlon_rad * math.cos((lat1_rad + lat2_rad) / 2)
+    y = lat2_rad - lat1_rad
+
+    return R * math.sqrt(x*x + y*y)
+
+
 def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """
     Calculate the great circle distance between two points
@@ -133,6 +157,15 @@ def cluster_issues_dbscan(issues: List[Issue], eps_meters: float = 30.0) -> List
     ]
 
     if not valid_issues:
+        return []
+
+    # Import scikit-learn and numpy only when needed to avoid heavy startup overhead
+    # and potential import errors in environments with limited resources
+    try:
+        from sklearn.cluster import DBSCAN
+        import numpy as np
+    except ImportError:
+        # Fallback if scikit-learn is not installed
         return []
 
     # Convert to numpy array for DBSCAN

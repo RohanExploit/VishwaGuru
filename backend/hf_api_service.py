@@ -91,6 +91,92 @@ async def _detect_clip_generic(image: Union[Image.Image, bytes], labels: List[st
 
 # --- Specific Detectors ---
 
+async def detect_vandalism_clip(image: Union[Image.Image, bytes], client: httpx.AsyncClient = None):
+    """
+    Detects vandalism such as graffiti, spray paint, or damage.
+    """
+    labels = ["graffiti", "vandalism", "spray paint", "street art", "clean wall", "public property", "normal street"]
+    targets = ["graffiti", "vandalism", "spray paint"]
+    return await _detect_clip_generic(image, labels, targets, client)
+
+async def detect_infrastructure_clip(image: Union[Image.Image, bytes], client: httpx.AsyncClient = None):
+    """
+    Detects infrastructure damage like broken streetlights, potholes, etc.
+    """
+    labels = ["broken streetlight", "damaged traffic sign", "fallen tree", "damaged fence", "pothole", "clean street", "normal infrastructure"]
+    targets = ["broken streetlight", "damaged traffic sign", "fallen tree", "damaged fence", "pothole"]
+    return await _detect_clip_generic(image, labels, targets, client)
+
+async def detect_flooding_clip(image: Union[Image.Image, bytes], client: httpx.AsyncClient = None):
+    """
+    Detects flooding or waterlogging.
+    """
+    labels = ["flooded street", "waterlogging", "blocked drain", "heavy rain", "dry street", "normal road"]
+    targets = ["flooded street", "waterlogging", "blocked drain", "heavy rain"]
+    return await _detect_clip_generic(image, labels, targets, client)
+
+async def detect_all_clip(image: Union[Image.Image, bytes], client: httpx.AsyncClient = None):
+    """
+    Consolidated detection for all categories in a single API call.
+    Optimizes performance by batching labels.
+    """
+    # Combine labels from all categories
+    # Vandalism
+    vandalism_labels = ["graffiti", "vandalism", "spray paint", "street art"]
+    vandalism_targets = ["graffiti", "vandalism", "spray paint"]
+
+    # Infrastructure
+    infra_labels = ["broken streetlight", "damaged traffic sign", "fallen tree", "damaged fence", "pothole"]
+    infra_targets = ["broken streetlight", "damaged traffic sign", "fallen tree", "damaged fence", "pothole"]
+
+    # Flooding
+    flooding_labels = ["flooded street", "waterlogging", "blocked drain", "heavy rain"]
+    flooding_targets = ["flooded street", "waterlogging", "blocked drain", "heavy rain"]
+
+    # Garbage
+    garbage_labels = ["plastic bottle", "glass bottle", "metal can", "paper cardboard", "organic food waste", "electronic waste", "garbage piled up"]
+    garbage_targets = ["plastic bottle", "glass bottle", "metal can", "paper cardboard", "organic food waste", "electronic waste", "garbage piled up"]
+
+    # Fire
+    fire_labels = ["fire", "smoke", "flames", "burning"]
+    fire_targets = ["fire", "smoke", "flames", "burning"]
+
+    # Safety/Cleanliness (common background labels)
+    common_labels = ["clean street", "safe area", "normal road", "daytime", "nighttime", "public property"]
+
+    all_labels = list(set(vandalism_labels + infra_labels + flooding_labels + garbage_labels + fire_labels + common_labels))
+
+    img_bytes = _prepare_image_bytes(image)
+    results = await query_hf_api(img_bytes, all_labels, client=client)
+
+    if not isinstance(results, list):
+        return {
+            "vandalism": [],
+            "infrastructure": [],
+            "flooding": [],
+            "garbage": [],
+            "fire": []
+        }
+
+    def filter_results(res_list, targets):
+        detected = []
+        for res in res_list:
+            if isinstance(res, dict) and res.get('label') in targets and res.get('score', 0) > 0.4:
+                 detected.append({
+                     "label": res['label'],
+                     "confidence": res['score'],
+                     "box": []
+                 })
+        return detected
+
+    return {
+        "vandalism": filter_results(results, vandalism_targets),
+        "infrastructure": filter_results(results, infra_targets),
+        "flooding": filter_results(results, flooding_targets),
+        "garbage": filter_results(results, garbage_targets),
+        "fire": filter_results(results, fire_targets)
+    }
+
 async def detect_illegal_parking_clip(image: Union[Image.Image, bytes], client: httpx.AsyncClient = None):
     labels = ["illegal parking", "car blocking driveway", "double parked", "car on sidewalk", "legal parking", "empty street"]
     targets = ["illegal parking", "car blocking driveway", "double parked", "car on sidewalk"]
@@ -455,4 +541,21 @@ async def detect_abandoned_vehicle_clip(image: Union[Image.Image, bytes], client
     """
     labels = ["abandoned car", "rusted vehicle", "car with flat tires", "wrecked car", "normal parked car"]
     targets = ["abandoned car", "rusted vehicle", "car with flat tires", "wrecked car"]
+    return await _detect_clip_generic(image, labels, targets, client)
+
+
+async def detect_public_facilities_clip(image: Union[Image.Image, bytes], client: httpx.AsyncClient = None):
+    """
+    Detects issues with public facilities (benches, parks, toilets).
+    """
+    labels = ["damaged public bench", "broken playground equipment", "dirty public toilet", "vandalized park facility", "clean public facility"]
+    targets = ["damaged public bench", "broken playground equipment", "dirty public toilet", "vandalized park facility"]
+    return await _detect_clip_generic(image, labels, targets, client)
+
+async def detect_construction_safety_clip(image: Union[Image.Image, bytes], client: httpx.AsyncClient = None):
+    """
+    Detects construction safety violations.
+    """
+    labels = ["construction worker without helmet", "unsafe construction site", "hazardous scaffolding", "worker with helmet", "safe construction site"]
+    targets = ["construction worker without helmet", "unsafe construction site", "hazardous scaffolding"]
     return await _detect_clip_generic(image, labels, targets, client)

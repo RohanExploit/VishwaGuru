@@ -124,6 +124,34 @@ def migrate_db():
             except Exception:
                 pass
 
+            # Add reference_id column for secure updates
+            try:
+                conn.execute(text("ALTER TABLE issues ADD COLUMN reference_id VARCHAR"))
+                print("Migrated database: Added reference_id column.")
+            except Exception:
+                pass
+
+            # Add index on reference_id
+            try:
+                conn.execute(text("CREATE UNIQUE INDEX ix_issues_reference_id ON issues (reference_id)"))
+                logger.info("Migrated database: Added index on reference_id column.")
+            except Exception:
+                pass
+
+            # Add parent_issue_id column for deduplication
+            try:
+                conn.execute(text("ALTER TABLE issues ADD COLUMN parent_issue_id INTEGER"))
+                print("Migrated database: Added parent_issue_id column.")
+            except Exception:
+                pass
+
+            # Add index on parent_issue_id
+            try:
+                conn.execute(text("CREATE INDEX ix_issues_parent_issue_id ON issues (parent_issue_id)"))
+                logger.info("Migrated database: Added index on parent_issue_id column.")
+            except Exception:
+                pass
+
             # Add index on user_email
             try:
                 conn.execute(text("CREATE INDEX ix_issues_user_email ON issues (user_email)"))
