@@ -3,10 +3,6 @@ from sqlalchemy import func
 from datetime import datetime, timedelta, timezone
 from backend.models import Grievance, GrievanceFollower, ClosureConfirmation, GrievanceStatus
 import logging
-import hashlib
-import hmac
-from backend.cache import closure_last_hash_cache
-from backend.config import get_auth_config
 
 logger = logging.getLogger(__name__)
 
@@ -90,39 +86,16 @@ class ClosureService:
         if existing:
             raise ValueError("You have already submitted a response for this closure")
         
-        # Blockchain feature: calculate integrity hash for the closure confirmation
-        # Performance Boost: Use thread-safe cache to eliminate DB query for last hash
-        prev_hash = closure_last_hash_cache.get("last_hash")
-        if prev_hash is None:
-            # Cache miss: Fetch only the last hash from DB
-            last_record = db.query(ClosureConfirmation.integrity_hash).order_by(ClosureConfirmation.id.desc()).first()
-            prev_hash = last_record[0] if last_record and last_record[0] else ""
-            closure_last_hash_cache.set(data=prev_hash, key="last_hash")
-
-        # Chaining logic: hash(grievance_id|user_email|confirmation_type|prev_hash)
-        hash_content = f"{grievance_id}|{user_email}|{confirmation_type}|{prev_hash}"
-        secret_key = get_auth_config().secret_key
-        integrity_hash = hmac.new(
-            secret_key.encode('utf-8'),
-            hash_content.encode('utf-8'),
-            hashlib.sha256
-        ).hexdigest()
-
         # Create confirmation record
         confirmation = ClosureConfirmation(
             grievance_id=grievance_id,
             user_email=user_email,
             confirmation_type=confirmation_type,
-            reason=reason,
-            integrity_hash=integrity_hash,
-            previous_integrity_hash=prev_hash
+            reason=reason
         )
         db.add(confirmation)
         db.commit()
-
-        # Update cache after successful commit
-        closure_last_hash_cache.set(data=integrity_hash, key="last_hash")
-
+        
         # Check if threshold is met
         return ClosureService.check_and_finalize_closure(grievance_id, db)
     
@@ -138,15 +111,15 @@ class ClosureService:
             GrievanceFollower.grievance_id == grievance_id
         ).scalar()
         
-        # Get all confirmation counts in a single query instead of multiple round-trips
-        from sqlalchemy import case
-        stats = db.query(
-            func.sum(case((ClosureConfirmation.confirmation_type == 'confirmed', 1), else_=0)).label('confirmed'),
-            func.sum(case((ClosureConfirmation.confirmation_type == 'disputed', 1), else_=0)).label('disputed')
-        ).filter(ClosureConfirmation.grievance_id == grievance_id).first()
+        confirmations_count = db.query(func.count(ClosureConfirmation.id)).filter(
+            ClosureConfirmation.grievance_id == grievance_id,
+            ClosureConfirmation.confirmation_type == "confirmed"
+        ).scalar()
         
-        confirmations_count = stats.confirmed or 0
-        disputes_count = stats.disputed or 0
+        disputes_count = db.query(func.count(ClosureConfirmation.id)).filter(
+            ClosureConfirmation.grievance_id == grievance_id,
+            ClosureConfirmation.confirmation_type == "disputed"
+        ).scalar()
         
         required_confirmations = max(1, int(total_followers * ClosureService.CONFIRMATION_THRESHOLD))
         

@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Mic, MicOff, AlertCircle } from 'lucide-react';
+import { Mic, MicOff, AlertCircle, Volume2, AlertTriangle } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
@@ -12,7 +12,6 @@ const NoiseDetector = ({ onBack }) => {
     const streamRef = useRef(null);
 
     useEffect(() => {
-        // Cleanup on unmount
         return () => {
             stopRecording();
         };
@@ -54,7 +53,6 @@ const NoiseDetector = ({ onBack }) => {
                     recorder.start();
                     setStatus('Listening...');
 
-                    // Record for 4 seconds
                     setTimeout(() => {
                         if (recorder.state === 'recording') {
                             recorder.stop();
@@ -68,9 +66,7 @@ const NoiseDetector = ({ onBack }) => {
                 }
             };
 
-            // Start first immediately
             recordAndSend();
-            // Then interval every 5 seconds
             intervalRef.current = setInterval(recordAndSend, 5000);
 
         } catch (e) {
@@ -103,7 +99,7 @@ const NoiseDetector = ({ onBack }) => {
         formData.append('file', blob, 'recording.webm');
 
         try {
-            const response = await fetch(`${API_URL}/api/detect-audio`, {
+            const response = await fetch(`${API_URL}/api/detect-noise-pollution`, {
                 method: 'POST',
                 body: formData
             });
@@ -122,53 +118,60 @@ const NoiseDetector = ({ onBack }) => {
         }
     };
 
-    return (
-        <div className="flex flex-col items-center w-full max-w-md mx-auto p-4">
-            <h2 className="text-xl font-bold mb-6 text-gray-800">Noise Detector</h2>
+    const hasPollution = detections.some(d => d.is_pollution);
 
-            <div className={`w-40 h-40 rounded-full flex items-center justify-center mb-8 transition-all duration-500 ${isRecording ? 'bg-red-50 ring-4 ring-red-100 animate-pulse' : 'bg-gray-50'}`}>
-                {isRecording ? <Mic size={64} className="text-red-500" /> : <MicOff size={64} className="text-gray-400" />}
+    return (
+        <div className="flex flex-col items-center w-full max-w-md mx-auto p-4 min-h-screen bg-gray-50">
+            <h2 className="text-xl font-bold mb-6 text-gray-800 flex items-center gap-2">
+                <Volume2 className="text-blue-600" />
+                Noise Pollution Monitor
+            </h2>
+
+            <div className={`relative w-48 h-48 rounded-full flex items-center justify-center mb-8 transition-all duration-500 ${isRecording ? 'bg-white shadow-xl ring-8 ring-blue-50' : 'bg-gray-100'}`}>
+                {isRecording && (
+                    <div className="absolute inset-0 rounded-full border-4 border-blue-500 border-t-transparent animate-spin"></div>
+                )}
+                {isRecording ? <Mic size={64} className="text-blue-500" /> : <MicOff size={64} className="text-gray-400" />}
+
+                {hasPollution && isRecording && (
+                     <div className="absolute -top-2 -right-2 bg-red-500 text-white p-2 rounded-full animate-bounce shadow-lg">
+                        <AlertTriangle size={24} />
+                     </div>
+                )}
             </div>
 
-            <div className="w-full bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6 min-h-[160px]">
-                <h3 className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider">Detected Sounds</h3>
+            <div className="w-full bg-white rounded-2xl shadow-sm p-6 mb-6 min-h-[160px]">
+                <h3 className="text-xs font-bold text-gray-400 mb-4 uppercase tracking-widest">Live Analysis</h3>
 
                 {detections.length > 0 ? (
                     <div className="space-y-3">
-                        {detections.slice(0, 3).map((det, idx) => (
-                            <div key={idx} className="flex items-center justify-between">
-                                <span className="font-medium text-gray-800 capitalize">{det.label}</span>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
-                                        <div
-                                            className={`h-full rounded-full ${det.score > 0.7 ? 'bg-red-500' : 'bg-blue-500'}`}
-                                            style={{ width: `${det.score * 100}%` }}
-                                        />
-                                    </div>
-                                    <span className="text-xs font-mono w-8 text-right">{(det.score * 100).toFixed(0)}%</span>
+                        {detections.map((det, idx) => (
+                            <div key={idx} className={`flex items-center justify-between p-3 rounded-xl ${det.is_pollution ? 'bg-red-50 text-red-700' : 'bg-gray-50 text-gray-600'}`}>
+                                <div className="flex items-center gap-3">
+                                    {det.is_pollution ? <AlertTriangle size={16} /> : <Volume2 size={16} />}
+                                    <span className="font-semibold capitalize">{det.type}</span>
                                 </div>
+                                <span className="text-sm font-bold opacity-70">{(det.confidence * 100).toFixed(0)}%</span>
                             </div>
                         ))}
                     </div>
                 ) : (
-                    <div className="h-full flex flex-col items-center justify-center text-gray-400 text-sm">
-                        <p>{isRecording ? "Listening for sounds..." : "Start recording to detect sounds"}</p>
+                    <div className="h-full flex flex-col items-center justify-center text-gray-300 py-8">
+                        <p>{isRecording ? "Listening..." : "Tap Start to monitor noise levels"}</p>
                     </div>
                 )}
             </div>
 
             {error && (
-                <div className="flex items-center gap-2 text-red-600 text-sm mb-4 bg-red-50 p-3 rounded-lg w-full">
+                <div className="flex items-center gap-2 text-red-600 text-sm mb-4 bg-red-50 p-3 rounded-xl w-full">
                     <AlertCircle size={16} />
                     {error}
                 </div>
             )}
 
-            <p className="text-center text-sm font-medium text-blue-600 mb-6 h-6">{status}</p>
-
             <button
                 onClick={() => setIsRecording(!isRecording)}
-                className={`w-full py-3.5 px-6 rounded-xl text-white font-bold shadow-lg transition-transform active:scale-95 flex items-center justify-center gap-2 ${isRecording ? 'bg-red-500 hover:bg-red-600 shadow-red-200' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-200'}`}
+                className={`w-full py-4 rounded-xl text-white font-bold shadow-lg transition-transform active:scale-95 flex items-center justify-center gap-2 ${isRecording ? 'bg-red-500 hover:bg-red-600 shadow-red-200' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-200'}`}
             >
                 {isRecording ? 'Stop Monitoring' : 'Start Monitoring'}
             </button>
@@ -177,7 +180,7 @@ const NoiseDetector = ({ onBack }) => {
                 onClick={onBack}
                 className="mt-6 text-gray-500 hover:text-gray-800 text-sm font-medium transition"
             >
-                Back to Home
+                Back to Dashboard
             </button>
         </div>
     );

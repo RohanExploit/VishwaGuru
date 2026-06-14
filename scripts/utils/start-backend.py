@@ -8,10 +8,6 @@ import os
 import sys
 import uvicorn
 from pathlib import Path
-from dotenv import load_dotenv
-
-# Load environment variables from .env file
-load_dotenv()
 
 # Add project root to Python path to ensure 'backend.*' imports work
 repo_root = Path(__file__).parent.absolute()

@@ -6,4 +6,3 @@ export * from './auth';
 export * from './admin';
 
 export * from './grievances';
-export * from './resolutionProof';

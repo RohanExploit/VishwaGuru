@@ -3,7 +3,7 @@ services:
   - type: web
     name: vishwaguru-backend
     runtime: python
-    buildCommand: "./render-build.sh"
+    buildCommand: "pip install -r backend/requirements-render.txt"
     startCommand: "python start-backend.py"
     envVars:
       - key: PYTHON_VERSION
@@ -31,6 +31,8 @@ services:
         value: production
       - key: DEBUG
         value: false
+      - key: SECRET_KEY
+        sync: false
       # CORS settings
       - key: CORS_ORIGINS
         sync: false  # Set to your frontend URL

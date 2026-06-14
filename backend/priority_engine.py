@@ -7,18 +7,32 @@ class PriorityEngine:
     """
     A rule-based AI engine for prioritizing civic issues.
     Analyzes text descriptions to determine severity, urgency, and category.
-    Now powered by AdaptiveWeights for self-improving intelligence.
     """
 
     def __init__(self):
-        # Cache for pre-compiled regex patterns to improve performance
-        self._regex_cache = []
-        self._last_reload_count = -1
+        # We now access weights dynamically from the singleton adaptive_weights instance
+        pass
+
+    @property
+    def severity_keywords(self):
+        return adaptive_weights.severity_keywords
+
+    @property
+    def urgency_patterns(self):
+        # adaptive_weights stores as List[List], but we need List[Tuple] for regex
+        return adaptive_weights.get_urgency_patterns_tuples()
+
+    @property
+    def categories(self):
+        return adaptive_weights.categories
 
     def analyze(self, text: str, image_labels: Optional[List[str]] = None) -> Dict[str, Any]:
         """
         Analyzes the issue text and optional image labels to determine priority.
         """
+        # Ensure we have the latest weights if they might change at runtime (optional optimization)
+        # self.reload_weights()
+
         text = text.lower()
 
         # Merge image labels into text for analysis if provided
@@ -29,36 +43,6 @@ class PriorityEngine:
         severity_score, severity_label, severity_reasons = self._calculate_severity(combined_text)
         urgency_score, urgency_reasons = self._calculate_urgency(combined_text, severity_score)
         categories = self._detect_categories(combined_text)
-
-        # Apply Adaptive Category Weights
-        multipliers = adaptive_weights.get_category_multipliers()
-        max_multiplier = 1.0
-        for cat in categories:
-            mult = multipliers.get(cat, 1.0)
-            if mult > max_multiplier:
-                max_multiplier = mult
-
-        if max_multiplier > 1.05: # Threshold to report boost
-            # Boost score
-            old_score = severity_score
-            severity_score = int(severity_score * max_multiplier)
-            severity_score = min(100, severity_score)
-
-            # Add reasoning
-            if severity_score > old_score:
-                severity_reasons.append(f"Severity score boosted by x{max_multiplier:.2f} based on historical trends for this category.")
-
-            # Re-evaluate label based on boosted score
-            if severity_score >= 90:
-                severity_label = "Critical"
-            elif severity_score >= 70:
-                severity_label = "High"
-            elif severity_score >= 40:
-                severity_label = "Medium"
-            else:
-                # If score boosted from Low to something else, update label
-                if severity_score < 40:
-                    severity_label = "Low"
 
         # Explainability
         reasoning = severity_reasons + urgency_reasons
@@ -78,10 +62,8 @@ class PriorityEngine:
         reasons = []
         label = "Low"
 
-        severity_keywords = adaptive_weights.get_severity_keywords()
-
         # Check for critical keywords (highest priority)
-        found_critical = [word for word in severity_keywords.get("critical", []) if word in text]
+        found_critical = [word for word in self.severity_keywords.get("critical", []) if word in text]
         if found_critical:
             score = 90
             label = "Critical"
@@ -89,7 +71,7 @@ class PriorityEngine:
 
         # Check for high keywords
         if score < 70:
-            found_high = [word for word in severity_keywords.get("high", []) if word in text]
+            found_high = [word for word in self.severity_keywords.get("high", []) if word in text]
             if found_high:
                 score = max(score, 70)
                 label = "High" if score == 70 else label
@@ -97,7 +79,7 @@ class PriorityEngine:
 
         # Check for medium keywords
         if score < 40:
-            found_medium = [word for word in severity_keywords.get("medium", []) if word in text]
+            found_medium = [word for word in self.severity_keywords.get("medium", []) if word in text]
             if found_medium:
                 score = max(score, 40)
                 label = "Medium" if score == 40 else label
@@ -116,40 +98,11 @@ class PriorityEngine:
         urgency = severity_score
         reasons = []
 
-        # Optimization: Use pre-compiled regex from cache if configuration hasn't changed
-        current_reload_count = adaptive_weights.reload_count
-        if self._last_reload_count != current_reload_count:
-            urgency_patterns = adaptive_weights.get_urgency_patterns()
-            self._regex_cache = []
-            for pattern, weight in urgency_patterns:
-                # Pre-extract literal keywords for fast substring pre-filtering
-                # Only apply this optimization if the pattern is a simple list of words like \b(word1|word2)\b
-                keywords = []
-                # Optimization: Extract literal keywords from simple regex strings like "\b(word1|word2)\b"
-                # This allows us to use a fast substring check (`in text`) before executing the regex engine.
-                if re.fullmatch(r'\\b\([a-zA-Z0-9\s|]+\)\\b', pattern):
-                    clean_pattern = pattern.replace('\\b', '').replace('(', '').replace(')', '')
-                    keywords = [k.strip() for k in clean_pattern.split('|') if k.strip()]
-                self._regex_cache.append((re.compile(pattern), weight, pattern, keywords))
-            self._last_reload_count = current_reload_count
-
-        # Apply regex modifiers using compiled patterns
-        for regex, weight, original_pattern, keywords in self._regex_cache:
-            # Substring pre-filter: skip expensive regex search if no keywords match.
-            # If keywords is empty (meaning the pattern was complex), fallback to regex.search directly.
-            if not keywords:
-                if regex.search(text):
-                    urgency += weight
-                    reasons.append(f"Urgency increased by context matching pattern: '{original_pattern}'")
-            else:
-                # Optimized: Using a simple for loop instead of a generator expression `any(k in text for k in keywords)`
-                # which significantly reduces function call overhead in hot paths.
-                for k in keywords:
-                    if k in text:
-                        if regex.search(text):
-                            urgency += weight
-                            reasons.append(f"Urgency increased by context matching pattern: '{original_pattern}'")
-                        break
+        # Apply regex modifiers
+        for pattern, weight in self.urgency_patterns:
+            if re.search(pattern, text):
+                urgency += weight
+                reasons.append(f"Urgency increased by context matching pattern: '{pattern}'")
 
         # Cap at 100
         urgency = min(100, urgency)
@@ -157,10 +110,11 @@ class PriorityEngine:
         return urgency, reasons
 
     def _detect_categories(self, text: str) -> List[str]:
-        categories_map = adaptive_weights.get_category_keywords()
+        # Sort categories by length of match to prioritize specific over general?
+        # Or just count matches.
 
         scored_categories = []
-        for category, keywords in categories_map.items():
+        for category, keywords in self.categories.items():
             count = 0
             for k in keywords:
                 if k in text:

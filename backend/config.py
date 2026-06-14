@@ -5,16 +5,9 @@ Centralizes environment variable handling and provides startup validation.
 
 import os
 import sys
-from typing import Optional
+from typing import Optional, List
 from dataclasses import dataclass
 from pathlib import Path
-
-# Load environment variables from .env file
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except ImportError:
-    pass  # dotenv not installed, rely on system env vars
 
 
 @dataclass
@@ -25,13 +18,8 @@ class Config:
     """
     
     # API Keys
-    gemini_api_key: Optional[str]
+    gemini_api_key: str
     telegram_bot_token: str
-    
-    # Hugging Face
-    hf_token: Optional[str]
-    hf_text_api_url: str
-    hf_text_model: str
     
     # Database
     database_url: str
@@ -39,11 +27,11 @@ class Config:
     # Application Settings
     environment: str
     debug: bool
-    cors_origins: list[str]
+    cors_origins: List[str]
     
     # File Upload Settings
     max_upload_size_mb: int
-    allowed_file_types: list[str]
+    allowed_file_types: List[str]
     
     # Rate Limiting
     rate_limit_enabled: bool
@@ -54,6 +42,11 @@ class Config:
     algorithm: str
     access_token_expire_minutes: int
     
+    # Detection & Verification
+    verification_threshold: int
+    deduplication_radius: float
+    deduplication_limit: int
+
     @classmethod
     def from_env(cls) -> "Config":
         """
@@ -64,9 +57,8 @@ class Config:
         
         # Required variables
         gemini_api_key = os.getenv("GEMINI_API_KEY")
-        # Gemini key is optional (we can fallback to mock services)
-        # if not gemini_api_key:
-        #    errors.append("GEMINI_API_KEY is required")
+        if not gemini_api_key:
+            errors.append("GEMINI_API_KEY is required")
         
         telegram_bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
         if not telegram_bot_token:
@@ -76,17 +68,6 @@ class Config:
         database_url = os.getenv(
             "DATABASE_URL", 
             "sqlite:///./data/issues.db"
-        )
-        
-        # Hugging Face text generation settings
-        hf_token = os.getenv("HF_TOKEN")
-        hf_text_api_url = os.getenv(
-            "HF_TEXT_API_URL",
-            "https://router.huggingface.co/featherless-ai/v1/completions"
-        )
-        hf_text_model = os.getenv(
-            "HF_TEXT_MODEL",
-            "meta-llama/Meta-Llama-3-8B-Instruct"
         )
         
         # Ensure data directory exists for SQLite
@@ -129,6 +110,11 @@ class Config:
         algorithm = os.getenv("ALGORITHM", "HS256")
         access_token_expire_minutes = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
         
+        # Detection & Verification
+        verification_threshold = int(os.getenv("VERIFICATION_THRESHOLD", "5"))
+        deduplication_radius = float(os.getenv("DEDUPLICATION_RADIUS", "50.0"))
+        deduplication_limit = int(os.getenv("DEDUPLICATION_LIMIT", "3"))
+
         # If there are errors, raise with all missing variables
         if errors:
             error_message = "Missing required environment variables:\n" + "\n".join(f"  - {err}" for err in errors)
@@ -138,9 +124,6 @@ class Config:
         return cls(
             gemini_api_key=gemini_api_key,
             telegram_bot_token=telegram_bot_token,
-            hf_token=hf_token,
-            hf_text_api_url=hf_text_api_url,
-            hf_text_model=hf_text_model,
             database_url=database_url,
             environment=environment,
             debug=debug,
@@ -152,6 +135,9 @@ class Config:
             secret_key=secret_key,
             algorithm=algorithm,
             access_token_expire_minutes=access_token_expire_minutes,
+            verification_threshold=verification_threshold,
+            deduplication_radius=deduplication_radius,
+            deduplication_limit=deduplication_limit,
         )
     
     def is_production(self) -> bool:
@@ -177,9 +163,8 @@ class Config:
         Returns dict with validation status for each key.
         """
         validations = {
-            "gemini_api_key": len(self.gemini_api_key) > 20 if self.gemini_api_key else True,
+            "gemini_api_key": len(self.gemini_api_key) > 20,
             "telegram_bot_token": ":" in self.telegram_bot_token and len(self.telegram_bot_token) > 40,
-            "hf_token": self.hf_token.startswith("hf_") if self.hf_token else True,
         }
         return validations
     
@@ -191,52 +176,13 @@ class Config:
             f"  database={self.get_database_type()},\n"
             f"  debug={self.debug},\n"
             f"  gemini_api_key={'*' * 10 if self.gemini_api_key else 'NOT SET'},\n"
-            f"  hf_token={'*' * 10 if self.hf_token else 'NOT SET'},\n"
-            f"  hf_text_model={self.hf_text_model},\n"
             f"  telegram_bot_token={'*' * 10 if self.telegram_bot_token else 'NOT SET'}\n"
             f")"
         )
 
 
-@dataclass
-class AuthConfig:
-    """Lightweight auth-only configuration that doesn't require external API keys."""
-    secret_key: str
-    algorithm: str
-    access_token_expire_minutes: int
-
-    @classmethod
-    def from_env(cls) -> "AuthConfig":
-        environment = os.getenv("ENVIRONMENT", "development")
-        secret_key = os.getenv("SECRET_KEY")
-        if not secret_key:
-            if environment.lower() == "production":
-                raise ValueError("SECRET_KEY is required in production environment")
-            else:
-                secret_key = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
-        algorithm = os.getenv("ALGORITHM", "HS256")
-        access_token_expire_minutes = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
-        return cls(
-            secret_key=secret_key,
-            algorithm=algorithm,
-            access_token_expire_minutes=access_token_expire_minutes,
-        )
-
-
-# Global config instances
+# Global config instance
 _config: Optional[Config] = None
-_auth_config: Optional[AuthConfig] = None
-
-
-def get_auth_config() -> AuthConfig:
-    """
-    Get auth-only configuration. Does NOT require GEMINI_API_KEY or TELEGRAM_BOT_TOKEN.
-    Safe to use in auth endpoints.
-    """
-    global _auth_config
-    if _auth_config is None:
-        _auth_config = AuthConfig.from_env()
-    return _auth_config
 
 
 def get_config() -> Config:

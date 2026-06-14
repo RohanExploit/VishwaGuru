@@ -33,7 +33,7 @@ def load_general_model():
     try:
         import torch
         from ultralytics import YOLO
-        
+
         # Monkey-patch torch.load to use weights_only=False for YOLO model loading
         # This is safe because YOLO models from ultralytics are from a trusted source
         original_load = torch.load

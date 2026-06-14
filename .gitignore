@@ -23,6 +23,8 @@ venv/
 # =====================
 data/*.db
 data/uploads/
+data/dailySnapshots/
+data/modelWeights.json
 
 # =====================
 # Node / Frontend
@@ -51,12 +53,3 @@ Thumbs.db
 # =====================
 .vscode/
 .idea/
-
-# =====================
-# AI Tool Artifacts
-# =====================
-.claude/
-frontend/.genkit/
-.genkit/
-.netlify
-.last-run.json

@@ -1,9 +1,6 @@
 import os
 import sys
 from pathlib import Path
-from dotenv import load_dotenv
-
-load_dotenv()
 
 # Add project root to sys.path to ensure 'backend.*' imports work
 # This handles cases where PYTHONPATH is set to 'backend' (e.g. on Render)
@@ -18,7 +15,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.concurrency import run_in_threadpool
-from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import httpx
 import logging
@@ -29,10 +25,9 @@ from backend.ai_factory import create_all_ai_services
 from backend.ai_interfaces import initialize_ai_services
 from backend.bot import start_bot_thread, stop_bot_thread
 from backend.init_db import migrate_db
-from backend.scheduler import start_scheduler
 from backend.maharashtra_locator import load_maharashtra_pincode_data, load_maharashtra_mla_data
 from backend.exceptions import EXCEPTION_HANDLERS
-from backend.routers import issues, detection, grievances, utility, auth, admin, analysis, voice, field_officer, hf, resolution_proof
+from backend.routers import issues, detection, grievances, utility, auth, admin, analysis
 from backend.grievance_service import GrievanceService
 import backend.dependencies
 
@@ -46,29 +41,14 @@ logger = logging.getLogger(__name__)
 async def background_initialization(app: FastAPI):
     """Perform non-critical startup tasks in background to speed up app availability"""
     try:
-        # 1. AI Services initialization
-        # These can take a few seconds due to imports and configuration
-        action_plan_service, chat_service, mla_summary_service = await run_in_threadpool(create_all_ai_services)
-
-        initialize_ai_services(
-            action_plan_service=action_plan_service,
-            chat_service=chat_service,
-            mla_summary_service=mla_summary_service
-        )
-        logger.info("AI services initialized successfully.")
-
-        # 2. Static data pre-loading (loads large JSONs into memory)
+        # Static data pre-loading (loads large JSONs into memory)
         await run_in_threadpool(load_maharashtra_pincode_data)
         await run_in_threadpool(load_maharashtra_mla_data)
         logger.info("Maharashtra data pre-loaded successfully.")
 
-        # Ensure uploads directory exists
-        os.makedirs("data/uploads", exist_ok=True)
-
-        # 3. Start Telegram Bot in separate thread
-        # Temporarily disabled for local testing
-        # await run_in_threadpool(start_bot_thread)
-        logger.info("Telegram bot initialization skipped for local testing.")
+        # Start Telegram Bot in separate thread
+        await run_in_threadpool(start_bot_thread)
+        logger.info("Telegram bot started in separate thread.")
     except Exception as e:
         logger.error(f"Error during background initialization: {e}", exc_info=True)
 
@@ -82,33 +62,36 @@ async def lifespan(app: FastAPI):
 
     # Startup: Database setup (Blocking but necessary for app consistency)
     try:
-        logger.info("Starting database initialization...")
         await run_in_threadpool(Base.metadata.create_all, bind=engine)
-        logger.info("Base.metadata.create_all completed.")
-        # Temporarily disabled - comment out to debug startup issues
-        # await run_in_threadpool(migrate_db)
-        logger.info("Database initialized successfully (migrations skipped for local dev).")
+        await run_in_threadpool(migrate_db)
+        logger.info("Database initialized successfully.")
     except Exception as e:
         logger.error(f"Database initialization failed: {e}", exc_info=True)
         # We continue to allow health checks even if DB has issues (for debugging)
 
+    # Startup: AI Services initialization (Synchronous for safety)
+    try:
+        action_plan_service, chat_service, mla_summary_service = await run_in_threadpool(create_all_ai_services)
+        initialize_ai_services(
+            action_plan_service=action_plan_service,
+            chat_service=chat_service,
+            mla_summary_service=mla_summary_service
+        )
+        logger.info("AI services initialized successfully.")
+    except Exception as e:
+        logger.error(f"AI services initialization failed: {e}", exc_info=True)
+
     # Startup: Initialize Grievance Service (needed for escalation engine)
     try:
-        logger.info("Initializing grievance service...")
-        # Temporarily disabled for local dev
-        # grievance_service = GrievanceService()
-        # app.state.grievance_service = grievance_service
-        logger.info("Grievance service initialization skipped for local dev.")
+        grievance_service = GrievanceService()
+        app.state.grievance_service = grievance_service
+        logger.info("Grievance service initialized successfully.")
     except Exception as e:
         logger.error(f"Error initializing grievance service: {e}", exc_info=True)
 
     # Launch background tasks that are non-blocking for startup/health-check
     asyncio.create_task(background_initialization(app))
-
-    # Start the daily civic intelligence refinement scheduler (temporarily disabled for local dev)
-    # start_scheduler()
-    logger.info("Scheduler skipped for local development")
-
+    
     yield
     
     # Shutdown: Close Shared HTTP Client
@@ -159,16 +142,11 @@ if not is_production:
     dev_origins = [
         "http://localhost:3000",
         "http://localhost:5173",
-        "http://localhost:5174",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5173",
-        "http://127.0.0.1:5174",
         "http://localhost:8080",
     ]
     allowed_origins.extend(dev_origins)
-    # Also add the one from .env if it's different
-    if frontend_url not in allowed_origins:
-        allowed_origins.append(frontend_url)
 
 app.add_middleware(
     CORSMiddleware,
@@ -180,23 +158,14 @@ app.add_middleware(
 
 app.add_middleware(GZipMiddleware, minimum_size=500)
 
-# Mount static files for uploads
-# check if directory exists, if not create it (redundant but safe)
-os.makedirs("data/uploads", exist_ok=True)
-app.mount("/uploads", StaticFiles(directory="data/uploads"), name="uploads")
-
-# Include Modular Routers with /api prefix
-app.include_router(issues.router, prefix="/api", tags=["Issues"])
-app.include_router(detection.router, prefix="/api", tags=["Detection"])
-app.include_router(grievances.router, prefix="/api", tags=["Grievances"])
-app.include_router(utility.router, prefix="/api", tags=["Utility"])
-app.include_router(auth.router, prefix="/api", tags=["Authentication"])
+# Include Modular Routers
+app.include_router(issues.router, tags=["Issues"])
+app.include_router(detection.router, tags=["Detection"])
+app.include_router(grievances.router, tags=["Grievances"])
+app.include_router(utility.router, tags=["Utility"])
+app.include_router(auth.router, tags=["Authentication"])
 app.include_router(admin.router)
-app.include_router(analysis.router, prefix="/api", tags=["Analysis"])
-app.include_router(voice.router, prefix="/api", tags=["Voice & Language"])
-app.include_router(field_officer.router, prefix="/api", tags=["Field Officer Check-In"])
-app.include_router(hf.router, prefix="/api", tags=["Hugging Face"])
-app.include_router(resolution_proof.router, prefix="/api", tags=["Resolution Proof"])
+app.include_router(analysis.router, tags=["Analysis"])
 
 @app.get("/health")
 def health():

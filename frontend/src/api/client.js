@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || '/api';
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 let authToken = localStorage.getItem('token');
 
@@ -35,9 +35,6 @@ export const apiClient = {
       headers: getHeaders(options.headers)
     });
     if (!response.ok) {
-      if (response.status === 401 || response.status === 403) {
-        window.dispatchEvent(new Event('auth:logout'));
-      }
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const contentType = response.headers.get('content-type');
@@ -47,29 +44,21 @@ export const apiClient = {
     return null;
   },
   post: async (endpoint, data) => {
-    try {
-      const response = await fetch(`${API_URL}${endpoint}`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          window.dispatchEvent(new Event('auth:logout'));
-        }
-        const errorData = await response.json().catch(() => ({}));
-        const message = errorData.detail || `HTTP error! status: ${response.status}`;
-        throw new Error(message);
-      }
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        return response.json();
-      }
-      return null;
-    } catch (error) {
-      console.error(`API POST Error [${endpoint}]:`, error);
-      throw error;
+    const response = await fetch(`${API_URL}${endpoint}`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const message = errorData.detail || `HTTP error! status: ${response.status}`;
+      throw new Error(message);
     }
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      return response.json();
+    }
+    return null;
   },
   // For file uploads (FormData)
   postForm: async (endpoint, formData) => {
@@ -81,9 +70,6 @@ export const apiClient = {
       body: formData,
     });
     if (!response.ok) {
-      if (response.status === 401 || response.status === 403) {
-        window.dispatchEvent(new Event('auth:logout'));
-      }
       const errorData = await response.json().catch(() => ({}));
       const message = errorData.detail || `HTTP error! status: ${response.status}`;
       throw new Error(message);

@@ -29,8 +29,7 @@ def test_blockchain_verification_success(client, db_session):
     issue1 = Issue(
         description="First issue",
         category="Road",
-        integrity_hash=hash1,
-        previous_integrity_hash=""
+        integrity_hash=hash1
     )
     db_session.add(issue1)
     db_session.commit()
@@ -43,8 +42,7 @@ def test_blockchain_verification_success(client, db_session):
     issue2 = Issue(
         description="Second issue",
         category="Garbage",
-        integrity_hash=hash2,
-        previous_integrity_hash=hash1
+        integrity_hash=hash2
     )
     db_session.add(issue2)
     db_session.commit()

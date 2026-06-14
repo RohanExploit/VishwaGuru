@@ -1,93 +1,114 @@
-import logging
+import re
 from typing import List, Dict, Any, Tuple
 from collections import Counter
-import re
-
+import logging
 from backend.models import Issue
-from backend.spatial_utils import cluster_issues_dbscan, get_cluster_representative
+from backend.spatial_utils import cluster_issues_dbscan
 
 logger = logging.getLogger(__name__)
 
-class TrendAnalyzer:
-    def __init__(self):
-        self.stop_words = {
-            "the", "a", "an", "in", "on", "at", "to", "for", "of", "and", "is", "are",
-            "was", "were", "this", "that", "it", "with", "from", "by", "as", "be",
-            "or", "not", "but", "if", "so", "my", "your", "its", "their", "there",
-            "here", "when", "where", "why", "how", "all", "any", "some", "no",
-            "issue", "problem", "complaint", "regarding", "please", "help", "fix",
-            "near", "opposite", "behind", "front", "road", "street", "lane"
-        }
+STOP_WORDS = {
+    "the", "is", "at", "which", "on", "and", "a", "an", "of", "in", "to", "for", "with", "by",
+    "this", "that", "these", "those", "it", "its", "from", "as", "be", "are", "was", "were",
+    "have", "has", "had", "but", "not", "or", "if", "when", "where", "there", "here", "my",
+    "your", "our", "their", "please", "help", "need", "issue", "problem", "complaint", "regarding"
+}
 
-    def analyze(self, issues: List[Issue]) -> Dict[str, Any]:
+class TrendAnalyzer:
+    """
+    Analyzes civic issues to detect trends, keywords, and geographic clusters.
+    """
+
+    def analyze(self, issues: List[Issue], historical_category_counts: Dict[str, float] = None) -> Dict[str, Any]:
         """
-        Analyze a list of issues to extract trends, keywords, and clusters.
+        Analyzes a list of issues to find top keywords, category distribution, and clusters.
         """
         if not issues:
             return {
                 "top_keywords": [],
-                "category_distribution": {},
-                "clusters": [],
-                "total_issues": 0
+                "category_counts": {},
+                "spiking_categories": [],
+                "clusters": []
             }
 
-        keywords = self._extract_keywords(issues)
-        categories = self._analyze_categories(issues)
-        clusters = self._analyze_clusters(issues)
+        keywords = self._extract_top_keywords(issues)
+        category_counts = self._count_categories(issues)
+        spikes = self._detect_spikes(category_counts, historical_category_counts)
+        clusters = self._identify_geographic_clustering(issues)
 
         return {
             "top_keywords": keywords,
-            "category_distribution": categories,
-            "clusters": clusters,
-            "total_issues": len(issues)
+            "category_counts": category_counts,
+            "spiking_categories": spikes,
+            "clusters": clusters
         }
 
-    def _extract_keywords(self, issues: List[Issue]) -> List[Tuple[str, int]]:
-        """
-        Extract top 5 most common keywords from issue descriptions.
-        """
-        text = " ".join([issue.description.lower() for issue in issues if issue.description])
-        # Simple tokenization: remove punctuation and split by whitespace
-        words = re.findall(r'\b\w+\b', text)
-        filtered_words = [w for w in words if w not in self.stop_words and len(w) > 2 and not w.isdigit()]
+    def _extract_top_keywords(self, issues: List[Issue], top_n: int = 5) -> List[Tuple[str, int]]:
+        """Extracts most common words from issue descriptions."""
+        all_text = " ".join([issue.description for issue in issues if issue.description]).lower()
+        words = re.findall(r'\b[a-z]{3,}\b', all_text) # Words with 3+ chars
 
-        counter = Counter(filtered_words)
-        return counter.most_common(5)
+        filtered_words = [w for w in words if w not in STOP_WORDS]
+        return Counter(filtered_words).most_common(top_n)
 
-    def _analyze_categories(self, issues: List[Issue]) -> Dict[str, int]:
-        """
-        Count occurrences of each category.
-        """
+    def _count_categories(self, issues: List[Issue]) -> Dict[str, int]:
+        """Counts issues per category."""
         categories = [issue.category for issue in issues if issue.category]
         return dict(Counter(categories))
 
-    def _analyze_clusters(self, issues: List[Issue]) -> List[Dict[str, Any]]:
+    def _detect_spikes(self, current_counts: Dict[str, int], historical_averages: Dict[str, float]) -> List[str]:
         """
-        Identify geographic clusters of issues using DBSCAN.
-        Only returns clusters with at least 3 issues.
+        Identifies categories with a sudden spike in reports (> 50% increase).
         """
-        # Use DBSCAN from spatial_utils with 100m radius
-        issue_clusters = cluster_issues_dbscan(issues, eps_meters=100.0)
+        if not historical_averages:
+            return []
 
-        results = []
-        for cluster in issue_clusters:
-            if len(cluster) < 3:
+        spiking = []
+        for category, count in current_counts.items():
+            avg = historical_averages.get(category, 0)
+            if avg > 5 and count > avg * 1.5: # Only consider if historical avg is significant (>5)
+                spiking.append(category)
+
+        return spiking
+
+    def _identify_geographic_clustering(self, issues: List[Issue]) -> List[Dict[str, Any]]:
+        """
+        Uses spatial utilities to find clusters of issues.
+        """
+        # Filter issues with location
+        located_issues = [i for i in issues if i.latitude and i.longitude]
+
+        if not located_issues:
+            return []
+
+        # Use DBSCAN via spatial_utils
+        # Default eps=30m might be too small for "geographic clustering" of trends.
+        # Let's use larger radius like 500m to find hotspots.
+        clusters = cluster_issues_dbscan(located_issues, eps_meters=500.0)
+
+        cluster_summaries = []
+        for cluster in clusters:
+            if len(cluster) < 3: # Ignore small clusters
                 continue
 
-            try:
-                representative = get_cluster_representative(cluster)
-                results.append({
-                    "count": len(cluster),
-                    "latitude": representative.latitude,
-                    "longitude": representative.longitude,
-                    "representative_category": representative.category,
-                    "representative_desc": representative.description[:50] + "..." if representative.description else ""
-                })
-            except Exception as e:
-                logger.error(f"Error processing cluster: {e}")
+            # Find centroid
+            lats = [i.latitude for i in cluster]
+            lons = [i.longitude for i in cluster]
+            avg_lat = sum(lats) / len(lats)
+            avg_lon = sum(lons) / len(lons)
 
-        # Sort by cluster size descending
-        results.sort(key=lambda x: x['count'], reverse=True)
-        return results
+            # Most common category in this cluster
+            cats = [i.category for i in cluster if i.category]
+            top_cat = Counter(cats).most_common(1)[0][0] if cats else "Unknown"
+
+            cluster_summaries.append({
+                "count": len(cluster),
+                "centroid": {"lat": avg_lat, "lon": avg_lon},
+                "dominant_category": top_cat
+            })
+
+        # Sort by size
+        cluster_summaries.sort(key=lambda x: x["count"], reverse=True)
+        return cluster_summaries
 
 trend_analyzer = TrendAnalyzer()
