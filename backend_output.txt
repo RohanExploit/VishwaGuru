@@ -1,0 +1,6 @@
+INFO:     Will watch for changes in these directories: ['E:\\projects\\VishwaGuru\\VishwaGuru']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [42100] using StatReload
+2026-03-09 02:00:56,311 - backend.adaptive_weights - INFO - Adaptive weights loaded/reloaded.
+WARNING:  StatReload detected changes in 'backend\main.py'. Reloading...
+ 

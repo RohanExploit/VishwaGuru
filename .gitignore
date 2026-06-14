@@ -58,3 +58,4 @@ Thumbs.db
 .claude/
 frontend/.genkit/
 .genkit/
+.netlify

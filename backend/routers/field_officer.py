@@ -20,7 +20,6 @@ from backend.schemas import (
     OfficerCheckOutRequest,
     FieldOfficerVisitResponse,
     PublicFieldOfficerVisitResponse,
-    BlockchainVerificationResponse,
     VisitHistoryResponse,
     VisitStatsResponse,
     VisitImageUploadResponse
@@ -62,7 +61,6 @@ def officer_check_in(request: OfficerCheckInRequest, db: Session = Depends(get_d
     - **geofence_radius_meters**: Acceptable distance from site (default: 100m)
     
     **Geo-Fencing**: Automatically verifies if officer is within acceptable radius of issue location
-    **Blockchain Chaining**: Cryptographically links this visit to the previous one for immutability
     """
     try:
         # Validate issue exists
@@ -97,6 +95,10 @@ def officer_check_in(request: OfficerCheckInRequest, db: Session = Depends(get_d
             radius_meters=request.geofence_radius_meters or 100.0
         )
         
+        # Create visit record
+        # Normalize check_in_time: strip microseconds for deterministic hashing across DBs
+        check_in_time = datetime.now(timezone.utc).replace(microsecond=0)
+        
         # Blockchain feature: calculate integrity hash for the visit
         # Performance Boost: Use thread-safe cache to eliminate DB query for last hash
         prev_hash = visit_last_hash_cache.get("last_hash")
@@ -106,38 +108,22 @@ def officer_check_in(request: OfficerCheckInRequest, db: Session = Depends(get_d
             prev_hash = prev_visit[0] if prev_visit and prev_visit[0] else ""
             visit_last_hash_cache.set(data=prev_hash, key="last_hash")
 
-        # Create visit record
-        check_in_time = datetime.now(timezone.utc)
-        
-        # Blockchain Chaining Logic
-        # Use thread-safe cache to eliminate database lookups for the previous hash
-        prev_hash = visit_last_hash_cache.get("last_hash")
-
-        if prev_hash is None:
-            # Cache miss: fetch only the last hash and ID from DB
-            # Optimization: Use column projection to avoid full model loading
-            last_visit = db.query(FieldOfficerVisit.id, FieldOfficerVisit.visit_hash).order_by(FieldOfficerVisit.id.desc()).first()
-            if last_visit:
-                prev_hash = last_visit[1] or ""
-                visit_last_hash_cache.set(data=prev_hash, key="last_hash")
-                visit_last_hash_cache.set(data=last_visit[0], key="last_id")
-            else:
-                prev_hash = ""
-                visit_last_hash_cache.set(data=prev_hash, key="last_hash")
-
         visit_data = {
             'issue_id': request.issue_id,
             'officer_email': request.officer_email,
             'check_in_latitude': request.check_in_latitude,
             'check_in_longitude': request.check_in_longitude,
-            'check_in_time': check_in_time.isoformat(),
+            'check_in_time': check_in_time,
             'visit_notes': request.visit_notes or '',
             'previous_visit_hash': prev_hash
         }
         
-        # Generate immutable hash with chaining
-        visit_hash = generate_visit_hash(visit_data, prev_hash=prev_hash)
+        # Generate immutable hash
+        visit_hash = generate_visit_hash(visit_data)
         
+        # Update cache for next visit
+        visit_last_hash_cache.set(data=visit_hash, key="last_hash")
+
         new_visit = FieldOfficerVisit(
             issue_id=request.issue_id,
             grievance_id=request.grievance_id,
@@ -162,10 +148,6 @@ def officer_check_in(request: OfficerCheckInRequest, db: Session = Depends(get_d
         db.commit()
         db.refresh(new_visit)
         
-        # Update cache after successful commit
-        visit_last_hash_cache.set(data=visit_hash, key="last_hash")
-        visit_last_hash_cache.set(data=new_visit.id, key="last_id")
-
         logger.info(
             f"Officer {request.officer_name} checked in at issue {request.issue_id}. "
             f"Distance: {distance:.2f}m, Within fence: {within_fence}"
@@ -191,8 +173,6 @@ def officer_check_in(request: OfficerCheckInRequest, db: Session = Depends(get_d
             status=new_visit.status,
             verified_by=new_visit.verified_by,
             verified_at=new_visit.verified_at,
-            visit_hash=new_visit.visit_hash,
-            previous_visit_hash=new_visit.previous_visit_hash,
             is_public=new_visit.is_public,
             created_at=new_visit.created_at
         )
@@ -268,8 +248,6 @@ def officer_check_out(request: OfficerCheckOutRequest, db: Session = Depends(get
             status=visit.status,
             verified_by=visit.verified_by,
             verified_at=visit.verified_at,
-            visit_hash=visit.visit_hash,
-            previous_visit_hash=visit.previous_visit_hash,
             is_public=visit.is_public,
             created_at=visit.created_at
         )
@@ -485,86 +463,6 @@ def get_visit_statistics(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail="Failed to calculate statistics")
 
 
-@router.get("/field-officer/visit/{visit_id}/blockchain-verify", response_model=BlockchainVerificationResponse)
-def verify_visit_blockchain(visit_id: int, db: Session = Depends(get_db)):
-    """
-    Verify the cryptographic integrity of a field officer visit using O(1) blockchain verification.
-
-    Checks if the stored visit_hash correctly seals the record data and links to the previous record.
-    """
-    try:
-        # Fetch visit data including the link to previous hash
-        visit = db.query(
-            FieldOfficerVisit.id,
-            FieldOfficerVisit.issue_id,
-            FieldOfficerVisit.officer_email,
-            FieldOfficerVisit.check_in_latitude,
-            FieldOfficerVisit.check_in_longitude,
-            FieldOfficerVisit.check_in_time,
-            FieldOfficerVisit.visit_notes,
-            FieldOfficerVisit.visit_hash,
-            FieldOfficerVisit.previous_visit_hash
-        ).filter(FieldOfficerVisit.id == visit_id).first()
-
-        if not visit:
-            raise HTTPException(status_code=404, detail=f"Visit {visit_id} not found")
-
-        # Prepare data for hash recomputation
-        # NOTE: When recomputing the hash, we must ensure the check_in_time format
-        # matches exactly what was used during creation (isoformat).
-        # SQLite returns naive datetime objects, so we need to ensure consistency.
-        check_in_time_str = ""
-        if visit.check_in_time:
-            # If it's a datetime object, convert to ISO format string
-            # We use the same logic as in create_issue and create_grievance
-            if visit.check_in_time.tzinfo is None:
-                # Naive datetime from SQLite, assume UTC
-                check_in_time_str = visit.check_in_time.replace(tzinfo=timezone.utc).isoformat()
-            else:
-                check_in_time_str = visit.check_in_time.isoformat()
-
-        visit_data = {
-            'issue_id': visit.issue_id,
-            'officer_email': visit.officer_email,
-            'check_in_latitude': visit.check_in_latitude,
-            'check_in_longitude': visit.check_in_longitude,
-            'check_in_time': check_in_time_str,
-            'visit_notes': visit.visit_notes or ''
-        }
-
-        # Determine previous hash (O(1) from stored column)
-        prev_hash = visit.previous_visit_hash or ""
-
-        # Verify integrity using the service helper for O(1) chained verification
-        is_valid = verify_visit_integrity(
-            visit_data,
-            visit.visit_hash or "",
-            prev_hash=visit.previous_visit_hash or ""
-        )
-
-        if visit.visit_hash is None:
-            message = "No integrity hash present for this visit record."
-        else:
-            message = (
-                "Integrity verified. This visit record is cryptographically sealed and part of a secure chain."
-                if is_valid
-                else "Integrity check failed! The visit data or chain link has been tampered with."
-            )
-
-        return BlockchainVerificationResponse(
-            is_valid=is_valid,
-            current_hash=visit.visit_hash,
-            computed_hash=generate_visit_hash(visit_data, prev_hash=visit.previous_visit_hash or ""),
-            message=message
-        )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error verifying visit blockchain for {visit_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to verify visit integrity")
-
-
 @router.post("/field-officer/visit/{visit_id}/verify")
 def verify_visit(
     visit_id: int,
@@ -616,10 +514,12 @@ def verify_visit_blockchain(visit_id: int, db: Session = Depends(get_db)):
         visit = db.query(FieldOfficerVisit).filter(FieldOfficerVisit.id == visit_id).first()
 
         if not visit:
-            raise HTTPException(status_code=404, detail="Visit not found")
+            raise HTTPException(status_code=404, detail=f"Visit {visit_id} not found")
 
-        # Chaining logic: previous_visit_hash is already stored in the record
-        # Chaining data components must match generate_visit_hash
+        # Determine previous hash (O(1) from stored column)
+        prev_hash = visit.previous_visit_hash or ""
+
+        # Chaining logic: rebuild the dictionary for verification
         visit_data = {
             'issue_id': visit.issue_id,
             'officer_email': visit.officer_email,
@@ -627,42 +527,29 @@ def verify_visit_blockchain(visit_id: int, db: Session = Depends(get_db)):
             'check_in_longitude': visit.check_in_longitude,
             'check_in_time': visit.check_in_time,
             'visit_notes': visit.visit_notes or '',
-            'previous_visit_hash': visit.previous_visit_hash or ''
+            'previous_visit_hash': prev_hash
         }
 
+        # Use helper for verification
         is_valid = verify_visit_integrity(visit_data, visit.visit_hash)
 
-        # Also verify the link to previous record's hash if it exists
-        if is_valid and visit.previous_visit_hash:
-            # For O(1) we trust the stored previous_visit_hash for the current record's seal,
-            # but we can also check if a record with that hash actually exists
-            prev_exists = db.query(FieldOfficerVisit.id).filter(
-                FieldOfficerVisit.visit_hash == visit.previous_visit_hash
-            ).first()
-            if not prev_exists:
-                # This doesn't mean the CURRENT record is tampered, but the CHAIN is broken
-                message = "Integrity verified, but chain link refers to a missing previous record."
-                return BlockchainVerificationResponse(
-                    is_valid=True,
-                    current_hash=visit.visit_hash,
-                    computed_hash=visit.visit_hash, # verify_visit_integrity already checked this
-                    message=message
-                )
+        # For the response, we need the computed hash
+        computed_hash = generate_visit_hash(visit_data)
 
         if is_valid:
-            message = "Integrity verified. This visit record is cryptographically sealed and has not been tampered with."
+            message = "Integrity verified. This visit record is cryptographically sealed and part of a secure chain."
         else:
             message = "Integrity check failed! The visit data does not match its cryptographic seal."
 
         return BlockchainVerificationResponse(
             is_valid=is_valid,
             current_hash=visit.visit_hash,
-            computed_hash=generate_visit_hash(visit_data),
+            computed_hash=computed_hash,
             message=message
         )
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error verifying visit {visit_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Verification failed")
+        logger.error(f"Error verifying visit blockchain for {visit_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to verify visit integrity")

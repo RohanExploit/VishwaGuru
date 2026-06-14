@@ -57,6 +57,12 @@ def get_service_type() -> ServiceType:
         return "gemini"
     else:
         # Auto-detect: gemini → huggingface → mock
+        # Give precedence to HuggingFace if explicitly preferred via environment
+        prefer_hf = os.environ.get("PREFER_HF", "false").lower() == "true"
+        if prefer_hf and os.environ.get("HF_TOKEN"):
+            print("ℹ️ PREFER_HF is set. Using HUGGINGFACE services.")
+            return "huggingface"
+
         if os.environ.get("GEMINI_API_KEY"):
             return "gemini"
         if os.environ.get("HF_TOKEN"):

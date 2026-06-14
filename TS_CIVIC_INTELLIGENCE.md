@@ -41,4 +41,4 @@ A daily score (0-100) reflecting platform activity and issue resolution.
 -   **Daily Snapshots:** Saved in `data/dailySnapshots/YYYY-MM-DD.json`. Contains the index score, delta, emerging concerns, and the highest severity region.
 
 ## Evolution Logic
-The system evolves continuously. If "Pothole" issues are frequently marked as resolved/critical, the model learns that "Pothole" is more critical and automatically boosts its severity score via `PriorityEngine`. The duplicate threshold dynamically breathes (tightens or relaxes) based on the overall activity density, ensuring the platform remains highly adaptive to real-world infrastructure problems.
+The system evolves continuously. If "Pothole" issues are frequently marked as resolved/critical, the model learns that "Pothole" is more critical and automatically boosts its severity score via `PriorityEngine`. The duplicate threshold dynamically breathes (tightens or relaxes) based on the overall activity density, ensuring the platform remains highly adaptive to real-world infrastructure problems.<!-- Documentation verified -->
