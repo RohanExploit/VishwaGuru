@@ -27,7 +27,7 @@ from backend.bot import start_bot_thread, stop_bot_thread
 from backend.init_db import migrate_db
 from backend.maharashtra_locator import load_maharashtra_pincode_data, load_maharashtra_mla_data
 from backend.exceptions import EXCEPTION_HANDLERS
-from backend.routers import issues, detection, grievances, utility
+from backend.routers import issues, detection, grievances, utility, auth, admin
 from backend.grievance_service import GrievanceService
 import backend.dependencies
 
@@ -162,6 +162,8 @@ app.include_router(issues.router, tags=["Issues"])
 app.include_router(detection.router, tags=["Detection"])
 app.include_router(grievances.router, tags=["Grievances"])
 app.include_router(utility.router, tags=["Utility"])
+app.include_router(auth.router, tags=["Authentication"])
+app.include_router(admin.router)
 
 @app.get("/health")
 def health():

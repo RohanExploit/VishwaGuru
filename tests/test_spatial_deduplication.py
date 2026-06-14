@@ -92,6 +92,44 @@ def test_spatial_utils():
 
     print("✓ Spatial utilities test passed")
 
+def test_international_date_line_handling():
+    """Test that longitude wrapping works correctly near the International Date Line"""
+    print("Testing International Date Line handling...")
+    
+    # Test case 1: Points near +180/-180 boundary
+    # Point at 179.9°E and point at -179.9°W should be ~22km apart, not ~35978km
+    issues = [
+        Issue(id=1, latitude=0.0, longitude=179.9),
+        Issue(id=2, latitude=0.0, longitude=-179.9),
+    ]
+    
+    # Test from eastern side of IDL
+    nearby_east = find_nearby_issues(issues, 0.0, 179.9, radius_meters=30000)
+    print(f"Found {len(nearby_east)} issues within 30km from 179.9°E")
+    assert len(nearby_east) == 2, f"Expected 2 issues (both sides of IDL), got {len(nearby_east)}"
+    
+    # Verify the cross-IDL distance is calculated correctly
+    cross_idl_distance = haversine_distance(0.0, 179.9, 0.0, -179.9)
+    print(f"Cross-IDL distance (179.9 to -179.9): {cross_idl_distance:.2f} meters")
+    assert cross_idl_distance < 25000, f"Cross-IDL distance should be ~22km, got {cross_idl_distance:.2f}m"
+    
+    # Test case 2: High latitude near IDL
+    # At 60°N, longitude degrees are compressed (1° ≈ 55.6km)
+    issues_high_lat = [
+        Issue(id=3, latitude=60.0, longitude=179.5),
+        Issue(id=4, latitude=60.0, longitude=-179.5),
+    ]
+    
+    nearby_high_lat = find_nearby_issues(issues_high_lat, 60.0, 179.5, radius_meters=60000)
+    print(f"Found {len(nearby_high_lat)} issues at 60°N within 60km")
+    assert len(nearby_high_lat) == 2, f"Expected 2 issues at high latitude, got {len(nearby_high_lat)}"
+    
+    high_lat_distance = haversine_distance(60.0, 179.5, 60.0, -179.5)
+    print(f"High latitude cross-IDL distance: {high_lat_distance:.2f} meters")
+    assert 50000 <= high_lat_distance <= 60000, f"High-lat cross-IDL distance should be ~55.6km, got {high_lat_distance:.2f}m"
+    
+    print("✓ International Date Line handling test passed")
+
 def test_deduplication_api():
     """Test the deduplication API endpoints"""
     print("Testing deduplication API...")
@@ -194,6 +232,9 @@ if __name__ == "__main__":
     print("Running spatial deduplication tests...\n")
 
     test_spatial_utils()
+    print()
+
+    test_international_date_line_handling()
     print()
 
     test_deduplication_api()

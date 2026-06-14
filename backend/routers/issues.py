@@ -16,7 +16,7 @@ from backend.schemas import (
     IssueCreateWithDeduplicationResponse, IssueCategory, NearbyIssueResponse,
     DeduplicationCheckResponse, IssueSummaryResponse, VoteResponse,
     IssueStatusUpdateRequest, IssueStatusUpdateResponse, PushSubscriptionRequest,
-    PushSubscriptionResponse
+    PushSubscriptionResponse, BlockchainVerifyResponse
 )
 from backend.utils import (
     check_upload_limits, validate_uploaded_file, save_file_blocking, save_issue_db,
@@ -70,10 +70,10 @@ async def create_issue(
             image_path = os.path.join(upload_dir, filename)
 
             # Process image (validate, resize, strip EXIF)
-            processed_image = await process_uploaded_image(image)
+            _, processed_bytes = await process_uploaded_image(image)
 
             # Save processed image to disk
-            await run_in_threadpool(save_processed_image, processed_image, image_path)
+            await run_in_threadpool(save_processed_image, processed_bytes, image_path)
     except HTTPException:
         # Re-raise HTTP exceptions (from validation)
         raise
@@ -247,23 +247,29 @@ async def create_issue(
 
 @router.post("/api/issues/{issue_id}/vote", response_model=VoteResponse)
 def upvote_issue(issue_id: int, db: Session = Depends(get_db)):
-    issue = db.query(Issue).filter(Issue.id == issue_id).first()
-    if not issue:
+    """
+    Optimized: Atomic upvote without loading full model instance.
+    Directly updates the database and returns only required fields.
+    """
+    # Check existence and increment atomically in one query if possible
+    # but update() in SQLAlchemy doesn't easily return the new value in all dialects (SQLite)
+    # So we do: 1. Update, 2. Fetch only needed columns
+
+    update_count = db.query(Issue).filter(Issue.id == issue_id).update({
+        Issue.upvotes: func.coalesce(Issue.upvotes, 0) + 1
+    }, synchronize_session=False)
+
+    if not update_count:
         raise HTTPException(status_code=404, detail="Issue not found")
 
-    # Increment upvotes atomically
-    if issue.upvotes is None:
-        issue.upvotes = 0
-
-    # Use SQLAlchemy expression for atomic update
-    issue.upvotes = Issue.upvotes + 1
-
     db.commit()
-    db.refresh(issue)
+
+    # Fetch only needed data for response
+    row = db.query(Issue.id, Issue.upvotes).filter(Issue.id == issue_id).first()
 
     return VoteResponse(
-        id=issue.id,
-        upvotes=issue.upvotes,
+        id=row.id,
+        upvotes=row.upvotes or 0,
         message="Issue upvoted successfully"
     )
 
@@ -340,16 +346,8 @@ async def verify_issue_endpoint(
         raise HTTPException(status_code=404, detail="Issue not found")
 
     if image:
-        # AI Verification Logic
-        # Validate uploaded file
-        await validate_uploaded_file(image)
-        # We can ignore the returned PIL image here as we need bytes for the external API
-
-        try:
-            image_bytes = await image.read()
-        except Exception as e:
-            logger.error(f"Invalid image file: {e}", exc_info=True)
-            raise HTTPException(status_code=400, detail="Invalid image file")
+        # AI Verification Logic (Optimized Pipeline)
+        _, image_bytes = await process_uploaded_image(image)
 
         # Construct question
         category = issue.category.lower() if issue.category else "issue"
@@ -613,3 +611,34 @@ def get_recent_issues(
     # Thread-safe cache update
     recent_issues_cache.set(data, cache_key)
     return data
+
+@router.get("/api/issues/{issue_id}/blockchain-verify", response_model=BlockchainVerifyResponse)
+async def verify_issue_blockchain(issue_id: int, db: Session = Depends(get_db)):
+    """
+    Blockchain Verification: Verifies the integrity seal of a report.
+    Checks if the hash of the current issue matches its content and the previous hash.
+    """
+    # Fetch current issue and its predecessor's hash
+    issue = await run_in_threadpool(lambda: db.query(Issue).filter(Issue.id == issue_id).first())
+    if not issue:
+        raise HTTPException(status_code=404, detail="Issue not found")
+
+    # Get predecessor hash
+    prev_issue = await run_in_threadpool(
+        lambda: db.query(Issue.integrity_hash).filter(Issue.id < issue_id).order_by(Issue.id.desc()).first()
+    )
+    prev_hash = prev_issue[0] if prev_issue and prev_issue[0] else ""
+
+    # Recalculate hash
+    hash_content = f"{issue.description}|{issue.category}|{prev_hash}"
+    calculated_hash = hashlib.sha256(hash_content.encode()).hexdigest()
+
+    is_valid = (calculated_hash == issue.integrity_hash)
+
+    return BlockchainVerifyResponse(
+        issue_id=issue.id,
+        is_valid=is_valid,
+        integrity_hash=issue.integrity_hash or "",
+        calculated_hash=calculated_hash,
+        previous_hash=prev_hash
+    )

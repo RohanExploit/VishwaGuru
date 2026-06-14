@@ -5,6 +5,11 @@ from enum import Enum
 
 class IssueCategory(str, Enum):
     ROAD = "Road"
+
+class UserRole(str, Enum):
+    ADMIN = "admin"
+    USER = "user"
+    OFFICIAL = "official"
     WATER = "Water"
     STREETLIGHT = "Streetlight"
     GARBAGE = "Garbage"
@@ -266,3 +271,10 @@ class ClosureStatusResponse(BaseModel):
     required_confirmations: int = Field(..., description="Number of confirmations needed")
     confirmation_deadline: Optional[datetime] = Field(None, description="Deadline for confirmations")
     days_remaining: Optional[int] = Field(None, description="Days until deadline")
+
+class BlockchainVerifyResponse(BaseModel):
+    issue_id: int = Field(..., description="Issue ID")
+    is_valid: bool = Field(..., description="Whether the integrity seal is valid")
+    integrity_hash: str = Field(..., description="Current integrity hash")
+    calculated_hash: str = Field(..., description="Calculated hash for verification")
+    previous_hash: str = Field(..., description="Previous hash in the chain")
