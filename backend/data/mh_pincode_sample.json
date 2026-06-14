@@ -7,7 +7,7 @@
   },
   {
     "pincode": "400001",
-    "district": "Mumbai",
+    "district": "Mumbai City",
     "state": "Maharashtra",
     "assembly_constituency": "Colaba"
   },
@@ -19,7 +19,7 @@
   },
   {
     "pincode": "400020",
-    "district": "Mumbai",
+    "district": "Mumbai City",
     "state": "Maharashtra",
     "assembly_constituency": "Mumbadevi"
   },
@@ -28,5 +28,95 @@
     "district": "Nagpur",
     "state": "Maharashtra",
     "assembly_constituency": "Nagpur Central"
+  },
+  {
+    "pincode": "400601",
+    "district": "Thane",
+    "state": "Maharashtra",
+    "assembly_constituency": "Thane"
+  },
+  {
+    "pincode": "400053",
+    "district": "Mumbai Suburban",
+    "state": "Maharashtra",
+    "assembly_constituency": "Bandra West"
+  },
+  {
+    "pincode": "400064",
+    "district": "Mumbai Suburban",
+    "state": "Maharashtra",
+    "assembly_constituency": "Andheri East"
+  },
+  {
+    "pincode": "400071",
+    "district": "Mumbai Suburban",
+    "state": "Maharashtra",
+    "assembly_constituency": "Vikhroli"
+  },
+  {
+    "pincode": "400003",
+    "district": "Mumbai City",
+    "state": "Maharashtra",
+    "assembly_constituency": "Malabar Hill"
+  },
+  {
+    "pincode": "400607",
+    "district": "Thane",
+    "state": "Maharashtra",
+    "assembly_constituency": "Kalyan East"
+  },
+  {
+    "pincode": "400066",
+    "district": "Mumbai Suburban",
+    "state": "Maharashtra",
+    "assembly_constituency": "Borivali"
+  },
+  {
+    "pincode": "411004",
+    "district": "Pune",
+    "state": "Maharashtra",
+    "assembly_constituency": "Kasba Peth"
+  },
+  {
+    "pincode": "411030",
+    "district": "Pune",
+    "state": "Maharashtra",
+    "assembly_constituency": "Kothrud"
+  },
+  {
+    "pincode": "411045",
+    "district": "Pune",
+    "state": "Maharashtra",
+    "assembly_constituency": "Chinchwad"
+  },
+  {
+    "pincode": "440010",
+    "district": "Nagpur",
+    "state": "Maharashtra",
+    "assembly_constituency": "Nagpur South West"
+  },
+  {
+    "pincode": "422001",
+    "district": "Nashik",
+    "state": "Maharashtra",
+    "assembly_constituency": "Nashik Central"
+  },
+  {
+    "pincode": "422003",
+    "district": "Nashik",
+    "state": "Maharashtra",
+    "assembly_constituency": "Nashik East"
+  },
+  {
+    "pincode": "431001",
+    "district": "Aurangabad",
+    "state": "Maharashtra",
+    "assembly_constituency": "Aurangabad Central"
+  },
+  {
+    "pincode": "431005",
+    "district": "Aurangabad",
+    "state": "Maharashtra",
+    "assembly_constituency": "Aurangabad West"
   }
 ]
