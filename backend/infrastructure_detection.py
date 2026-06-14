@@ -1,8 +1,8 @@
-from hf_service import detect_infrastructure_clip
+from backend.local_ml_service import detect_infrastructure_local
 from PIL import Image
 
-def detect_infrastructure(image: Image.Image):
+async def detect_infrastructure(image: Image.Image):
     """
-    Wrapper for infrastructure damage detection using HF Service.
+    Wrapper for infrastructure damage detection using Local ML Service.
     """
-    return detect_infrastructure_clip(image)
+    return await detect_infrastructure_local(image)

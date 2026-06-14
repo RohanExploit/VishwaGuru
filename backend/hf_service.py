@@ -1,53 +1,121 @@
+"""
+DEPRECATED: This module is no longer used.
+Please use local_ml_service.py for local ML model-based detection instead of Hugging Face API.
+
+This file is kept for reference purposes only.
+"""
 import os
-from huggingface_hub import InferenceClient
-from PIL import Image
 import io
+import httpx
+import base64
+from typing import Union, List, Dict, Any
+from PIL import Image
+import asyncio
+from retry_utils import exponential_backoff_retry
+import logging
+import base64
 
-# Initialize client
+# Configure logging
+logger = logging.getLogger(__name__)
+
 # HF_TOKEN is optional for public models but recommended for higher limits
-# If token is None, it runs without authentication (public access)
 token = os.environ.get("HF_TOKEN")
-client = InferenceClient(token=token)
+headers = {"Authorization": f"Bearer {token}"} if token else {}
+API_URL = "https://api-inference.huggingface.co/models/openai/clip-vit-base-patch32"
+CAPTION_API_URL = "https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-large"
 
-def detect_vandalism_clip(image: Image.Image):
+async def query_hf_api(image_bytes, labels, client=None):
     """
-    Detects vandalism/graffiti using Zero-Shot Image Classification with CLIP.
+    Queries Hugging Face API using a shared or new HTTP client.
+    """
+    if client:
+        return await _make_request(client, image_bytes, labels)
+
+    async with httpx.AsyncClient() as new_client:
+        return await _make_request(new_client, image_bytes, labels)
+
+@exponential_backoff_retry(max_retries=3, base_delay=1.0, max_delay=10.0)
+async def _make_request_with_retry(client, image_bytes, labels):
+    """
+    Internal function that makes HF API request with retry logic.
+    Raises exception on failure to allow retry decorator to work.
+    """
+    image_base64 = base64.b64encode(image_bytes).decode('utf-8')
+
+    payload = {
+        "inputs": image_base64,
+        "parameters": {
+            "candidate_labels": labels
+        }
+    }
+
+    response = await client.post(API_URL, headers=headers, json=payload, timeout=20.0)
+    if response.status_code != 200:
+        error_msg = f"HF API Error: {response.status_code} - {response.text}"
+        logger.error(error_msg)
+        raise Exception(error_msg)
+    return response.json()
+
+
+async def _make_request(client, image_bytes, labels):
+    """
+    Makes request to Hugging Face API with retry logic and proper error handling.
     """
     try:
-        # labels to classify
+        return await _make_request_with_retry(client, image_bytes, labels)
+    except Exception as e:
+        logger.error(f"HF API Request failed after all retries: {e}", exc_info=True)
+        return []
+
+        payload = {
+            "inputs": image_base64,
+            "parameters": {
+                "candidate_labels": labels
+            }
+        }
+
+        try:
+            response = await client.post(API_URL, headers=headers, json=payload, timeout=20.0)
+            if response.status_code != 200:
+                logger.error(f"HF API Error: {response.status_code} - {response.text}")
+                raise ExternalAPIException("Hugging Face API", f"HTTP {response.status_code}: {response.text}")
+            return response.json()
+        except httpx.HTTPError as e:
+            logger.error(f"HF API HTTP Error: {e}")
+            raise ExternalAPIException("Hugging Face API", str(e)) from e
+        except Exception as e:
+            logger.error(f"HF API Request Exception: {e}")
+            raise ExternalAPIException("Hugging Face API", str(e)) from e
+
+def _prepare_image_bytes(image: Union[Image.Image, bytes]) -> bytes:
+    """
+    Detects vandalism/graffiti using Zero-Shot Image Classification with CLIP (Async).
+    Includes retry logic with exponential backoff for transient failures.
+    """
+    try:
         labels = ["graffiti", "vandalism", "spray paint", "street art", "clean wall", "public property", "normal street"]
 
-        # InferenceClient.zero_shot_image_classification
-        # We need to send image bytes
-        # Convert PIL image to bytes
-        img_byte_arr = io.BytesIO()
-        image.save(img_byte_arr, format=image.format if image.format else 'JPEG')
-        img_byte_arr = img_byte_arr.getvalue()
+        img_bytes = _prepare_image_bytes(image)
 
-        results = client.zero_shot_image_classification(
-            image=img_byte_arr,
-            labels=labels,
-            model="openai/clip-vit-base-patch32"
-        )
+        results = await query_hf_api(img_bytes, labels, client=client)
 
-        # Results is a list of dicts: [{'label': 'graffiti', 'score': 0.9}, ...]
-        # Filter for vandalism related
+        # Results format: [{'label': 'graffiti', 'score': 0.9}, ...]
+        if not isinstance(results, list):
+             return []
+
         vandalism_labels = ["graffiti", "vandalism", "spray paint"]
         detected = []
 
         for res in results:
-            if res['label'] in vandalism_labels and res['score'] > 0.4: # Threshold
+            if isinstance(res, dict) and res.get('label') in vandalism_labels and res.get('score', 0) > 0.4:
                  detected.append({
                      "label": res['label'],
                      "confidence": res['score'],
-                     "box": [] # CLIP doesn't give boxes, it's classification
+                     "box": []
                  })
-
         return detected
-
     except Exception as e:
-        print(f"HF Detection Error: {e}")
-        # Return empty list on error
+        logger.error(f"HF Vandalism Detection Error: {e}", exc_info=True)
         return []
 
 def detect_fire_clip(image: Image.Image):
@@ -134,82 +202,60 @@ def detect_stray_animal_clip(image: Image.Image):
 
 def detect_infrastructure_clip(image: Image.Image):
     """
-    Detects broken infrastructure (streetlights, signs) using Zero-Shot Image Classification with CLIP.
+    Detects infrastructure damage using Zero-Shot Image Classification with CLIP (Async).
+    Includes retry logic with exponential backoff for transient failures.
     """
     try:
-        # labels to classify
         labels = ["broken streetlight", "damaged traffic sign", "fallen tree", "damaged fence", "pothole", "clean street", "normal infrastructure"]
 
-        # InferenceClient.zero_shot_image_classification
-        # We need to send image bytes
-        # Convert PIL image to bytes
-        img_byte_arr = io.BytesIO()
-        image.save(img_byte_arr, format=image.format if image.format else 'JPEG')
-        img_byte_arr = img_byte_arr.getvalue()
+        img_bytes = _prepare_image_bytes(image)
 
-        results = client.zero_shot_image_classification(
-            image=img_byte_arr,
-            labels=labels,
-            model="openai/clip-vit-base-patch32"
-        )
+        results = await query_hf_api(img_bytes, labels, client=client)
 
-        # Results is a list of dicts: [{'label': 'broken streetlight', 'score': 0.9}, ...]
-        # Filter for infrastructure damage related
+        if not isinstance(results, list):
+             return []
+
         damage_labels = ["broken streetlight", "damaged traffic sign", "fallen tree", "damaged fence"]
         detected = []
 
         for res in results:
-            if res['label'] in damage_labels and res['score'] > 0.4: # Threshold
+            if isinstance(res, dict) and res.get('label') in damage_labels and res.get('score', 0) > 0.4:
                  detected.append({
                      "label": res['label'],
                      "confidence": res['score'],
-                     "box": [] # CLIP doesn't give boxes, it's classification
+                     "box": []
                  })
-
         return detected
-
     except Exception as e:
-        print(f"HF Detection Error: {e}")
-        # Return empty list on error
+        logger.error(f"HF Infrastructure Detection Error: {e}", exc_info=True)
         return []
 
-def detect_flooding_clip(image: Image.Image):
+async def detect_flooding_clip(image: Image.Image, client: httpx.AsyncClient = None):
     """
-    Detects flooding/waterlogging using Zero-Shot Image Classification with CLIP.
+    Detects flooding/waterlogging using Zero-Shot Image Classification with CLIP (Async).
+    Includes retry logic with exponential backoff for transient failures.
     """
     try:
-        # labels to classify
         labels = ["flooded street", "waterlogging", "blocked drain", "heavy rain", "dry street", "normal road"]
 
-        # InferenceClient.zero_shot_image_classification
-        # We need to send image bytes
-        # Convert PIL image to bytes
-        img_byte_arr = io.BytesIO()
-        image.save(img_byte_arr, format=image.format if image.format else 'JPEG')
-        img_byte_arr = img_byte_arr.getvalue()
+        img_bytes = _prepare_image_bytes(image)
 
-        results = client.zero_shot_image_classification(
-            image=img_byte_arr,
-            labels=labels,
-            model="openai/clip-vit-base-patch32"
-        )
+        results = await query_hf_api(img_bytes, labels, client=client)
 
-        # Results is a list of dicts: [{'label': 'flooded street', 'score': 0.9}, ...]
-        # Filter for flooding related
+        if not isinstance(results, list):
+             return []
+
         flooding_labels = ["flooded street", "waterlogging", "blocked drain", "heavy rain"]
         detected = []
 
         for res in results:
-            if res['label'] in flooding_labels and res['score'] > 0.4: # Threshold
+            if isinstance(res, dict) and res.get('label') in flooding_labels and res.get('score', 0) > 0.4:
                  detected.append({
                      "label": res['label'],
                      "confidence": res['score'],
-                     "box": [] # CLIP doesn't give boxes, it's classification
+                     "box": []
                  })
-
         return detected
-
     except Exception as e:
-        print(f"HF Detection Error: {e}")
-        # Return empty list on error
+        logger.error(f"HF Flooding Detection Error: {e}", exc_info=True)
         return []
