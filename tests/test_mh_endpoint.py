@@ -35,7 +35,7 @@ def test_maharashtra_endpoint():
         print(f"   Party: {data['mla'].get('party')}")
         assert data['pincode'] == '411001'
         assert data['district'] == 'Pune'
-        assert data['mla']['name'] == 'Sample MLA Pune'
+        assert data['mla']['name'] == 'Ravindra Dhangekar'
     else:
         print(f"   ✗ Failed: {response.json()}")
         return False
@@ -52,8 +52,8 @@ def test_maharashtra_endpoint():
         print(f"   Constituency: {data.get('assembly_constituency')}")
         print(f"   MLA: {data['mla'].get('name')}")
         assert data['pincode'] == '400001'
-        assert data['district'] == 'Mumbai'
-        assert data['mla']['name'] == 'Sample MLA Colaba'
+        assert data['district'] == 'Mumbai City'
+        assert data['mla']['name'] == 'Rahul Narwekar'
     else:
         print(f"   ✗ Failed: {response.json()}")
         return False
@@ -95,7 +95,6 @@ def test_maharashtra_endpoint():
     print("\n" + "="*60)
     print("✓ All tests passed!")
     print("="*60)
-    return True
 
 
 if __name__ == "__main__":
