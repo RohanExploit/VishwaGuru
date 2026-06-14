@@ -43,7 +43,8 @@ services:
         value: 60
     healthCheckPath: /health
     # Add disk for SQLite database (if using SQLite)
+    # Mounted at data/db to avoid hiding other repo files in data/
     disk:
       name: vishwaguru-data
-      mountPath: /opt/render/project/src/data
+      mountPath: /opt/render/project/src/data/db
       sizeGB: 1

@@ -9,7 +9,7 @@ ultralyticsplus==0.0.28
 ultralytics
 opencv-python-headless
 huggingface-hub
-httpx
+httpx<0.28.0
 python-magic
 pywebpush
 # Local ML dependencies (Issue #76)
@@ -17,7 +17,7 @@ torch
 transformers
 Pillow
 firebase-functions
-firebase-admin
+firebase-admin<7.0.0
 a2wsgi
 # Spatial deduplication dependencies
 scikit-learn

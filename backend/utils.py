@@ -16,7 +16,6 @@ from backend.cache import user_upload_cache
 from backend.models import Issue
 from backend.schemas import DetectionResponse
 from backend.pothole_detection import validate_image_for_processing
-from passlib.context import CryptContext
 
 # Handle python-magic gracefully
 HAS_MAGIC = False
@@ -300,23 +299,31 @@ def save_issue_db(db: Session, issue: Issue):
 
 # --- Password Hashing Utils ---
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+import bcrypt as _bcrypt
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    return _bcrypt.checkpw(
+        plain_password.encode("utf-8"),
+        hashed_password.encode("utf-8")
+    )
 
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    return _bcrypt.hashpw(
+        password.encode("utf-8"),
+        _bcrypt.gensalt()
+    ).decode("utf-8")
+
+
 
 def generate_reference_id() -> str:
     """
-    Generate a secure, random reference ID (e.g., A1B2-C3D4-E5F6).
-    Used for issue tracking and government updates.
+    Generate a unique reference ID for voice submissions.
+    Format: VOICE-YYYYMMDD-HHMMSS-XXXX (random suffix)
     """
-    alphabet = string.ascii_uppercase + string.digits
-    # Generate 3 blocks of 4 characters
-    blocks = [
-        ''.join(secrets.choice(alphabet) for _ in range(4))
-        for _ in range(3)
-    ]
-    return '-'.join(blocks)
+    import random
+    import string
+    from datetime import datetime
+    
+    timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
+    random_suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+    return f"VOICE-{timestamp}-{random_suffix}"

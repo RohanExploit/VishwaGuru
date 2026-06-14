@@ -96,6 +96,7 @@ const ResolutionProofCapture = ({ grievanceId, authorityEmail, onEvidenceSubmitt
         const c = 2 * Math.asin(Math.sqrt(a));
         const distance = R * c;
 
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setGeofenceStatus({
             distance: Math.round(distance),
             isInside: distance <= token.geofence_radius_meters,
