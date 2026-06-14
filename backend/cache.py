@@ -2,7 +2,7 @@ import time
 import logging
 import threading
 from typing import Any, Optional
-import collections
+from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -10,17 +10,15 @@ class ThreadSafeCache:
     """
     Thread-safe cache implementation with TTL and memory management.
     Fixes race conditions and implements proper cache expiration.
-    Utilizes an OrderedDict for O(1) LRU operations.
     """
     
     def __init__(self, ttl: int = 300, max_size: int = 100):
-        self._data = collections.OrderedDict()
+        self._data = {}
         self._timestamps = {}
         self._ttl = ttl  # Time to live in seconds
         self._max_size = max_size  # Maximum number of cache entries
         self._lock = threading.RLock()  # Reentrant lock for thread safety
-        self._hits = 0
-        self._misses = 0
+        self._access_count = {}  # Track access frequency for LRU eviction
         
     def get(self, key: str = "default") -> Optional[Any]:
         """
@@ -32,15 +30,13 @@ class ThreadSafeCache:
             # Check if key exists and is not expired
             if key in self._data and key in self._timestamps:
                 if current_time - self._timestamps[key] < self._ttl:
-                    # Move to end (most recently used)
-                    self._data.move_to_end(key)
-                    self._hits += 1
+                    # Update access count for LRU
+                    self._access_count[key] = self._access_count.get(key, 0) + 1
                     return self._data[key]
                 else:
                     # Expired entry - remove it
                     self._remove_key(key)
             
-            self._misses += 1
             return None
     
     def set(self, data: Any, key: str = "default") -> None:
@@ -57,10 +53,10 @@ class ThreadSafeCache:
             if len(self._data) >= self._max_size and key not in self._data:
                 self._evict_lru()
             
-            # Set new data atomically (adds to end, updating if exists)
+            # Set new data atomically
             self._data[key] = data
-            self._data.move_to_end(key)
             self._timestamps[key] = current_time
+            self._access_count[key] = 1
             
             logger.debug(f"Cache set: key={key}, size={len(self._data)}")
     
@@ -79,6 +75,7 @@ class ThreadSafeCache:
         with self._lock:
             self._data.clear()
             self._timestamps.clear()
+            self._access_count.clear()
             logger.debug("Cache cleared")
     
     def get_stats(self) -> dict:
@@ -96,9 +93,7 @@ class ThreadSafeCache:
                 "total_entries": len(self._data),
                 "expired_entries": expired_count,
                 "max_size": self._max_size,
-                "ttl_seconds": self._ttl,
-                "hits": self._hits,
-                "misses": self._misses
+                "ttl_seconds": self._ttl
             }
     
     def _remove_key(self, key: str) -> None:
@@ -108,6 +103,7 @@ class ThreadSafeCache:
         """
         self._data.pop(key, None)
         self._timestamps.pop(key, None)
+        self._access_count.pop(key, None)
     
     def _cleanup_expired(self) -> None:
         """
@@ -131,16 +127,13 @@ class ThreadSafeCache:
         Internal method to evict least recently used entry.
         Must be called within lock context.
         """
-        if not self._data:
+        if not self._access_count:
             return
 
-        # OrderedDict popitem(last=False) removes the first (least recently used) element
-        try:
-            lru_key, _ = self._data.popitem(last=False)
-            self._timestamps.pop(lru_key, None)
-            logger.debug(f"Evicted LRU cache entry: {lru_key}")
-        except KeyError:
-            pass
+        # Find key with lowest access count
+        lru_key = min(self._access_count.keys(), key=lambda k: self._access_count[k])
+        self._remove_key(lru_key)
+        logger.debug(f"Evicted LRU cache entry: {lru_key}")
 
 class SimpleCache:
     """
@@ -154,7 +147,7 @@ class SimpleCache:
         return self._cache.get("default")
     
     def set(self, data):
-        self._cache.set(data=data, key="default")
+        self._cache.set(data, "default")
     
     def invalidate(self):
         self._cache.invalidate("default")
@@ -163,4 +156,3 @@ class SimpleCache:
 recent_issues_cache = ThreadSafeCache(ttl=300, max_size=20)  # 5 minutes TTL, max 20 entries
 nearby_issues_cache = ThreadSafeCache(ttl=60, max_size=100)  # 1 minute TTL, max 100 entries
 user_upload_cache = ThreadSafeCache(ttl=3600, max_size=1000)  # 1 hour TTL for upload limits
-blockchain_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=1)

@@ -51,7 +51,7 @@ function SupabaseExample() {
 
     useEffect(() => {
         if (fetchedReports) {
-            setReports(fetchedReports);
+            setTimeout(() => setReports(fetchedReports), 0);
         }
     }, [fetchedReports]);
 
