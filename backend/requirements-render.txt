@@ -13,7 +13,6 @@ Pillow
 firebase-functions
 firebase-admin
 a2wsgi
-scikit-learn
 numpy
 python-jose[cryptography]
 passlib[bcrypt]

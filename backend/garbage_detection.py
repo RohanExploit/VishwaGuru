@@ -34,8 +34,13 @@ def get_model():
     global _model
     if _model is None:
         with _model_lock:
-            if _model is None:  # Double check inside lock
-                _model = load_model()
+            try:
+                # Double check inside lock to avoid race conditions
+                if _model is None:
+                    _model = load_model()
+            except Exception as e:
+                logger.error(f"Error initializing garbage model: {e}")
+                return None
     return _model
 
 def detect_garbage(image_source):
@@ -48,7 +53,12 @@ def detect_garbage(image_source):
     Returns:
         List of detections. Each detection is a dict with 'box', 'confidence', 'label'.
     """
-    model = get_model()
+    try:
+        model = get_model()
+    except Exception:
+        # Catch any initialization errors if get_model raises, though it returns None above
+        model = None
+
     if not model:
         logger.warning("Garbage model not available, returning empty detections.")
         return []

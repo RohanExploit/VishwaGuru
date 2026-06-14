@@ -456,3 +456,19 @@ async def detect_abandoned_vehicle_clip(image: Union[Image.Image, bytes], client
     labels = ["abandoned car", "rusted vehicle", "car with flat tires", "wrecked car", "normal parked car"]
     targets = ["abandoned car", "rusted vehicle", "car with flat tires", "wrecked car"]
     return await _detect_clip_generic(image, labels, targets, client)
+
+async def detect_public_facilities_clip(image: Union[Image.Image, bytes], client: httpx.AsyncClient = None):
+    """
+    Detects damaged public facilities like benches, fountains, or playground equipment.
+    """
+    labels = ["broken bench", "damaged park bench", "broken water fountain", "damaged playground equipment", "broken swing", "graffiti on facility", "good condition bench", "clean park"]
+    targets = ["broken bench", "damaged park bench", "broken water fountain", "damaged playground equipment", "broken swing", "graffiti on facility"]
+    return await _detect_clip_generic(image, labels, targets, client)
+
+async def detect_construction_safety_clip(image: Union[Image.Image, bytes], client: httpx.AsyncClient = None):
+    """
+    Detects construction safety violations.
+    """
+    labels = ["unsafe scaffolding", "construction worker without helmet", "construction debris blocking path", "unsecured construction site", "safe construction site", "worker with helmet"]
+    targets = ["unsafe scaffolding", "construction worker without helmet", "construction debris blocking path", "unsecured construction site"]
+    return await _detect_clip_generic(image, labels, targets, client)
