@@ -138,7 +138,10 @@ if frontend_url != "*" and not (frontend_url.startswith("http://") or frontend_u
     )
     frontend_url = "*"
 
-allowed_origins = [frontend_url]
+if frontend_url == "*":
+    allowed_origins = ["*"]
+else:
+    allowed_origins = [frontend_url]
 
 if not is_production:
     dev_origins = [
