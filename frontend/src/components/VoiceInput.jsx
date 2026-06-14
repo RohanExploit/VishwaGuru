@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Mic, MicOff, Loader2 } from 'lucide-react';
 
 const VoiceInput = ({ onTranscript, language = 'en' }) => {
   const [isListening, setIsListening] = useState(false);
-  const [recognition, setRecognition] = useState(null);
+  const recognitionRef = useRef(null);
   const [error, setError] = useState(null);
+  const [supported] = useState(!!(window.SpeechRecognition || window.webkitSpeechRecognition));
 
   const getLanguageCode = (lang) => {
     const langMap = {
@@ -16,14 +17,9 @@ const VoiceInput = ({ onTranscript, language = 'en' }) => {
   };
 
   useEffect(() => {
-    // Check if browser supports SpeechRecognition
+    if (!supported) return;
+
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-    if (!SpeechRecognition) {
-      setError('Speech recognition not supported in this browser');
-      return;
-    }
-
     const recognitionInstance = new SpeechRecognition();
     recognitionInstance.continuous = false;
     recognitionInstance.interimResults = false;
@@ -48,7 +44,7 @@ const VoiceInput = ({ onTranscript, language = 'en' }) => {
       setIsListening(false);
     };
 
-    setRecognition(recognitionInstance);
+    recognitionRef.current = recognitionInstance;
 
     return () => {
       if (recognitionInstance) {
@@ -58,14 +54,22 @@ const VoiceInput = ({ onTranscript, language = 'en' }) => {
   }, [language, onTranscript]);
 
   const toggleListening = () => {
-    if (!recognition) return;
+    if (!recognitionRef.current) return;
 
     if (isListening) {
-      recognition.stop();
+      recognitionRef.current.stop();
     } else {
-      recognition.start();
+      recognitionRef.current.start();
     }
   };
+
+  if (!supported) {
+    return (
+      <div className="text-red-500 text-sm mt-1">
+        Speech recognition not supported
+      </div>
+    );
+  }
 
   if (error) {
     return (

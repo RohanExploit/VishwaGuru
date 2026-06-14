@@ -85,11 +85,12 @@ def test_manual_verification_upvote(client):
         app.dependency_overrides = {}
 
 # Test AI Verification
-@patch("backend.routers.issues.validate_uploaded_file", new_callable=AsyncMock)
+@patch("backend.routers.issues.process_uploaded_image", new_callable=AsyncMock)
 @patch("backend.routers.issues.verify_resolution_vqa", new_callable=AsyncMock)
-def test_ai_verification_resolved(mock_vqa, mock_validate, client):
+def test_ai_verification_resolved(mock_vqa, mock_process, client):
     # Setup mocks
-    mock_validate.return_value = None
+    from PIL import Image
+    mock_process.return_value = (Image.new('RGB', (10, 10)), b"fakeimage")
     mock_vqa.return_value = {
         "answer": "no",
         "confidence": 0.95

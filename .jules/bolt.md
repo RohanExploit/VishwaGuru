@@ -29,3 +29,7 @@
 ## 2026-02-06 - Column Projection vs Full ORM Loading
 **Learning:** Loading full SQLAlchemy model instances for list views or spatial checks is significantly slower and more memory-intensive than selecting only required columns, especially when tables contain large JSON or Text fields.
 **Action:** Use `db.query(Model.col1, Model.col2)` for read-heavy list endpoints and spatial candidate searches. Note that projected results are immutable `Row` objects, so use `db.query(Model).filter(...).update()` for atomic modifications.
+
+## 2026-02-06 - Spatial Query Optimization
+**Learning:** For small distances (e.g., < 1km), the Haversine formula is computationally expensive due to multiple trigonometric calls. An equirectangular approximation (Euclidean distance on scaled lat/lon) is ~4x faster and sufficiently accurate for pre-filtering.
+**Action:** Use `equirectangular_distance_squared` as a fast pre-filter to identify candidates within radius, then compute accurate Haversine distance only for those candidates. Always handle longitude wrapping at the International Date Line. Return Haversine distances to callers for accurate great-circle measurements.

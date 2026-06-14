@@ -227,7 +227,7 @@ class UnifiedDetectionService:
         else:
             logger.error("No detection backend available")
             raise ServiceUnavailableException("Detection service", details={"detection_type": "garbage"})
-    
+
     async def detect_all(self, image: Image.Image) -> Dict[str, List[Dict]]:
         """
         Run all detection types on an image.
