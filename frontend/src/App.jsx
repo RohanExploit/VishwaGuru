@@ -378,6 +378,11 @@ function AppContent() {
                   <GrievanceView />
                 </ProtectedRoute>
               } />
+              <Route path="/insight" element={
+                <ProtectedRoute>
+                  <CivicInsight />
+                </ProtectedRoute>
+              } />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

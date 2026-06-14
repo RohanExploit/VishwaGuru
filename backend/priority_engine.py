@@ -1,11 +1,13 @@
 import re
 import math
 from typing import List, Dict, Any, Optional
+from backend.adaptive_weights import adaptive_weights
 
 class PriorityEngine:
     """
     A rule-based AI engine for prioritizing civic issues.
     Analyzes text descriptions to determine severity, urgency, and category.
+    Now powered by AdaptiveWeights for self-improving intelligence.
     """
 
     def __init__(self):
@@ -117,6 +119,36 @@ class PriorityEngine:
         urgency_score, urgency_reasons = self._calculate_urgency(combined_text, severity_score)
         categories = self._detect_categories(combined_text)
 
+        # Apply Adaptive Category Weights
+        multipliers = adaptive_weights.get_category_multipliers()
+        max_multiplier = 1.0
+        for cat in categories:
+            mult = multipliers.get(cat, 1.0)
+            if mult > max_multiplier:
+                max_multiplier = mult
+
+        if max_multiplier > 1.05: # Threshold to report boost
+            # Boost score
+            old_score = severity_score
+            severity_score = int(severity_score * max_multiplier)
+            severity_score = min(100, severity_score)
+
+            # Add reasoning
+            if severity_score > old_score:
+                severity_reasons.append(f"Severity score boosted by x{max_multiplier:.2f} based on historical trends for this category.")
+
+            # Re-evaluate label based on boosted score
+            if severity_score >= 90:
+                severity_label = "Critical"
+            elif severity_score >= 70:
+                severity_label = "High"
+            elif severity_score >= 40:
+                severity_label = "Medium"
+            else:
+                # If score boosted from Low to something else, update label
+                if severity_score < 40:
+                    severity_label = "Low"
+
         # Explainability
         reasoning = severity_reasons + urgency_reasons
         if not reasoning:
@@ -135,8 +167,10 @@ class PriorityEngine:
         reasons = []
         label = "Low"
 
+        severity_keywords = adaptive_weights.get_severity_keywords()
+
         # Check for critical keywords (highest priority)
-        found_critical = [word for word in self.severity_keywords["critical"] if word in text]
+        found_critical = [word for word in severity_keywords.get("critical", []) if word in text]
         if found_critical:
             score = 90
             label = "Critical"
@@ -144,7 +178,7 @@ class PriorityEngine:
 
         # Check for high keywords
         if score < 70:
-            found_high = [word for word in self.severity_keywords["high"] if word in text]
+            found_high = [word for word in severity_keywords.get("high", []) if word in text]
             if found_high:
                 score = max(score, 70)
                 label = "High" if score == 70 else label
@@ -152,7 +186,7 @@ class PriorityEngine:
 
         # Check for medium keywords
         if score < 40:
-            found_medium = [word for word in self.severity_keywords["medium"] if word in text]
+            found_medium = [word for word in severity_keywords.get("medium", []) if word in text]
             if found_medium:
                 score = max(score, 40)
                 label = "Medium" if score == 40 else label
@@ -171,8 +205,10 @@ class PriorityEngine:
         urgency = severity_score
         reasons = []
 
+        urgency_patterns = adaptive_weights.get_urgency_patterns()
+
         # Apply regex modifiers
-        for pattern, weight in self.urgency_patterns:
+        for pattern, weight in urgency_patterns:
             if re.search(pattern, text):
                 urgency += weight
                 reasons.append(f"Urgency increased by context matching pattern: '{pattern}'")
@@ -183,11 +219,10 @@ class PriorityEngine:
         return urgency, reasons
 
     def _detect_categories(self, text: str) -> List[str]:
-        # Sort categories by length of match to prioritize specific over general?
-        # Or just count matches.
+        categories_map = adaptive_weights.get_category_keywords()
 
         scored_categories = []
-        for category, keywords in self.categories.items():
+        for category, keywords in categories_map.items():
             count = 0
             for k in keywords:
                 if k in text:

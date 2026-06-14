@@ -5,11 +5,12 @@ import base64
 from typing import Union, List, Dict, Any
 from PIL import Image
 import logging
+from backend.config import get_hf_token
 
 logger = logging.getLogger(__name__)
 
 # HF_TOKEN should be set in environment variables
-token = os.environ.get("HF_TOKEN")
+token = get_hf_token()
 headers = {"Authorization": f"Bearer {token}"} if token else {}
 
 # Zero-Shot Image Classification Model

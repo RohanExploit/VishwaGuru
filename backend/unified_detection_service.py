@@ -127,7 +127,7 @@ class UnifiedDetectionService:
             return await detect_vandalism_local(image)
         
         elif backend == "huggingface":
-            from hf_service import detect_vandalism_clip
+            from backend.hf_api_service import detect_vandalism_clip
             return await detect_vandalism_clip(image)
         
         else:
@@ -155,7 +155,7 @@ class UnifiedDetectionService:
             return await detect_infrastructure_local(image)
         
         elif backend == "huggingface":
-            from hf_service import detect_infrastructure_clip
+            from backend.hf_api_service import detect_infrastructure_clip
             return await detect_infrastructure_clip(image)
         
         else:
@@ -183,7 +183,7 @@ class UnifiedDetectionService:
             return await detect_flooding_local(image)
         
         elif backend == "huggingface":
-            from hf_service import detect_flooding_clip
+            from backend.hf_api_service import detect_flooding_clip
             return await detect_flooding_clip(image)
         
         else:

@@ -25,9 +25,13 @@ from backend.ai_factory import create_all_ai_services
 from backend.ai_interfaces import initialize_ai_services
 from backend.bot import start_bot_thread, stop_bot_thread
 from backend.init_db import migrate_db
+from backend.scheduler import start_scheduler
 from backend.maharashtra_locator import load_maharashtra_pincode_data, load_maharashtra_mla_data
 from backend.exceptions import EXCEPTION_HANDLERS
-from backend.routers import issues, detection, grievances, utility, auth, admin, analysis, voice
+from backend.routers import (
+    issues, detection, grievances, utility, auth,
+    admin, analysis, voice, field_officer, resolution_proof
+)
 from backend.grievance_service import GrievanceService
 import backend.dependencies
 
@@ -75,10 +79,13 @@ async def lifespan(app: FastAPI):
     # Startup: Database setup (Blocking but necessary for app consistency)
     try:
         logger.info("Starting database initialization...")
-        await run_in_threadpool(Base.metadata.create_all, bind=engine)
+        # Use a timeout for DB operations during startup to prevent hanging
+        await asyncio.wait_for(run_in_threadpool(Base.metadata.create_all, bind=engine), timeout=10)
         logger.info("Base.metadata.create_all completed.")
-        await run_in_threadpool(migrate_db)
+        await asyncio.wait_for(run_in_threadpool(migrate_db), timeout=20)
         logger.info("migrate_db completed. Database initialized successfully.")
+    except asyncio.TimeoutError:
+        logger.error("Database initialization timed out!")
     except Exception as e:
         logger.error(f"Database initialization failed: {e}", exc_info=True)
         # We continue to allow health checks even if DB has issues (for debugging)
@@ -95,6 +102,9 @@ async def lifespan(app: FastAPI):
     # Launch background tasks that are non-blocking for startup/health-check
     asyncio.create_task(background_initialization(app))
     
+    # Start the daily civic intelligence refinement scheduler
+    start_scheduler()
+
     yield
     
     # Shutdown: Close Shared HTTP Client
@@ -124,6 +134,8 @@ for exception_type, handler in EXCEPTION_HANDLERS.items():
 frontend_url = os.environ.get("FRONTEND_URL")
 is_production = os.environ.get("ENVIRONMENT", "").lower() == "production"
 allow_origin_regex = None
+
+allowed_origins = []
 
 if not frontend_url:
     if is_production:
@@ -187,6 +199,8 @@ app.include_router(auth.router, tags=["Authentication"])
 app.include_router(admin.router)
 app.include_router(analysis.router, tags=["Analysis"])
 app.include_router(voice.router, tags=["Voice & Language"])
+app.include_router(field_officer.router, tags=["Field Officer Check-In"])
+app.include_router(resolution_proof.router)
 
 @app.get("/health")
 def health():
