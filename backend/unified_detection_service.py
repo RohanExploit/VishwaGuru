@@ -13,6 +13,7 @@ import logging
 from typing import List, Dict, Optional
 from PIL import Image
 from enum import Enum
+import asyncio
 
 from backend.exceptions import DetectionException, ServiceUnavailableException
 
@@ -53,7 +54,7 @@ class UnifiedDetectionService:
             return self._local_available
         
         try:
-            from local_ml_service import get_general_model
+            from backend.local_ml_service import get_general_model
             model = get_general_model()
             
             # Check if model is loaded
@@ -109,25 +110,15 @@ class UnifiedDetectionService:
     async def detect_vandalism(self, image: Image.Image) -> List[Dict]:
         """
         Detect vandalism in an image.
-        
-        Args:
-            image: PIL Image to analyze
-            
-        Returns:
-            List of detections with 'label', 'confidence', and 'box' keys
-            
-        Raises:
-            ServiceUnavailableException: If no detection backend is available
-            DetectionException: If detection fails
         """
         backend = await self._get_detection_backend()
         
         if backend == "local":
-            from local_ml_service import detect_vandalism_local
+            from backend.local_ml_service import detect_vandalism_local
             return await detect_vandalism_local(image)
         
         elif backend == "huggingface":
-            from hf_service import detect_vandalism_clip
+            from backend.hf_api_service import detect_vandalism_clip
             return await detect_vandalism_clip(image)
         
         else:
@@ -137,25 +128,15 @@ class UnifiedDetectionService:
     async def detect_infrastructure(self, image: Image.Image) -> List[Dict]:
         """
         Detect infrastructure damage in an image.
-        
-        Args:
-            image: PIL Image to analyze
-            
-        Returns:
-            List of detections with 'label', 'confidence', and 'box' keys
-            
-        Raises:
-            ServiceUnavailableException: If no detection backend is available
-            DetectionException: If detection fails
         """
         backend = await self._get_detection_backend()
         
         if backend == "local":
-            from local_ml_service import detect_infrastructure_local
+            from backend.local_ml_service import detect_infrastructure_local
             return await detect_infrastructure_local(image)
         
         elif backend == "huggingface":
-            from hf_service import detect_infrastructure_clip
+            from backend.hf_api_service import detect_infrastructure_clip
             return await detect_infrastructure_clip(image)
         
         else:
@@ -165,25 +146,15 @@ class UnifiedDetectionService:
     async def detect_flooding(self, image: Image.Image) -> List[Dict]:
         """
         Detect flooding/waterlogging in an image.
-        
-        Args:
-            image: PIL Image to analyze
-            
-        Returns:
-            List of detections with 'label', 'confidence', and 'box' keys
-            
-        Raises:
-            ServiceUnavailableException: If no detection backend is available
-            DetectionException: If detection fails
         """
         backend = await self._get_detection_backend()
         
         if backend == "local":
-            from local_ml_service import detect_flooding_local
+            from backend.local_ml_service import detect_flooding_local
             return await detect_flooding_local(image)
         
         elif backend == "huggingface":
-            from hf_service import detect_flooding_clip
+            from backend.hf_api_service import detect_flooding_clip
             return await detect_flooding_clip(image)
         
         else:
@@ -193,21 +164,11 @@ class UnifiedDetectionService:
     async def detect_garbage(self, image: Image.Image) -> List[Dict]:
         """
         Detect garbage/waste in an image.
-
-        Args:
-            image: PIL Image to analyze
-
-        Returns:
-            List of detections with 'label', 'confidence', and 'box' keys.
-            For HF/CLIP, 'box' will be empty as it classifies the whole image.
         """
         backend = await self._get_detection_backend()
 
         if backend == "local":
             from backend.garbage_detection import detect_garbage
-            # Local model expects image source, but PIL image works if model supports it
-            # The existing detect_garbage uses model.predict(image_source)
-            # Ultralytics YOLO supports PIL Image directly
             from fastapi.concurrency import run_in_threadpool
             return await run_in_threadpool(detect_garbage, image)
 
@@ -231,62 +192,40 @@ class UnifiedDetectionService:
     async def detect_fire(self, image: Image.Image) -> List[Dict]:
         """
         Detect fire/smoke in an image.
-
-        Args:
-            image: PIL Image to analyze
-
-        Returns:
-            List of detections with 'label', 'confidence', and 'box' keys
         """
-        # Fire detection currently relies on HF API
-        # Future: Add local model support
-
-        # We check backend availability but primarily rely on HF for now
-        # unless a local model is implemented
         backend = await self._get_detection_backend()
 
         if backend == "huggingface" or backend == "auto":
-             # Even in auto, if we don't have local fire model, we fallback or use HF if enabled
              if await self._check_hf_available():
                 from backend.hf_api_service import detect_fire_clip
-                # Clip returns dict, we need list of dicts
-                # detect_fire_clip returns {"fire_detected": bool, "confidence": float} or similar dict
-                # Wait, I need to check detect_fire_clip return type.
-                # In detection.py it returns {"detections": ...}
-                # Let's assume it returns a dict-like object or list.
-                # Actually, most clip functions return dict.
                 result = await detect_fire_clip(image)
                 if isinstance(result, list):
                     return result
                 if isinstance(result, dict) and "detections" in result:
                     return result["detections"]
                 if isinstance(result, dict):
-                     # Wrap in list if it's a single detection dict
                      return [result]
                 return []
 
-        # If we reached here, no suitable backend found
         if backend == "local":
-             # Placeholder for local fire detection
              logger.warning("Local fire detection not yet implemented")
              return []
 
         logger.error("No detection backend available for fire detection")
-        # Don't raise exception to avoid failing detect_all, just return empty
         return []
 
     async def detect_all(self, image: Image.Image) -> Dict[str, List[Dict]]:
         """
         Run all detection types on an image.
-        
-        Args:
-            image: PIL Image to analyze
-            
-        Returns:
-            Dictionary mapping detection type to list of results
         """
-        import asyncio
+        backend = await self._get_detection_backend()
 
+        # OPTIMIZATION: If using Hugging Face, use the consolidated single-call function
+        if backend == "huggingface":
+            from backend.hf_api_service import detect_all_clip
+            return await detect_all_clip(image)
+
+        # Fallback to parallel execution for local or mixed backends
         results = await asyncio.gather(
             self.detect_vandalism(image),
             self.detect_infrastructure(image),
@@ -306,9 +245,6 @@ class UnifiedDetectionService:
     async def get_status(self) -> Dict:
         """
         Get the current status of the detection service.
-        
-        Returns:
-            Dictionary with service status information
         """
         local_available = await self._check_local_available()
         hf_available = await self._check_hf_available()
@@ -327,10 +263,9 @@ class UnifiedDetectionService:
             "active_backend": await self._get_detection_backend()
         }
         
-        # Add local model details if available
         if local_available:
             try:
-                from local_ml_service import get_detection_status
+                from backend.local_ml_service import get_detection_status
                 status["local_backend"]["details"] = await get_detection_status()
             except Exception:
                 pass
@@ -352,30 +287,24 @@ def get_detection_service() -> UnifiedDetectionService:
 
 # Convenience functions that use the default service
 async def detect_vandalism(image: Image.Image) -> List[Dict]:
-    """Detect vandalism using the default service."""
     return await get_detection_service().detect_vandalism(image)
 
 
 async def detect_infrastructure(image: Image.Image) -> List[Dict]:
-    """Detect infrastructure damage using the default service."""
     return await get_detection_service().detect_infrastructure(image)
 
 
 async def detect_flooding(image: Image.Image) -> List[Dict]:
-    """Detect flooding using the default service."""
     return await get_detection_service().detect_flooding(image)
 
 
 async def detect_garbage(image: Image.Image) -> List[Dict]:
-    """Detect garbage using the default service."""
     return await get_detection_service().detect_garbage(image)
 
 
 async def detect_all(image: Image.Image) -> Dict[str, List[Dict]]:
-    """Run all detections using the default service."""
     return await get_detection_service().detect_all(image)
 
 
 async def get_detection_status() -> Dict:
-    """Get detection service status."""
     return await get_detection_service().get_status()

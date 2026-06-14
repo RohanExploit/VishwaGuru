@@ -37,3 +37,11 @@
 ## 2026-02-08 - Return Type Consistency in Utilities
 **Learning:** Inconsistent return types in shared utility functions (like `process_uploaded_image`) can cause runtime crashes across multiple modules, especially when some expect tuples and others expect single values. This can lead to deployment failures that are hard to debug without full integration logs.
 **Action:** Always maintain strict return type consistency for core utilities. Use type hints and verify all call sites when changing a function's signature. Ensure that performance-oriented optimizations (like returning multiple processed formats) are applied uniformly.
+
+## 2026-02-12 - Conditional Aggregation for Dashboard Stats
+**Learning:** Performing multiple count queries (total, resolved, pending) to populate a dashboard causes unnecessary database roundtrips and latency. Using SQLAlchemy's `func.sum(case(...))` allows all counts to be aggregated in a single database pass.
+**Action:** Use conditional aggregation for overview statistics to reduce DB I/O.
+
+## 2026-02-12 - Single-Query Blockchain Chain Verification
+**Learning:** Verifying a cryptographic chain link by fetching the current record and then querying for the predecessor as two separate operations is inefficient. Using `filter(ID <= target).order_by(ID.desc()).limit(2)` fetches both records in one query.
+**Action:** Optimize chain verification by batching record retrieval into a single query with `limit(2)`.

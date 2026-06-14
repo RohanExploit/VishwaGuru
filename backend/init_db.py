@@ -1,44 +1,47 @@
 import sys
 import os
+import logging
 from pathlib import Path
+from sqlalchemy import text
 
-# Add project root to path
+# Add project root to path to handle direct script execution
 current_file = Path(__file__).resolve()
 backend_dir = current_file.parent
 repo_root = backend_dir.parent
-sys.path.insert(0, str(repo_root))
+if str(repo_root) not in sys.path:
+    sys.path.insert(0, str(repo_root))
 
 from backend.database import engine, Base
 from backend.models import *
 
-def init_db():
-    print("Creating tables...")
-    Base.metadata.create_all(bind=engine)
-    print("Tables created.")
-
-if __name__ == "__main__":
-    init_db()
-from sqlalchemy import text
-from backend.database import engine
-import logging
-
+# Configure logging
 logger = logging.getLogger(__name__)
+
+def init_db():
+    """Initialize the database by creating all tables."""
+    logger.info("Creating tables...")
+    try:
+        Base.metadata.create_all(bind=engine)
+        logger.info("Tables created successfully.")
+    except Exception as e:
+        logger.error(f"Error creating tables: {e}")
 
 def migrate_db():
     """
     Perform database migrations.
     This is a simple MVP migration strategy.
+    Wraps entire process in try-except to prevent app crash on startup if DB is locked/unavailable.
     """
     try:
+        # Check connection first
         with engine.connect() as conn:
+            logger.info("Database connection successful for migration check.")
+
             # Check for upvotes column and add if missing
             try:
-                # SQLite doesn't support IF NOT EXISTS in ALTER TABLE
-                # So we just try to add it and ignore error if it exists
                 conn.execute(text("ALTER TABLE issues ADD COLUMN upvotes INTEGER DEFAULT 0"))
                 logger.info("Migrated database: Added upvotes column.")
             except Exception:
-                # Column likely already exists
                 pass
 
             # Check if index exists or create it
@@ -46,7 +49,6 @@ def migrate_db():
                 conn.execute(text("CREATE INDEX ix_issues_upvotes ON issues (upvotes)"))
                 logger.info("Migrated database: Added index on upvotes column.")
             except Exception:
-                # Index likely already exists
                 pass
 
             # Add index on created_at for faster sorting
@@ -54,7 +56,6 @@ def migrate_db():
                 conn.execute(text("CREATE INDEX ix_issues_created_at ON issues (created_at)"))
                 logger.info("Migrated database: Added index on created_at column.")
             except Exception:
-                # Index likely already exists
                 pass
 
             # Add index on status for faster filtering
@@ -62,20 +63,19 @@ def migrate_db():
                 conn.execute(text("CREATE INDEX ix_issues_status ON issues (status)"))
                 logger.info("Migrated database: Added index on status column.")
             except Exception:
-                # Index likely already exists
                 pass
 
             # Add latitude column
             try:
                 conn.execute(text("ALTER TABLE issues ADD COLUMN latitude FLOAT"))
-                print("Migrated database: Added latitude column.")
+                logger.info("Migrated database: Added latitude column.")
             except Exception:
                 pass
 
             # Add longitude column
             try:
                 conn.execute(text("ALTER TABLE issues ADD COLUMN longitude FLOAT"))
-                print("Migrated database: Added longitude column.")
+                logger.info("Migrated database: Added longitude column.")
             except Exception:
                 pass
 
@@ -84,7 +84,6 @@ def migrate_db():
                 conn.execute(text("CREATE INDEX ix_issues_latitude ON issues (latitude)"))
                 logger.info("Migrated database: Added index on latitude column.")
             except Exception:
-                # Index likely already exists
                 pass
 
             # Add index on longitude for faster spatial queries
@@ -92,7 +91,6 @@ def migrate_db():
                 conn.execute(text("CREATE INDEX ix_issues_longitude ON issues (longitude)"))
                 logger.info("Migrated database: Added index on longitude column.")
             except Exception:
-                # Index likely already exists
                 pass
 
             # Add composite index for optimized spatial+status queries
@@ -100,27 +98,68 @@ def migrate_db():
                 conn.execute(text("CREATE INDEX ix_issues_status_lat_lon ON issues (status, latitude, longitude)"))
                 logger.info("Migrated database: Added composite index on status, latitude, longitude.")
             except Exception:
-                # Index likely already exists
                 pass
 
             # Add location column
             try:
                 conn.execute(text("ALTER TABLE issues ADD COLUMN location VARCHAR"))
-                print("Migrated database: Added location column.")
+                logger.info("Migrated database: Added location column.")
             except Exception:
                 pass
 
             # Add action_plan column
             try:
                 conn.execute(text("ALTER TABLE issues ADD COLUMN action_plan TEXT"))
-                print("Migrated database: Added action_plan column.")
+                logger.info("Migrated database: Added action_plan column.")
             except Exception:
                 pass
 
             # Add integrity_hash column for blockchain feature
             try:
                 conn.execute(text("ALTER TABLE issues ADD COLUMN integrity_hash VARCHAR"))
-                print("Migrated database: Added integrity_hash column.")
+                logger.info("Migrated database: Added integrity_hash column.")
+            except Exception:
+                pass
+
+            # Add previous_integrity_hash column
+            try:
+                conn.execute(text("ALTER TABLE issues ADD COLUMN previous_integrity_hash VARCHAR"))
+                logger.info("Migrated database: Added previous_integrity_hash column.")
+            except Exception:
+                pass
+
+            # Add parent_issue_id column
+            try:
+                conn.execute(text("ALTER TABLE issues ADD COLUMN parent_issue_id INTEGER"))
+                logger.info("Migrated database: Added parent_issue_id column.")
+            except Exception:
+                pass
+
+            # Add index on parent_issue_id
+            try:
+                conn.execute(text("CREATE INDEX ix_issues_parent_issue_id ON issues (parent_issue_id)"))
+                logger.info("Migrated database: Added index on parent_issue_id column.")
+            except Exception:
+                pass
+
+            # Add parent_issue_id column
+            try:
+                conn.execute(text("ALTER TABLE issues ADD COLUMN parent_issue_id INTEGER"))
+                print("Migrated database: Added parent_issue_id column.")
+            except Exception:
+                pass
+
+            # Add previous_integrity_hash column
+            try:
+                conn.execute(text("ALTER TABLE issues ADD COLUMN previous_integrity_hash VARCHAR"))
+                print("Migrated database: Added previous_integrity_hash column.")
+            except Exception:
+                pass
+
+            # Add index on parent_issue_id
+            try:
+                conn.execute(text("CREATE INDEX ix_issues_parent_issue_id ON issues (parent_issue_id)"))
+                logger.info("Migrated database: Added index on parent_issue_id column.")
             except Exception:
                 pass
 
@@ -129,7 +168,6 @@ def migrate_db():
                 conn.execute(text("CREATE INDEX ix_issues_user_email ON issues (user_email)"))
                 logger.info("Migrated database: Added index on user_email column.")
             except Exception:
-                # Index likely already exists
                 pass
 
             # --- Grievance Migrations ---
@@ -211,4 +249,6 @@ def migrate_db():
             conn.commit()
             logger.info("Database migration check completed.")
     except Exception as e:
-        logger.error(f"Database migration error: {e}")
+        logger.error(f"Database migration error (Non-fatal): {e}")
+        # We catch the exception but do NOT re-raise it, allowing the app to start
+        # even if migration fails (e.g., due to temporary DB issues or schema conflicts)

@@ -107,6 +107,7 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loa
       title: t('home.categories.management'),
       icon: <Monitor size={20} className="text-gray-600" />,
       items: [
+        { id: 'public-facilities', label: "Public Facilities", icon: <Building size={24} />, color: 'text-sky-600', bg: 'bg-sky-50' },
         { id: 'safety-check', label: "Civic Eye", icon: <Eye size={24} />, color: 'text-blue-600', bg: 'bg-blue-50' },
         { id: 'public-facilities', label: "Public Facility", icon: <Armchair size={24} />, color: 'text-blue-600', bg: 'bg-blue-50' },
         { id: 'my-reports', label: "My Reports", icon: <CheckCircle size={24} />, color: 'text-teal-600', bg: 'bg-teal-50' },
