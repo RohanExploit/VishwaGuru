@@ -27,6 +27,7 @@ class Config:
     # API Keys
     gemini_api_key: str
     telegram_bot_token: str
+    hf_token: Optional[str]
     
     # Database
     database_url: str
@@ -66,6 +67,8 @@ class Config:
         if not telegram_bot_token:
             errors.append("TELEGRAM_BOT_TOKEN is required")
         
+        hf_token = os.getenv("HF_TOKEN")
+
         # Database with default
         database_url = os.getenv(
             "DATABASE_URL", 
@@ -121,6 +124,7 @@ class Config:
         return cls(
             gemini_api_key=gemini_api_key,
             telegram_bot_token=telegram_bot_token,
+            hf_token=hf_token,
             database_url=database_url,
             environment=environment,
             debug=debug,
@@ -272,6 +276,11 @@ def get_gemini_api_key() -> str:
 def get_telegram_bot_token() -> str:
     """Get Telegram bot token from config."""
     return get_config().telegram_bot_token
+
+
+def get_hf_token() -> Optional[str]:
+    """Get Hugging Face token from config."""
+    return get_config().hf_token
 
 
 def get_database_url() -> str:

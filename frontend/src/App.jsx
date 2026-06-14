@@ -23,22 +23,8 @@ const GrievanceView = React.lazy(() => import('./views/GrievanceView'));
 const NotFound = React.lazy(() => import('./views/NotFound'));
 
 // Lazy Load Detectors
-const PotholeDetector = React.lazy(() => import('./PotholeDetector'));
-const GarbageDetector = React.lazy(() => import('./GarbageDetector'));
-const VandalismDetector = React.lazy(() => import('./VandalismDetector'));
-const FloodDetector = React.lazy(() => import('./FloodDetector'));
-const InfrastructureDetector = React.lazy(() => import('./InfrastructureDetector'));
-const IllegalParkingDetector = React.lazy(() => import('./IllegalParkingDetector'));
-const StreetLightDetector = React.lazy(() => import('./StreetLightDetector'));
-const FireDetector = React.lazy(() => import('./FireDetector'));
-const StrayAnimalDetector = React.lazy(() => import('./StrayAnimalDetector'));
-const BlockedRoadDetector = React.lazy(() => import('./BlockedRoadDetector'));
-const TreeDetector = React.lazy(() => import('./TreeDetector'));
-const PestDetector = React.lazy(() => import('./PestDetector'));
 const SmartScanner = React.lazy(() => import('./SmartScanner'));
 const GrievanceAnalysis = React.lazy(() => import('./views/GrievanceAnalysis'));
-const NoiseDetector = React.lazy(() => import('./NoiseDetector'));
-const CivicEyeDetector = React.lazy(() => import('./CivicEyeDetector'));
 const CivicInsight = React.lazy(() => import('./views/CivicInsight'));
 const MyReportsView = React.lazy(() => import('./views/MyReportsView'));
 
@@ -296,52 +282,8 @@ function AppContent() {
                 }
               />
               <Route path="/verify/:id" element={<VerifyView />} />
-              <Route path="/pothole" element={<PotholeDetector onBack={() => navigate('/')} />} />
-              <Route path="/garbage" element={<GarbageDetector onBack={() => navigate('/')} />} />
-              <Route
-                path="/vandalism"
-                element={
-                  <div className="flex flex-col h-full">
-                    <button onClick={() => navigate('/')} className="self-start text-blue-600 mb-2">
-                      &larr; Back
-                    </button>
-                    <VandalismDetector />
-                  </div>
-                }
-              />
-              <Route
-                path="/flood"
-                element={
-                  <div className="flex flex-col h-full">
-                    <button onClick={() => navigate('/')} className="self-start text-blue-600 mb-2">
-                      &larr; Back
-                    </button>
-                    <FloodDetector />
-                  </div>
-                }
-              />
-              <Route
-                path="/infrastructure"
-                element={<InfrastructureDetector onBack={() => navigate('/')} />}
-              />
-              <Route path="/parking" element={<IllegalParkingDetector onBack={() => navigate('/')} />} />
-              <Route path="/streetlight" element={<StreetLightDetector onBack={() => navigate('/')} />} />
-              <Route path="/fire" element={<FireDetector onBack={() => navigate('/')} />} />
-              <Route path="/animal" element={<StrayAnimalDetector onBack={() => navigate('/')} />} />
-              <Route path="/blocked" element={<BlockedRoadDetector onBack={() => navigate('/')} />} />
-              <Route path="/tree" element={<TreeDetector onBack={() => navigate('/')} />} />
-              <Route path="/pest" element={<PestDetector onBack={() => navigate('/')} />} />
               <Route path="/smart-scan" element={<SmartScanner onBack={() => navigate('/')} />} />
               <Route path="/grievance-analysis" element={<GrievanceAnalysis onBack={() => navigate('/')} />} />
-              <Route path="/noise" element={<NoiseDetector onBack={() => navigate('/')} />} />
-              <Route path="/safety-check" element={
-                <div className="flex flex-col h-full p-4">
-                  <button onClick={() => navigate('/')} className="self-start text-blue-600 mb-2 font-bold">
-                    &larr; Back
-                  </button>
-                  <CivicEyeDetector onBack={() => navigate('/')} />
-                </div>
-              } />
               <Route path="/my-reports" element={
                 <ProtectedRoute>
                   <MyReportsView />

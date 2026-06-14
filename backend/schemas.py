@@ -33,6 +33,13 @@ class ActionPlan(BaseModel):
 class ChatRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=1000, description="Chat query text")
 
+    @field_validator('query')
+    @classmethod
+    def validate_query(cls, v):
+        if not v.strip():
+            raise ValueError('Query cannot be empty or whitespace only')
+        return v.strip()
+
 class ChatResponse(BaseModel):
     response: str
 
@@ -276,6 +283,7 @@ class ClosureStatusResponse(BaseModel):
 class BlockchainVerificationResponse(BaseModel):
     is_valid: bool = Field(..., description="Whether the issue integrity is intact")
     current_hash: Optional[str] = Field(None, description="Current integrity hash stored in DB")
+    previous_hash: Optional[str] = Field(None, description="Previous issue's integrity hash used for chaining")
     computed_hash: str = Field(..., description="Hash computed from current issue data and previous issue's hash")
     message: str = Field(..., description="Verification result message")
 
