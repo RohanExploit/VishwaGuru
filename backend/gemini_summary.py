@@ -10,12 +10,17 @@ import warnings
 import time
 import logging
 import asyncio
+from datetime import datetime, timedelta, timezone
 from backend.ai_service import retry_with_exponential_backoff
 
 # Suppress deprecation warnings from google.generativeai
 warnings.filterwarnings("ignore", category=FutureWarning, module="google.generativeai")
 
 logger = logging.getLogger(__name__)
+
+# Manual async cache to replace async_lru (removes heavy dependency for deployment)
+# Structure: {cache_key: (summary_text, expiry_timestamp)}
+_summary_cache: Dict[str, tuple[str, datetime]] = {}
 
 # Configure Gemini (mandatory environment variable)
 api_key = os.environ.get("GEMINI_API_KEY")

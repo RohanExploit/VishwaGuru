@@ -22,6 +22,28 @@ mock_telegram = MagicMock()
 sys.modules['telegram'] = mock_telegram
 sys.modules['telegram.ext'] = mock_telegram.ext
 
+sys.modules['google'] = MagicMock()
+sys.modules['google.generativeai'] = MagicMock()
+sys.modules['transformers'] = MagicMock()
+
+class MockTensor:
+    pass
+mock_torch = MagicMock()
+mock_torch.Tensor = MockTensor
+sys.modules['torch'] = mock_torch
+
+sys.modules['speech_recognition'] = MagicMock()
+sys.modules['googletrans'] = MagicMock()
+sys.modules['langdetect'] = MagicMock()
+sys.modules['ultralytics'] = MagicMock()
+sys.modules['a2wsgi'] = MagicMock()
+sys.modules['firebase_functions'] = MagicMock()
+
+# Mock pywebpush
+mock_pywebpush = MagicMock()
+mock_pywebpush.WebPushException = Exception
+sys.modules['pywebpush'] = mock_pywebpush
+
 # Import main (will trigger app creation, but lifespan won't run yet)
 import backend.main
 from backend.main import app

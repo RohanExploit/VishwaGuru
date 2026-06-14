@@ -4,6 +4,7 @@ export * from './detectors';
 export * from './misc';
 export * from './auth';
 export * from './admin';
+export * from './analysis';
 
 export * from './grievances';
 export * from './resolutionProof';

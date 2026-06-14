@@ -112,23 +112,52 @@ def find_nearby_issues(
     """
     nearby_issues = []
 
-    # Determine which distance function to use based on radius
-    # Use Haversine for larger distances (> 10km) where curvature matters more
-    # Use Equirectangular for smaller distances for performance (~2.5x faster)
-    use_precise = radius_meters > 10000
-    distance_func = haversine_distance if use_precise else equirectangular_distance
+    # Optimization: Use inline Equirectangular approximation for short distances (< 10km)
+    # This avoids function call overhead and repeated radian conversions.
+    # For larger distances, fallback to precise Haversine calculation.
+    if radius_meters > 10000:
+        for issue in issues:
+            if issue.latitude is None or issue.longitude is None:
+                continue
+            distance = haversine_distance(target_lat, target_lon, issue.latitude, issue.longitude)
+            if distance <= radius_meters:
+                nearby_issues.append((issue, distance))
+    else:
+        # Optimized path for common case (small radius)
+        R = 6371000.0
+        radius_sq = radius_meters * radius_meters
 
-    for issue in issues:
-        if issue.latitude is None or issue.longitude is None:
-            continue
+        target_lat_rad = math.radians(target_lat)
+        target_lon_rad = math.radians(target_lon)
+        # Cosine term is constant for the target latitude in equirectangular projection
+        cos_lat = math.cos(target_lat_rad)
 
-        distance = distance_func(
-            target_lat, target_lon,
-            issue.latitude, issue.longitude
-        )
+        for issue in issues:
+            if issue.latitude is None or issue.longitude is None:
+                continue
 
-        if distance <= radius_meters:
-            nearby_issues.append((issue, distance))
+            # Inline conversion to radians
+            lat_rad = math.radians(issue.latitude)
+            lon_rad = math.radians(issue.longitude)
+
+            dlat = lat_rad - target_lat_rad
+            dlon = lon_rad - target_lon_rad
+
+            # Handle longitude wrapping (dateline crossing)
+            if dlon > math.pi:
+                dlon -= 2 * math.pi
+            elif dlon < -math.pi:
+                dlon += 2 * math.pi
+
+            x = dlon * cos_lat
+            y = dlat
+
+            # Squared distance check avoids expensive sqrt()
+            # (x*R)^2 + (y*R)^2 = R^2 * (x^2 + y^2)
+            dist_sq = (x*x + y*y) * R * R
+
+            if dist_sq <= radius_sq:
+                nearby_issues.append((issue, math.sqrt(dist_sq)))
 
     # Sort by distance (closest first)
     nearby_issues.sort(key=lambda x: x[1])
@@ -167,14 +196,14 @@ def cluster_issues_dbscan(issues: List[Issue], eps_meters: float = 30.0) -> List
         [issue.latitude, issue.longitude] for issue in valid_issues
     ])
 
-    # Convert eps from meters to degrees (approximate)
-    # 1 degree latitude ≈ 111,000 meters
-    # 1 degree longitude ≈ 111,000 * cos(latitude) meters
-    eps_degrees = eps_meters / 111000  # Rough approximation
+    # Convert eps from meters to radians
+    # Haversine metric expects inputs in radians and eps in radians
+    R = 6371000.0  # Earth's radius in meters
+    eps_radians = eps_meters / R
 
     # Perform DBSCAN clustering
     try:
-        db = DBSCAN(eps=eps_degrees, min_samples=1, metric='haversine').fit(
+        db = DBSCAN(eps=eps_radians, min_samples=1, metric='haversine').fit(
             np.radians(coordinates)
         )
 
