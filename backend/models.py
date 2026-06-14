@@ -84,7 +84,9 @@ class Grievance(Base):
     created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc), index=True)
     updated_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc), onupdate=lambda: datetime.datetime.now(datetime.timezone.utc))
     resolved_at = Column(DateTime, nullable=True)
-    
+    integrity_hash = Column(String, nullable=True)  # Blockchain integrity seal
+    previous_integrity_hash = Column(String, nullable=True, index=True) # Linked hash for O(1) verification
+
     # Closure confirmation fields
     closure_requested_at = Column(DateTime, nullable=True)
     closure_confirmation_deadline = Column(DateTime, nullable=True)
@@ -92,6 +94,10 @@ class Grievance(Base):
     pending_closure = Column(Boolean, default=False, index=True)
     
     issue_id = Column(Integer, ForeignKey("issues.id"), nullable=True, index=True)
+
+    # Blockchain integrity fields
+    integrity_hash = Column(String, nullable=True)
+    previous_integrity_hash = Column(String, nullable=True, index=True)
 
     # Relationships
     jurisdiction = relationship("Jurisdiction", back_populates="grievances")
@@ -249,6 +255,7 @@ class FieldOfficerVisit(Base):
     
     # Immutability hash (blockchain-like integrity)
     visit_hash = Column(String, nullable=True)  # Hash of visit data for integrity verification
+    previous_visit_hash = Column(String, nullable=True, index=True) # Linked hash for O(1) verification
     
     # Metadata
     created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))

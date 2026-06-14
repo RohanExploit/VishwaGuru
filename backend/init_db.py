@@ -144,6 +144,14 @@ def migrate_db():
                     conn.execute(text("ALTER TABLE grievances ADD COLUMN issue_id INTEGER"))
                     logger.info("Added issue_id column to grievances")
 
+                if not column_exists("grievances", "integrity_hash"):
+                    conn.execute(text("ALTER TABLE grievances ADD COLUMN integrity_hash VARCHAR"))
+                    logger.info("Added integrity_hash column to grievances")
+
+                if not column_exists("grievances", "previous_integrity_hash"):
+                    conn.execute(text("ALTER TABLE grievances ADD COLUMN previous_integrity_hash VARCHAR"))
+                    logger.info("Added previous_integrity_hash column to grievances")
+
                 # Indexes
                 if not index_exists("grievances", "ix_grievances_latitude"):
                     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_grievances_latitude ON grievances (latitude)"))
@@ -160,11 +168,25 @@ def migrate_db():
                 if not index_exists("grievances", "ix_grievances_issue_id"):
                     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_grievances_issue_id ON grievances (issue_id)"))
 
+                if not index_exists("grievances", "ix_grievances_previous_integrity_hash"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_grievances_previous_integrity_hash ON grievances (previous_integrity_hash)"))
+
                 if not index_exists("grievances", "ix_grievances_assigned_authority"):
                     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_grievances_assigned_authority ON grievances (assigned_authority)"))
 
                 if not index_exists("grievances", "ix_grievances_category_status"):
                     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_grievances_category_status ON grievances (category, status)"))
+
+                if not column_exists("grievances", "integrity_hash"):
+                    conn.execute(text("ALTER TABLE grievances ADD COLUMN integrity_hash VARCHAR"))
+                    logger.info("Added integrity_hash column to grievances")
+
+                if not column_exists("grievances", "previous_integrity_hash"):
+                    conn.execute(text("ALTER TABLE grievances ADD COLUMN previous_integrity_hash VARCHAR"))
+                    logger.info("Added previous_integrity_hash column to grievances")
+
+                if not index_exists("grievances", "ix_grievances_previous_integrity_hash"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_grievances_previous_integrity_hash ON grievances (previous_integrity_hash)"))
 
             # Field Officer Visits Table (Issue #288)
             # This table is newly created for field officer check-in system
@@ -176,6 +198,10 @@ def migrate_db():
             
             # Indexes for field_officer_visits (run regardless of table creation)
             if inspector.has_table("field_officer_visits"):
+                if not column_exists("field_officer_visits", "previous_visit_hash"):
+                    conn.execute(text("ALTER TABLE field_officer_visits ADD COLUMN previous_visit_hash VARCHAR"))
+                    logger.info("Added previous_visit_hash column to field_officer_visits")
+
                 if not index_exists("field_officer_visits", "ix_field_officer_visits_issue_id"):
                     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_field_officer_visits_issue_id ON field_officer_visits (issue_id)"))
                 
@@ -187,6 +213,9 @@ def migrate_db():
                 
                 if not index_exists("field_officer_visits", "ix_field_officer_visits_check_in_time"):
                     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_field_officer_visits_check_in_time ON field_officer_visits (check_in_time)"))
+
+                if not index_exists("field_officer_visits", "ix_field_officer_visits_previous_visit_hash"):
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_field_officer_visits_previous_visit_hash ON field_officer_visits (previous_visit_hash)"))
 
             logger.info("Database migration check completed successfully.")
 

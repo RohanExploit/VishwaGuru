@@ -3,6 +3,15 @@ import sys
 from pathlib import Path
 from dotenv import load_dotenv
 
+# Fix for googletrans compatibility with newer httpcore (Issue #290)
+# This monkeypatch must happen before any imports of googletrans or httpx
+try:
+    import httpcore
+    if not hasattr(httpcore, "SyncHTTPTransport"):
+        httpcore.SyncHTTPTransport = object
+except ImportError:
+    pass
+
 load_dotenv()
 
 # Add project root to sys.path to ensure 'backend.*' imports work
@@ -85,9 +94,10 @@ async def lifespan(app: FastAPI):
         logger.info("Starting database initialization...")
         await run_in_threadpool(Base.metadata.create_all, bind=engine)
         logger.info("Base.metadata.create_all completed.")
-        # Temporarily disabled - comment out to debug startup issues
-        # await run_in_threadpool(migrate_db)
-        logger.info("Database initialized successfully (migrations skipped for local dev).")
+
+        # Run migrations to ensure schema is up-to-date (Issue #290)
+        await run_in_threadpool(migrate_db)
+        logger.info("Database initialized and migrations applied successfully.")
     except Exception as e:
         logger.error(f"Database initialization failed: {e}", exc_info=True)
         # We continue to allow health checks even if DB has issues (for debugging)
@@ -126,9 +136,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="VishwaGuru Backend",
     description="AI-powered civic issue reporting and resolution platform",
-    version="1.0.0"
-    # Temporarily disable lifespan for local dev debugging
-    # lifespan=lifespan
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # Add centralized exception handlers
@@ -186,18 +195,18 @@ app.add_middleware(GZipMiddleware, minimum_size=500)
 os.makedirs("data/uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="data/uploads"), name="uploads")
 
-# Include Modular Routers
-app.include_router(issues.router, tags=["Issues"])
-app.include_router(detection.router, tags=["Detection"])
-app.include_router(grievances.router, tags=["Grievances"])
-app.include_router(utility.router, tags=["Utility"])
-app.include_router(auth.router, tags=["Authentication"])
+# Include Modular Routers with /api prefix
+app.include_router(issues.router, prefix="/api", tags=["Issues"])
+app.include_router(detection.router, prefix="/api", tags=["Detection"])
+app.include_router(grievances.router, prefix="/api", tags=["Grievances"])
+app.include_router(utility.router, prefix="/api", tags=["Utility"])
+app.include_router(auth.router, prefix="/api", tags=["Authentication"])
 app.include_router(admin.router)
-app.include_router(analysis.router, tags=["Analysis"])
-app.include_router(voice.router, tags=["Voice & Language"])
-app.include_router(field_officer.router, tags=["Field Officer Check-In"])
-app.include_router(hf.router, tags=["Hugging Face"])
-app.include_router(resolution_proof.router, tags=["Resolution Proof"])
+app.include_router(analysis.router, prefix="/api", tags=["Analysis"])
+app.include_router(voice.router, prefix="/api", tags=["Voice & Language"])
+app.include_router(field_officer.router, prefix="/api", tags=["Field Officer Check-In"])
+app.include_router(hf.router, prefix="/api", tags=["Hugging Face"])
+app.include_router(resolution_proof.router, prefix="/api", tags=["Resolution Proof"])
 
 @app.get("/health")
 def health():

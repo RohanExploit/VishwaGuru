@@ -57,7 +57,10 @@ class ThreadSafeCache:
             
             # If cache is full, evict least recently used entry
             if len(self._data) >= self._max_size and key not in self._data:
-                self._evict_lru()
+                # First try to clean up expired to free space, if still full, then evict LRU
+                self._cleanup_expired(current_time)
+                if len(self._data) >= self._max_size:
+                    self._evict_lru()
             
             # Set new data atomically (adds to end, updating if exists)
             self._data[key] = data
@@ -174,3 +177,4 @@ recent_issues_cache = ThreadSafeCache(ttl=300, max_size=20)  # 5 minutes TTL, ma
 nearby_issues_cache = ThreadSafeCache(ttl=60, max_size=100)  # 1 minute TTL, max 100 entries
 user_upload_cache = ThreadSafeCache(ttl=3600, max_size=1000)  # 1 hour TTL for upload limits
 blockchain_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=1)
+grievance_last_hash_cache = ThreadSafeCache(ttl=3600, max_size=1)

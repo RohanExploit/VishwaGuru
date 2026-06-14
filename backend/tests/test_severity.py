@@ -66,7 +66,7 @@ async def test_detect_severity_endpoint():
         with TestClient(app) as client:
             # Call the endpoint
             with patch('backend.utils.validate_uploaded_file'):
-                response = client.post("/detect-severity", files=files)
+                response = client.post("/api/detect-severity", files=files)
 
             # Assertions
             assert response.status_code == 200
