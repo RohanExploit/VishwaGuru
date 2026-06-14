@@ -1,13 +1,32 @@
+# =====================
 # Python
+# =====================
 __pycache__/
 *.py[cod]
 *$py.class
 *.log
 *.pid
 
+# Virtual Environment (CRITICAL)
+venv/
+
+# Environment variables
+.env
+
+# =====================
 # Data
+# =====================
 data/*.db
 data/uploads/
+
+# =====================
+# Node / Frontend
+# =====================
+# ML Models
+*.pt
+*.pth
+*.onnx
+runs/
 
 # Node
 node_modules/
@@ -15,11 +34,15 @@ dist/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.env
 
-# MacOS
+# =====================
+# OS
+# =====================
 .DS_Store
+Thumbs.db
 
+# =====================
 # Editor
+# =====================
 .vscode/
 .idea/
