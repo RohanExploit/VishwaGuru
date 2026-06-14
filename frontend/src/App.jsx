@@ -38,8 +38,24 @@ const SmartScanner = React.lazy(() => import('./SmartScanner'));
 const GrievanceAnalysis = React.lazy(() => import('./views/GrievanceAnalysis'));
 const NoiseDetector = React.lazy(() => import('./NoiseDetector'));
 const CivicEyeDetector = React.lazy(() => import('./CivicEyeDetector'));
+const WasteDetector = React.lazy(() => import('./WasteDetector'));
+const WaterLeakDetector = React.lazy(() => import('./WaterLeakDetector'));
+const CrowdDetector = React.lazy(() => import('./CrowdDetector'));
+const AccessibilityDetector = React.lazy(() => import('./AccessibilityDetector'));
+const TrafficSignDetector = React.lazy(() => import('./TrafficSignDetector'));
+const AbandonedVehicleDetector = React.lazy(() => import('./AbandonedVehicleDetector'));
 const MyReportsView = React.lazy(() => import('./views/MyReportsView'));
 const PlaygroundDetector = React.lazy(() => import('./PlaygroundDetector'));
+
+
+// Auth Components
+import { AuthProvider } from './contexts/AuthContext';
+import Login from './views/Login';
+import ProtectedRoute from './components/ProtectedRoute';
+import AdminDashboard from './views/AdminDashboard';
+import AppHeader from './components/AppHeader';
+import FloatingButtonsManager from './components/FloatingButtonsManager';
+import LoadingSpinner from './components/LoadingSpinner';
 
 // Create a wrapper component to handle state management
 function AppContent() {
@@ -52,7 +68,9 @@ function AppContent() {
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loading, setLoading] = useState(false);
+  // eslint-disable-next-line no-unused-vars
   const [error, setError] = useState(null);
+  // eslint-disable-next-line no-unused-vars
   const [success, setSuccess] = useState(null);
 
   // Safe navigation helper
@@ -62,7 +80,7 @@ function AppContent() {
       navigate(view === 'home' ? '/home' : `/${view}`);
     } else {
       console.warn(`Attempted to navigate to invalid view: ${view}`);
-      navigate('/');
+      navigate('/home');
     }
   }, [navigate]);
 
@@ -177,6 +195,8 @@ function AppContent() {
           </div>
         }>
           <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Login initialIsLogin={false} />} />
             <Route
               path="/home"
               element={
@@ -185,16 +205,21 @@ function AppContent() {
                   fetchResponsibilityMap={fetchResponsibilityMap}
                   recentIssues={recentIssues}
                   handleUpvote={handleUpvote}
+                  loadMoreIssues={loadMoreIssues}
+                  hasMore={hasMore}
+                  loadingMore={loadingMore}
                 />
               }
             />
             <Route
               path="/map"
               element={
-                <MapView
-                  responsibilityMap={responsibilityMap}
-                  setView={navigateToView}
-                />
+                <ProtectedRoute>
+                  <MapView
+                    responsibilityMap={responsibilityMap}
+                    setView={navigateToView}
+                  />
+                </ProtectedRoute>
               }
             />
             <Route
@@ -279,7 +304,11 @@ function AppContent() {
                 <CivicEyeDetector onBack={() => navigate('/home')} />
               </div>
             } />
-            <Route path="/my-reports" element={<MyReportsView />} />
+            <Route path="/my-reports" element={
+              <ProtectedRoute>
+                <MyReportsView />
+              </ProtectedRoute>
+            } />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
@@ -293,7 +322,9 @@ function AppContent() {
 function App() {
   return (
     <Router>
-      <AppContent />
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </Router>
   );
 }

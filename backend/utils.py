@@ -7,13 +7,20 @@ import os
 import shutil
 import logging
 import io
-import magic
 from typing import Optional
+
+try:
+    import magic
+    HAS_MAGIC = True
+except ImportError:
+    HAS_MAGIC = False
+    logger.warning("python-magic not available (libmagic missing?). Falling back to basic validation.")
 
 from backend.cache import user_upload_cache
 from backend.models import Issue
 from backend.schemas import DetectionResponse
 from backend.pothole_detection import validate_image_for_processing
+from passlib.context import CryptContext
 
 logger = logging.getLogger(__name__)
 
@@ -69,23 +76,28 @@ def _validate_uploaded_file_sync(file: UploadFile) -> Optional[Image.Image]:
             detail=f"File too large. Maximum size allowed is {MAX_FILE_SIZE // (1024*1024)}MB"
         )
 
-    # Check MIME type from content using python-magic
+    # Check MIME type from content using python-magic (if available)
     try:
-        # Read first 1024 bytes for MIME detection
-        file_content = file.file.read(1024)
-        file.file.seek(0)  # Reset file pointer
+        if HAS_MAGIC:
+            # Read first 1024 bytes for MIME detection
+            file_content = file.file.read(1024)
+            file.file.seek(0)  # Reset file pointer
 
-        detected_mime = magic.from_buffer(file_content, mime=True)
-
-        if detected_mime not in ALLOWED_MIME_TYPES:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid file type. Only image files are allowed. Detected: {detected_mime}"
-            )
+            try:
+                detected_mime = magic.from_buffer(file_content, mime=True)
+                if detected_mime not in ALLOWED_MIME_TYPES:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Invalid file type. Only image files are allowed. Detected: {detected_mime}"
+                    )
+            except Exception as e:
+                logger.warning(f"Magic validation failed (skipping): {e}")
+                file.file.seek(0)
 
         # Additional content validation: Try to open with PIL to ensure it's a valid image
         try:
             img = Image.open(file.file)
+            original_format = img.format  # Capture format before operations
             # Optimization: Skip img.verify() to avoid full file read.
             # Corrupt files will fail during resize or subsequent processing.
 
@@ -101,7 +113,11 @@ def _validate_uploaded_file_sync(file: UploadFile) -> Optional[Image.Image]:
 
                 # Save resized image back to file
                 output = io.BytesIO()
-                img.save(output, format=img.format or 'JPEG', quality=85)
+
+                # Determine save format (default to PNG for RGBA to avoid JPEG error)
+                save_format = original_format or ('PNG' if img.mode == 'RGBA' else 'JPEG')
+
+                img.save(output, format=save_format, quality=85)
                 output.seek(0)
 
                 # Replace file content
@@ -138,10 +154,10 @@ async def validate_uploaded_file(file: UploadFile) -> Optional[Image.Image]:
     """
     return await run_in_threadpool(_validate_uploaded_file_sync, file)
 
-def process_uploaded_image_sync(file: UploadFile) -> io.BytesIO:
+def process_uploaded_image_sync(file: UploadFile) -> tuple[Image.Image, io.BytesIO]:
     """
     Synchronously validate, resize, and strip EXIF from uploaded image.
-    Returns the processed image data as BytesIO.
+    Returns the processed PIL image and image data as BytesIO.
     """
     # Check file size
     file.file.seek(0, 2)
@@ -156,18 +172,22 @@ def process_uploaded_image_sync(file: UploadFile) -> io.BytesIO:
 
     # Check MIME type
     try:
-        file_content = file.file.read(1024)
-        file.file.seek(0)
-        detected_mime = magic.from_buffer(file_content, mime=True)
-
-        if detected_mime not in ALLOWED_MIME_TYPES:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid file type. Only image files are allowed. Detected: {detected_mime}"
-            )
+        if HAS_MAGIC:
+            file_content = file.file.read(1024)
+            file.file.seek(0)
+            try:
+                detected_mime = magic.from_buffer(file_content, mime=True)
+                if detected_mime not in ALLOWED_MIME_TYPES:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Invalid file type. Only image files are allowed. Detected: {detected_mime}"
+                    )
+            except Exception:
+                file.file.seek(0)
 
         try:
             img = Image.open(file.file)
+            original_format = img.format  # Capture format before operations
 
             # Resize if needed
             if img.width > 1024 or img.height > 1024:
@@ -177,17 +197,20 @@ def process_uploaded_image_sync(file: UploadFile) -> io.BytesIO:
                 img = img.resize((new_width, new_height), Image.Resampling.BILINEAR)
 
             # Strip EXIF
-            img_no_exif = Image.new(img.mode, img.size)
-            img_no_exif.paste(img)
+            # Optimization: Clear info dictionary instead of creating new image and pasting (avoids full copy)
+            if hasattr(img, 'info'):
+                img.info.clear()
 
-            # Save to BytesIO
+            # Save to bytes
             output = io.BytesIO()
-            # Preserve format or default to JPEG
-            fmt = img.format or 'JPEG'
-            img_no_exif.save(output, format=fmt, quality=85)
+
+            # Preserve format or default to JPEG, handling RGBA edge case
+            save_format = original_format or ('PNG' if img.mode == 'RGBA' else 'JPEG')
+
+            img.save(output, format=save_format, quality=85)
             output.seek(0)
 
-            return output
+            return img_no_exif, output
 
         except Exception as pil_error:
             logger.error(f"PIL processing failed: {pil_error}")
@@ -202,28 +225,24 @@ def process_uploaded_image_sync(file: UploadFile) -> io.BytesIO:
         logger.error(f"Error processing file: {e}")
         raise HTTPException(status_code=400, detail="Unable to process file.")
 
-async def process_uploaded_image(file: UploadFile) -> io.BytesIO:
+async def process_uploaded_image(file: UploadFile) -> tuple[Image.Image, io.BytesIO]:
     return await run_in_threadpool(process_uploaded_image_sync, file)
 
-def save_processed_image(file_obj: io.BytesIO, path: str):
-    """Save processed BytesIO to disk."""
+def save_processed_image(image_bytes: bytes, path: str):
+    """Save processed bytes to disk."""
     with open(path, "wb") as buffer:
-        shutil.copyfileobj(file_obj, buffer)
+        buffer.write(image_bytes)
 
 async def process_and_detect(image: UploadFile, detection_func) -> DetectionResponse:
     """
     Helper to process uploaded image and run detection.
-    Uses the optimized image processing pipeline.
+    Uses the optimized single-pass image processing pipeline.
     """
-    # Validate uploaded file
-    pil_image = await validate_uploaded_file(image)
+    # Optimized: Use process_uploaded_image which resizes and strips EXIF in one go
+    pil_image, _ = await process_uploaded_image(image)
 
     # Validate image for processing (check integrity)
     try:
-        if pil_image is None:
-            pil_image = await run_in_threadpool(Image.open, image.file)
-
-        # Validate image for processing
         await run_in_threadpool(validate_image_for_processing, pil_image)
     except HTTPException:
         raise  # Re-raise HTTP exceptions from validation
@@ -271,3 +290,13 @@ def save_issue_db(db: Session, issue: Issue):
     db.commit()
     db.refresh(issue)
     return issue
+
+# --- Password Hashing Utils ---
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
+def get_password_hash(password: str) -> str:
+    return pwd_context.hash(password)

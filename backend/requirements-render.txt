@@ -16,3 +16,5 @@ firebase-admin
 a2wsgi
 scikit-learn
 numpy
+passlib[bcrypt]
+python-jose[cryptography]

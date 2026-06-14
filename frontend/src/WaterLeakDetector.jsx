@@ -8,25 +8,6 @@ const WaterLeakDetector = ({ onBack }) => {
     const [isDetecting, setIsDetecting] = useState(false);
     const [error, setError] = useState(null);
 
-    useEffect(() => {
-        let interval;
-        if (isDetecting) {
-            startCamera();
-            interval = setInterval(detectFrame, 2000); // Check every 2 seconds
-        } else {
-            stopCamera();
-            if (interval) clearInterval(interval);
-            if (canvasRef.current) {
-                const ctx = canvasRef.current.getContext('2d');
-                ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-            }
-        }
-        return () => {
-            stopCamera();
-            if (interval) clearInterval(interval);
-        };
-    }, [isDetecting]);
-
     const startCamera = async () => {
         setError(null);
         try {
@@ -116,6 +97,25 @@ const WaterLeakDetector = ({ onBack }) => {
             }
         });
     };
+
+    useEffect(() => {
+        let interval;
+        if (isDetecting) {
+            setTimeout(() => startCamera(), 0);
+            interval = setInterval(detectFrame, 2000); // Check every 2 seconds
+        } else {
+            stopCamera();
+            if (interval) clearInterval(interval);
+            if (canvasRef.current) {
+                const ctx = canvasRef.current.getContext('2d');
+                ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+            }
+        }
+        return () => {
+            stopCamera();
+            if (interval) clearInterval(interval);
+        };
+    }, [isDetecting]);
 
     return (
         <div className="mt-6 flex flex-col items-center w-full">

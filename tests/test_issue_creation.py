@@ -36,7 +36,8 @@ def test_create_issue():
              patch("backend.tasks.generate_action_plan", new_callable=AsyncMock) as mock_plan:
 
             import io
-            mock_process.return_value = io.BytesIO(b"processed image bytes")
+            from PIL import Image
+            mock_process.return_value = (Image.new('RGB', (10, 10)), b"processed image bytes")
 
             mock_plan.return_value = {
                 "whatsapp": "Test WhatsApp",

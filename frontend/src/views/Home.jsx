@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
+// eslint-disable-next-line no-unused-vars
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   AlertTriangle, MapPin, Search, Activity, Camera, Trash2, ThumbsUp, Brush,
@@ -222,6 +223,26 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loa
           <Zap size={24} />
         </div>
         <span className="font-semibold text-yellow-800 text-sm">Broken Infra</span>
+      </button>
+
+      <button
+        onClick={() => setView('traffic-sign')}
+        className="flex flex-col items-center justify-center bg-blue-50 border-2 border-blue-100 p-4 rounded-xl hover:bg-blue-100 transition shadow-sm h-32"
+      >
+        <div className="bg-blue-600 text-white p-3 rounded-full mb-2">
+          <Signpost size={24} />
+        </div>
+        <span className="font-semibold text-blue-800 text-sm">Traffic Sign</span>
+      </button>
+
+      <button
+        onClick={() => setView('abandoned-vehicle')}
+        className="flex flex-col items-center justify-center bg-slate-50 border-2 border-slate-100 p-4 rounded-xl hover:bg-slate-100 transition shadow-sm h-32"
+      >
+        <div className="bg-slate-600 text-white p-3 rounded-full mb-2">
+          <Car size={24} />
+        </div>
+        <span className="font-semibold text-slate-800 text-sm">Abandoned Vehicle</span>
       </button>
 
       {/* New Western Style Features */}

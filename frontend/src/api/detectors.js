@@ -53,6 +53,12 @@ export const detectorsApi = {
   severity: createDetectorApi('/api/detect-severity'),
   waste: createDetectorApi('/api/detect-waste'),
   civicEye: createDetectorApi('/api/detect-civic-eye'),
+  waterLeak: createDetectorApi('/api/detect-water-leak'),
+  crowd: createDetectorApi('/api/detect-crowd'),
+  accessibility: createDetectorApi('/api/detect-accessibility'),
+  trafficSign: createDetectorApi('/api/detect-traffic-sign'),
+  abandonedVehicle: createDetectorApi('/api/detect-abandoned-vehicle'),
+  graffiti: createDetectorApi('/api/detect-graffiti'),
   transcribe: async (formData) => {
       return await apiClient.postForm('/api/transcribe-audio', formData);
   },

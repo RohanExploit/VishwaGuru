@@ -16,6 +16,21 @@ const SmartScanner = ({ onBack }) => {
     const lastSentRef = useRef(0);
     const navigate = useNavigate();
 
+    // Load MobileNet model
+    useEffect(() => {
+        const loadModel = async () => {
+            try {
+                await tf.ready();
+                const loadedModel = await mobilenet.load();
+                setModel(loadedModel);
+            } catch (err) {
+                console.error("Failed to load model", err);
+                setError("Failed to load AI model");
+            }
+        };
+        loadModel();
+    }, []);
+
     // Define functions before useEffect to avoid hoisting issues
     const startCamera = async () => {
         setError(null);

@@ -5,6 +5,11 @@ from enum import Enum
 
 class IssueCategory(str, Enum):
     ROAD = "Road"
+
+class UserRole(str, Enum):
+    ADMIN = "admin"
+    USER = "user"
+    OFFICIAL = "official"
     WATER = "Water"
     STREETLIGHT = "Streetlight"
     GARBAGE = "Garbage"
@@ -26,6 +31,13 @@ class ActionPlan(BaseModel):
 
 class ChatRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=1000, description="Chat query text")
+
+    @field_validator('query')
+    @classmethod
+    def validate_query(cls, v):
+        if not v.strip():
+            raise ValueError('Query cannot be empty or whitespace only')
+        return v.strip()
 
 class ChatResponse(BaseModel):
     response: str
@@ -266,3 +278,10 @@ class ClosureStatusResponse(BaseModel):
     required_confirmations: int = Field(..., description="Number of confirmations needed")
     confirmation_deadline: Optional[datetime] = Field(None, description="Deadline for confirmations")
     days_remaining: Optional[int] = Field(None, description="Days until deadline")
+
+class BlockchainVerifyResponse(BaseModel):
+    issue_id: int = Field(..., description="Issue ID")
+    is_valid: bool = Field(..., description="Whether the integrity seal is valid")
+    integrity_hash: str = Field(..., description="Current integrity hash")
+    calculated_hash: str = Field(..., description="Calculated hash for verification")
+    previous_hash: str = Field(..., description="Previous hash in the chain")
