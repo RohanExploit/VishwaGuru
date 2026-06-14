@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import func, case
 from typing import List
 
 from backend.database import get_db
@@ -33,7 +32,7 @@ def get_system_stats(db: Session = Depends(get_db)):
     ).first()
     
     return {
-        "total_users": stats.total or 0,
-        "admin_count": int(stats.admins or 0),
-        "active_users": int(stats.active or 0),
+        "total_users": total_users,
+        "admin_count": admin_users,
+        "active_users": db.query(User).filter(User.is_active == True).count(),
     }

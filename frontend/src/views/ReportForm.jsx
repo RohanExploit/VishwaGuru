@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import Webcam from 'react-webcam';
 import { fakeActionPlan } from '../fakeData';
-import { Camera, Image as ImageIcon, CheckCircle2, AlertTriangle, Loader2, Layers } from 'lucide-react';
+import { Camera, Image as ImageIcon, CheckCircle2, AlertTriangle, Loader2, Layers, XCircle, ChevronRight, Zap, FileText, MapPin, ThumbsUp } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import { saveReportOffline, registerBackgroundSync } from '../offlineQueue';
 import VoiceInput from '../components/VoiceInput';
@@ -39,6 +41,23 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
   const [nearbyIssues, setNearbyIssues] = useState([]);
   const [checkingNearby, setCheckingNearby] = useState(false);
   const [showNearbyModal, setShowNearbyModal] = useState(false);
+
+  const [showWebcam, setShowWebcam] = useState(false);
+  const webcamRef = useRef(null);
+
+  const captureWebcam = () => {
+    const imageSrc = webcamRef.current?.getScreenshot();
+    if (imageSrc) {
+      // Convert base64 to File
+      fetch(imageSrc)
+        .then(res => res.blob())
+        .then(blob => {
+          const file = new File([blob], "camera-capture.jpg", { type: "image/jpeg" });
+          handleImageChange({ target: { files: [file] } });
+          setShowWebcam(false);
+        });
+    }
+  };
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -614,13 +633,16 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
                   <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
                 </label>
 
-                <label className="group cursor-pointer bg-blue-50/50 dark:bg-blue-900/20 rounded-3xl border-2 border-dashed border-blue-200 dark:border-blue-800 p-6 text-center hover:border-blue-600 dark:hover:border-blue-400 transition-all flex flex-col items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowWebcam(true)}
+                  className="group cursor-pointer bg-blue-50/50 dark:bg-blue-900/20 rounded-3xl border-2 border-dashed border-blue-200 dark:border-blue-800 p-6 text-center hover:border-blue-600 dark:hover:border-blue-400 transition-all flex flex-col items-center justify-center gap-3"
+                >
                   <div className="p-4 bg-blue-100 dark:bg-blue-900 rounded-2xl group-hover:scale-110 transition-transform text-blue-600">
                     <Camera size={32} />
                   </div>
                   <span className="font-black text-sm text-blue-800 dark:text-blue-200">Snap Photo</span>
-                  <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageChange} />
-                </label>
+                </button>
               </div>
 
               {/* Image Preview & Analysis Hub */}
@@ -872,6 +894,48 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
                   className="w-full bg-gray-900 dark:bg-blue-600 text-white py-5 rounded-2xl font-black text-lg shadow-xl hover:scale-[1.02] transition-transform"
                 >
                   {nearbyIssues.length > 0 ? "Commit New Independent Report" : "Proceed with Clearance"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Webcam Modal */}
+      <AnimatePresence>
+        {showWebcam && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="relative w-full max-w-lg bg-gray-900 rounded-[2.5rem] overflow-hidden flex flex-col items-center shadow-2xl"
+            >
+              <div className="absolute top-4 right-4 z-10">
+                <button
+                  type="button"
+                  onClick={() => setShowWebcam(false)}
+                  className="p-2 bg-black/50 hover:bg-black/80 text-white rounded-full transition-colors"
+                >
+                  <XCircle size={28} />
+                </button>
+              </div>
+              <div className="w-full aspect-[3/4] sm:aspect-video bg-black flex items-center justify-center overflow-hidden">
+                <Webcam
+                  audio={false}
+                  ref={webcamRef}
+                  screenshotFormat="image/jpeg"
+                  videoConstraints={{ facingMode: "environment" }}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="w-full p-6 flex justify-center bg-gray-900">
+                <button
+                  type="button"
+                  onClick={captureWebcam}
+                  className="w-16 h-16 rounded-full bg-white border-4 border-gray-400 flex items-center justify-center active:scale-90 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_rgba(255,255,255,0.5)]"
+                >
+                  <div className="w-12 h-12 rounded-full bg-white border-2 border-gray-300"></div>
                 </button>
               </div>
             </motion.div>

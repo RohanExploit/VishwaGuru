@@ -51,10 +51,3 @@ Thumbs.db
 # =====================
 .vscode/
 .idea/
-
-# =====================
-# AI Tool Artifacts
-# =====================
-.claude/
-frontend/.genkit/
-.genkit/

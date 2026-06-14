@@ -56,13 +56,13 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loa
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [showCameraCheck, setShowCameraCheck] = React.useState(false);
-  const [showScrollTop, setShowScrollTop] = React.useState(false);
+  const [, setShowScrollTop] = React.useState(false);
   const totalImpact = stats?.resolved_issues || 0;
 
-  // Scroll to top function
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  // Scroll to top function (kept for reference but removed from explicit call tree to satisfy linter)
+  // const scrollToTop = () => {
+  //   window.scrollTo({ top: 0, behavior: 'smooth' });
+  // };
 
   // Show/hide scroll to top button based on scroll position
   React.useEffect(() => {
@@ -205,8 +205,9 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote, loa
             </h3>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-6">
             {[
+              { id: 'grievance', label: t('home.issues.grievanceManagement'), icon: <Activity size={24} />, color: 'bg-emerald-600', text: 'text-emerald-600', bg: 'bg-emerald-50/50' },
               { id: 'report', label: t('home.issues.reportIssue'), icon: <AlertTriangle size={24} />, color: 'bg-blue-600', text: 'text-blue-600', bg: 'bg-blue-50/50' },
               { id: 'pothole', label: t('home.issues.pothole'), icon: <Camera size={24} />, color: 'bg-rose-600', text: 'text-rose-600', bg: 'bg-rose-50/50' },
               { id: 'garbage', label: t('home.issues.garbage'), icon: <Trash2 size={24} />, color: 'bg-orange-600', text: 'text-orange-600', bg: 'bg-orange-50/50' },
