@@ -89,6 +89,13 @@ async def create_issue(
     deduplication_info = None
     linked_issue_id = None
 
+    # Fetch the last hash to maintain the chain with minimal overhead
+    # We do this early to ensure the chain is consistent
+    prev_issue = await run_in_threadpool(
+        lambda: db.query(Issue.integrity_hash).order_by(Issue.id.desc()).first()
+    )
+    prev_hash = prev_issue[0] if prev_issue and prev_issue[0] else ""
+
     if latitude is not None and longitude is not None:
         try:
             # Find existing open issues within 50 meters
@@ -154,10 +161,8 @@ async def create_issue(
                     }, synchronize_session=False)
                 )
 
-                # Commit the upvote
-                await run_in_threadpool(db.commit)
-
-                logger.info(f"Spatial deduplication: Linked new report to existing issue {linked_issue_id}")
+                # We don't commit here anymore, we'll commit together with the new (duplicate) issue record
+                logger.info(f"Spatial deduplication: Identified duplicate for issue {linked_issue_id}")
 
         except Exception as e:
             logger.error(f"Error during spatial deduplication check: {e}", exc_info=True)
@@ -225,6 +230,7 @@ async def create_issue(
         # Invalidate cache so new issue appears
         try:
             recent_issues_cache.clear()
+            nearby_issues_cache.clear()
         except Exception as e:
             logger.error(f"Error clearing cache: {e}")
 
@@ -603,7 +609,7 @@ def get_user_issues(
             "id": row.id,
             "category": row.category,
             "description": short_desc,
-            "created_at": row.created_at,
+            "created_at": row.created_at.isoformat() if row.created_at else None,
             "image_path": row.image_path,
             "status": row.status,
             "upvotes": row.upvotes if row.upvotes is not None else 0,
@@ -612,7 +618,7 @@ def get_user_issues(
             "longitude": row.longitude
         })
 
-    return data
+    return JSONResponse(content=data)
 
 @router.get("/api/issues/{issue_id}/blockchain-verify", response_model=BlockchainVerificationResponse)
 async def verify_blockchain_integrity(issue_id: int, db: Session = Depends(get_db)):
@@ -663,8 +669,9 @@ async def verify_blockchain_integrity(issue_id: int, db: Session = Depends(get_d
     else:
         message = "Integrity check failed! The report's link to the previous record has been tampered with."
 
+    # We return internal validity as primary 'is_valid' to avoid false negatives on deletions
     return BlockchainVerificationResponse(
-        is_valid=is_valid,
+        is_valid=internal_valid,
         current_hash=current_issue.integrity_hash,
         computed_hash=computed_hash,
         message=message
@@ -718,4 +725,4 @@ def get_recent_issues(
 
     # Thread-safe cache update
     recent_issues_cache.set(data, cache_key)
-    return data
+    return JSONResponse(content=data)

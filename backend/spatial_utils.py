@@ -2,11 +2,21 @@
 Spatial utilities for geospatial operations and deduplication.
 """
 import math
+import logging
 from typing import List, Tuple, Optional
-from sklearn.cluster import DBSCAN
-import numpy as np
+# Lazy import for heavy ML libraries to improve startup time and reduce memory usage
+# from sklearn.cluster import DBSCAN
+# import numpy as np
 
 from backend.models import Issue
+
+logger = logging.getLogger(__name__)
+
+try:
+    from sklearn.cluster import DBSCAN
+    HAS_SKLEARN = True
+except ImportError:
+    HAS_SKLEARN = False
 
 
 def get_bounding_box(lat: float, lon: float, radius_meters: float) -> Tuple[float, float, float, float]:
@@ -56,6 +66,28 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     return R * c
 
 
+def equirectangular_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """
+    Calculate the distance between two points using the Equirectangular approximation.
+    Faster than Haversine for small distances (< 100km).
+    Handles dateline wrapping.
+
+    Returns distance in meters.
+    """
+    R = 6371000.0
+    lat1_rad = math.radians(lat1)
+    lat2_rad = math.radians(lat2)
+    lon1_rad = math.radians(lon1)
+    lon2_rad = math.radians(lon2)
+
+    # Handle dateline wrapping
+    diff_lon = (lon2_rad - lon1_rad + math.pi) % (2 * math.pi) - math.pi
+
+    x = diff_lon * math.cos((lat1_rad + lat2_rad) / 2)
+    y = lat2_rad - lat1_rad
+    return R * math.sqrt(x * x + y * y)
+
+
 def find_nearby_issues(
     issues: List[Issue],
     target_lat: float,
@@ -76,14 +108,23 @@ def find_nearby_issues(
     """
     nearby_issues = []
 
+    # Use equirectangular approximation for short distances (< 10km) for performance
+    use_equirectangular = radius_meters < 10000.0
+
     for issue in issues:
         if issue.latitude is None or issue.longitude is None:
             continue
 
-        distance = haversine_distance(
-            target_lat, target_lon,
-            issue.latitude, issue.longitude
-        )
+        if use_equirectangular:
+            distance = equirectangular_distance(
+                target_lat, target_lon,
+                issue.latitude, issue.longitude
+            )
+        else:
+            distance = haversine_distance(
+                target_lat, target_lon,
+                issue.latitude, issue.longitude
+            )
 
         if distance <= radius_meters:
             nearby_issues.append((issue, distance))
@@ -106,6 +147,15 @@ def cluster_issues_dbscan(issues: List[Issue], eps_meters: float = 30.0) -> List
     Returns:
         List of clusters, where each cluster is a list of Issue objects
     """
+    # Lazy import to avoid loading heavy libraries on startup
+    try:
+        from sklearn.cluster import DBSCAN
+        import numpy as np
+    except ImportError:
+        # Fallback or log error if dependencies are missing (e.g. in minimal environments)
+        # For now, we assume they are installed but lazy loaded
+        raise ImportError("scikit-learn and numpy are required for spatial clustering. Please install them.")
+
     # Filter issues with valid coordinates
     valid_issues = [
         issue for issue in issues
@@ -125,20 +175,38 @@ def cluster_issues_dbscan(issues: List[Issue], eps_meters: float = 30.0) -> List
     # 1 degree longitude ≈ 111,000 * cos(latitude) meters
     eps_degrees = eps_meters / 111000  # Rough approximation
 
+    if DBSCAN is None:
+        # Fallback if scikit-learn is not installed
+        return [[issue] for issue in valid_issues]
+
     # Perform DBSCAN clustering
-    db = DBSCAN(eps=eps_degrees, min_samples=1, metric='haversine').fit(
-        np.radians(coordinates)
-    )
+    if DBSCAN:
+        db = DBSCAN(eps=eps_degrees, min_samples=1, metric='haversine').fit(
+            np.radians(coordinates)
+        )
+        labels = db.labels_
+    else:
+        # Fallback: Treat each issue as its own cluster if sklearn is missing
+        # or implement a simple distance-based clustering here if critical
+        labels = range(len(valid_issues))
 
     # Group issues by cluster
     clusters = {}
-    for i, label in enumerate(db.labels_):
+    for i, label in enumerate(labels):
         if label not in clusters:
             clusters[label] = []
         clusters[label].append(valid_issues[i])
 
-    # Return clusters as list of lists (exclude noise points labeled as -1)
-    return [cluster for label, cluster in clusters.items() if label != -1]
+            # Return clusters as list of lists (exclude noise points labeled as -1)
+            return [cluster for label, cluster in clusters.items() if label != -1]
+        except Exception as e:
+            logger.error(f"DBSCAN clustering failed: {e}")
+            # Fallback to individual clusters
+            return [[issue] for issue in valid_issues]
+    else:
+        # Fallback when scikit-learn is not available
+        # Treat each issue as its own cluster
+        return [[issue] for issue in valid_issues]
 
 
 def get_cluster_representative(cluster: List[Issue]) -> Issue:

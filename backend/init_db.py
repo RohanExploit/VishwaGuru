@@ -1,44 +1,43 @@
 import sys
 import os
+import logging
 from pathlib import Path
+from sqlalchemy import text
 
-# Add project root to path
+# Add project root to path to handle direct script execution
 current_file = Path(__file__).resolve()
 backend_dir = current_file.parent
 repo_root = backend_dir.parent
-sys.path.insert(0, str(repo_root))
+if str(repo_root) not in sys.path:
+    sys.path.insert(0, str(repo_root))
 
 from backend.database import engine, Base
 from backend.models import *
 
-def init_db():
-    print("Creating tables...")
-    Base.metadata.create_all(bind=engine)
-    print("Tables created.")
-
-if __name__ == "__main__":
-    init_db()
-from sqlalchemy import text
-from backend.database import engine
-import logging
-
+# Configure logging
 logger = logging.getLogger(__name__)
+
+def init_db():
+    """Initialize the database by creating all tables."""
+    logger.info("Creating tables...")
+    try:
+        Base.metadata.create_all(bind=engine)
+        logger.info("Tables created successfully.")
+    except Exception as e:
+        logger.error(f"Error creating tables: {e}")
 
 def migrate_db():
     """
     Perform database migrations.
-    This is a simple MVP migration strategy.
+    This is an idempotent migration strategy using raw SQL.
     """
     try:
         with engine.connect() as conn:
             # Check for upvotes column and add if missing
             try:
-                # SQLite doesn't support IF NOT EXISTS in ALTER TABLE
-                # So we just try to add it and ignore error if it exists
                 conn.execute(text("ALTER TABLE issues ADD COLUMN upvotes INTEGER DEFAULT 0"))
                 logger.info("Migrated database: Added upvotes column.")
             except Exception:
-                # Column likely already exists
                 pass
 
             # Check if index exists or create it
@@ -46,7 +45,6 @@ def migrate_db():
                 conn.execute(text("CREATE INDEX ix_issues_upvotes ON issues (upvotes)"))
                 logger.info("Migrated database: Added index on upvotes column.")
             except Exception:
-                # Index likely already exists
                 pass
 
             # Add index on created_at for faster sorting
@@ -54,7 +52,6 @@ def migrate_db():
                 conn.execute(text("CREATE INDEX ix_issues_created_at ON issues (created_at)"))
                 logger.info("Migrated database: Added index on created_at column.")
             except Exception:
-                # Index likely already exists
                 pass
 
             # Add index on status for faster filtering
@@ -62,7 +59,6 @@ def migrate_db():
                 conn.execute(text("CREATE INDEX ix_issues_status ON issues (status)"))
                 logger.info("Migrated database: Added index on status column.")
             except Exception:
-                # Index likely already exists
                 pass
 
             # Add latitude column
@@ -84,7 +80,6 @@ def migrate_db():
                 conn.execute(text("CREATE INDEX ix_issues_latitude ON issues (latitude)"))
                 logger.info("Migrated database: Added index on latitude column.")
             except Exception:
-                # Index likely already exists
                 pass
 
             # Add index on longitude for faster spatial queries
@@ -92,7 +87,6 @@ def migrate_db():
                 conn.execute(text("CREATE INDEX ix_issues_longitude ON issues (longitude)"))
                 logger.info("Migrated database: Added index on longitude column.")
             except Exception:
-                # Index likely already exists
                 pass
 
             # Add composite index for optimized spatial+status queries
@@ -100,7 +94,6 @@ def migrate_db():
                 conn.execute(text("CREATE INDEX ix_issues_status_lat_lon ON issues (status, latitude, longitude)"))
                 logger.info("Migrated database: Added composite index on status, latitude, longitude.")
             except Exception:
-                # Index likely already exists
                 pass
 
             # Add location column
@@ -150,7 +143,6 @@ def migrate_db():
                 conn.execute(text("CREATE INDEX ix_issues_user_email ON issues (user_email)"))
                 logger.info("Migrated database: Added index on user_email column.")
             except Exception:
-                # Index likely already exists
                 pass
 
             # --- Grievance Migrations ---
@@ -233,3 +225,9 @@ def migrate_db():
             logger.info("Database migration check completed.")
     except Exception as e:
         logger.error(f"Database migration error: {e}")
+
+if __name__ == "__main__":
+    # Ensure logging is visible when run as script
+    logging.basicConfig(level=logging.INFO)
+    init_db()
+    migrate_db()
