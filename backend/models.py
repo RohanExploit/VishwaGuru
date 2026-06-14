@@ -162,6 +162,8 @@ class Issue(Base):
     location = Column(String, nullable=True)
     action_plan = Column(JSONEncodedDict, nullable=True)
     integrity_hash = Column(String, nullable=True)  # Blockchain integrity seal
+    previous_integrity_hash = Column(String, nullable=True)  # Link to preceding report
+    parent_issue_id = Column(Integer, ForeignKey("issues.id"), nullable=True)  # For deduplication
 
 class PushSubscription(Base):
     __tablename__ = "push_subscriptions"

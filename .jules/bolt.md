@@ -37,3 +37,7 @@
 ## 2026-02-08 - Return Type Consistency in Utilities
 **Learning:** Inconsistent return types in shared utility functions (like `process_uploaded_image`) can cause runtime crashes across multiple modules, especially when some expect tuples and others expect single values. This can lead to deployment failures that are hard to debug without full integration logs.
 **Action:** Always maintain strict return type consistency for core utilities. Use type hints and verify all call sites when changing a function's signature. Ensure that performance-oriented optimizations (like returning multiple processed formats) are applied uniformly.
+
+## 2026-02-13 - Conditional Aggregation for Stats
+**Learning:** Fetching multiple statistics (e.g., total count, resolved count) using separate `COUNT` queries causes multiple database roundtrips. In high-traffic applications, this can be optimized into a single query using conditional aggregation with `SUM(CASE WHEN ... THEN 1 ELSE 0 END)`.
+**Action:** Use `func.sum(case((condition, 1), else_=0))` to consolidate multiple counts or sums into a single SQL statement.

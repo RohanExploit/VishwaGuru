@@ -285,6 +285,16 @@ class UnifiedDetectionService:
         Returns:
             Dictionary mapping detection type to list of results
         """
+        backend = await self._get_detection_backend()
+
+        if backend == "huggingface":
+            try:
+                from backend.hf_api_service import detect_all_clip_optimized
+                return await detect_all_clip_optimized(image)
+            except Exception as e:
+                logger.error(f"Optimized detection failed, falling back to individual calls: {e}")
+                # Fallback to individual calls logic below
+
         import asyncio
 
         results = await asyncio.gather(
