@@ -13,12 +13,18 @@ def client():
 def test_read_main(client):
     response = client.get("/")
     assert response.status_code == 200
-    assert response.json()["service"] == "VishwaGuru API"
+    json_response = response.json()
+    assert "data" in json_response
+    assert json_response["data"]["service"] == "VishwaGuru API"
 
-@patch("backend.main.detect_vandalism_clip", new_callable=AsyncMock)
+@patch("backend.main.magic.from_buffer")
+@patch("backend.main.detect_vandalism_local", new_callable=AsyncMock)
 @patch("backend.main.run_in_threadpool")
 @patch("backend.main.Image.open")
-def test_detect_vandalism_new(mock_image_open, mock_run, mock_detect_vandalism, client):
+def test_detect_vandalism(mock_image_open, mock_run, mock_detect_vandalism, mock_magic, client):
+    # Mock magic to return image/jpeg
+    mock_magic.return_value = "image/jpeg"
+
     # Mock Image.open to return a valid object (mock)
     mock_image = MagicMock()
     mock_image_open.return_value = mock_image

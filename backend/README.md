@@ -1,89 +1,143 @@
-# VishwaGuru Backend
+# Backend – VishwaGuru
 
-This is the FastAPI backend for the VishwaGuru application.
+The backend powers all core functionality of VishwaGuru. It is built with FastAPI and serves both the web application and the Telegram bot.
 
-## Prerequisites
+## Responsibilities
 
-*   Python 3.12+
-*   Google Cloud SDK (gcloud CLI)
-*   Firebase CLI (optional, for integrated deployment)
+- Expose REST APIs for the frontend
+- Process and store civic issue submissions
+- Integrate with Google Gemini for AI-generated action plans
+- Run the Telegram bot within the application lifecycle
+- Manage database interactions
 
-## Local Development
+## Tech Stack
 
-1.  **Install Dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-2.  **Run Locally:**
-    ```bash
-    PYTHONPATH=. python -m uvicorn main:app --reload
-    ```
-    The API will be available at `http://localhost:8000`.
-
-## Deployment to Firebase (Google Cloud Run)
-
-To make the backend deployable "on Firebase", we use Google Cloud Run, which is the serverless container platform that integrates with Firebase Hosting.
-
-### Steps
-
-1.  **Install Google Cloud SDK:**
-    Follow instructions at [https://cloud.google.com/sdk/docs/install](https://cloud.google.com/sdk/docs/install).
-
-2.  **Authenticate:**
-    ```bash
-    gcloud auth login
-    gcloud config set project YOUR_PROJECT_ID
-    ```
-
-3.  **Build and Deploy:**
-    **Crucial:** Run the following command from the **root** of the repository (not inside `backend/`), because the Dockerfile needs access to the `data/` directory.
-
-    ```bash
-    gcloud run deploy vishwaguru-backend \
-      --source . \
-      --platform managed \
-      --region us-central1 \
-      --allow-unauthenticated
-    ```
-
-    When prompted, if it asks to confirm the `Dockerfile` path, ensure it uses `backend/Dockerfile`.
-
-    *Note: If `gcloud` tries to use a default Python builder instead of the Dockerfile, use this command to specify it explicitly (requires building the image first or using Cloud Build):*
-
-    **Alternative (Explicit Build):**
-    ```bash
-    gcloud builds submit --tag gcr.io/YOUR_PROJECT_ID/vishwaguru-backend --file backend/Dockerfile .
-    gcloud run deploy vishwaguru-backend --image gcr.io/YOUR_PROJECT_ID/vishwaguru-backend --platform managed --region us-central1
-    ```
-
-4.  **Get the Service URL:**
-    Once deployed, note the service URL (e.g., `https://vishwaguru-backend-xyz.a.run.app`).
-
-5.  **Connect to Firebase Hosting:**
-    Update the root `firebase.json` "rewrites" section to point to this Cloud Run service ID:
-
-    ```json
-    "rewrites": [
-      {
-        "source": "/api/**",
-        "run": {
-          "serviceId": "vishwaguru-backend",
-          "region": "us-central1"
-        }
-      }
-    ]
-    ```
+- FastAPI
+- SQLAlchemy
+- Pydantic
+- python-telegram-bot
+- SQLite (development)
+- PostgreSQL (production)
 
 ## Environment Variables
 
-Ensure you set the required environment variables in Cloud Run:
-*   `GEMINI_API_KEY`
-*   `OPENROUTER_API_KEY`
-*   `DATABASE_URL` (if using PostgreSQL)
-*   `TELEGRAM_BOT_TOKEN`
+Create a `.env` file in the backend directory with the following variables:
 
-You can set these via the Google Cloud Console or CLI:
 ```bash
-gcloud run services update vishwaguru-backend --set-env-vars GEMINI_API_KEY=...,DATABASE_URL=...
+# Required API Keys
+GEMINI_API_KEY=your_gemini_api_key_here
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
+
+# Database Configuration
+DATABASE_URL=sqlite:///./data/issues.db  # Development
+# DATABASE_URL=postgresql://username:password@host:port/database  # Production
+
+# Frontend URL (required for CORS)
+FRONTEND_URL=https://your-frontend.netlify.app
+
+# Application Environment
+ENVIRONMENT=production
+DEBUG=false
+
+# CORS Origins (comma-separated)
+CORS_ORIGINS=https://your-frontend.netlify.app
 ```
+
+## Running the Backend
+
+### Development
+```bash
+cd backend
+pip install -r requirements.txt
+PYTHONPATH=backend python -m uvicorn main:app --reload
+```
+
+### Production
+```bash
+cd backend
+pip install -r requirements.txt
+PYTHONPATH=backend python -m uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+## API Endpoints
+
+### Core Endpoints
+
+- `GET /` - API root with service information
+- `GET /health` - Health check endpoint
+- `GET /api/stats` - Application statistics
+
+### Issues Management
+
+- `GET /api/issues/recent` - Get recent issues
+- `POST /api/issues` - Create new issue
+- `GET /api/issues/{id}` - Get specific issue
+- `PUT /api/issues/{id}/vote` - Vote on issue
+- `PUT /api/issues/{id}/status` - Update issue status
+
+### AI Services
+
+- `POST /api/chat` - Chat with civic assistant
+- `POST /api/detect/{detector_type}` - Run ML detection
+- `POST /api/analyze-urgency` - Analyze issue urgency
+
+### Utility Endpoints
+
+- `GET /api/responsibility-map` - Get responsibility mapping
+- `GET /api/mh/rep-contacts` - Get Maharashtra representative contacts
+- `POST /api/push/subscribe` - Subscribe to push notifications
+
+## Deployment
+
+### Render Deployment
+
+1. Create a Render account at https://render.com
+2. Connect your GitHub repository
+3. Use the `render.yaml` file in the project root for automatic configuration
+4. Set environment variables in the Render dashboard
+5. Deploy and monitor logs
+
+### Manual Deployment
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Set environment variables
+export PYTHONPATH=backend
+export FRONTEND_URL=https://your-frontend.netlify.app
+export GEMINI_API_KEY=your_key
+export TELEGRAM_BOT_TOKEN=your_token
+export DATABASE_URL=your_database_url
+
+# Run the application
+python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000
+```
+
+## Database
+
+The application supports both SQLite (development) and PostgreSQL (production).
+
+### SQLite Setup (Development)
+```bash
+# Database file will be created automatically at data/issues.db
+export DATABASE_URL=sqlite:///./data/issues.db
+```
+
+### PostgreSQL Setup (Production)
+Use services like Neon, Supabase, or AWS RDS:
+```bash
+export DATABASE_URL=postgresql://username:password@host:port/database
+```
+
+## Testing
+
+Run the test suite:
+```bash
+cd backend
+python -m pytest tests/
+```
+
+## API Documentation
+
+Once the server is running, visit `http://localhost:8000/docs` for interactive API documentation powered by Swagger UI.
