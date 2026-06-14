@@ -68,5 +68,9 @@ export default defineConfig({
         secure: false,
       }
     }
+  },
+  envDir: '../',
+  define: {
+    'import.meta.env.VITE_API_URL': '""'
   }
 })
