@@ -64,7 +64,7 @@ def test_detect_waste(client_with_mock_http):
 
     with patch('backend.utils.validate_uploaded_file'):
         response = client.post(
-            "/detect-waste",
+            "/api/detect-waste",
             files={"image": ("test.jpg", img_bytes, "image/jpeg")}
         )
 
@@ -92,7 +92,7 @@ def test_detect_civic_eye(client_with_mock_http):
 
     with patch('backend.utils.validate_uploaded_file'):
         response = client.post(
-            "/detect-civic-eye",
+            "/api/detect-civic-eye",
             files={"image": ("test.jpg", img_bytes, "image/jpeg")}
         )
 

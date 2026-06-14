@@ -1,6 +1,7 @@
 fastapi
 uvicorn
 sqlalchemy
+python-dotenv
 python-telegram-bot
 google-generativeai
 python-multipart
