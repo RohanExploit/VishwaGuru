@@ -5,11 +5,12 @@ import base64
 from typing import Union, List, Dict, Any
 from PIL import Image
 import logging
+from backend.config import get_hf_token
 
 logger = logging.getLogger(__name__)
 
 # HF_TOKEN should be set in environment variables
-token = os.environ.get("HF_TOKEN")
+token = get_hf_token()
 headers = {"Authorization": f"Bearer {token}"} if token else {}
 
 # Zero-Shot Image Classification Model
@@ -455,4 +456,28 @@ async def detect_abandoned_vehicle_clip(image: Union[Image.Image, bytes], client
     """
     labels = ["abandoned car", "rusted vehicle", "car with flat tires", "wrecked car", "normal parked car"]
     targets = ["abandoned car", "rusted vehicle", "car with flat tires", "wrecked car"]
+    return await _detect_clip_generic(image, labels, targets, client)
+
+async def detect_vandalism_clip(image: Union[Image.Image, bytes], client: httpx.AsyncClient = None):
+    """
+    Detects vandalism/graffiti.
+    """
+    labels = ["graffiti", "vandalism", "spray paint", "street art", "clean wall", "public property", "normal street"]
+    targets = ["graffiti", "vandalism", "spray paint"]
+    return await _detect_clip_generic(image, labels, targets, client)
+
+async def detect_infrastructure_clip(image: Union[Image.Image, bytes], client: httpx.AsyncClient = None):
+    """
+    Detects general infrastructure damage.
+    """
+    labels = ["broken streetlight", "damaged traffic sign", "fallen tree", "damaged fence", "pothole", "clean street", "normal infrastructure"]
+    targets = ["broken streetlight", "damaged traffic sign", "fallen tree", "damaged fence"]
+    return await _detect_clip_generic(image, labels, targets, client)
+
+async def detect_flooding_clip(image: Union[Image.Image, bytes], client: httpx.AsyncClient = None):
+    """
+    Detects flooding/waterlogging (outdoor).
+    """
+    labels = ["flooded street", "waterlogging", "blocked drain", "heavy rain", "dry street", "normal road"]
+    targets = ["flooded street", "waterlogging", "blocked drain", "heavy rain"]
     return await _detect_clip_generic(image, labels, targets, client)

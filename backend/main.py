@@ -25,9 +25,13 @@ from backend.ai_factory import create_all_ai_services
 from backend.ai_interfaces import initialize_ai_services
 from backend.bot import start_bot_thread, stop_bot_thread
 from backend.init_db import migrate_db
+from backend.scheduler import start_scheduler
 from backend.maharashtra_locator import load_maharashtra_pincode_data, load_maharashtra_mla_data
 from backend.exceptions import EXCEPTION_HANDLERS
-from backend.routers import issues, detection, grievances, utility, auth, admin, analysis, voice
+from backend.routers import (
+    issues, detection, grievances, utility, auth,
+    admin, analysis, voice, field_officer, resolution_proof
+)
 from backend.grievance_service import GrievanceService
 import backend.dependencies
 
@@ -98,6 +102,9 @@ async def lifespan(app: FastAPI):
     # Launch background tasks that are non-blocking for startup/health-check
     asyncio.create_task(background_initialization(app))
     
+    # Start the daily civic intelligence refinement scheduler
+    start_scheduler()
+
     yield
     
     # Shutdown: Close Shared HTTP Client
@@ -127,6 +134,8 @@ for exception_type, handler in EXCEPTION_HANDLERS.items():
 frontend_url = os.environ.get("FRONTEND_URL")
 is_production = os.environ.get("ENVIRONMENT", "").lower() == "production"
 
+allowed_origins = []
+
 if not frontend_url:
     if is_production:
         # To prevent Render deployment crashes, default to a wildcard regex if missing
@@ -136,11 +145,13 @@ if not frontend_url:
     else:
         logger.warning("FRONTEND_URL not set. Defaulting to http://localhost:5173 for development.")
         frontend_url = "http://localhost:5173"
+        allowed_origins.append(frontend_url)
 
-if not (frontend_url.startswith("http://") or frontend_url.startswith("https://")):
-    raise ValueError(
-        f"FRONTEND_URL must be a valid HTTP/HTTPS URL. Got: {frontend_url}"
-    )
+if frontend_url and (frontend_url.startswith("http://") or frontend_url.startswith("https://")):
+    if frontend_url not in allowed_origins and "*" not in allowed_origins:
+        allowed_origins.append(frontend_url)
+elif frontend_url and "*" not in allowed_origins:
+     logger.warning(f"Invalid FRONTEND_URL format: {frontend_url}. Ignored for CORS.")
 
 allowed_origins = []
 allowed_origin_regex = None
@@ -184,6 +195,8 @@ app.include_router(auth.router, tags=["Authentication"])
 app.include_router(admin.router)
 app.include_router(analysis.router, tags=["Analysis"])
 app.include_router(voice.router, tags=["Voice & Language"])
+app.include_router(field_officer.router, tags=["Field Officer Check-In"])
+app.include_router(resolution_proof.router)
 
 @app.get("/health")
 def health():

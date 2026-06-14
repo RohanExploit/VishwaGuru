@@ -10,10 +10,11 @@ if SQLALCHEMY_DATABASE_URL and SQLALCHEMY_DATABASE_URL.startswith("postgres://")
     SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 if not SQLALCHEMY_DATABASE_URL:
-    SQLALCHEMY_DATABASE_URL = "sqlite:///./data/issues.db"
-    # Ensure data directory exists for SQLite
+    # Use a subdirectory for SQLite to avoid hiding repository data when disk is mounted at ./data
+    SQLALCHEMY_DATABASE_URL = "sqlite:///./data/db/issues.db"
+    # Ensure directory exists for SQLite
     from pathlib import Path
-    Path("./data").mkdir(exist_ok=True)
+    Path("./data/db").mkdir(parents=True, exist_ok=True)
     connect_args = {"check_same_thread": False}
 else:
     connect_args = {}
