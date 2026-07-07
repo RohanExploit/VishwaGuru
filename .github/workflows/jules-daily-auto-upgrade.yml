@@ -18,7 +18,7 @@ jobs:
             -H "X-Goog-Api-Key: ${{ secrets.JULES_API_KEY }}" \
             -H 'Content-Type: application/json' \
             -d "$(jq -n \
-              --arg prompt "${{ secrets.JULES_PROMPT }}" \
+              --arg prompt "${{ secrets.JULES_PROMPT }}. IMPORTANT: You MUST append the current date to 'daily_streak.log' in the root directory. Create the file if it doesn't exist. This ensures you always make at least one file change." \
               --arg repo "sources/github/${{ github.repository }}" \
               '{
                 prompt: $prompt,
