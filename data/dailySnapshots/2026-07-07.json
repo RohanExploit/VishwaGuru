@@ -1,0 +1,20 @@
+{
+  "date": "2026-07-07",
+  "metrics": {
+    "totalIssuesLast24h": 0,
+    "topKeywords": [],
+    "categorySpikes": {}
+  },
+  "intelligenceIndex": {
+    "score": 55,
+    "diff": "+5",
+    "topEmergingConcern": "None",
+    "highestSeverityRegion": "Unknown"
+  },
+  "systemAdjustments": {
+    "duplicateDetectionThreshold": 0.85,
+    "severityWeights": {
+      "default": 1
+    }
+  }
+}
