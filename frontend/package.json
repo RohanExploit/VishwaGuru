@@ -36,6 +36,7 @@
     "@vitejs/plugin-react": "^5.1.2",
     "autoprefixer": "^10.4.23",
     "babel-jest": "^29.7.0",
+    "babel-plugin-transform-vite-meta-env": "^1.0.3",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
