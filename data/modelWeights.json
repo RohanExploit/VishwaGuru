@@ -1,0 +1,11 @@
+{
+  "severity_weights": {
+    "Pothole": 1.0,
+    "Water Supply": 1.0,
+    "Electricity": 1.0,
+    "Garbage": 1.0,
+    "Other": 1.0
+  },
+  "duplicate_threshold": 0.8,
+  "audit_history": []
+}

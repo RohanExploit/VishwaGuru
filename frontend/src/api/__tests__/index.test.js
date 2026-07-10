@@ -89,7 +89,7 @@ describe('API Index Exports', () => {
     // misc: miscApi (1)
     // Total: 5 top-level exports
     const exportKeys = Object.keys(api);
-    expect(exportKeys.length).toBe(5);
+    expect(exportKeys.length).toBe(6);
 
     const expectedKeys = ['apiClient', 'getApiUrl', 'issuesApi', 'detectorsApi', 'miscApi'];
     expectedKeys.forEach(key => {
