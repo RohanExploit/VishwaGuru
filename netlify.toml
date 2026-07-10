@@ -12,3 +12,6 @@
   to = "https://vishwaguru-backend.onrender.com/api/:splat"
   status = 200
   force = true
+
+[build.environment]
+  CI = "false"
