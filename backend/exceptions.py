@@ -12,7 +12,7 @@ from pydantic import ValidationError
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 import httpx
 
-from backend.schemas import ErrorResponse
+from schemas import ErrorResponse
 
 logger = logging.getLogger(__name__)
 

@@ -4,9 +4,9 @@ import asyncio
 import threading
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters, ConversationHandler
-from backend.database import engine, SessionLocal
+from database import engine, SessionLocal
 
-from backend.models import Base, Issue
+from models import Base, Issue
 
 
 # Enable logging

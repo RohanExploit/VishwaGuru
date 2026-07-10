@@ -7,13 +7,13 @@ AI service implementations (Gemini, Mock, etc.) based on configuration.
 import os
 from typing import Literal
 
-from backend.ai_interfaces import ActionPlanService, ChatService, MLASummaryService
-from backend.gemini_services import (
+from ai_interfaces import ActionPlanService, ChatService, MLASummaryService
+from gemini_services import (
     create_gemini_action_plan_service,
     create_gemini_chat_service,
     create_gemini_mla_summary_service,
 )
-from backend.mock_services import (
+from mock_services import (
     create_mock_action_plan_service,
     create_mock_chat_service,
     create_mock_mla_summary_service,

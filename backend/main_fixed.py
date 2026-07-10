@@ -21,40 +21,40 @@ import time
 import magic
 import httpx
 
-from backend.cache import recent_issues_cache
-from backend.database import engine, Base, SessionLocal, get_db
-from backend.models import Issue
-from backend.schemas import (
+from cache import recent_issues_cache
+from database import engine, Base, SessionLocal, get_db
+from models import Issue
+from schemas import (
     IssueResponse, IssueCreateRequest, IssueCreateResponse, ChatRequest, ChatResponse,
     VoteRequest, VoteResponse, DetectionResponse, VisionAnalysisResponse,
     UrgencyAnalysisRequest, UrgencyAnalysisResponse, HealthResponse, MLStatusResponse,
     ResponsibilityMapResponse, ErrorResponse, SuccessResponse, IssueCategory, IssueStatus
 )
-from backend.exceptions import EXCEPTION_HANDLERS
-from backend.bot import application
-from backend.ai_factory import create_all_ai_services
-from backend.ai_service import (
+from exceptions import EXCEPTION_HANDLERS
+from bot import application
+from ai_factory import create_all_ai_services
+from ai_service import (
     generate_action_plan, chat_with_civic_assistant,
     analyze_issue_image, analyze_issue_with_ai,
     VISION_MODEL, API_MODE
 )
-from backend.maharashtra_locator import (
+from maharashtra_locator import (
     load_maharashtra_pincode_data,
     load_maharashtra_mla_data,
     find_constituency_by_pincode,
     find_mla_by_constituency
 )
-from backend.init_db import migrate_db
-from backend.pothole_detection import detect_potholes, validate_image_for_processing
-from backend.garbage_detection import detect_garbage
-from backend.local_ml_service import (
+from init_db import migrate_db
+from pothole_detection import detect_potholes, validate_image_for_processing
+from garbage_detection import detect_garbage
+from local_ml_service import (
     detect_infrastructure_local,
     detect_flooding_local,
     detect_vandalism_local,
     get_detection_status
 )
-from backend.gemini_services import get_ai_services, initialize_ai_services
-from backend.hf_api_service import (
+from gemini_services import get_ai_services, initialize_ai_services
+from hf_api_service import (
     detect_illegal_parking_clip,
     detect_street_light_clip,
     detect_fire_clip,

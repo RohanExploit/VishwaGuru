@@ -12,8 +12,10 @@ from gemini_summary import generate_mla_summary
 import json
 import os
 import io
+from functools import lru_cache
 
 # Add the project root to sys.path so we can import 'backend' modules
+import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, BackgroundTasks, Depends, Query
@@ -22,7 +24,9 @@ from fastapi.responses import JSONResponse
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from schemas import StatsResponse, MLStatusResponse
 from database import SessionLocal, engine, Base
+from ai_factory import create_all_ai_services
 from models import Issue
 from contextlib import asynccontextmanager
 import shutil
@@ -66,9 +70,9 @@ async def lifespan(app: FastAPI):
     try:
         load_maharashtra_pincode_data()
         load_maharashtra_mla_data()
-        logger.info("Maharashtra data pre-loaded successfully.")
+        print("Maharashtra data pre-loaded successfully.")
     except Exception as e:
-        logger.error(f"Error pre-loading Maharashtra data: {e}")
+        print(f"Error pre-loading Maharashtra data: {e}")
 
     # Run database migrations
     try:
@@ -134,27 +138,18 @@ def read_root():
         "version": "1.0.0"
     }
 
-@app.get("/", response_model=SuccessResponse)
-def root():
-    return SuccessResponse(
-        message="VishwaGuru API is running",
-        data={
-            "service": "VishwaGuru API",
-            "version": "1.0.0"
-        }
-    )
-
-@app.get("/health", response_model=HealthResponse)
+@app.get("/health")
 def health():
-    return HealthResponse(
-        status="healthy",
-        timestamp=datetime.now(timezone.utc),
-        version="1.0.0",
-        services={
+    from datetime import datetime, timezone
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "version": "1.0.0",
+        "services": {
             "database": "connected",
             "ai_services": "initialized"
         }
-    )
+    }
 
 @app.get("/api/stats", response_model=StatsResponse)
 def get_stats(db: Session = Depends(get_db)):

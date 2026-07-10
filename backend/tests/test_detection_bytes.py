@@ -40,7 +40,7 @@ with patch("backend.main.create_all_ai_services") as mock_create_ai:
     mock_summary = AsyncMock()
     mock_create_ai.return_value = (mock_action, mock_chat, mock_summary)
 
-    from backend.main import app
+    from main import app
 
 @pytest.fixture
 def client():
