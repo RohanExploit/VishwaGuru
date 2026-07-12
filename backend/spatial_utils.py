@@ -76,8 +76,20 @@ def find_nearby_issues(
     """
     nearby_issues = []
 
+    # Bolt Optimization: Fast bounding box pre-filter
+    # Use a bounding box to quickly exclude issues far outside the radius
+    # before calculating the expensive Haversine distance. We add a small
+    # 5% epsilon to the radius to prevent missing edge cases due to projection differences.
+    eps = radius_meters * 0.05
+    min_lat, max_lat, min_lon, max_lon = get_bounding_box(target_lat, target_lon, radius_meters + eps)
+
     for issue in issues:
         if issue.latitude is None or issue.longitude is None:
+            continue
+
+        # Skip Haversine if clearly outside the bounding box
+        if (issue.latitude < min_lat or issue.latitude > max_lat or
+            issue.longitude < min_lon or issue.longitude > max_lon):
             continue
 
         distance = haversine_distance(

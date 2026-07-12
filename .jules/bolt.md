@@ -13,3 +13,7 @@
 ## 2025-02-27 - UploadFile Validation Blocking
 **Learning:** `UploadFile` validation using `python-magic` and file seeking is synchronous and CPU/IO bound. In FastAPI async endpoints, this blocks the event loop.
 **Action:** Wrap file validation logic in `run_in_threadpool` and await it.
+
+## 2025-02-28 - Fast Bounding Box Pre-Filter for Geospatial Haversine Searches
+**Learning:** Running `haversine_distance` (which involves multiple trig functions) on large collections of points is slow. Bounding box calculation (`get_bounding_box`) combined with a quick bounding box coordinate comparison (`lat < min_lat`, etc.) avoids computing the distance entirely for points far away.
+**Action:** Always pre-filter coordinate searches using a bounding box before invoking trig-heavy `haversine` distance functions.
