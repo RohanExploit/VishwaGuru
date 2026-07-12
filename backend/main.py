@@ -11,6 +11,7 @@ from gemini_summary import generate_mla_summary
 import json
 import os
 import io
+import sys
 
 # Add the project root to sys.path so we can import 'backend' modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -234,25 +235,10 @@ async def create_issue(
 
         # Offload blocking file I/O to a thread
         def save_file():
-            with open(image_path, "wb") as buffer:
+            with open(file_location, "wb") as buffer:
                 shutil.copyfileobj(image.file, buffer)
 
         await asyncio.to_thread(save_file)
-
-    # Offload blocking DB operations to a thread
-    def save_to_db():
-        new_issue = Issue(
-            description=description,
-            category=category,
-            image_path=image_path,
-            source="web"
-        )
-        db.add(new_issue)
-        db.commit()
-        db.refresh(new_issue)
-        return new_issue
-
-    new_issue = await asyncio.to_thread(save_to_db)
 
         # Generate Action Plan (AI)
         action_plan = await generate_action_plan(description, category, file_location)
@@ -268,11 +254,14 @@ async def create_issue(
         db.commit()
         db.refresh(db_issue)
 
-    return {
-        "id": new_issue.id,
-        "message": "Issue reported successfully",
-        "action_plan": action_plan
-    }
+        return {
+            "id": db_issue.id,
+            "message": "Issue reported successfully",
+            "action_plan": action_plan
+        }
+    except Exception as e:
+        logger.error(f"Error creating issue: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 @lru_cache(maxsize=1)
 def _load_responsibility_map():
