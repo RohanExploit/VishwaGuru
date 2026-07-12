@@ -1,3 +1,6 @@
+[build.environment]
+  CI = "false"
+
 [build]
   publish = "frontend/dist"
   command = "npm install --prefix frontend && npm run build --prefix frontend"
