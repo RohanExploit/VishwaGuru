@@ -88,6 +88,14 @@ async def _make_request(client, image_bytes, labels):
             raise ExternalAPIException("Hugging Face API", str(e)) from e
 
 def _prepare_image_bytes(image: Union[Image.Image, bytes]) -> bytes:
+    if isinstance(image, bytes):
+        return image
+    img_byte_arr = io.BytesIO()
+    fmt = image.format if hasattr(image, 'format') and image.format else 'JPEG'
+    image.save(img_byte_arr, format=fmt)
+    return img_byte_arr.getvalue()
+
+async def detect_vandalism_clip(image: Image.Image, client: httpx.AsyncClient = None):
     """
     Detects vandalism/graffiti using Zero-Shot Image Classification with CLIP (Async).
     Includes retry logic with exponential backoff for transient failures.
