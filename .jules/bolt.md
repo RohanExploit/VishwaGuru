@@ -13,3 +13,10 @@
 ## 2025-02-27 - UploadFile Validation Blocking
 **Learning:** `UploadFile` validation using `python-magic` and file seeking is synchronous and CPU/IO bound. In FastAPI async endpoints, this blocks the event loop.
 **Action:** Wrap file validation logic in `run_in_threadpool` and await it.
+## 2024-07-13 - Scratchpad Files and Test Runners
+**Learning:** Temporary scratchpad files (like `test_spatial.py` or `test_perf.py`) created in the repository root will be automatically discovered by test runners like `pytest` because they start with `test_`. If these files contain top-level execution code (like creating arrays of 100k items), they will block test suites and pollute standard output.
+**Action:** Always clean up temporary files immediately after use (e.g. `rm test_perf.py`) before running project test suites or requesting code review.
+
+## 2024-07-13 - Haversine Distance Optimization
+**Learning:** Calculating `haversine_distance` for every point in a large dataset is O(N) and extremely slow due to repeated trigonometric functions (`math.sin`, `math.cos`, etc.).
+**Action:** For spatial radius queries, always apply a cheap bounding box pre-filter first (e.g., `get_bounding_box` with a 5% epsilon for safety). This reduces the complexity to O(N) fast arithmetic checks + O(K) slow trigonometric functions, where K << N.
