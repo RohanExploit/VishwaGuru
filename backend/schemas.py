@@ -231,3 +231,24 @@ class EscalationStatsResponse(BaseModel):
     active_grievances: int = Field(..., description="Number of active grievances")
     resolved_grievances: int = Field(..., description="Number of resolved grievances")
     escalation_rate: float = Field(..., description="Percentage of grievances that were escalated")
+
+# Blockchain-style follower schemas
+class FollowerCreateRequest(BaseModel):
+    user_email: str = Field(..., description="User email following the grievance")
+
+class FollowerResponse(BaseModel):
+    id: int = Field(..., description="Follower record ID")
+    grievance_id: int = Field(..., description="Associated grievance ID")
+    user_email: str = Field(..., description="User email")
+    created_at: datetime = Field(..., description="Follow timestamp")
+    integrity_hash: str = Field(..., description="Cryptographic integrity hash")
+    previous_integrity_hash: Optional[str] = Field(None, description="Hash of the previous follower record")
+
+    model_config = ConfigDict(from_attributes=True)
+
+class BlockchainVerificationResponse(BaseModel):
+    is_valid: bool = Field(..., description="Whether the integrity check passed")
+    current_hash: str = Field(..., description="Hash stored in the record")
+    calculated_hash: str = Field(..., description="Re-calculated hash based on record data")
+    previous_hash: Optional[str] = Field(None, description="Previous hash used for verification")
+    message: str = Field(..., description="Verification result message")
