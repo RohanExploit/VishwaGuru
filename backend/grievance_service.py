@@ -195,7 +195,7 @@ class GrievanceService:
         # Cache miss: Fallback to indexed DB query
         last_follower = db.query(GrievanceFollower)\
             .filter(GrievanceFollower.grievance_id == grievance_id)\
-            .order_by(desc(GrievanceFollower.created_at))\
+            .order_by(desc(GrievanceFollower.id))\
             .first()
 
         last_hash = last_follower.integrity_hash if last_follower else None
