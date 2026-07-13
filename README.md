@@ -20,7 +20,7 @@ VishwaGuru is an AI-powered platform designed to help users analyze issues and g
 
 ### 📥 Clone the Repository
 ```bash
-git clone https://github.com/Ewocs/VishwaGuru.git
+git clone https://github.com/RohanExploit/VishwaGuru.git
 cd VishwaGuru
 ```
 
