@@ -1,5 +1,6 @@
 # 🌍 VishwaGuru
 
+[![CI Build](https://github.com/RohanExploit/VishwaGuru/actions/workflows/ci.yml/badge.svg)](https://github.com/RohanExploit/VishwaGuru/actions/workflows/ci.yml)
  optimize-lazy-loading-313
 VishwaGuru is an AI-powered platform designed to help users analyze issues and generate actionable solutions using modern web technologies and AI models.
 
