@@ -128,3 +128,27 @@ class Issue(Base):
     longitude = Column(Float, nullable=True)
     location = Column(String, nullable=True)
     action_plan = Column(Text, nullable=True)
+
+class GrievanceFollower(Base):
+    """
+    Tracks users following a grievance with blockchain-style integrity hashing.
+    Optimized for O(1) integrity verification using hash chaining.
+    """
+    __tablename__ = "grievance_followers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    grievance_id = Column(Integer, ForeignKey("grievances.id"), nullable=False)
+    user_email = Column(String, nullable=False, index=True)
+    created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc), index=True)
+
+    # Blockchain-style integrity fields
+    integrity_hash = Column(String, nullable=False, index=True)
+    previous_integrity_hash = Column(String, nullable=True)
+
+    # Relationships
+    # Using backref for simplicity in this optimization
+    grievance = relationship("Grievance", backref="followers")
+
+    __table_args__ = (
+        Index("ix_follower_grievance_email", "grievance_id", "user_email", unique=True),
+    )

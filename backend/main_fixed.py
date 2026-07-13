@@ -28,7 +28,8 @@ from backend.schemas import (
     IssueResponse, IssueCreateRequest, IssueCreateResponse, ChatRequest, ChatResponse,
     VoteRequest, VoteResponse, DetectionResponse, VisionAnalysisResponse,
     UrgencyAnalysisRequest, UrgencyAnalysisResponse, HealthResponse, MLStatusResponse,
-    ResponsibilityMapResponse, ErrorResponse, SuccessResponse, IssueCategory, IssueStatus
+    ResponsibilityMapResponse, ErrorResponse, SuccessResponse, IssueCategory, IssueStatus,
+    FollowerCreateRequest, FollowerResponse, BlockchainVerificationResponse
 )
 from backend.exceptions import EXCEPTION_HANDLERS
 from backend.bot import application
@@ -45,6 +46,7 @@ from backend.maharashtra_locator import (
     find_mla_by_constituency
 )
 from backend.init_db import migrate_db
+from backend.grievance_service import GrievanceService
 from backend.pothole_detection import detect_potholes, validate_image_for_processing
 from backend.garbage_detection import detect_garbage
 from backend.local_ml_service import (
@@ -544,6 +546,41 @@ async def vision_analyze_endpoint(
         except OSError:
             pass
 
+
+# Initialize GrievanceService for the endpoints
+grievance_service = GrievanceService()
+
+@app.post("/api/grievances/{grievance_id}/follow", response_model=FollowerResponse)
+async def follow_grievance_endpoint(
+    grievance_id: int,
+    request: FollowerCreateRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Follow a grievance with blockchain-style integrity hash.
+    Bolt Optimization: Uses O(1) in-memory cache for hash chaining.
+    """
+    follower = await run_in_threadpool(
+        grievance_service.follow_grievance,
+        grievance_id,
+        request.user_email,
+        db
+    )
+    if not follower:
+        raise HTTPException(status_code=400, detail="Failed to follow grievance")
+    return follower
+
+@app.get("/api/follower/{follower_id}/blockchain-verify", response_model=BlockchainVerificationResponse)
+async def verify_follower_endpoint(follower_id: int, db: Session = Depends(get_db)):
+    """
+    Verify the cryptographic integrity of a follower record.
+    """
+    result = await run_in_threadpool(
+        grievance_service.verify_follower_integrity,
+        follower_id,
+        db
+    )
+    return result
 
 @app.get("/api/issues/recent", response_model=List[IssueResponse])
 def get_recent_issues(db: Session = Depends(get_db)):

@@ -13,3 +13,11 @@
 ## 2025-02-27 - UploadFile Validation Blocking
 **Learning:** `UploadFile` validation using `python-magic` and file seeking is synchronous and CPU/IO bound. In FastAPI async endpoints, this blocks the event loop.
 **Action:** Wrap file validation logic in `run_in_threadpool` and await it.
+
+## 2025-05-30 - Session Management Anti-Pattern
+**Learning:** Using `if db is not SessionLocal(): db.close()` to manage session lifecycle is flawed because `SessionLocal` is a factory, and instances will never match it. This leads to premature closure of injected sessions (e.g., from FastAPI dependencies).
+**Action:** Use an `is_local_session` flag to track if the session was created within the method and should be closed by it.
+
+## 2025-05-30 - O(1) Blockchain Hash Lookup
+**Learning:** Calculating a blockchain-style hash chain requires finding the previous record's hash. A naive DB scan is O(log N) with indexes, but high-concurrency follow operations can be optimized.
+**Action:** Implement an in-memory thread-safe cache for the last hash of each grievance to achieve O(1) lookup during follower creation, falling back to DB on cache miss.
