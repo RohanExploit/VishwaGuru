@@ -11,6 +11,7 @@ from gemini_summary import generate_mla_summary
 import json
 import os
 import io
+import sys
 
 # Add the project root to sys.path so we can import 'backend' modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
