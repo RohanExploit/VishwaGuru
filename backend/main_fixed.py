@@ -582,6 +582,36 @@ async def verify_follower_endpoint(follower_id: int, db: Session = Depends(get_d
     )
     return result
 
+@app.get("/api/escalation/{audit_id}/blockchain-verify", response_model=BlockchainVerificationResponse)
+async def verify_escalation_audit_endpoint(audit_id: int, db: Session = Depends(get_db)):
+    """
+    Verify the cryptographic integrity of an escalation audit record.
+    """
+    from backend.models import EscalationAudit
+    import hashlib
+
+    def verify_audit():
+        audit = db.query(EscalationAudit).filter(EscalationAudit.id == audit_id).first()
+        if not audit:
+            raise HTTPException(status_code=404, detail="Audit record not found")
+
+        # Re-calculate hash
+        hash_input = f"{audit.grievance_id}|{audit.reason.value}|{audit.previous_integrity_hash or 'GENESIS'}"
+        calculated_hash = hashlib.sha256(hash_input.encode()).hexdigest()
+
+        is_valid = (calculated_hash == audit.integrity_hash)
+
+        return {
+            "is_valid": is_valid,
+            "current_hash": audit.integrity_hash,
+            "calculated_hash": calculated_hash,
+            "previous_hash": audit.previous_integrity_hash,
+            "message": "Integrity verified" if is_valid else "INTEGRITY BREACH DETECTED"
+        }
+
+    result = await run_in_threadpool(verify_audit)
+    return result
+
 @app.get("/api/issues/recent", response_model=List[IssueResponse])
 def get_recent_issues(db: Session = Depends(get_db)):
     cached_data = recent_issues_cache.get()

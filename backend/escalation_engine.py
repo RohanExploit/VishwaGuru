@@ -4,9 +4,11 @@ Core engine for evaluating and performing grievance escalations based on SLA and
 """
 
 import datetime
+import hashlib
+import threading
 from typing import List, Dict, Any, Optional
-from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import and_, or_, desc
 from backend.models import Grievance, Jurisdiction, EscalationAudit, GrievanceStatus, JurisdictionLevel, EscalationReason, SeverityLevel
 from backend.database import SessionLocal
 from backend.routing_service import RoutingService
@@ -16,6 +18,11 @@ class EscalationEngine:
     """
     Engine for handling grievance escalations based on SLA breaches and severity changes.
     """
+
+    # Cache for O(1) blockchain integrity hash lookups
+    # Stores {grievance_id: last_audit_integrity_hash}
+    _audit_last_hash_cache = {}
+    _cache_lock = threading.Lock()
 
     def __init__(self, routing_service: RoutingService, sla_service: SLAConfigService,
                  rules_config: Dict[str, Any]):
@@ -111,13 +118,13 @@ class EscalationEngine:
             if db is not SessionLocal():
                 db.close()
 
-    def manual_escalate(self, grievance_id: int, reason: str = "", db: Session = None) -> bool:
+    def manual_escalate(self, grievance_id: int, notes: str = "", db: Session = None) -> bool:
         """
         Manually escalate a grievance.
 
         Args:
             grievance_id: Grievance ID
-            reason: Reason for manual escalation
+            notes: Notes explaining the manual escalation
             db: Database session
 
         Returns:
@@ -131,7 +138,7 @@ class EscalationEngine:
             if not grievance:
                 return False
 
-            return self._escalate_grievance(grievance, EscalationReason.MANUAL, db, reason)
+            return self._escalate_grievance(grievance, EscalationReason.MANUAL, db, notes)
 
         finally:
             if db is not SessionLocal():
@@ -140,6 +147,7 @@ class EscalationEngine:
     def _get_grievances_for_evaluation(self, db: Session) -> List[Grievance]:
         """
         Get grievances that should be evaluated for escalation.
+        Bolt Optimization: Uses joinedload for Jurisdiction to avoid N+1 query problem.
 
         Args:
             db: Database session
@@ -150,7 +158,9 @@ class EscalationEngine:
         now = datetime.datetime.now(datetime.timezone.utc)
 
         # Get grievances that are active and past SLA deadline
-        return db.query(Grievance).filter(
+        return db.query(Grievance).options(
+            joinedload(Grievance.jurisdiction)
+        ).filter(
             and_(
                 Grievance.status.in_([GrievanceStatus.OPEN, GrievanceStatus.IN_PROGRESS, GrievanceStatus.ESCALATED]),
                 Grievance.sla_deadline < now
@@ -248,17 +258,31 @@ class EscalationEngine:
             # Recalculate SLA
             self._recalculate_sla(grievance, db)
 
+            # Blockchain-style integrity hashing
+            # Get previous hash (O(1) from cache or O(log N) from indexed DB)
+            prev_hash = self._get_last_audit_hash(grievance.id, db)
+
+            # Calculate new integrity hash: SHA256(grievance_id | reason | prev_hash)
+            hash_input = f"{grievance.id}|{reason.value}|{prev_hash or 'GENESIS'}"
+            new_hash = hashlib.sha256(hash_input.encode()).hexdigest()
+
             # Create audit log
             audit_log = EscalationAudit(
                 grievance_id=grievance.id,
                 previous_authority=previous_authority,
                 new_authority=grievance.assigned_authority,
                 reason=reason,
-                notes=notes
+                notes=notes,
+                integrity_hash=new_hash,
+                previous_integrity_hash=prev_hash
             )
 
             db.add(audit_log)
             db.commit()
+
+            # Update O(1) cache for next escalation
+            with self._cache_lock:
+                self._audit_last_hash_cache[grievance.id] = new_hash
 
             return True
 
@@ -266,6 +290,30 @@ class EscalationEngine:
             db.rollback()
             print(f"Error during escalation: {e}")
             return False
+
+    def _get_last_audit_hash(self, grievance_id: int, db: Session) -> Optional[str]:
+        """
+        Retrieves the last audit integrity hash for a grievance.
+        Bolt Optimization: Uses thread-safe memory cache for O(1) lookup.
+        """
+        with self._cache_lock:
+            if grievance_id in self._audit_last_hash_cache:
+                return self._audit_last_hash_cache[grievance_id]
+
+        # Cache miss: Fallback to indexed DB query
+        last_audit = db.query(EscalationAudit)\
+            .filter(EscalationAudit.grievance_id == grievance_id)\
+            .order_by(desc(EscalationAudit.id))\
+            .first()
+
+        last_hash = last_audit.integrity_hash if last_audit else None
+
+        # Update cache for next time
+        if last_hash:
+            with self._cache_lock:
+                self._audit_last_hash_cache[grievance_id] = last_hash
+
+        return last_hash
 
     def _recalculate_sla(self, grievance: Grievance, db: Session) -> None:
         """

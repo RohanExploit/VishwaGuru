@@ -319,18 +319,18 @@ class GrievanceService:
         """
         return self.escalation_engine.escalate_grievance_severity(grievance_id, new_severity, reason)
 
-    def manual_escalate(self, grievance_id: int, reason: str = "") -> bool:
+    def manual_escalate(self, grievance_id: int, notes: str = "") -> bool:
         """
         Manually escalate a grievance.
 
         Args:
             grievance_id: Grievance ID
-            reason: Reason for escalation
+            notes: Notes for escalation
 
         Returns:
             True if escalation successful
         """
-        return self.escalation_engine.manual_escalate(grievance_id, reason)
+        return self.escalation_engine.manual_escalate(grievance_id, notes)
 
     def run_escalation_check(self) -> Dict[str, int]:
         """

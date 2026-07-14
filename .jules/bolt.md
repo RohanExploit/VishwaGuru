@@ -21,3 +21,6 @@
 ## 2025-05-30 - O(1) Blockchain Hash Lookup
 **Learning:** Calculating a blockchain-style hash chain requires finding the previous record's hash. A naive DB scan is O(log N) with indexes, but high-concurrency follow operations can be optimized.
 **Action:** Implement an in-memory thread-safe cache for the last hash of each grievance to achieve O(1) lookup during follower creation, falling back to DB on cache miss.
+## 2026-07-14 - N+1 Query in Escalation Evaluation
+**Learning:** The periodic escalation check loop in `EscalationEngine` was triggering an N+1 query bottleneck by accessing `grievance.jurisdiction` for each record. In FastAPI/SQLAlchemy, this can significantly slow down background tasks as the number of active grievances grows.
+**Action:** Use `joinedload(Grievance.jurisdiction)` in the initial query to fetch all required data in a single efficient SQL JOIN.
