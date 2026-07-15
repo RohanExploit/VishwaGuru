@@ -87,7 +87,11 @@ def find_nearby_issues(
             continue
 
         # Skip issues outside the bounding box
-        if not (min_lat <= issue.latitude <= max_lat and min_lon <= issue.longitude <= max_lon):
+        lon_delta = (issue.longitude - target_lon + 180) % 360 - 180
+        lon_half_width = max(target_lon - min_lon, max_lon - target_lon)
+        if not (min_lat <= issue.latitude <= max_lat and (
+            abs(target_lat) >= 89.9 or abs(lon_delta) <= lon_half_width
+        )):
             continue
 
         distance = haversine_distance(
