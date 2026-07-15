@@ -21,3 +21,7 @@
 ## 2025-05-30 - O(1) Blockchain Hash Lookup
 **Learning:** Calculating a blockchain-style hash chain requires finding the previous record's hash. A naive DB scan is O(log N) with indexes, but high-concurrency follow operations can be optimized.
 **Action:** Implement an in-memory thread-safe cache for the last hash of each grievance to achieve O(1) lookup during follower creation, falling back to DB on cache miss.
+
+## 2025-07-15 - Fast Bounding Box Pre-filter
+**Learning:** Calculating great circle distance (Haversine) for every issue against a target location is computationally expensive (O(N) with heavy math ops like sin, cos, atan2). In high-traffic aggregations, this can become a bottleneck.
+**Action:** Use a fast bounding box pre-filter (`get_bounding_box` with a 5% epsilon) to quickly discard issues that are definitely outside the search radius before running the expensive exact haversine distance calculation.

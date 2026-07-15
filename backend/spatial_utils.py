@@ -76,8 +76,18 @@ def find_nearby_issues(
     """
     nearby_issues = []
 
+    # Fast bounding box pre-filter with a 5% epsilon to optimize expensive haversine calculations
+    epsilon_radius = radius_meters * 1.05
+    min_lat, max_lat, min_lon, max_lon = get_bounding_box(
+        target_lat, target_lon, epsilon_radius
+    )
+
     for issue in issues:
         if issue.latitude is None or issue.longitude is None:
+            continue
+
+        # Skip issues outside the bounding box
+        if not (min_lat <= issue.latitude <= max_lat and min_lon <= issue.longitude <= max_lon):
             continue
 
         distance = haversine_distance(
