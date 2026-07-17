@@ -25,3 +25,7 @@
 ## 2025-07-15 - Fast Bounding Box Pre-filter
 **Learning:** Calculating great circle distance (Haversine) for every issue against a target location is computationally expensive (O(N) with heavy math ops like sin, cos, atan2). In high-traffic aggregations, this can become a bottleneck.
 **Action:** Use a fast bounding box pre-filter (`get_bounding_box` with a 5% epsilon) to quickly discard issues that are definitely outside the search radius before running the expensive exact haversine distance calculation.
+
+## 2025-07-16 - N+1 Query in Escalation Loop
+**Learning:** During periodic evaluation of overdue grievances (`evaluate_and_escalate_grievances`), checking `grievance.jurisdiction.level` without eager loading triggers a separate DB query for every overdue grievance. This is a classic N+1 bottleneck when scanning a large number of open issues.
+**Action:** Always use `.options(joinedload(Model.relationship))` in queries that retrieve lists of items if those items' relationships will be accessed during iteration.
