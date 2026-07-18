@@ -6,6 +6,8 @@ from database import engine, get_db
 from models import Base, Issue
 from schemas import SuccessResponse, HealthResponse, StatsResponse, MLStatusResponse
 from ai_service import generate_action_plan, chat_with_civic_assistant
+from ai_factory import create_all_ai_services
+from gemini_services import initialize_ai_services
 from maharashtra_locator import find_constituency_by_pincode, find_mla_by_constituency
 from pydantic import BaseModel
 from gemini_summary import generate_mla_summary
@@ -13,7 +15,11 @@ import json
 import os
 import io
 import sys
+import logging
 from functools import lru_cache
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 # Add the project root to sys.path so we can import 'backend' modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

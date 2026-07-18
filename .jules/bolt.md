@@ -28,3 +28,6 @@
 ## 2025-05-30 - N+1 Query in Escalation Engine
 **Learning:** The `EscalationEngine.evaluate_and_escalate_grievances` fetches grievances that need evaluation, and subsequent loops access `grievance.jurisdiction.level`. Since `jurisdiction` is evaluated lazily, this causes an N+1 query problem during the periodic cron job.
 **Action:** Use `joinedload(Grievance.jurisdiction)` in `_get_grievances_for_evaluation` to eager-load the jurisdiction and eliminate the bottleneck.
+## 2025-07-18 - Render Deployment Failures and Imports
+**Learning:** Deployment failures on Render can occur when refactoring components without updating all corresponding imports in the `main.py` entrypoint. Furthermore, when mocking missing dependencies in `pytest`, `AttributeError` indicates the mock target itself cannot be found in the namespace.
+**Action:** When creating new components like `ai_factory.py`, make sure to import them appropriately in `main.py`, and when patching mock targets in `pytest`, ensure the import path is fully qualified and exists within the patched module.
