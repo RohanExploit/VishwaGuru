@@ -4,6 +4,7 @@ from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 from database import engine, get_db
 from models import Base, Issue
+from schemas import SuccessResponse, HealthResponse, StatsResponse, MLStatusResponse
 from ai_service import generate_action_plan, chat_with_civic_assistant
 from maharashtra_locator import find_constituency_by_pincode, find_mla_by_constituency
 from pydantic import BaseModel
@@ -11,6 +12,8 @@ from gemini_summary import generate_mla_summary
 import json
 import os
 import io
+import sys
+from functools import lru_cache
 
 # Add the project root to sys.path so we can import 'backend' modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -35,7 +38,7 @@ import uuid
 from pothole_detection import detect_potholes
 from garbage_detection import detect_garbage
 from vandalism_detection import detect_vandalism
-from flood_detection import detect_flooding
+from flooding_detection import detect_flooding
 
 # Import AI and Logic services
 from ai_service import analyze_issue_image, chat_with_civic_assistant, analyze_issue_with_ai, generate_action_plan
@@ -133,16 +136,6 @@ def read_root():
         "version": "1.0.0"
     }
 
-@app.get("/", response_model=SuccessResponse)
-def root():
-    return SuccessResponse(
-        message="VishwaGuru API is running",
-        data={
-            "service": "VishwaGuru API",
-            "version": "1.0.0"
-        }
-    )
-
 @app.get("/health", response_model=HealthResponse)
 def health():
     return HealthResponse(
@@ -234,45 +227,38 @@ async def create_issue(
 
         # Offload blocking file I/O to a thread
         def save_file():
-            with open(image_path, "wb") as buffer:
+            with open(file_location, "wb") as buffer:
                 shutil.copyfileobj(image.file, buffer)
 
         await asyncio.to_thread(save_file)
 
-    # Offload blocking DB operations to a thread
-    def save_to_db():
-        new_issue = Issue(
-            description=description,
-            category=category,
-            image_path=image_path,
-            source="web"
-        )
-        db.add(new_issue)
-        db.commit()
-        db.refresh(new_issue)
-        return new_issue
-
-    new_issue = await asyncio.to_thread(save_to_db)
-
         # Generate Action Plan (AI)
         action_plan = await generate_action_plan(description, category, file_location)
 
-        db_issue = Issue(
-            description=description,
-            category=category,
-            image_path=file_location,
-            source=source,
-            user_email=user_email
-        )
-        db.add(db_issue)
-        db.commit()
-        db.refresh(db_issue)
+        # Offload blocking DB operations to a thread
+        def save_to_db():
+            new_issue = Issue(
+                description=description,
+                category=category,
+                image_path=file_location,
+                source=source,
+                user_email=user_email
+            )
+            db.add(new_issue)
+            db.commit()
+            db.refresh(new_issue)
+            return new_issue
 
-    return {
-        "id": new_issue.id,
-        "message": "Issue reported successfully",
-        "action_plan": action_plan
-    }
+        new_issue = await asyncio.to_thread(save_to_db)
+
+        return {
+            "id": new_issue.id,
+            "message": "Issue reported successfully",
+            "action_plan": action_plan
+        }
+    except Exception as e:
+        logger.error(f"Error creating issue: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create issue")
 
 @lru_cache(maxsize=1)
 def _load_responsibility_map():
