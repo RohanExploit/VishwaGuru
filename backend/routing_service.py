@@ -6,8 +6,8 @@ Handles dynamic routing and authority assignment based on geography and departme
 import json
 from typing import Optional, Dict, Any
 from sqlalchemy.orm import Session
-from models import Jurisdiction, JurisdictionLevel, Grievance
-from database import SessionLocal
+from backend.models import Jurisdiction, JurisdictionLevel, Grievance
+from backend.database import SessionLocal
 
 class RoutingService:
     """

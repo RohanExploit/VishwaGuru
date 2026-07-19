@@ -33,7 +33,7 @@ mock_telegram = MagicMock()
 sys.modules['telegram'] = mock_telegram
 sys.modules['telegram.ext'] = mock_telegram.ext
 
-from main import app
+from backend.main import app
 
 @pytest.mark.asyncio
 async def test_detect_severity_endpoint():

@@ -1,4 +1,4 @@
-from local_ml_service import detect_infrastructure_local
+from backend.local_ml_service import detect_infrastructure_local
 from PIL import Image
 
 async def detect_infrastructure(image: Image.Image):

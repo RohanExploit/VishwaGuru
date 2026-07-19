@@ -23,8 +23,8 @@ sys.modules['telegram'] = mock_telegram
 sys.modules['telegram.ext'] = mock_telegram.ext
 
 # Import main (will trigger app creation, but lifespan won't run yet)
-import main
-from main import app
+import backend.main
+from backend.main import app
 
 @pytest.fixture
 def client_with_mock_http():

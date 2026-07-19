@@ -3,9 +3,9 @@ Initialize Grievance System
 Sets up sample jurisdictions, SLA configurations, and test data.
 """
 
-from database import SessionLocal, engine
-from models import Jurisdiction, JurisdictionLevel, SLAConfig, SeverityLevel
-from grievance_service import GrievanceService
+from backend.database import SessionLocal, engine
+from backend.models import Jurisdiction, JurisdictionLevel, SLAConfig, SeverityLevel
+from backend.grievance_service import GrievanceService
 import json
 
 def initialize_grievance_system():
@@ -13,7 +13,7 @@ def initialize_grievance_system():
     Initialize the grievance system with sample data.
     """
     # Create tables
-    from models import Base
+    from backend.models import Base
     Base.metadata.create_all(bind=engine)
 
     db = SessionLocal()

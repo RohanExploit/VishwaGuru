@@ -11,7 +11,7 @@ from typing import Optional
 
 import httpx
 
-from retry_utils import exponential_backoff_retry
+from backend.retry_utils import exponential_backoff_retry
 
 # Configure logging
 logger = logging.getLogger(__name__)

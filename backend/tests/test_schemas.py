@@ -6,7 +6,7 @@ from datetime import datetime
 # Suppress warnings for clean test output
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
-from schemas import (
+from backend.schemas import (
     IssueCategory, IssueStatus, ActionPlan, ChatRequest, ChatResponse,
     IssueResponse, IssueCreateRequest, IssueCreateResponse, VoteRequest,
     VoteResponse, IssueStatusUpdateRequest, IssueStatusUpdateResponse,
