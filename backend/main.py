@@ -11,6 +11,7 @@ from gemini_summary import generate_mla_summary
 import json
 import os
 import io
+import sys
 
 # Add the project root to sys.path so we can import 'backend' modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -239,6 +240,9 @@ async def create_issue(
 
         await asyncio.to_thread(save_file)
 
+    except Exception as e:
+        logger.error(f"Failed to process image: {e}")
+
     # Offload blocking DB operations to a thread
     def save_to_db():
         new_issue = Issue(
@@ -254,19 +258,19 @@ async def create_issue(
 
     new_issue = await asyncio.to_thread(save_to_db)
 
-        # Generate Action Plan (AI)
-        action_plan = await generate_action_plan(description, category, file_location)
+    # Generate Action Plan (AI)
+    action_plan = await generate_action_plan(description, category, file_location)
 
-        db_issue = Issue(
-            description=description,
-            category=category,
-            image_path=file_location,
-            source=source,
-            user_email=user_email
-        )
-        db.add(db_issue)
-        db.commit()
-        db.refresh(db_issue)
+    db_issue = Issue(
+        description=description,
+        category=category,
+        image_path=file_location,
+        source=source,
+        user_email=user_email
+    )
+    db.add(db_issue)
+    db.commit()
+    db.refresh(db_issue)
 
     return {
         "id": new_issue.id,
