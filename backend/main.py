@@ -11,6 +11,7 @@ from gemini_summary import generate_mla_summary
 import json
 import os
 import io
+import sys
 
 # Add the project root to sys.path so we can import 'backend' modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -229,30 +230,11 @@ async def create_issue(
     try:
         # Save the uploaded image
         os.makedirs("data/uploads", exist_ok=True)
-        filename = f"{uuid.uuid4()}_{image.filename}"
+        filename = f"{uuid.uuid4()}_{os.path.basename(image.filename)}"
         file_location = f"data/uploads/{filename}"
 
         # Offload blocking file I/O to a thread
-        def save_file():
-            with open(image_path, "wb") as buffer:
-                shutil.copyfileobj(image.file, buffer)
-
-        await asyncio.to_thread(save_file)
-
-    # Offload blocking DB operations to a thread
-    def save_to_db():
-        new_issue = Issue(
-            description=description,
-            category=category,
-            image_path=image_path,
-            source="web"
-        )
-        db.add(new_issue)
-        db.commit()
-        db.refresh(new_issue)
-        return new_issue
-
-    new_issue = await asyncio.to_thread(save_to_db)
+        await run_in_threadpool(save_file_blocking, image.file, file_location)
 
         # Generate Action Plan (AI)
         action_plan = await generate_action_plan(description, category, file_location)
@@ -268,11 +250,14 @@ async def create_issue(
         db.commit()
         db.refresh(db_issue)
 
-    return {
-        "id": new_issue.id,
-        "message": "Issue reported successfully",
-        "action_plan": action_plan
-    }
+        return {
+            "id": db_issue.id,
+            "message": "Issue reported successfully",
+            "action_plan": action_plan
+        }
+    except Exception as e:
+        print(f"Error creating issue: {e}")
+        return JSONResponse(status_code=500, content={"message": str(e)})
 
 @lru_cache(maxsize=1)
 def _load_responsibility_map():
@@ -291,14 +276,6 @@ def get_responsibility_map():
         return _load_responsibility_map()
     except FileNotFoundError:
         return {"error": "Data file not found"}
-
-class ChatRequest(BaseModel):
-    query: str
-
-@app.post("/api/chat")
-async def chat_endpoint(request: ChatRequest):
-    response = await chat_with_civic_assistant(request.query)
-    return {"response": response}
 
 @app.get("/api/issues/recent")
 def get_recent_issues(db: Session = Depends(get_db)):
@@ -342,12 +319,6 @@ def get_issues(
 ):
     # Added pagination
     issues = db.query(Issue).offset(skip).limit(limit).all()
-    return issues
-
-@app.get("/api/issues/recent")
-def get_recent_issues(db: Session = Depends(get_db)):
-    # Fetch top 10 most recent issues
-    issues = db.query(Issue).order_by(Issue.created_at.desc()).limit(10).all()
     return issues
 
 @app.post("/api/mh/rep-contacts")
@@ -499,7 +470,7 @@ async def analyze_issue_endpoint(
         image_path = None
         if image:
             os.makedirs("data/temp", exist_ok=True)
-            image_path = f"data/temp/{uuid.uuid4()}_{image.filename}"
+            image_path = f"data/temp/{uuid.uuid4()}_{os.path.basename(image.filename)}"
             # save blocking
             await run_in_threadpool(save_file_blocking, image.file, image_path)
 
