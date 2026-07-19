@@ -5,8 +5,8 @@ Manages SLA rules and configurations for different scenarios.
 
 from typing import Optional
 from sqlalchemy.orm import Session
-from backend.models import SLAConfig, JurisdictionLevel, SeverityLevel
-from backend.database import SessionLocal
+from models import SLAConfig, JurisdictionLevel, SeverityLevel
+from database import SessionLocal
 
 class SLAConfigService:
     """

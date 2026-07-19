@@ -40,7 +40,7 @@ with patch("backend.main.create_all_ai_services") as mock_create_ai:
     mock_summary = AsyncMock()
     mock_create_ai.return_value = (mock_action, mock_chat, mock_summary)
 
-    from backend.main import app
+    from main import app
 
 @pytest.fixture
 def client():
@@ -56,7 +56,7 @@ def client():
 
     dummy_request = MagicMock()
     dummy_request.app.state.http_client = mock_client
-    import backend.main as main_module
+    import main as main_module
     main_module.request = dummy_request
 
     # We need to ensure that when main.py does app.state.http_client = httpx.AsyncClient()
@@ -120,7 +120,7 @@ async def test_detect_infrastructure_with_bytes(client):
 
     dummy_request = MagicMock()
     dummy_request.app.state.http_client = mock_client
-    import backend.main as main_module
+    import main as main_module
     main_module.request = dummy_request
 
     img = Image.new('RGB', (100, 100), color='blue')

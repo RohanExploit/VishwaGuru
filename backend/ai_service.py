@@ -9,8 +9,8 @@ from functools import lru_cache
 
 import httpx
 
-from backend.retry_utils import exponential_backoff_retry
-from backend.exceptions import AIServiceException
+from retry_utils import exponential_backoff_retry
+from exceptions import AIServiceException
 
 # Configure logging
 logger = logging.getLogger(__name__)

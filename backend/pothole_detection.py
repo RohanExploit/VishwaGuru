@@ -2,7 +2,7 @@ import logging
 import threading
 from typing import Optional, Any
 
-from backend.exceptions import ModelLoadException, DetectionException
+from exceptions import ModelLoadException, DetectionException
 
 # Configure logging
 logger = logging.getLogger(__name__)

@@ -14,7 +14,7 @@ from typing import List, Dict, Optional
 from PIL import Image
 from enum import Enum
 
-from backend.exceptions import DetectionException, ServiceUnavailableException
+from exceptions import DetectionException, ServiceUnavailableException
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -204,7 +204,7 @@ class UnifiedDetectionService:
         backend = await self._get_detection_backend()
 
         if backend == "local":
-            from backend.garbage_detection import detect_garbage
+            from garbage_detection import detect_garbage
             # Local model expects image source, but PIL image works if model supports it
             # The existing detect_garbage uses model.predict(image_source)
             # Ultralytics YOLO supports PIL Image directly
@@ -212,7 +212,7 @@ class UnifiedDetectionService:
             return await run_in_threadpool(detect_garbage, image)
 
         elif backend == "huggingface":
-            from backend.hf_api_service import detect_waste_clip
+            from hf_api_service import detect_waste_clip
             result = await detect_waste_clip(image)
 
             # Map classification to detection format

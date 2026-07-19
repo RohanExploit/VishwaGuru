@@ -4,8 +4,8 @@ Mock implementations of AI service interfaces for testing and development.
 from typing import Dict, Optional
 import asyncio
 
-from backend.ai_interfaces import ActionPlanService, ChatService, MLASummaryService
-from backend.ai_service import build_x_post
+from ai_interfaces import ActionPlanService, ChatService, MLASummaryService
+from ai_service import build_x_post
 
 class MockActionPlanService(ActionPlanService):
     """Mock implementation that returns predefined responses."""

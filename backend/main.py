@@ -23,14 +23,19 @@ from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine, Base
+from schemas import SuccessResponse, HealthResponse, StatsResponse, MLStatusResponse
 from models import Issue
 from contextlib import asynccontextmanager
 import shutil
 import datetime
 from sqlalchemy import text
 from typing import Optional, List
+from functools import lru_cache
 import PIL.Image
 import uuid
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Import specialized detection modules
 from pothole_detection import detect_potholes
@@ -437,10 +442,8 @@ async def api_detect_vandalism(file: UploadFile = File(...)):
 @app.post("/api/detect-flooding")
 async def api_detect_flooding(file: UploadFile = File(...)):
     try:
-        def process_image():
-            img = PIL.Image.open(file.file)
-            return detect_flooding(img)
-        result = await run_in_threadpool(process_image)
+        img = PIL.Image.open(file.file)
+        result = await detect_flooding(img)
         return {"detections": result}
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})

@@ -10,7 +10,7 @@ from PIL import Image
 import threading
 from fastapi.concurrency import run_in_threadpool
 
-from backend.exceptions import DetectionException
+from exceptions import DetectionException
 
 # Configure logging
 logger = logging.getLogger(__name__)

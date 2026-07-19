@@ -6,7 +6,7 @@ from typing import List, Tuple, Optional
 from sklearn.cluster import DBSCAN
 import numpy as np
 
-from backend.models import Issue
+from models import Issue
 
 
 def get_bounding_box(lat: float, lon: float, radius_meters: float) -> Tuple[float, float, float, float]:
