@@ -80,7 +80,7 @@ def main():
 
     # Start the server
     uvicorn.run(
-        "backend.main_fixed:app",
+        "backend.main:app",
         host=host,
         port=port,
         reload=False,  # Disable reload in production
