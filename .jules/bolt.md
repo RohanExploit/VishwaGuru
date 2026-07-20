@@ -25,3 +25,7 @@
 ## 2025-07-15 - Fast Bounding Box Pre-filter
 **Learning:** Calculating great circle distance (Haversine) for every issue against a target location is computationally expensive (O(N) with heavy math ops like sin, cos, atan2). In high-traffic aggregations, this can become a bottleneck.
 **Action:** Use a fast bounding box pre-filter (`get_bounding_box` with a 5% epsilon) to quickly discard issues that are definitely outside the search radius before running the expensive exact haversine distance calculation.
+
+## 2026-07-20 - Unbounded In-Memory Caches & Process Safety
+**Learning:** Class-level in-memory dictionaries used to achieve O(1) blockchain lookups can leak memory if they grow unboundedly in high-traffic applications. Additionally, single-column select queries in SQLAlchemy provide a highly performant and process-safe database-level alternative when multiple worker processes are involved.
+**Action:** Always bound in-memory cache growth (e.g., limit to 1000 items with eviction) and combine with optimized database column-selection queries to guarantee process-safety and prevent memory leaks.
