@@ -25,3 +25,7 @@
 ## 2025-07-15 - Fast Bounding Box Pre-filter
 **Learning:** Calculating great circle distance (Haversine) for every issue against a target location is computationally expensive (O(N) with heavy math ops like sin, cos, atan2). In high-traffic aggregations, this can become a bottleneck.
 **Action:** Use a fast bounding box pre-filter (`get_bounding_box` with a 5% epsilon) to quickly discard issues that are definitely outside the search radius before running the expensive exact haversine distance calculation.
+
+## 2025-07-21 - N+1 Queries in Periodic Jobs
+**Learning:** During periodic tasks that evaluate many database records (like checking SLA deadlines in an escalation engine), accessing related models (like `grievance.jurisdiction.level`) without eager loading causes N+1 query bottlenecks. This can severely degrade performance as the number of records grows.
+**Action:** Use SQLAlchemy's `joinedload` (e.g., `.options(joinedload(Model.relationship))`) in the initial query to pre-fetch related data in a single SQL join instead of making separate queries for each record.
