@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import ChatWidget from './components/ChatWidget';
 import { issuesApi, miscApi } from './api';
 import { fakeRecentIssues, fakeResponsibilityMap } from './fakeData';
@@ -13,17 +13,17 @@ const MaharashtraRepView = React.lazy(() => import('./views/MaharashtraRepView')
 const NotFound = React.lazy(() => import('./views/NotFound'));
 
 // Lazy-load detector components
-const PotholeDetector = React.lazy(() => import('./PotholeDetector'));
-const GarbageDetector = React.lazy(() => import('./GarbageDetector'));
-const VandalismDetector = React.lazy(() => import('./VandalismDetector'));
-const FloodDetector = React.lazy(() => import('./FloodDetector'));
-const InfrastructureDetector = React.lazy(() => import('./InfrastructureDetector'));
-const IllegalParkingDetector = React.lazy(() => import('./IllegalParkingDetector'));
-const StreetLightDetector = React.lazy(() => import('./StreetLightDetector'));
-const FireDetector = React.lazy(() => import('./FireDetector'));
-const StrayAnimalDetector = React.lazy(() => import('./StrayAnimalDetector'));
-const BlockedRoadDetector = React.lazy(() => import('./BlockedRoadDetector'));
-const TreeDetector = React.lazy(() => import('./TreeDetector'));
+const PotholeDetector = React.lazy(() => import('./features/detectors/PotholeDetector'));
+const GarbageDetector = React.lazy(() => import('./features/detectors/GarbageDetector'));
+const VandalismDetector = React.lazy(() => import('./features/detectors/VandalismDetector'));
+const FloodDetector = React.lazy(() => import('./features/detectors/FloodDetector'));
+const InfrastructureDetector = React.lazy(() => import('./features/detectors/InfrastructureDetector'));
+const IllegalParkingDetector = React.lazy(() => import('./features/detectors/IllegalParkingDetector'));
+const StreetLightDetector = React.lazy(() => import('./features/detectors/StreetLightDetector'));
+const FireDetector = React.lazy(() => import('./features/detectors/FireDetector'));
+const StrayAnimalDetector = React.lazy(() => import('./features/detectors/StrayAnimalDetector'));
+const BlockedRoadDetector = React.lazy(() => import('./features/detectors/BlockedRoadDetector'));
+const TreeDetector = React.lazy(() => import('./features/detectors/TreeDetector'));
 
 // ─── Valid view paths for navigation safety ────────────────────────────────────
 const VALID_VIEWS = [
@@ -280,6 +280,7 @@ function AppContent() {
           </div>
         }>
           <Routes>
+          <Route path="/home" element={<Navigate to="/" replace />} />
             <Route
               path="/"
               element={

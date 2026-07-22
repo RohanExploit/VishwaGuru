@@ -244,19 +244,24 @@ async def create_issue(
         # Generate Action Plan (AI)
         action_plan = await generate_action_plan(description, category, file_location)
 
-        db_issue = Issue(
-            description=description,
-            category=category,
-            image_path=file_location,
-            source=source,
-            user_email=user_email
-        )
-        db.add(db_issue)
-        db.commit()
-        db.refresh(db_issue)
+        # Offload blocking DB operations to a thread
+        def save_to_db():
+            db_issue = Issue(
+                description=description,
+                category=category,
+                image_path=file_location,
+                source=source,
+                user_email=user_email
+            )
+            db.add(db_issue)
+            db.commit()
+            db.refresh(db_issue)
+            return db_issue
+
+        new_issue = await asyncio.to_thread(save_to_db)
 
         return {
-            "id": db_issue.id,
+            "id": new_issue.id,
             "message": "Issue reported successfully",
             "action_plan": action_plan
         }

@@ -1,4 +1,15 @@
 services:
+  # VishwaGuru Frontend Static Site
+  - type: web
+    name: vishwaguru-frontend
+    runtime: static
+    buildCommand: "cd frontend && npm install && npm run build"
+    staticPublishPath: frontend/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
   # VishwaGuru Backend Service
   - type: web
     name: vishwaguru-backend
