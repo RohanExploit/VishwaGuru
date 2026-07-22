@@ -261,8 +261,8 @@ async def create_issue(
             "action_plan": action_plan
         }
     except Exception as e:
-        print(f"Error creating issue: {e}")
-        return JSONResponse(status_code=500, content={"message": str(e)})
+        logger.exception("Error creating issue")
+        return JSONResponse(status_code=500, content={"message": "An internal error occurred"})
 
 @lru_cache(maxsize=1)
 def _load_responsibility_map():
