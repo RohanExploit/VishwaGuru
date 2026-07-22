@@ -11,6 +11,7 @@ from gemini_summary import generate_mla_summary
 import json
 import os
 import io
+import sys
 
 # Add the project root to sys.path so we can import 'backend' modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -22,14 +23,19 @@ from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine, Base
+from schemas import SuccessResponse, HealthResponse, StatsResponse, MLStatusResponse
 from models import Issue
 from contextlib import asynccontextmanager
 import shutil
 import datetime
 from sqlalchemy import text
 from typing import Optional, List
+from functools import lru_cache
 import PIL.Image
 import uuid
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Import specialized detection modules
 from pothole_detection import detect_potholes
@@ -229,15 +235,11 @@ async def create_issue(
     try:
         # Save the uploaded image
         os.makedirs("data/uploads", exist_ok=True)
-        filename = f"{uuid.uuid4()}_{image.filename}"
+        filename = f"{uuid.uuid4()}_{os.path.basename(image.filename)}"
         file_location = f"data/uploads/{filename}"
 
         # Offload blocking file I/O to a thread
-        def save_file():
-            with open(file_location, "wb") as buffer:
-                shutil.copyfileobj(image.file, buffer)
-
-        await asyncio.to_thread(save_file)
+        await run_in_threadpool(save_file_blocking, image.file, file_location)
 
         # Generate Action Plan (AI)
         action_plan = await generate_action_plan(description, category, file_location)
@@ -264,8 +266,8 @@ async def create_issue(
             "action_plan": action_plan
         }
     except Exception as e:
-        logger.error(f"Error creating issue: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("Error creating issue")
+        return JSONResponse(status_code=500, content={"message": "An internal error occurred"})
 
 @lru_cache(maxsize=1)
 def _load_responsibility_map():
@@ -284,14 +286,6 @@ def get_responsibility_map():
         return _load_responsibility_map()
     except FileNotFoundError:
         return {"error": "Data file not found"}
-
-class ChatRequest(BaseModel):
-    query: str
-
-@app.post("/api/chat")
-async def chat_endpoint(request: ChatRequest):
-    response = await chat_with_civic_assistant(request.query)
-    return {"response": response}
 
 @app.get("/api/issues/recent")
 def get_recent_issues(db: Session = Depends(get_db)):
@@ -335,12 +329,6 @@ def get_issues(
 ):
     # Added pagination
     issues = db.query(Issue).offset(skip).limit(limit).all()
-    return issues
-
-@app.get("/api/issues/recent")
-def get_recent_issues(db: Session = Depends(get_db)):
-    # Fetch top 10 most recent issues
-    issues = db.query(Issue).order_by(Issue.created_at.desc()).limit(10).all()
     return issues
 
 @app.post("/api/mh/rep-contacts")
@@ -459,10 +447,8 @@ async def api_detect_vandalism(file: UploadFile = File(...)):
 @app.post("/api/detect-flooding")
 async def api_detect_flooding(file: UploadFile = File(...)):
     try:
-        def process_image():
-            img = PIL.Image.open(file.file)
-            return detect_flooding(img)
-        result = await run_in_threadpool(process_image)
+        img = PIL.Image.open(file.file)
+        result = await detect_flooding(img)
         return {"detections": result}
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
@@ -492,7 +478,7 @@ async def analyze_issue_endpoint(
         image_path = None
         if image:
             os.makedirs("data/temp", exist_ok=True)
-            image_path = f"data/temp/{uuid.uuid4()}_{image.filename}"
+            image_path = f"data/temp/{uuid.uuid4()}_{os.path.basename(image.filename)}"
             # save blocking
             await run_in_threadpool(save_file_blocking, image.file, image_path)
 
