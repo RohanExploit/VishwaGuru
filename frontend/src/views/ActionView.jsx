@@ -5,8 +5,15 @@ import StatusTracker from '../components/StatusTracker';
 const API_URL = import.meta.env.VITE_API_URL || '';
 
 const ActionView = ({ actionPlan, setActionPlan, setView }) => {
-  if (!actionPlan) return null;
-
+  if (!actionPlan) {
+    return (
+      <div className="mt-6 text-center p-8">
+        <h2 className="text-xl font-bold text-gray-800 mb-2">No action plan found</h2>
+        <p className="text-gray-600 mb-4">Please submit a complaint first to generate an action plan.</p>
+        <button onClick={() => setView('report')} className="text-blue-600 underline">Go to Report Form</button>
+      </div>
+    );
+  }
   useEffect(() => {
     let interval;
     if (actionPlan.status === 'generating' && actionPlan.id) {
@@ -17,11 +24,14 @@ const ActionView = ({ actionPlan, setActionPlan, setView }) => {
             const data = await res.json();
             // Find the issue by ID
             const issue = data.find(i => i.id === actionPlan.id);
-            if (issue && issue.action_plan && issue.action_plan.whatsapp) {
+if (issue && issue.action_plan && issue.action_plan.whatsapp) {
                // Plan is ready!
-               setActionPlan(issue.action_plan);
-            }
-          }
+               if (typeof setActionPlan === 'function') {
+                 setActionPlan(issue.action_plan);
+               } else {
+                 console.error('ActionView: setActionPlan prop is missing, cannot update action plan.');
+               }
+            }          }
         } catch (e) {
           console.error("Polling error:", e);
         }
