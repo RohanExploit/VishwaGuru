@@ -10,8 +10,7 @@ import { detectorsApi } from '../api';
 // Get API URL from environment variable, fallback to relative URL for local dev
 const API_URL = import.meta.env.VITE_API_URL || '';
 
-const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) => {
-  const { t, i18n } = useTranslation();
+const ReportForm = ({ setView, setLoading, setError, setActionPlan, fetchRecentIssues, loading }) => {  const { t, i18n } = useTranslation();
   const locationState = useLocation().state || {};
   const [formData, setFormData] = useState({
     description: locationState.description || '',
@@ -350,9 +349,9 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, loading }) =
       } else {
         setActionPlan({ id: data.id, status: 'generating' });
       }
-      setSubmitStatus({ state: 'success', message: 'Issue submitted. Preparing your action plan…' });
-      setView('action');
-    } catch (err) {
+setSubmitStatus({ state: 'success', message: 'Issue submitted. Preparing your action plan…' });
+      if (fetchRecentIssues) await fetchRecentIssues();
+      setView('action');    } catch (err) {
       console.error("Submission failed, using fake action plan", err);
       // Fallback to fake action plan on failure
       setActionPlan(fakeActionPlan);

@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocat
 import ChatWidget from './components/ChatWidget';
 import { issuesApi, miscApi } from './api';
 import { fakeRecentIssues, fakeResponsibilityMap } from './fakeData';
-
+import ErrorBoundary from './components/ErrorBoundary';
 // Lazy-load view components
 const Home = React.lazy(() => import('./views/Home'));
 const MapView = React.lazy(() => import('./views/MapView'));
@@ -274,13 +274,13 @@ function AppContent() {
           </div>
         )}
 
+<ErrorBoundary>
         <Suspense fallback={
           <div className="flex justify-center my-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
           </div>
         }>
-          <Routes>
-          <Route path="/home" element={<Navigate to="/" replace />} />
+          <Routes>          <Route path="/home" element={<Navigate to="/" replace />} />
             <Route
               path="/"
               element={
@@ -300,18 +300,18 @@ function AppContent() {
               path="/report"
               element={
                 <ReportForm
-                  setView={navigateToView}
-                  setLoading={setLoading}
-                  setError={setError}
-                  setActionPlan={setActionPlan}
-                  loading={loading}
-                />
+  setView={navigateToView}
+  setLoading={setLoading}
+  setError={setError}
+  setActionPlan={setActionPlan}
+  fetchRecentIssues={fetchRecentIssues}
+  loading={loading}
+/>
               }
             />
             <Route
               path="/action"
-              element={<ActionView actionPlan={actionPlan} setView={navigateToView} />}
-            />
+element={<ActionView actionPlan={actionPlan} setActionPlan={setActionPlan} setView={navigateToView} />}            />
             <Route
               path="/mh-rep"
               element={
@@ -338,9 +338,9 @@ function AppContent() {
             <Route path="/blocked" element={<BlockedRoadDetector onBack={() => navigate('/')} />} />
             <Route path="/tree" element={<TreeDetector onBack={() => navigate('/')} />} />
             <Route path="*" element={<NotFound />} />
-          </Routes>
+</Routes>
         </Suspense>
-      </div>
+        </ErrorBoundary>      </div>
     </div>
   );
 }
