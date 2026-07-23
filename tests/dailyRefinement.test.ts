@@ -14,6 +14,9 @@ describe('Daily Civic Intelligence Refinement Engine', () => {
 
     beforeAll((done) => {
       dbPath = path.resolve(__dirname, 'test_issues.db');
+      if (fs.existsSync(dbPath)) {
+        try { fs.unlinkSync(dbPath); } catch (e) {}
+      }
       const db = new sqlite3.Database(dbPath);
       db.serialize(() => {
         db.run('CREATE TABLE issues (id INTEGER PRIMARY KEY, description TEXT, category TEXT, location TEXT, created_at DATETIME)');
@@ -25,12 +28,19 @@ describe('Daily Civic Intelligence Refinement Engine', () => {
         stmt.run('Water supply is completely broken', 'water', 'Ward 2', now);
         stmt.run('Another pothole here', 'infrastructure', 'Ward 1', now);
 
-        stmt.finalize(done);
+        stmt.finalize(() => {
+          db.close(done);
+        });
       });
     });
 
-    afterAll(() => {
-      if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);
+    afterAll((done) => {
+      setTimeout(() => {
+        if (fs.existsSync(dbPath)) {
+          try { fs.unlinkSync(dbPath); } catch (e) {}
+        }
+        done();
+      }, 500); // wait for locks to release
     });
 
     it('should correctly analyze trends in the last 24 hours', async () => {
