@@ -12,11 +12,11 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_, desc
 from datetime import datetime, timezone, timedelta
 
-from backend.models import Grievance, Jurisdiction, GrievanceStatus, SeverityLevel, GrievanceFollower
-from backend.database import SessionLocal
-from backend.routing_service import RoutingService
-from backend.sla_config_service import SLAConfigService
-from backend.escalation_engine import EscalationEngine
+from models import Grievance, Jurisdiction, GrievanceStatus, SeverityLevel, GrievanceFollower
+from database import SessionLocal
+from routing_service import RoutingService
+from sla_config_service import SLAConfigService
+from escalation_engine import EscalationEngine
 
 class GrievanceService:
     """

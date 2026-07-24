@@ -22,8 +22,8 @@ import magic
 import httpx
 
 from backend.cache import recent_issues_cache
-from backend.database import engine, Base, SessionLocal, get_db
-from backend.models import Issue
+from database import engine, Base, SessionLocal, get_db
+from models import Issue
 from backend.schemas import (
     IssueResponse, IssueCreateRequest, IssueCreateResponse, ChatRequest, ChatResponse,
     VoteRequest, VoteResponse, DetectionResponse, VisionAnalysisResponse,

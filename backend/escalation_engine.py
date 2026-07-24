@@ -5,12 +5,12 @@ Core engine for evaluating and performing grievance escalations based on SLA and
 
 import datetime
 from typing import List, Dict, Any, Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_, or_
-from backend.models import Grievance, Jurisdiction, EscalationAudit, GrievanceStatus, JurisdictionLevel, EscalationReason, SeverityLevel
-from backend.database import SessionLocal
-from backend.routing_service import RoutingService
-from backend.sla_config_service import SLAConfigService
+from models import Grievance, Jurisdiction, EscalationAudit, GrievanceStatus, JurisdictionLevel, EscalationReason, SeverityLevel
+from database import SessionLocal
+from routing_service import RoutingService
+from sla_config_service import SLAConfigService
 
 class EscalationEngine:
     """
@@ -150,7 +150,13 @@ class EscalationEngine:
         now = datetime.datetime.now(datetime.timezone.utc)
 
         # Get grievances that are active and past SLA deadline
-        return db.query(Grievance).filter(
+        # ⚡ Bolt Optimization: Use joinedload to eager-load the jurisdiction relationship.
+        # This prevents an N+1 query problem during the evaluation loop where each
+        # grievance would otherwise trigger a separate query to fetch its jurisdiction.
+        # Expected Impact: Reduces database queries from 1+N to 1 per evaluation cycle.
+        return db.query(Grievance).options(
+            joinedload(Grievance.jurisdiction)
+        ).filter(
             and_(
                 Grievance.status.in_([GrievanceStatus.OPEN, GrievanceStatus.IN_PROGRESS, GrievanceStatus.ESCALATED]),
                 Grievance.sla_deadline < now

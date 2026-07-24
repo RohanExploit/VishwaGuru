@@ -4,7 +4,7 @@ Demonstrates the escalation functionality.
 """
 
 from backend.grievance_service import GrievanceService
-from backend.models import SeverityLevel
+from models import SeverityLevel
 from datetime import datetime, timezone, timedelta
 
 def test_escalation():
