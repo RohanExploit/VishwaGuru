@@ -25,7 +25,7 @@ describe('Daily Civic Intelligence Refinement Engine', () => {
         stmt.run('Water supply is completely broken', 'water', 'Ward 2', now);
         stmt.run('Another pothole here', 'infrastructure', 'Ward 1', now);
 
-        stmt.finalize(done);
+        stmt.finalize(() => { db.close(done); });
       });
     });
 
@@ -44,7 +44,7 @@ describe('Daily Civic Intelligence Refinement Engine', () => {
       expect(results.locations).toContain('Ward 1');
       expect(results.locations).toContain('Ward 2');
 
-      analyzer.close();
+      await new Promise((r) => analyzer.close(r));
     });
   });
 
