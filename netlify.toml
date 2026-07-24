@@ -1,6 +1,7 @@
 [build]
   publish = "frontend/dist"
   command = "npm install --prefix frontend && CI=false npm run build --prefix frontend"
+  environment = { CI = "false" }
 
 [[redirects]]
   from = "/*"
