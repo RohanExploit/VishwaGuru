@@ -18,9 +18,15 @@ const WasteDetector = ({ onBack }) => {
     const startCamera = async () => {
         setError(null);
         try {
-            const mediaStream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'environment' }
-            });
+            let mediaStream;
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment' }
+                });
+            } catch (fallbackErr) {
+                console.warn('Environment camera failed, falling back to default camera', fallbackErr);
+                mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            }
             setStream(mediaStream);
             if (videoRef.current) {
                 videoRef.current.srcObject = mediaStream;

@@ -32,13 +32,19 @@ const GarbageDetector = ({ onBack }) => {
     const startCamera = async () => {
         setError(null);
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    facingMode: 'environment',
-                    width: { ideal: 640 },
-                    height: { ideal: 480 }
-                }
-            });
+            let stream;
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: 'environment',
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    }
+                });
+            } catch (fallbackErr) {
+                console.warn('Environment camera failed, falling back to default camera', fallbackErr);
+                stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            }
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
             }
