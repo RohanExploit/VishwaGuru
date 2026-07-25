@@ -47,6 +47,22 @@ describe('IntelligenceIndex', () => {
     expect(result.diff).toBe(-10.0);
   });
 
+  it('should not change score for exactly 50 issues', () => {
+    const indexer = new IntelligenceIndex('tests/testData_intelligence/intelligenceHistory.json');
+    const result = indexer.calculateDailyIndex(50, [], {}, []);
+    
+    expect(result.index).toBe(50.0);
+    expect(result.diff).toBe(0.0);
+  });
+
+  it('should not change score for exactly 200 issues', () => {
+    const indexer = new IntelligenceIndex('tests/testData_intelligence/intelligenceHistory.json');
+    const result = indexer.calculateDailyIndex(200, [], {}, []);
+    
+    expect(result.index).toBe(50.0);
+    expect(result.diff).toBe(0.0);
+  });
+
   it('should use top keyword if category spike top concern is unknown', () => {
     const indexer = new IntelligenceIndex('tests/testData_intelligence/intelligenceHistory.json');
     const result = indexer.calculateDailyIndex(100, ['flooding'], { 'unknown': 20 }, []);

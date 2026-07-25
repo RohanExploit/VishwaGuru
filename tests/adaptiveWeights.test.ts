@@ -32,7 +32,15 @@ describe('AdaptiveWeights', () => {
     expect(newWeights['pothole']).toBe(1.1); // > 10%
     expect(newWeights['water']).toBeUndefined(); // <= 10%
   });
+
+  it('should not boost category weight if it represents exactly 10% of total volume', () => {
+    const adaptive = new AdaptiveWeights('tests/testData_adaptive/modelWeights.json');
+    const newWeights = adaptive.optimizeWeights({ 'pothole': 10 }, 100);
+    
+    expect(newWeights['pothole']).toBeUndefined(); // exactly 10%
+  });
   
+
   it('should read existing weights from file', () => {
     fs.mkdirSync(testDir, { recursive: true });
     fs.writeFileSync(weightsFile, JSON.stringify({ current: { 'pothole': 1.5 }, history: [] }));
