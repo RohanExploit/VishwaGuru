@@ -7,7 +7,7 @@
     "@types/sqlite3": "^3.1.11",
     "jest": "^30.4.2",
     "playwright": "^1.57.0",
-    "ts-jest": "^29.4.11"
+    "ts-jest": "^29.4.12"
   },
   "dependencies": {
     "node-cron": "^4.6.0",
