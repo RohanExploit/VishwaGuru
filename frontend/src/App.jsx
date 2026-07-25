@@ -5,6 +5,7 @@ import { issuesApi, miscApi } from './api';
 import { fakeRecentIssues, fakeResponsibilityMap } from './fakeData';
 import ErrorBoundary from './components/ErrorBoundary';
 // Lazy-load view components
+const Landing = React.lazy(() => import('./views/Landing'));
 const Home = React.lazy(() => import('./views/Home'));
 const MapView = React.lazy(() => import('./views/MapView'));
 const ReportForm = React.lazy(() => import('./views/ReportForm'));
@@ -27,7 +28,7 @@ const TreeDetector = React.lazy(() => import('./TreeDetector'));
 
 // ─── Valid view paths for navigation safety ────────────────────────────────────
 const VALID_VIEWS = [
-  'home', 'map', 'report', 'action', 'mh-rep',
+  'dashboard', 'map', 'report', 'action', 'mh-rep',
   'pothole', 'garbage', 'vandalism', 'flood', 'infrastructure',
   'parking', 'streetlight', 'fire', 'animal', 'blocked', 'tree'
 ];
@@ -184,8 +185,11 @@ function AppContent() {
 
   // Safe navigation helper
   const navigateToView = useCallback((view) => {
-    if (VALID_VIEWS.includes(view.split('/')[0])) {
-      navigate(view === 'home' ? '/' : `/${view}`);
+    const baseView = view.split('/')[0];
+    if (baseView === 'home') {
+      navigate('/dashboard');
+    } else if (VALID_VIEWS.includes(baseView)) {
+      navigate(`/${view}`);
     } else {
       console.warn(`Attempted to navigate to invalid view: ${view}`);
       navigate('/');
@@ -280,9 +284,11 @@ function AppContent() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
           </div>
         }>
-          <Routes>          <Route path="/home" element={<Navigate to="/" replace />} />
+          <Routes>
+            <Route path="/home" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/" element={<Landing />} />
             <Route
-              path="/"
+              path="/dashboard"
               element={
                 <Home
                   setView={navigateToView}
