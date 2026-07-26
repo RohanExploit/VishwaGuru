@@ -25,7 +25,9 @@ describe('Daily Civic Intelligence Refinement Engine', () => {
         stmt.run('Water supply is completely broken', 'water', 'Ward 2', now);
         stmt.run('Another pothole here', 'infrastructure', 'Ward 1', now);
 
-        stmt.finalize(() => { db.close(done); });
+        stmt.finalize((finalizeErr) => {
+          db.close((closeErr) => done(finalizeErr ?? closeErr));
+        });
       });
     });
 
@@ -35,16 +37,23 @@ describe('Daily Civic Intelligence Refinement Engine', () => {
 
     it('should correctly analyze trends in the last 24 hours', async () => {
       analyzer = new TrendAnalyzer(dbPath);
-      const results = await analyzer.analyzeLast24Hours();
+      try {
+        const results = await analyzer.analyzeLast24Hours();
 
-      expect(results.totalIssues).toBe(3);
-      expect(results.categorySpikes['infrastructure']).toBe(2);
-      expect(results.categorySpikes['water']).toBe(1);
-      expect(results.topKeywords).toContain('pothole');
-      expect(results.locations).toContain('Ward 1');
-      expect(results.locations).toContain('Ward 2');
-
-      await new Promise((r) => analyzer.close(r));
+        expect(results.totalIssues).toBe(3);
+        expect(results.categorySpikes['infrastructure']).toBe(2);
+        expect(results.categorySpikes['water']).toBe(1);
+        expect(results.topKeywords).toContain('pothole');
+        expect(results.locations).toContain('Ward 1');
+        expect(results.locations).toContain('Ward 2');
+      } finally {
+        await new Promise((resolve, reject) => {
+          analyzer.close((err) => {
+            if (err) reject(err);
+            else resolve(undefined);
+          });
+        });
+      }
     });
   });
 
