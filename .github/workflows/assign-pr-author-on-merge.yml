@@ -5,6 +5,7 @@ on:
     types: [closed]
 
 permissions:
+  issues: write
   pull-requests: write
 
 jobs:
@@ -22,12 +23,27 @@ jobs:
             // Get the PR author's username
             const author = pr.user.login;
 
+            if (author.endsWith("[bot]")) {
+              console.log(`Skipping bot author @${author} for PR #${pr.number}`);
+              return;
+            }
+
             // Assign PR to the author
-            await github.rest.issues.addAssignees({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: pr.number,
-              assignees: [author],
-            });
+            try {
+              await github.rest.issues.addAssignees({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                assignees: [author],
+              });
+            } catch (error) {
+              if (error.status === 403 || error.status === 422) {
+                console.log(
+                  `Skipping assignment for @${author} on PR #${pr.number}: ${error.message}`
+                );
+                return;
+              }
+              throw error;
+            }
 
             console.log(`PR #${pr.number} assigned to @${author}`);
