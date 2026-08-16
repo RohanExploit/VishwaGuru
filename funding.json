@@ -1,0 +1,47 @@
+{
+  "$schema": "https://fundingjson.org/schema/v1.1.0/funding.schema.json",
+  "version": "v1.1.0",
+  "entity": {
+    "type": "individual",
+    "role": "owner",
+    "name": "Rohan Vijay Gaikwad",
+    "email": "itzrohan007@gmail.com",
+    "description": "Final-year Computer Science engineering student in Satara, Maharashtra, India, and the maintainer of VishwaGuru. I build applied AI systems with an emphasis on running on modest hardware and on constraining what a system is able to do, not only what it is intended to do. I have published two peer-reviewed papers in IJIRT (ISSN 2349-6002) and review ML and backend submissions for the same journal. I maintain VishwaGuru as a mentee-facing project across four open-source mentorship programmes, where most of my time goes to reviewing contributions, writing issues newcomers can actually pick up, and keeping the project buildable for people who have never touched it before.",
+    "webpageUrl": { "url": "https://github.com/RohanExploit" }
+  },
+  "projects": [
+    {
+      "guid": "vishwaguru",
+      "name": "VishwaGuru",
+      "description": "An open-source civic engagement platform for India. Citizens describe a local problem - a blocked drain, a broken streetlight, a public service failure - through a web interface or a Telegram bot, in their own language. The system analyses the description and produces the things that actually get a grievance acted on: a draft WhatsApp message, a formal email, and a step-by-step guide naming the relevant government office. It is built around India's specific governance structure, where knowing which department owns a problem is most of the difficulty. Stack is Python and FastAPI on the backend with a React frontend, multilingual throughout. The project is developed openly and used as a teaching codebase across four open-source mentorship programmes, which is where most of its forks come from.",
+      "webpageUrl": { "url": "https://github.com/RohanExploit/VishwaGuru" },
+      "repositoryUrl": { "url": "https://github.com/RohanExploit/VishwaGuru" },
+      "licenses": ["spdx:AGPL-3.0"],
+      "tags": ["civic-tech", "govtech", "india", "grievance-redressal",
+               "artificial-intelligence", "fastapi", "python", "react",
+               "multilingual", "public-interest"]
+    }
+  ],
+  "funding": {
+    "channels": [
+      {
+        "guid": "primary-bank",
+        "type": "bank",
+        "address": "Rohan Vijay Gaikwad, Bank of India, Koregaon Branch (Opp. Tehsil Office, Koregaon, Satara, Maharashtra 415501). A/c No. 132010510002645, IFSC BKID0001320.",
+        "description": "Indian bank account held by the maintainer, Rohan Vijay Gaikwad."
+      }
+    ],
+    "plans": [
+      {
+        "guid": "sustain-2027",
+        "status": "active",
+        "name": "Maintainer time and hosting for one year",
+        "description": "Funds one year of sustained maintenance: reviewing and merging contributor pull requests, keeping the multilingual grievance-routing model current as departmental structures change, hosting and inference costs for the Telegram bot and web interface, and the documentation work that keeps the project usable by first-time contributors. The largest single cost is maintainer time, which is currently unpaid and fits around final-year coursework.",
+        "amount": 10000,
+        "currency": "USD",
+        "frequency": "yearly",
+        "channels": ["primary-bank"]
+      }
+    ]
+  }
+}
