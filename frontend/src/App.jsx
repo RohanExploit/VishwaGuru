@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import ChatWidget from './components/ChatWidget';
 import { issuesApi, miscApi } from './api';
 import { fakeRecentIssues, fakeResponsibilityMap } from './fakeData';

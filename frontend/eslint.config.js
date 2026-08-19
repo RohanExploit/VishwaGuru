@@ -33,6 +33,23 @@ export default defineConfig([
           caughtErrorsIgnorePattern: '^_',
         },
       ],
+
+      // eslint-plugin-react-hooks v7 ships the React Compiler ruleset. The four
+      // rules below are compiler-readiness checks, not correctness failures:
+      // they fire on the ref-access and fetch-in-effect patterns used
+      // throughout the twenty detector components. Clearing them means
+      // restructuring those components, which is the consolidation work
+      // deliberately deferred until after the first mobile release, so they are
+      // warnings rather than errors and remain visible in every lint run.
+      //
+      // react-hooks/rules-of-hooks stays an error on purpose. It caught a real
+      // crash: views/ActionView.jsx called useEffect after an early return, so
+      // the hook count changed with props.
+      'react-hooks/immutability': 'warn',
+      'react-hooks/exhaustive-deps': 'warn',
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/static-components': 'warn',
+      'react-hooks/rules-of-hooks': 'error',
     },
   },
 

@@ -1,6 +1,5 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
 import {
   AlertTriangle, MapPin, Search, Activity, Camera, Trash2, ThumbsUp,
   Brush, Droplets, Zap, Truck, Flame, Dog, XCircle, Lightbulb, TreePine,
@@ -57,7 +56,6 @@ const CameraCheckModal = ({ onClose }) => {
 
 // ─── Home Component ────────────────────────────────────────────────────────────
 const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote }) => {
-  const navigate = useNavigate();
   const [showCameraCheck, setShowCameraCheck] = React.useState(false);
   const [showScrollTop, setShowScrollTop] = React.useState(false);
   const totalImpact = 1240 + (recentIssues ? recentIssues.length : 0);

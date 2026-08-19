@@ -1,4 +1,4 @@
-import { apiClient, getApiUrl } from './client';
+import { apiClient } from './client';
 
 // Helper to create a detector API function
 const createDetectorApi = (endpoint) => async (data) => {

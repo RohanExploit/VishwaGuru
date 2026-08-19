@@ -6,7 +6,6 @@ const PotholeDetector = ({ onBack }) => {
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
     const [isDetecting, setIsDetecting] = useState(false);
-    const [detections, setDetections] = useState([]);
     const [error, setError] = useState(null);
 
     useEffect(() => {
@@ -98,7 +97,7 @@ const PotholeDetector = ({ onBack }) => {
                     // We only update boxes on success to avoid flickering
                     // Note: This is async, so the video might have moved on.
                     // This is "laggy overlay" but simplest for backend approach.
-                    drawDetections(data.detections, context, video);
+                    drawDetections(data.detections, context);
                 }
             } catch (err) {
                 console.error("Detection error:", err);
@@ -106,7 +105,7 @@ const PotholeDetector = ({ onBack }) => {
         }, 'image/jpeg', 0.8);
     };
 
-    const drawDetections = (detections, context, video) => {
+    const drawDetections = (detections, context) => {
         // Redraw current video frame so boxes are on top of *latest* video?
         // No, if we redraw latest video, the boxes might be misaligned if camera moved.
         // Ideally we freeze frame or just draw on top of live video (augmented reality style).

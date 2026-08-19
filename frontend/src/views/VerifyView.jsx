@@ -25,7 +25,7 @@ const VerifyView = () => {
         } else {
           setError("Issue not found in recent list.");
         }
-      } catch (err) {
+      } catch (_err) {
         setError("Failed to load issue.");
       } finally {
         setLoading(false);

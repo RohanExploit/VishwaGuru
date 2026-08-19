@@ -6,7 +6,6 @@ const GarbageDetector = ({ onBack }) => {
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
     const [isDetecting, setIsDetecting] = useState(false);
-    const [detections, setDetections] = useState([]);
     const [error, setError] = useState(null);
 
     useEffect(() => {

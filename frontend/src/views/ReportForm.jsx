@@ -10,7 +10,7 @@ import { detectorsApi } from '../api';
 // Get API URL from environment variable, fallback to relative URL for local dev
 const API_URL = import.meta.env.VITE_API_URL || '';
 
-const ReportForm = ({ setView, setLoading, setError, setActionPlan, fetchRecentIssues, loading }) => {  const { t, i18n } = useTranslation();
+const ReportForm = ({ setView, setLoading, setError, setActionPlan, fetchRecentIssues, loading }) => {  const { i18n } = useTranslation();
   const locationState = useLocation().state || {};
   const [formData, setFormData] = useState({
     description: locationState.description || '',
@@ -310,7 +310,7 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, fetchRecentI
         setSubmitStatus({ state: 'success', message: 'Report saved offline. Will sync when online.' });
         setActionPlan(fakeActionPlan); // Show fallback plan
         setView('action');
-      } catch (err) {
+      } catch (_err) {
         setSubmitStatus({ state: 'error', message: 'Failed to save offline.' });
         setError('Failed to save report offline.');
       } finally {

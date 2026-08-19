@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Camera, RefreshCw, ArrowRight, Info, CheckCircle, Trash2 } from 'lucide-react';
 import { detectorsApi } from './api';
 
-const WasteDetector = ({ onBack }) => {
+const WasteDetector = ({ onBack: _onBack }) => {
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
     const [stream, setStream] = useState(null);
