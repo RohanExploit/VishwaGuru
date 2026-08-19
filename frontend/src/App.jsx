@@ -24,12 +24,31 @@ const FireDetector = React.lazy(() => import('./FireDetector'));
 const StrayAnimalDetector = React.lazy(() => import('./StrayAnimalDetector'));
 const BlockedRoadDetector = React.lazy(() => import('./BlockedRoadDetector'));
 const TreeDetector = React.lazy(() => import('./TreeDetector'));
+// These eight were fully written but never routed, so nothing in the app could
+// reach them. Their backend endpoints exist now, so they are wired up.
+//
+// SmartScanner is deliberately still unrouted: it imports @tensorflow/tfjs and
+// @tensorflow-models/mobilenet, neither of which is a dependency of this
+// package, and pulling them in would add tens of megabytes to a bundle whose
+// users are on low-end phones and metered connections. The backend already
+// exposes /api/detect-smart-scan, so the same result is available without
+// shipping a model to the device.
+const AccessibilityDetector = React.lazy(() => import('./AccessibilityDetector'));
+const CivicEyeDetector = React.lazy(() => import('./CivicEyeDetector'));
+const CrowdDetector = React.lazy(() => import('./CrowdDetector'));
+const NoiseDetector = React.lazy(() => import('./NoiseDetector'));
+const PestDetector = React.lazy(() => import('./PestDetector'));
+const SeverityDetector = React.lazy(() => import('./SeverityDetector'));
+const WasteDetector = React.lazy(() => import('./WasteDetector'));
+const WaterLeakDetector = React.lazy(() => import('./WaterLeakDetector'));
 
 // ─── Valid view paths for navigation safety ────────────────────────────────────
 const VALID_VIEWS = [
   'home', 'map', 'report', 'action', 'mh-rep',
   'pothole', 'garbage', 'vandalism', 'flood', 'infrastructure',
-  'parking', 'streetlight', 'fire', 'animal', 'blocked', 'tree'
+  'parking', 'streetlight', 'fire', 'animal', 'blocked', 'tree',
+  'accessibility', 'civic-eye', 'crowd', 'noise', 'pest', 'severity',
+  'waste', 'water-leak'
 ];
 
 // ─── Enhanced header component with animated gradient ──────────────────────────
@@ -337,6 +356,14 @@ element={<ActionView actionPlan={actionPlan} setActionPlan={setActionPlan} setVi
             <Route path="/animal" element={<StrayAnimalDetector onBack={() => navigate('/')} />} />
             <Route path="/blocked" element={<BlockedRoadDetector onBack={() => navigate('/')} />} />
             <Route path="/tree" element={<TreeDetector onBack={() => navigate('/')} />} />
+            <Route path="/accessibility" element={<AccessibilityDetector onBack={() => navigate('/')} />} />
+            <Route path="/civic-eye" element={<CivicEyeDetector onBack={() => navigate('/')} />} />
+            <Route path="/crowd" element={<CrowdDetector onBack={() => navigate('/')} />} />
+            <Route path="/noise" element={<NoiseDetector onBack={() => navigate('/')} />} />
+            <Route path="/pest" element={<PestDetector onBack={() => navigate('/')} />} />
+            <Route path="/severity" element={<SeverityDetector onBack={() => navigate('/')} />} />
+            <Route path="/waste" element={<WasteDetector onBack={() => navigate('/')} />} />
+            <Route path="/water-leak" element={<WaterLeakDetector onBack={() => navigate('/')} />} />
             <Route path="*" element={<NotFound />} />
 </Routes>
         </Suspense>
