@@ -186,14 +186,40 @@ app = FastAPI(lifespan=lifespan)
 # already declares. Origins are now read from the environment, with a
 # localhost-only default so a misconfigured deploy fails closed rather than
 # open.
+# A Capacitor WebView does not serve the app from the site's domain: on Android
+# it is https://localhost, on iOS capacitor://localhost. Those origins will
+# never appear in a CORS_ORIGINS value written for the web deployment, so
+# without them every request from the packaged app is blocked by the WebView's
+# CORS check even when the URL is correct. They are appended to whatever the
+# environment configures rather than replacing it.
+MOBILE_APP_ORIGINS = [
+    "https://localhost",
+    "capacitor://localhost",
+    "ionic://localhost",
+]
+
+LOCAL_DEV_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:4173",
+    "http://127.0.0.1:5173",
+]
+
+
 def _allowed_origins() -> List[str]:
     raw = os.getenv("CORS_ORIGINS", "").strip()
     if raw:
-        return [o.strip() for o in raw.split(",") if o.strip()]
-    frontend_url = os.getenv("FRONTEND_URL", "").strip()
-    if frontend_url:
-        return [frontend_url]
-    return ["http://localhost:5173", "http://localhost:4173", "http://127.0.0.1:5173"]
+        configured = [o.strip() for o in raw.split(",") if o.strip()]
+    else:
+        frontend_url = os.getenv("FRONTEND_URL", "").strip()
+        configured = [frontend_url] if frontend_url else list(LOCAL_DEV_ORIGINS)
+
+    seen: set[str] = set()
+    origins: List[str] = []
+    for origin in [*configured, *MOBILE_APP_ORIGINS]:
+        if origin not in seen:
+            seen.add(origin)
+            origins.append(origin)
+    return origins
 
 
 ALLOWED_ORIGINS = _allowed_origins()

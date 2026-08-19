@@ -1,6 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Webcam from 'react-webcam';
 
+// Relative '/api/...' only resolved via Vite's dev proxy and Netlify's
+// redirect. Neither exists inside a Capacitor WebView, where the page is
+// served from capacitor://localhost, so the request had no backend to reach.
+const API_URL = import.meta.env.VITE_API_URL || '';
+
 const StrayAnimalDetector = ({ onBack }) => {
   const webcamRef = useRef(null);
   const [imgSrc, setImgSrc] = useState(null);
@@ -31,7 +36,7 @@ const StrayAnimalDetector = ({ onBack }) => {
         const formData = new FormData();
         formData.append('image', file);
 
-        const response = await fetch('/api/detect-stray-animal', {
+        const response = await fetch(`${API_URL}/api/detect-stray-animal`, {
             method: 'POST',
             body: formData,
         });
