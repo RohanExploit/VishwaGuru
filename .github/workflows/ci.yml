@@ -88,6 +88,41 @@ jobs:
           path: frontend/dist
           retention-days: 7
 
+  docker:
+    name: Backend image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: vishwaguru-api:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Boot the container and check /health
+        run: |
+          docker run -d --name api -p 8000:8000             -e ENVIRONMENT=test             -e RUN_TELEGRAM_BOT=false             vishwaguru-api:ci
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8000/health >/dev/null 2>&1; then
+              echo "Container healthy after ${i}s"
+              curl -sS http://127.0.0.1:8000/health
+              docker rm -f api
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::Container did not become healthy within 30s"
+          docker logs api
+          docker rm -f api
+          exit 1
+
   security:
     name: Security scan
     runs-on: ubuntu-latest
