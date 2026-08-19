@@ -49,3 +49,15 @@ Thumbs.db
 
 # Python virtualenv
 .venv/
+
+# Android signing material. The release keystore and its passwords are supplied
+# through environment variables from CI secrets and must never be committed.
+*.keystore
+*.jks
+frontend/android/keystore.properties
+frontend/android/app/google-services.json
+
+# Capacitor copies the built web bundle here on every sync.
+frontend/android/app/src/main/assets/public/
+frontend/android/app/src/main/assets/capacitor.config.json
+frontend/android/app/src/main/assets/capacitor.plugins.json

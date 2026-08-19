@@ -5,7 +5,18 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist', 'dev-dist', 'coverage', 'node_modules', 'public/sw.js']),
+  // `android/` holds the native project. Capacitor copies the built web
+  // bundle into android/app/src/main/assets/public on every sync, so without
+  // this eslint reports hundreds of errors against minified output.
+  globalIgnores([
+    'dist',
+    'dev-dist',
+    'coverage',
+    'node_modules',
+    'android',
+    'ios',
+    'public/sw.js',
+  ]),
 
   // Application source: browser environment.
   {

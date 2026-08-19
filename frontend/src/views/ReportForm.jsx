@@ -6,6 +6,7 @@ import { useLocation } from 'react-router-dom';
 import { saveReportOffline, registerBackgroundSync } from '../offlineQueue';
 import VoiceInput from '../components/VoiceInput';
 import { detectorsApi } from '../api';
+import { getCurrentPosition } from '../native';
 
 // Get API URL from environment variable, fallback to relative URL for local dev
 const API_URL = import.meta.env.VITE_API_URL || '';
@@ -259,27 +260,28 @@ const ReportForm = ({ setView, setLoading, setError, setActionPlan, fetchRecentI
     }
   };
 
-  const getLocation = () => {
+  // Routed through the native helper rather than navigator.geolocation
+  // directly: inside a Capacitor WebView the browser API only resolves once the
+  // Android runtime permission has been granted, and it offers no way to ask
+  // for it. On the web the helper falls back to navigator.geolocation.
+  const getLocation = async () => {
     setGettingLocation(true);
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setFormData(prev => ({
-            ...prev,
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            location: `Lat: ${position.coords.latitude.toFixed(4)}, Long: ${position.coords.longitude.toFixed(4)}`
-          }));
-          setGettingLocation(false);
-        },
-        (err) => {
-          console.error("Error getting location: ", err);
-          setError("Failed to get location. Please enable GPS.");
-          setGettingLocation(false);
-        }
+    try {
+      const position = await getCurrentPosition();
+      setFormData(prev => ({
+        ...prev,
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        location: `Lat: ${position.coords.latitude.toFixed(4)}, Long: ${position.coords.longitude.toFixed(4)}`
+      }));
+    } catch (err) {
+      console.error("Error getting location: ", err);
+      setError(
+        err?.message === 'Location permission denied'
+          ? "Location permission was denied. Enable it in system settings to attach a location."
+          : "Failed to get location. Please enable GPS."
       );
-    } else {
-      setError("Geolocation is not supported by this browser.");
+    } finally {
       setGettingLocation(false);
     }
   };
