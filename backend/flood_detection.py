@@ -1,4 +1,3 @@
-from hf_service import client
 from PIL import Image
 import io
 
