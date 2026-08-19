@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  DEBUG BUILDS ONLY. This file lives under src/debug, so it is never merged
+  into a release build.
+
+  Android blocks cleartext HTTP by default from API 28 onward. During on-device
+  development the API runs as plain http:// on a machine on the same LAN, so
+  those hosts are exempted here rather than by setting
+  android:usesCleartextTraffic="true" application-wide, which would also apply
+  to every other host the app talks to.
+
+  Release builds keep the platform default: HTTPS only.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- Loopback, and the emulator's alias for the host machine. -->
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <!-- Private LAN ranges, for a dev server on the same network. -->
+        <domain includeSubdomains="true">192.168.0.0</domain>
+        <domain includeSubdomains="true">192.168.66.197</domain>
+    </domain-config>
+</network-security-config>
