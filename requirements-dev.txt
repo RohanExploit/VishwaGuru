@@ -1,0 +1,8 @@
+# Development and CI tooling. Install alongside backend/requirements.txt.
+pytest==8.4.2
+pytest-asyncio==1.3.0
+pytest-cov==7.0.0
+httpx==0.28.1
+ruff==0.14.4
+bandit==1.9.2
+pip-audit==2.9.0

@@ -1,0 +1,36 @@
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+exclude = [
+    "frontend",
+    "node_modules",
+    "data",
+    ".venv",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "C4",  # comprehensions
+    "S",   # bandit-style security
+]
+ignore = [
+    "E501",  # line length handled by the formatter
+    "B008",  # FastAPI Depends()/File() in defaults is the documented idiom
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]          # assert is the point of a test
+"backend/tests/*" = ["S101"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["backend/tests", "tests"]
+python_files = ["test_*.py"]
+addopts = "-q --strict-markers"
+asyncio_mode = "auto"
+filterwarnings = ["ignore::DeprecationWarning"]

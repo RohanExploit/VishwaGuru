@@ -1,28 +1,48 @@
-name: Jules Daily Auto-Upgrade
+name: Jules Assisted Upgrade (manual)
+
+# DISABLED daily cron on 2026-08-19.
+# Rationale: the scheduled run instructed Jules to force a file change every day
+# ("You MUST append the current date to daily_streak.log"), then
+# auto-merge-jules.yml squash-merged the result with no test gate. That loop
+# produced backend/main_fixed.py (989 LOC dead code) and 15 frontend-called
+# endpoints that do not exist in the backend.
+# Manual dispatch only. Output is a draft PR that a human must review.
 
 on:
-  schedule:
-    - cron: '30 3 * * *'   # 9:00 AM IST daily (GitHub cron runs in UTC)
   workflow_dispatch:
+    inputs:
+      prompt:
+        description: 'Task for Jules (leave blank to use the JULES_PROMPT secret)'
+        required: false
+        type: string
+
+permissions:
+  contents: read
 
 jobs:
   trigger-jules:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
     steps:
       - name: Trigger Jules session
+        env:
+          JULES_API_KEY: ${{ secrets.JULES_API_KEY }}
+          DEFAULT_PROMPT: ${{ secrets.JULES_PROMPT }}
+          INPUT_PROMPT: ${{ inputs.prompt }}
         run: |
+          PROMPT="${INPUT_PROMPT:-$DEFAULT_PROMPT}"
+          if [ -z "$PROMPT" ]; then
+            echo "::error::No prompt supplied and JULES_PROMPT secret is unset."
+            exit 1
+          fi
           curl -sS -X POST 'https://jules.googleapis.com/v1alpha/sessions' \
-            -H "X-Goog-Api-Key: ${{ secrets.JULES_API_KEY }}" \
+            -H "X-Goog-Api-Key: ${JULES_API_KEY}" \
             -H 'Content-Type: application/json' \
             -d "$(jq -n \
-              --arg prompt "${{ secrets.JULES_PROMPT }}. IMPORTANT: You MUST append the current date to 'daily_streak.log' in the root directory. Create the file if it doesn't exist. This ensures you always make at least one file change." \
+              --arg prompt "$PROMPT" \
               --arg repo "sources/github/${{ github.repository }}" \
               '{
                 prompt: $prompt,
                 sourceContext: { source: $repo, githubRepoContext: { startingBranch: "main" } },
                 automationMode: "AUTO_CREATE_PR",
-                title: "Daily Auto-Upgrade"
+                title: "Jules assisted upgrade (review required)"
               }')"
