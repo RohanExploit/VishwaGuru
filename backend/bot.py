@@ -116,23 +116,19 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 # Global variable to hold the bot application
+# --- Application construction -------------------------------------------------
+
+logger = logging.getLogger(__name__)
+
 application = None
+_bot_application = None
+_bot_thread = None
+_shutdown_event = None
 
-async def build_app():
-    """Builds and returns the bot application."""
-    token = os.environ.get("TELEGRAM_BOT_TOKEN")
-    if not token:
-        print("Warning: TELEGRAM_BOT_TOKEN environment variable not set. Bot will not start.")
-        # Return a dummy mock if token is missing so imports don't fail,
-        # but startup checks in main.py will handle it.
-        # Actually, for the purpose of 'import application' to work in main.py,
-        # we need to initialize 'application' at module level or provide a getter.
-        # But ApplicationBuilder() requires a token.
-        return None
 
-    app = ApplicationBuilder().token(token).build()
-
-    conv_handler = ConversationHandler(
+def _build_conversation_handler() -> ConversationHandler:
+    """The bot's single conversation flow: photo -> description -> category."""
+    return ConversationHandler(
         entry_points=[CommandHandler("start", start)],
         states={
             PHOTO: [MessageHandler(filters.PHOTO, receive_photo)],
@@ -142,70 +138,145 @@ async def build_app():
         fallbacks=[CommandHandler("cancel", cancel)],
     )
 
-    app.add_handler(conv_handler)
+
+class MockApplication:
+    """Stand-in used when TELEGRAM_BOT_TOKEN is absent.
+
+    `backend.main` imports `application` unconditionally and awaits its
+    lifecycle methods, so this has to be an object rather than None.
+    """
+
+    class _Updater:
+        async def start_polling(self):
+            return None
+
+        async def stop(self):
+            return None
+
+    def __init__(self):
+        self.updater = self._Updater()
+
+    async def initialize(self):
+        return None
+
+    async def start(self):
+        return None
+
+    async def stop(self):
+        return None
+
+    async def shutdown(self):
+        return None
+
+
+def _make_application():
+    """Build a real Application when a token is configured, else a mock."""
+    token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    if not token:
+        logger.warning("TELEGRAM_BOT_TOKEN not set - using MockApplication.")
+        return MockApplication()
+    app = ApplicationBuilder().token(token).build()
+    app.add_handler(_build_conversation_handler())
     return app
 
-# We try to build it at import time if token exists,
-# otherwise we might need to lazy load it or handle it in main.py differently.
-# Ideally, main.py should not import 'application' directly if it's conditional.
-# But existing main.py did: 'from bot import application'.
-# To support that, we need 'application' to be defined here.
-try:
+
+async def build_app():
+    """Async accessor kept for callers that expect a coroutine."""
     token = os.environ.get("TELEGRAM_BOT_TOKEN")
-    if token:
-        application = ApplicationBuilder().token(token).build()
-        conv_handler = ConversationHandler(
-            entry_points=[CommandHandler("start", start)],
-            states={
-                PHOTO: [MessageHandler(filters.PHOTO, receive_photo)],
-                DESCRIPTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_description)],
-                CATEGORY: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_category)],
-            },
-            fallbacks=[CommandHandler("cancel", cancel)],
-        )
-        application.add_handler(conv_handler)
-    else:
-        # Create a dummy object or None
-        # If None, main.py might crash if it tries to use it without check.
-        # main.py code:
-        # await application.initialize()
-        # So it expects an object.
-        class MockApp:
-            async def initialize(self): pass
-            class Updater:
-                async def start_polling(self): pass
-                async def stop(self): pass
-            updater = Updater()
-            async def start(self): pass
-            async def stop(self): pass
-            async def shutdown(self): pass
+    if not token:
+        return None
+    return _make_application()
 
-        application = MockApp()
-        print("Telegram Bot Token missing, using Mock Application.")
 
-except Exception as e:
-    print(f"Error building bot app at module level: {e}")
+try:
+    application = _make_application()
+except Exception:
+    logger.exception("Error building bot application at import time")
     application = None
 
+
 async def run_bot():
-    """Legacy entry point, reused if needed"""
+    """Legacy entry point, reused if needed."""
     if application:
-         # If already built
-         return application
+        return application
     return await build_app()
 
-if __name__ == '__main__':
-    # For standalone bot testing
-    start_bot_thread()
 
-    # Keep main thread alive
+# --- Threaded runner ----------------------------------------------------------
+#
+# Running the bot's polling loop inside the FastAPI lifespan means every uvicorn
+# worker opens its own long-poll against Telegram, and Telegram rejects the
+# extras with HTTP 409 -- so the API could never scale past one worker. Owning
+# the loop in a dedicated thread here lets the bot be started independently of
+# the web process.
+
+
+def start_bot_thread():
+    """Start the polling loop on a background thread. Idempotent."""
+    global _bot_thread, _shutdown_event, _bot_application
+
+    if _bot_thread is not None and _bot_thread.is_alive():
+        return _bot_thread
+
+    if not os.environ.get("TELEGRAM_BOT_TOKEN"):
+        logger.warning("TELEGRAM_BOT_TOKEN not set - bot thread not started.")
+        return None
+
+    _shutdown_event = threading.Event()
+
+    def _run() -> None:
+        global _bot_application
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            _bot_application = _make_application()
+            loop.run_until_complete(_bot_application.initialize())
+            loop.run_until_complete(_bot_application.start())
+            loop.run_until_complete(_bot_application.updater.start_polling())
+            logger.info("Telegram bot polling started.")
+            while not _shutdown_event.is_set():
+                loop.run_until_complete(asyncio.sleep(0.5))
+        except Exception:
+            logger.exception("Telegram bot thread terminated with an error")
+        finally:
+            try:
+                if _bot_application is not None:
+                    loop.run_until_complete(_bot_application.updater.stop())
+                    loop.run_until_complete(_bot_application.stop())
+                    loop.run_until_complete(_bot_application.shutdown())
+            except Exception:
+                logger.exception("Error during Telegram bot shutdown")
+            finally:
+                loop.close()
+                logger.info("Telegram bot thread stopped.")
+
+    _bot_thread = threading.Thread(target=_run, name="telegram-bot", daemon=True)
+    _bot_thread.start()
+    return _bot_thread
+
+
+def stop_bot_thread(timeout: float = 10.0) -> None:
+    """Signal the polling loop to finish and wait for the thread to exit."""
+    global _bot_thread
+
+    if _shutdown_event is not None:
+        _shutdown_event.set()
+
+    if _bot_thread is not None and _bot_thread.is_alive():
+        _bot_thread.join(timeout=timeout)
+        if _bot_thread.is_alive():
+            logger.error("Telegram bot thread did not stop within %ss", timeout)
+
+    _bot_thread = None
+
+
+if __name__ == "__main__":
+    if start_bot_thread() is None:
+        raise SystemExit("Cannot start bot: TELEGRAM_BOT_TOKEN is not set.")
     try:
-        while True:
-            if not _bot_thread or not _bot_thread.is_alive():
-                logging.error("Bot thread died unexpectedly")
-                break
-            asyncio.sleep(5)
+        while _bot_thread is not None and _bot_thread.is_alive():
+            _bot_thread.join(timeout=5)
     except KeyboardInterrupt:
-        logging.info("Received interrupt signal")
+        logger.info("Received interrupt signal")
     finally:
         stop_bot_thread()

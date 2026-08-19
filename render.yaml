@@ -24,8 +24,11 @@ services:
           type: web
           name: vishwaguru-backend
           property: port
+      # Repo root, not backend/. Every intra-project import is now fully
+      # qualified as `backend.x`, so backend/ must NOT be on sys.path -- having
+      # it there let the same module load twice under two names.
       - key: PYTHONPATH
-        value: backend
+        value: .
       # Required API Keys (must be set in Render dashboard)
       - key: GEMINI_API_KEY
         sync: false

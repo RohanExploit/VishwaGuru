@@ -11,9 +11,8 @@ import base64
 from typing import Union, List, Dict, Any
 from PIL import Image
 import asyncio
-from retry_utils import exponential_backoff_retry
+from backend.retry_utils import exponential_backoff_retry
 import logging
-import base64
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -67,25 +66,6 @@ async def _make_request(client, image_bytes, labels):
         logger.error(f"HF API Request failed after all retries: {e}", exc_info=True)
         return []
 
-        payload = {
-            "inputs": image_base64,
-            "parameters": {
-                "candidate_labels": labels
-            }
-        }
-
-        try:
-            response = await client.post(API_URL, headers=headers, json=payload, timeout=20.0)
-            if response.status_code != 200:
-                logger.error(f"HF API Error: {response.status_code} - {response.text}")
-                raise ExternalAPIException("Hugging Face API", f"HTTP {response.status_code}: {response.text}")
-            return response.json()
-        except httpx.HTTPError as e:
-            logger.error(f"HF API HTTP Error: {e}")
-            raise ExternalAPIException("Hugging Face API", str(e)) from e
-        except Exception as e:
-            logger.error(f"HF API Request Exception: {e}")
-            raise ExternalAPIException("Hugging Face API", str(e)) from e
 
 def _prepare_image_bytes(image: Union[Image.Image, bytes]) -> bytes:
     if isinstance(image, bytes):

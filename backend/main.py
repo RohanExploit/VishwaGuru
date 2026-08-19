@@ -1,54 +1,74 @@
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.concurrency import run_in_threadpool
-from sqlalchemy.orm import Session
-from database import engine, get_db
-from models import Base, Issue
-from ai_service import generate_action_plan, chat_with_civic_assistant
-from maharashtra_locator import find_constituency_by_pincode, find_mla_by_constituency
-from pydantic import BaseModel
-from gemini_summary import generate_mla_summary
-import json
-import os
+"""VishwaGuru API - FastAPI application entrypoint.
+
+Import policy: every intra-project import uses the fully qualified `backend.`
+package path. Mixing bare (`from models import ...`) and packaged
+(`from backend.models import ...`) forms loaded the same module twice under two
+names, which registered every SQLAlchemy table twice on one MetaData and made
+`backend.main` raise InvalidRequestError at import time -- the app could not
+start at all.
+"""
+
+import asyncio
 import io
-import sys
+import json
+import logging
+import os
+import shutil
+import uuid
+from contextlib import asynccontextmanager
+from datetime import datetime, timezone
+from functools import lru_cache
+from typing import List, Optional
 
-# Add the project root to sys.path so we can import 'backend' modules
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, BackgroundTasks, Depends, Query
+from fastapi import (
+    Depends,
+    FastAPI,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    UploadFile,
+)
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.concurrency import run_in_threadpool
+from PIL import Image
 from pydantic import BaseModel
+from sqlalchemy import func, text
 from sqlalchemy.orm import Session
-from database import SessionLocal, engine, Base
-from schemas import SuccessResponse, HealthResponse, StatsResponse, MLStatusResponse
-from models import Issue
-from contextlib import asynccontextmanager
-import shutil
-import datetime
-from sqlalchemy import text
-from typing import Optional, List
-from functools import lru_cache
-import PIL.Image
-import uuid
-import logging
+
+from backend.ai_factory import create_all_ai_services
+from backend.ai_interfaces import get_ai_services, initialize_ai_services
+from backend.ai_service import (
+    analyze_issue_with_ai,
+    chat_with_civic_assistant,
+    generate_action_plan,
+)
+from backend.bot import application  # Telegram Application
+from backend.cache import recent_issues_cache
+from backend.database import Base, SessionLocal, engine
+from backend.flood_detection import detect_flooding
+from backend.garbage_detection import detect_garbage
+from backend.maharashtra_locator import (
+    DISTRICT_RANGES,
+    find_constituency_by_pincode,
+    find_mla_by_constituency,
+    load_maharashtra_mla_data,
+    load_maharashtra_pincode_data,
+)
+from backend.models import Issue
+from backend.pothole_detection import detect_potholes
+from backend.responsibility_mapper import get_responsible_authority
+from backend.schemas import (
+    HealthResponse,
+    MLStatusResponse,
+    StatsResponse,
+    SuccessResponse,
+)
+from backend.unified_detection_service import get_detection_status
+from backend.vandalism_detection import detect_vandalism
 
 logger = logging.getLogger(__name__)
-
-# Import specialized detection modules
-from pothole_detection import detect_potholes
-from garbage_detection import detect_garbage
-from vandalism_detection import detect_vandalism
-from flood_detection import detect_flooding
-
-# Import AI and Logic services
-from ai_service import analyze_issue_image, chat_with_civic_assistant, analyze_issue_with_ai, generate_action_plan
-from maharashtra_locator import get_district_by_pincode_range, find_constituency_by_pincode, find_mla_by_constituency, load_maharashtra_pincode_data, load_maharashtra_mla_data
-from responsibility_mapper import get_responsible_authority
-from bot import application  # Import the Telegram Application
-from gemini_summary import generate_mla_summary
 
 # Create the database tables
 Base.metadata.create_all(bind=engine)
@@ -56,7 +76,20 @@ Base.metadata.create_all(bind=engine)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # --- Startup ---
-    print("Starting up backend...")
+    logger.info("Starting up backend...")
+
+    # Initialize the AI service container. get_ai_services() raises
+    # RuntimeError until this runs, which made /api/mh/rep-contacts fail.
+    try:
+        action_plan_service, chat_service, mla_summary_service = create_all_ai_services()
+        initialize_ai_services(
+            action_plan_service=action_plan_service,
+            chat_service=chat_service,
+            mla_summary_service=mla_summary_service,
+        )
+        logger.info("AI services initialized.")
+    except Exception:
+        logger.exception("Failed to initialize AI services")
 
     # Initialize the Telegram bot
     try:
@@ -107,10 +140,31 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-# Enable CORS
+# CORS.
+#
+# The previous configuration paired allow_origins=["*"] with
+# allow_credentials=True. That combination is invalid per the Fetch spec --
+# browsers reject a wildcard Access-Control-Allow-Origin on a credentialed
+# request -- and it also ignored the CORS_ORIGINS variable that render.yaml
+# already declares. Origins are now read from the environment, with a
+# localhost-only default so a misconfigured deploy fails closed rather than
+# open.
+def _allowed_origins() -> List[str]:
+    raw = os.getenv("CORS_ORIGINS", "").strip()
+    if raw:
+        return [o.strip() for o in raw.split(",") if o.strip()]
+    frontend_url = os.getenv("FRONTEND_URL", "").strip()
+    if frontend_url:
+        return [frontend_url]
+    return ["http://localhost:5173", "http://localhost:4173", "http://127.0.0.1:5173"]
+
+
+ALLOWED_ORIGINS = _allowed_origins()
+logger.info("CORS allowed origins: %s", ALLOWED_ORIGINS)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
@@ -130,14 +184,6 @@ class PincodeRequest(BaseModel):
 class ChatRequest(BaseModel):
     message: str
     history: List[dict] = []
-
-@app.get("/")
-def read_root():
-    return {
-        "status": "ok",
-        "service": "VishwaGuru API",
-        "version": "1.0.0"
-    }
 
 @app.get("/", response_model=SuccessResponse)
 def root():
@@ -304,23 +350,6 @@ def get_recent_issues(db: Session = Depends(get_db)):
         for i in issues
     ]
 
-@app.post("/api/detect-pothole")
-async def detect_pothole_endpoint(image: UploadFile = File(...)):
-    # Read image
-    contents = await image.read()
-    # Convert to PIL Image
-    try:
-        pil_image = Image.open(io.BytesIO(contents))
-    except Exception:
-         raise HTTPException(status_code=400, detail="Invalid image file")
-
-    # Run detection (blocking, so run in threadpool)
-    try:
-        detections = await run_in_threadpool(detect_potholes, pil_image)
-    except Exception as e:
-        print(f"Error creating issue: {e}")
-        return JSONResponse(status_code=500, content={"message": str(e)})
-
 @app.get("/api/issues")
 def get_issues(
     skip: int = 0,
@@ -410,10 +439,10 @@ async def get_districts():
     return {"districts": [d[2] for d in DISTRICT_RANGES]} if 'DISTRICT_RANGES' in globals() else {"districts": []}
 
 @app.post("/api/detect-pothole")
-async def api_detect_pothole(file: UploadFile = File(...)):
+async def api_detect_pothole(image: UploadFile = File(...)):
     try:
         def process_image():
-            img = PIL.Image.open(file.file)
+            img = Image.open(image.file)
             return detect_potholes(img)
         result = await run_in_threadpool(process_image)
         return {"detections": result}
@@ -421,10 +450,10 @@ async def api_detect_pothole(file: UploadFile = File(...)):
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 @app.post("/api/detect-garbage")
-async def api_detect_garbage(file: UploadFile = File(...)):
+async def api_detect_garbage(image: UploadFile = File(...)):
     try:
         def process_image():
-            img = PIL.Image.open(file.file)
+            img = Image.open(image.file)
             return detect_garbage(img)
         result = await run_in_threadpool(process_image)
         return {"detections": result}
@@ -432,12 +461,12 @@ async def api_detect_garbage(file: UploadFile = File(...)):
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 @app.post("/api/detect-vandalism")
-async def api_detect_vandalism(file: UploadFile = File(...)):
+async def api_detect_vandalism(image: UploadFile = File(...)):
     try:
         if not os.getenv("HF_TOKEN") and not os.getenv("HUGGINGFACE_HUB_TOKEN"):
              print("Warning: HF_TOKEN not set.")
         def process_image():
-            img = PIL.Image.open(file.file)
+            img = Image.open(image.file)
             return detect_vandalism(img)
         result = await run_in_threadpool(process_image)
         return {"detections": result}
@@ -445,9 +474,9 @@ async def api_detect_vandalism(file: UploadFile = File(...)):
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 @app.post("/api/detect-flooding")
-async def api_detect_flooding(file: UploadFile = File(...)):
+async def api_detect_flooding(image: UploadFile = File(...)):
     try:
-        img = PIL.Image.open(file.file)
+        img = Image.open(image.file)
         result = await detect_flooding(img)
         return {"detections": result}
     except Exception as e:
@@ -458,14 +487,6 @@ async def chat_endpoint(request: ChatRequest):
     try:
         response = await chat_with_civic_assistant(request.message, request.history)
         return {"response": response}
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
-
-@app.get("/api/responsibility-map")
-async def get_responsibility_map_endpoint():
-    try:
-        data = await run_in_threadpool(get_responsible_authority)
-        return data
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 

@@ -9,10 +9,10 @@ import threading
 import time
 
 # Add backend to path
-backend_path = os.path.join(os.path.dirname(__file__), '..', 'backend')
+backend_path = os.path.join(os.path.dirname(__file__), '..')
 sys.path.insert(0, backend_path)
 
-from bot import (
+from backend.bot import (
     start_bot_thread,
     stop_bot_thread,
     _bot_thread,

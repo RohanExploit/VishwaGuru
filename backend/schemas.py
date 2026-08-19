@@ -109,9 +109,6 @@ class PushSubscriptionResponse(BaseModel):
 class DetectionResponse(BaseModel):
     detections: List[Dict[str, Any]] = Field(..., description="List of detected objects/items")
 
-class DetectionResponse(BaseModel):
-    detections: List[Dict[str, Any]] = Field(..., description="List of detected objects/items")
-
 class VisionAnalysisResponse(BaseModel):
     description: str = Field(..., description="AI-generated description of the issue")
     category: str = Field(..., description="Detected issue category")

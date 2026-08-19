@@ -7,7 +7,6 @@ from unittest.mock import patch, AsyncMock
 # Note: This test requires PYTHONPATH=. to be set to import backend modules
 # Run with: PYTHONPATH=. python tests/test_spatial_deduplication.py
 import sys
-import os
 
 from backend.main import app
 from backend.models import Base, Issue

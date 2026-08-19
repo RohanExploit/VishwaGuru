@@ -7,7 +7,6 @@ from fastapi.testclient import TestClient
 # Note: This test requires PYTHONPATH=. to be set to import backend modules
 # Run with: PYTHONPATH=. python tests/test_issue_creation.py
 import sys
-import os
 
 from backend.main import app
 from backend.models import Base, Issue
