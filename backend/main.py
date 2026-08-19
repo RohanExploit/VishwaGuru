@@ -8,7 +8,6 @@ names, which registered every SQLAlchemy table twice on one MetaData and made
 start at all.
 """
 
-import asyncio
 import inspect
 import io
 import json
@@ -23,6 +22,7 @@ from functools import lru_cache
 
 import httpx
 from fastapi import (
+    BackgroundTasks,
     Depends,
     FastAPI,
     File,
@@ -74,7 +74,11 @@ from backend.hf_api_service import (
     transcribe_audio,
     verify_resolution_vqa,
 )
-from backend.image_validator import validate_image_file
+from backend.image_validator import (
+    MAX_IMAGE_HEIGHT,
+    MAX_IMAGE_WIDTH,
+    validate_image_file,
+)
 from backend.local_ml_service import detect_infrastructure_local
 from backend.maharashtra_locator import (
     DISTRICT_RANGES,
@@ -91,7 +95,16 @@ from backend.schemas import (
     StatsResponse,
     SuccessResponse,
 )
-from backend.unified_detection_service import get_detection_status
+from backend.spatial_utils import find_nearby_issues
+from backend.unified_detection_service import (
+    detect_infrastructure as detect_infrastructure_unified,
+)
+from backend.unified_detection_service import (
+    detect_vandalism as detect_vandalism_unified,
+)
+from backend.unified_detection_service import (
+    get_detection_status,
+)
 from backend.vandalism_detection import detect_vandalism
 
 logger = logging.getLogger(__name__)
@@ -353,51 +366,212 @@ def save_file_blocking(file_obj, path):
         logger.info(f"Saved file {path} as binary (not an image or PIL failed)")
 
 
-@app.post("/api/issues")
+def save_issue_db(db: Session, issue: Issue) -> Issue:
+    """Persist an issue. Named at module level so it can be run in a threadpool
+    and identified by callers that need to distinguish the two blocking steps."""
+    db.add(issue)
+    db.commit()
+    db.refresh(issue)
+    return issue
+
+
+def _coerce_action_plan(value):
+    """Action plans are stored as JSON text but handled as dicts in memory."""
+    if value is None or isinstance(value, dict):
+        return value
+    try:
+        return json.loads(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _serialise_issue_for_cache(issue: Issue) -> dict:
+    return {
+        "id": issue.id,
+        "category": issue.category,
+        "description": issue.description,
+        "created_at": issue.created_at,
+        "image_path": issue.image_path,
+        "status": issue.status,
+        "upvotes": issue.upvotes,
+        "location": issue.location,
+        "latitude": issue.latitude,
+        "longitude": issue.longitude,
+        "action_plan": _coerce_action_plan(issue.action_plan),
+    }
+
+
+def _update_recent_cache(issue: Issue) -> None:
+    """Prepend the new issue to the cached recent list instead of dropping it.
+
+    Invalidating forced the next reader to re-query, which is wasteful when the
+    only change is one row at the head of a list already in memory. The cache is
+    only invalidated when there is nothing to update.
+    """
+    try:
+        cached = recent_issues_cache.get(RECENT_ISSUES_CACHE_KEY)
+        if not cached:
+            recent_issues_cache.invalidate(RECENT_ISSUES_CACHE_KEY)
+            return
+        updated = [_serialise_issue_for_cache(issue), *cached][:RECENT_ISSUES_LIMIT]
+        recent_issues_cache.set(updated, RECENT_ISSUES_CACHE_KEY)
+    except Exception:
+        logger.exception("Failed to update the recent-issues cache")
+        recent_issues_cache.invalidate(RECENT_ISSUES_CACHE_KEY)
+
+
+async def _generate_action_plan_task(issue_id: int, description: str, category: str) -> None:
+    """Produce the action plan after the response has been sent.
+
+    Generating it inline held the request open for the full duration of the
+    model call, so submitting a report appeared to hang. The client polls
+    /api/issues/recent, which now carries action_plan, until it is populated.
+    """
+    try:
+        plan = await generate_action_plan(description, category)
+    except Exception:
+        logger.exception("Background action plan generation failed for issue %s", issue_id)
+        return
+
+    session = SessionLocal()
+    try:
+        issue = session.query(Issue).filter(Issue.id == issue_id).first()
+        if issue is None:
+            logger.warning("Issue %s vanished before its action plan was stored", issue_id)
+            return
+        issue.action_plan = plan
+        session.commit()
+        logger.info("Stored action plan for issue %s", issue_id)
+    except Exception:
+        logger.exception("Failed to store action plan for issue %s", issue_id)
+        session.rollback()
+    finally:
+        session.close()
+
+
+def _find_nearby(db: Session, latitude: float, longitude: float, radius_meters: float):
+    """Candidate issues near a point, nearest first."""
+    candidates = (
+        db.query(Issue).filter(Issue.latitude.isnot(None), Issue.longitude.isnot(None)).all()
+    )
+    matches = find_nearby_issues(candidates, latitude, longitude, radius_meters)
+    return sorted(matches, key=lambda pair: pair[1])
+
+
+@app.get("/api/issues/nearby")
+def get_nearby_issues(
+    latitude: float = Query(..., ge=-90, le=90),
+    longitude: float = Query(..., ge=-180, le=180),
+    radius: float = Query(50.0, gt=0, le=50000, description="Search radius in metres"),
+    limit: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    """Issues within `radius` metres of a point, sorted by distance.
+
+    The frontend's duplicate check called this and got a 404: backend/spatial_utils.py
+    implemented the geometry but nothing ever exposed it.
+    """
+    matches = _find_nearby(db, latitude, longitude, radius)[:limit]
+    return [
+        {
+            "id": issue.id,
+            "category": issue.category,
+            "description": issue.description,
+            "status": issue.status,
+            "upvotes": issue.upvotes,
+            "latitude": issue.latitude,
+            "longitude": issue.longitude,
+            "created_at": issue.created_at,
+            "distance_meters": round(distance, 2),
+        }
+        for issue, distance in matches
+    ]
+
+
+@app.post("/api/issues", status_code=201)
 async def create_issue(
+    background_tasks: BackgroundTasks,
     description: str = Form(...),
     category: str = Form(...),
     source: str = Form("web"),
     user_email: str | None = Form(None),
-    image: UploadFile = File(...),
+    latitude: float | None = Form(None),
+    longitude: float | None = Form(None),
+    location: str | None = Form(None),
+    image: UploadFile | None = File(None),
     db: Session = Depends(get_db),
 ):
-    try:
-        # Save the uploaded image
-        os.makedirs("data/uploads", exist_ok=True)
-        filename = f"{uuid.uuid4()}_{os.path.basename(image.filename)}"
-        file_location = f"data/uploads/{filename}"
+    """Record a civic issue.
 
-        # Offload blocking file I/O to a thread
+    Returns 201 with `action_plan` null. The plan is generated in the
+    background and collected by polling /api/issues/recent, because the model
+    call took long enough that submitting a report looked like a hang.
+    """
+    file_location = None
+    if image is not None and image.filename:
+        await validate_uploaded_file(image)
+        await image.seek(0)
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
+        filename = f"{uuid.uuid4()}_{os.path.basename(image.filename)}"
+        file_location = os.path.join(UPLOAD_DIR, filename)
         await run_in_threadpool(save_file_blocking, image.file, file_location)
 
-        # Generate Action Plan (AI)
-        action_plan = await generate_action_plan(description, category, file_location)
+    deduplication_info = {"has_nearby_issues": False, "nearby_issues": []}
+    linked_issue_id = None
 
-        # Offload blocking DB operations to a thread
-        def save_to_db():
-            db_issue = Issue(
-                description=description,
-                category=category,
-                image_path=file_location,
-                source=source,
-                user_email=user_email,
-            )
-            db.add(db_issue)
-            db.commit()
-            db.refresh(db_issue)
-            return db_issue
+    if latitude is not None and longitude is not None:
+        try:
+            nearby = _find_nearby(db, latitude, longitude, DEDUPLICATION_RADIUS_METERS)
+        except Exception:
+            logger.exception("Nearby-issue lookup failed during issue creation")
+            nearby = []
 
-        new_issue = await asyncio.to_thread(save_to_db)
+        if nearby:
+            deduplication_info = {
+                "has_nearby_issues": True,
+                "nearby_issues": [
+                    {
+                        "id": existing.id,
+                        "category": existing.category,
+                        "description": existing.description,
+                        "distance_meters": round(distance, 2),
+                    }
+                    for existing, distance in nearby[:5]
+                ],
+            }
+            linked_issue_id = nearby[0][0].id
 
-        return {
-            "id": new_issue.id,
-            "message": "Issue reported successfully",
-            "action_plan": action_plan,
-        }
-    except Exception:
+    new_issue = Issue(
+        description=description,
+        category=category,
+        image_path=file_location,
+        source=source,
+        user_email=user_email,
+        latitude=latitude,
+        longitude=longitude,
+        location=location,
+    )
+
+    try:
+        saved = await run_in_threadpool(save_issue_db, db, new_issue)
+    except Exception as exc:
         logger.exception("Error creating issue")
-        return JSONResponse(status_code=500, content={"message": "An internal error occurred"})
+        raise HTTPException(status_code=500, detail="Could not record the issue.") from exc
+
+    if saved is None:
+        saved = new_issue
+
+    _update_recent_cache(saved)
+
+    background_tasks.add_task(_generate_action_plan_task, saved.id, description, category)
+
+    return {
+        "id": saved.id,
+        "message": "Issue reported successfully",
+        "action_plan": None,
+        "deduplication_info": deduplication_info,
+        "linked_issue_id": linked_issue_id,
+    }
 
 
 @lru_cache(maxsize=1)
@@ -437,6 +611,10 @@ def get_recent_issues(db: Session = Depends(get_db)):
             "created_at": i.created_at,
             "image_path": i.image_path,
             "status": i.status,
+            "upvotes": i.upvotes,
+            # ActionView.jsx polls this endpoint for the backgrounded action
+            # plan; without this field the poll could never terminate.
+            "action_plan": _coerce_action_plan(i.action_plan),
         }
         for i in issues
     ]
@@ -563,6 +741,8 @@ async def _run_image_detector(service_name: str, upload: UploadFile) -> dict:
     except Exception as exc:
         raise HTTPException(status_code=400, detail="Invalid image file.") from exc
 
+    validate_image_for_processing(pil_image)
+
     detector = _service(service_name)
     try:
         result = detector(pil_image)
@@ -590,7 +770,7 @@ async def api_detect_garbage(image: UploadFile = File(...)):
 
 @app.post("/api/detect-vandalism")
 async def api_detect_vandalism(image: UploadFile = File(...)):
-    return await _run_image_detector("detect_vandalism", image)
+    return await _run_image_detector("detect_vandalism_unified", image)
 
 
 @app.post("/api/detect-flooding")
@@ -662,6 +842,11 @@ def upvote_issue(issue_id: int, db: Session = Depends(get_db)):
 # so tests that monkeypatch backend.main.<name> take effect.
 
 MAX_UPLOAD_BYTES = int(os.getenv("MAX_UPLOAD_SIZE_MB", "10")) * 1024 * 1024
+UPLOAD_DIR = os.getenv("UPLOAD_DIR", os.path.join("data", "uploads"))
+RECENT_ISSUES_CACHE_KEY = "recent"
+RECENT_ISSUES_LIMIT = 10
+# Reports closer than this to an existing one are flagged as possible duplicates.
+DEDUPLICATION_RADIUS_METERS = 50.0
 
 
 class UrgencyRequest(BaseModel):
@@ -695,8 +880,10 @@ DETECTOR_IMPLEMENTATIONS = (
     detect_potholes,
     detect_garbage,
     detect_vandalism,
+    detect_vandalism_unified,
     detect_flooding,
     detect_infrastructure_local,
+    detect_infrastructure_unified,
     detect_accessibility_issue_clip,
     detect_audio_event,
     detect_blocked_road_clip,
@@ -754,6 +941,24 @@ async def validate_uploaded_file(upload: UploadFile) -> bytes:
     return contents
 
 
+def validate_image_for_processing(image: "Image.Image") -> None:
+    """Validate a decoded image before it is handed to a detector.
+
+    validate_uploaded_file() checks the bytes; this checks the decoded result,
+    where a small payload can still expand to dimensions large enough to
+    exhaust memory during inference.
+    """
+    width, height = image.size
+    if width <= 0 or height <= 0:
+        raise HTTPException(status_code=400, detail="Image has no pixels.")
+    if width > MAX_IMAGE_WIDTH or height > MAX_IMAGE_HEIGHT:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Image dimensions {width}x{height} exceed the "
+            f"{MAX_IMAGE_WIDTH}x{MAX_IMAGE_HEIGHT} limit.",
+        )
+
+
 def _http_client(request: Request):
     return getattr(request.app.state, "http_client", None)
 
@@ -800,19 +1005,12 @@ for _path, _service_name, _wrap in DETECTOR_ENDPOINTS:
 
 @app.post("/api/detect-infrastructure")
 async def detect_infrastructure_endpoint(image: UploadFile = File(...)):
-    """Infrastructure damage runs through the local YOLO model, not CLIP."""
-    contents = await _read_upload(image)
-    try:
-        pil_image = await run_in_threadpool(Image.open, io.BytesIO(contents))
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail="Invalid image file.") from exc
+    """Infrastructure damage goes through the unified service.
 
-    try:
-        detections = await detect_infrastructure_local(pil_image)
-    except Exception as exc:
-        logger.exception("Infrastructure detection failed")
-        raise HTTPException(status_code=502, detail="Detection service unavailable.") from exc
-    return {"detections": detections}
+    This used to call detect_infrastructure_local directly, so a deployment
+    without the local model had no path to the hosted API at all.
+    """
+    return await _run_image_detector("detect_infrastructure_unified", image)
 
 
 @app.post("/api/transcribe-audio")

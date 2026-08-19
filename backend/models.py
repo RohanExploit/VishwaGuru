@@ -157,7 +157,11 @@ class Issue(Base):
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
     location = Column(String, nullable=True)
-    action_plan = Column(Text, nullable=True)
+    # JSONEncodedDict is declared in this module for exactly this purpose but
+    # was never applied here, so plans round-tripped as raw JSON strings and
+    # every reader had to decode them by hand. The underlying storage is
+    # still Text, so existing rows are unaffected.
+    action_plan = Column(JSONEncodedDict, nullable=True)
 
 
 class GrievanceFollower(Base):

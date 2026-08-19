@@ -37,7 +37,7 @@ def test_read_main(client):
 
 def test_detect_vandalism_returns_detections(client, jpeg_bytes, monkeypatch):
     expected = [{"label": "graffiti", "confidence": 0.95, "box": []}]
-    monkeypatch.setattr("backend.main.detect_vandalism", lambda img: expected)
+    monkeypatch.setattr("backend.main.detect_vandalism_unified", lambda img: expected)
 
     response = client.post(
         "/api/detect-vandalism",
@@ -50,7 +50,7 @@ def test_detect_vandalism_returns_detections(client, jpeg_bytes, monkeypatch):
 
 def test_detect_vandalism_accepts_image_field_not_file(client, jpeg_bytes, monkeypatch):
     """Every frontend caller posts the field as `image`; `file` must not be required."""
-    monkeypatch.setattr("backend.main.detect_vandalism", lambda img: [])
+    monkeypatch.setattr("backend.main.detect_vandalism_unified", lambda img: [])
 
     response = client.post(
         "/api/detect-vandalism",
