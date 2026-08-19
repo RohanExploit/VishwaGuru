@@ -5,11 +5,15 @@ apply plugin: 'com.android.application'
 // secrets; a local release build without them falls back to the debug signing
 // config, which produces an installable APK that the Play Store will reject --
 // deliberately, so an unsigned artifact cannot be mistaken for a shippable one.
-def keystorePath = System.getenv("ANDROID_KEYSTORE_PATH")
-def keystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
-def keyAlias = System.getenv("ANDROID_KEY_ALIAS")
-def keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
-def hasReleaseSigning = keystorePath != null && !keystorePath.isEmpty() && file(keystorePath).exists()
+// These are deliberately NOT named keystorePath/keyAlias/keyPassword: inside the
+// signingConfigs block those are DSL setter names, so `keyAlias keyAlias` parses
+// as invoking the String as a method and the build dies with
+// "No signature of method: java.lang.String.call()".
+def releaseKeystorePath = System.getenv("ANDROID_KEYSTORE_PATH")
+def releaseStorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+def releaseKeyAlias = System.getenv("ANDROID_KEY_ALIAS")
+def releaseKeyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+def hasReleaseSigning = releaseKeystorePath != null && !releaseKeystorePath.isEmpty() && file(releaseKeystorePath).exists()
 
 // versionCode must increase on every upload. CI passes the run number.
 def buildVersionCode = (System.getenv("ANDROID_VERSION_CODE") ?: "1") as Integer
@@ -34,10 +38,10 @@ android {
     signingConfigs {
         release {
             if (hasReleaseSigning) {
-                storeFile file(keystorePath)
-                storePassword keystorePassword
-                keyAlias keyAlias
-                keyPassword keyPassword
+                storeFile file(releaseKeystorePath)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
             }
         }
     }
