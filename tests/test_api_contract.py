@@ -17,13 +17,25 @@ from backend.main import app
 REPO_ROOT = Path(__file__).resolve().parents[1]
 FRONTEND_SRC = REPO_ROOT / "frontend" / "src"
 
-# Matches '/api/...' inside quotes or template literals in JS/JSX sources.
-API_PATH_RE = re.compile(r"""['"`](/api/[a-zA-Z0-9/_\-]+)['"`]""")
+# Template-literal interpolations are collapsed to a single path segment before
+# matching. An earlier version of this regex only accepted [A-Za-z0-9/_-], so
+# `/api/issues/${id}/vote` was skipped entirely -- and that call really was
+# broken, because the backend serves /upvote. Any path built by interpolation
+# must be checked, not ignored.
+INTERPOLATION_RE = re.compile(r"\$\{[^}]*\}")
+API_PATH_RE = re.compile(r"""['"`](/api/[^'"`\s]*)['"`]""")
 
-# Paths built at runtime from an id, which the static scan cannot resolve.
+# Paths that genuinely cannot be resolved statically.
 IGNORED = {
-    "/api/",
+    "/api",
 }
+
+
+def _normalise(raw: str) -> str:
+    """Collapse interpolations to a placeholder segment and drop any query string."""
+    path = INTERPOLATION_RE.sub("1", raw)
+    path = path.split("?", 1)[0]
+    return path.rstrip("/") or "/"
 
 
 def _frontend_api_paths() -> set[str]:
@@ -31,9 +43,11 @@ def _frontend_api_paths() -> set[str]:
     for path in FRONTEND_SRC.rglob("*.js*"):
         if "__tests__" in path.parts or "__mocks__" in path.parts:
             continue
-        for match in API_PATH_RE.findall(path.read_text(encoding="utf-8", errors="ignore")):
-            if match not in IGNORED:
-                paths.add(match.rstrip("/"))
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        for raw in API_PATH_RE.findall(text):
+            normalised = _normalise(raw)
+            if normalised not in IGNORED and normalised.startswith("/api/"):
+                paths.add(normalised)
     return paths
 
 
