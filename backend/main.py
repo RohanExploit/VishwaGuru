@@ -51,6 +51,7 @@ from backend.ai_service import (
     chat_with_civic_assistant,
     generate_action_plan,
 )
+from backend.auth import require_api_key
 from backend.bot import (
     application,  # noqa: F401 - re-exported for callers
     start_bot_thread,
@@ -1159,8 +1160,12 @@ async def verify_issue_resolution(
     issue_id: int,
     image: UploadFile = File(...),
     db: Session = Depends(get_db),
+    _api_key: str = Depends(require_api_key),
 ):
     """Citizen uploads a photo; a VQA model judges whether the issue is fixed.
+
+    Requires X-API-Key: this writes issue.status, which is what officials and
+    the public dashboard treat as the record of whether a problem was fixed.
 
     The response carries `confidence` and `question_asked` because
     frontend/src/views/VerifyView.jsx renders both directly -- it computes

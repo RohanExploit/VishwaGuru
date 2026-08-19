@@ -17,6 +17,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 
+from backend.auth import require_api_key
 from backend.database import get_db
 from backend.grievance_service import GrievanceService
 from backend.models import Grievance, GrievanceStatus
@@ -159,7 +160,14 @@ def escalate_grievance(
     grievance_id: int,
     reason: str = Query("", description="Why the grievance is being escalated"),
     db: Session = Depends(get_db),
+    _api_key: str = Depends(require_api_key),
 ):
+    """Reassign a grievance to a higher authority.
+
+    Requires X-API-Key. This changes which office is accountable for the
+    grievance and writes an audit record, so it must not be callable by anyone
+    who can reach the API.
+    """
     grievance = db.query(Grievance).filter(Grievance.id == grievance_id).first()
     if grievance is None:
         raise HTTPException(status_code=404, detail="Grievance not found.")

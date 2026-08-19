@@ -29,6 +29,14 @@ services:
       # it there let the same module load twice under two names.
       - key: PYTHONPATH
         value: .
+      # Administrative key for the two endpoints that change state officials
+      # act on (grievance escalation, issue verification). At least 32
+      # characters. If unset, those endpoints fail closed with 503.
+      - key: ADMIN_API_KEY
+        sync: false
+      # Optional: verifies bearer tokens used for user attribution.
+      - key: JWT_SECRET
+        sync: false
       # Required API Keys (must be set in Render dashboard)
       - key: GEMINI_API_KEY
         sync: false
