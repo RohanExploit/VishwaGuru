@@ -54,6 +54,7 @@ COPY --from=build /opt/venv /opt/venv
 WORKDIR /app
 COPY --chown=vishwaguru:vishwaguru backend/ ./backend/
 COPY --chown=vishwaguru:vishwaguru data/ ./data/
+COPY --chown=vishwaguru:vishwaguru alembic.ini ./alembic.ini
 
 # The SQLite fallback and uploaded images both write here.
 RUN mkdir -p /app/data/uploads && chown -R vishwaguru:vishwaguru /app/data
@@ -67,6 +68,12 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
   CMD curl -fsS http://127.0.0.1:8000/health || exit 1
 
+# Schema migrations are NOT run on container start. Every replica would race to
+# apply them, and a container that cannot migrate should fail the deploy rather
+# than boot against a schema it half-changed. Run them once per deploy:
+#
+#     docker run --rm -e DATABASE_URL=... vishwaguru-api:tag alembic upgrade head
+#
 # One worker by default. The Telegram poller is off unless RUN_TELEGRAM_BOT is
 # set, so this image can be scaled horizontally; run exactly one separate
 # instance with the flag set to serve the bot.

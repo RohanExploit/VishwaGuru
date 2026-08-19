@@ -15,7 +15,11 @@ services:
     name: vishwaguru-backend
     runtime: python
     buildCommand: "pip install -r backend/requirements.txt"
-    startCommand: "pip install uvicorn && python start-backend.py"
+    # Migrations run once per deploy, before any instance starts, so a booting
+    # worker can assume the schema is correct. They are deliberately NOT run in
+    # the application lifespan: every worker would race to apply them.
+    preDeployCommand: "alembic upgrade head"
+    startCommand: "python start-backend.py"
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.0

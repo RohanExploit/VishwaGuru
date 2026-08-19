@@ -41,7 +41,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
-from sqlalchemy import func, text
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from backend.ai_factory import create_all_ai_services
@@ -173,34 +173,19 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Error pre-loading Maharashtra data: {e}")
 
-    # Run database migrations.
+    # Schema migrations are NOT run here.
     #
-    # These statements are expected to fail once the schema already has the
-    # column or index, which is why each is tolerated individually. They used to
-    # be swallowed by a bare `except Exception: pass`, so a migration that
-    # failed for a real reason -- wrong dialect, locked table, permissions --
-    # was indistinguishable from one that was simply already applied, and left
-    # no trace anywhere. Each outcome is now logged.
+    # This block used to execute raw ALTER/CREATE INDEX statements on every
+    # startup, tolerating each failure individually because the column or index
+    # usually already existed. That has no ordering, no down path, and no record
+    # of which revision a database is on, and with more than one worker every
+    # process raced to apply it.
     #
-    # This is still not a migration system. Adopting Alembic is tracked
-    # separately; until then this at least fails loudly enough to diagnose.
-    _MIGRATIONS = (
-        ("index ix_issues_created_at", "CREATE INDEX ix_issues_created_at ON issues (created_at)"),
-        ("index ix_issues_status", "CREATE INDEX ix_issues_status ON issues (status)"),
-        ("column issues.upvotes", "ALTER TABLE issues ADD COLUMN upvotes INTEGER DEFAULT 0"),
-        ("column issues.user_email", "ALTER TABLE issues ADD COLUMN user_email VARCHAR"),
-    )
-    try:
-        with engine.connect() as conn:
-            for description, statement in _MIGRATIONS:
-                try:
-                    conn.execute(text(statement))
-                    logger.info("Applied migration: %s", description)
-                except Exception as exc:
-                    logger.debug("Migration skipped (%s): %s", description, exc)
-            conn.commit()
-    except Exception:
-        logger.exception("Database migration step failed")
+    # Alembic owns the schema now. Migrations run once per deploy, before the
+    # service starts -- see preDeployCommand in render.yaml -- so a worker that
+    # boots can assume the schema is already correct:
+    #
+    #     alembic upgrade head
 
     yield
 

@@ -8,6 +8,8 @@ aiohttp==3.14.3
     # via pywebpush
 aiosignal==1.4.0
     # via aiohttp
+alembic==1.19.1
+    # via -r backend/requirements.in
 annotated-doc==0.0.5
     # via fastapi
 annotated-types==0.8.0
@@ -183,10 +185,13 @@ joblib==1.5.3
     # via scikit-learn
 limits==5.8.0
     # via slowapi
+mako==1.4.1
+    # via alembic
 markupsafe==3.0.3
     # via
     #   flask
     #   jinja2
+    #   mako
     #   werkzeug
 msgpack==1.2.1
     # via cachecontrol
@@ -277,7 +282,9 @@ scipy==1.18.0
 slowapi==0.1.10
     # via -r backend/requirements.in
 sqlalchemy==2.0.52
-    # via -r backend/requirements.in
+    # via
+    #   -r backend/requirements.in
+    #   alembic
 starlette==1.6.0
     # via
     #   fastapi
@@ -292,6 +299,7 @@ typing-extensions==4.16.0
     # via
     #   aiohttp
     #   aiosignal
+    #   alembic
     #   anyio
     #   fastapi
     #   firebase-functions
