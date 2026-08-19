@@ -27,12 +27,6 @@ const TreeDetector = React.lazy(() => import('./TreeDetector'));
 // These eight were fully written but never routed, so nothing in the app could
 // reach them. Their backend endpoints exist now, so they are wired up.
 //
-// SmartScanner is deliberately still unrouted: it imports @tensorflow/tfjs and
-// @tensorflow-models/mobilenet, neither of which is a dependency of this
-// package, and pulling them in would add tens of megabytes to a bundle whose
-// users are on low-end phones and metered connections. The backend already
-// exposes /api/detect-smart-scan, so the same result is available without
-// shipping a model to the device.
 const AccessibilityDetector = React.lazy(() => import('./AccessibilityDetector'));
 const CivicEyeDetector = React.lazy(() => import('./CivicEyeDetector'));
 const CrowdDetector = React.lazy(() => import('./CrowdDetector'));
@@ -41,6 +35,7 @@ const PestDetector = React.lazy(() => import('./PestDetector'));
 const SeverityDetector = React.lazy(() => import('./SeverityDetector'));
 const WasteDetector = React.lazy(() => import('./WasteDetector'));
 const WaterLeakDetector = React.lazy(() => import('./WaterLeakDetector'));
+const SmartScanner = React.lazy(() => import('./SmartScanner'));
 
 // ─── Valid view paths for navigation safety ────────────────────────────────────
 const VALID_VIEWS = [
@@ -48,7 +43,7 @@ const VALID_VIEWS = [
   'pothole', 'garbage', 'vandalism', 'flood', 'infrastructure',
   'parking', 'streetlight', 'fire', 'animal', 'blocked', 'tree',
   'accessibility', 'civic-eye', 'crowd', 'noise', 'pest', 'severity',
-  'waste', 'water-leak'
+  'waste', 'water-leak', 'smart-scan'
 ];
 
 // ─── Enhanced header component with animated gradient ──────────────────────────
@@ -364,6 +359,7 @@ element={<ActionView actionPlan={actionPlan} setActionPlan={setActionPlan} setVi
             <Route path="/severity" element={<SeverityDetector onBack={() => navigate('/')} />} />
             <Route path="/waste" element={<WasteDetector onBack={() => navigate('/')} />} />
             <Route path="/water-leak" element={<WaterLeakDetector onBack={() => navigate('/')} />} />
+            <Route path="/smart-scan" element={<SmartScanner onBack={() => navigate('/')} />} />
             <Route path="*" element={<NotFound />} />
 </Routes>
         </Suspense>

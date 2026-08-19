@@ -148,9 +148,12 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote }) =
             </div>
           </button>
 
-          {/* Smart Scanner CTA */}
+          {/* Smart Scanner CTA.
+              This opened the pothole detector, so the app's most prominent
+              call to action -- "AI-powered issue detection" -- led somewhere
+              else entirely, and the Smart Scanner screen was unreachable. */}
           <button
-            onClick={() => setView('pothole')}
+            onClick={() => setView('smart-scan')}
             className="w-full bg-gradient-to-br from-blue-500 to-cyan-600 p-6 rounded-2xl shadow-lg flex items-center justify-between text-white hover:opacity-95 transition transform hover:scale-[1.02] active:scale-95 group"
           >
             <div className="flex items-center gap-4">

@@ -317,8 +317,27 @@ class PincodeRequest(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    message: str
+    """Chat payload.
+
+    components/ChatWidget.jsx posts {"query": ...}. This model required
+    `message`, so every message sent from the widget was rejected with 422 and
+    the assistant never answered. Both names are accepted; `message` stays
+    canonical.
+    """
+
+    message: str | None = None
+    query: str | None = None
     history: list[dict] = []
+
+    @property
+    def text(self) -> str:
+        value = self.message or self.query
+        if not value or not value.strip():
+            raise HTTPException(
+                status_code=422,
+                detail="Provide a non-empty 'message' (or 'query').",
+            )
+        return value
 
 
 @app.get("/", response_model=SuccessResponse)
@@ -824,11 +843,18 @@ async def api_detect_flooding(request: Request, image: UploadFile = File(...)):
 
 @app.post("/api/chat")
 async def chat_endpoint(request: ChatRequest):
+    # Resolved before the try: request.text raises 422 for an empty message, and
+    # a broad handler would otherwise convert that client error into a 500.
+    message = request.text
+
     try:
-        response = await chat_with_civic_assistant(request.message, request.history)
-        return {"response": response}
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        response = await chat_with_civic_assistant(message, request.history)
+    except Exception as exc:
+        # The previous version returned the raw exception string to the caller,
+        # which leaks internals on any upstream failure.
+        logger.exception("Chat assistant failed")
+        raise HTTPException(status_code=502, detail="Chat service unavailable.") from exc
+    return {"response": response}
 
 
 @app.post("/api/analyze-issue")
@@ -1103,8 +1129,13 @@ async def generate_description_endpoint(request: Request, image: UploadFile = Fi
 @app.post("/api/analyze-urgency")
 @limiter.limit(AI_RATE_LIMIT)
 async def analyze_urgency_endpoint(request: Request, payload: UrgencyRequest):
+    # Resolved before the try for the same reason as /api/chat: payload.content
+    # raises 422 on an empty description, and the handler below would otherwise
+    # relabel that client error as an upstream outage.
+    description = payload.content
+
     try:
-        return await analyze_urgency_text(payload.content, client=_http_client(request))
+        return await analyze_urgency_text(description, client=_http_client(request))
     except Exception as exc:
         logger.exception("Urgency analysis failed")
         raise HTTPException(status_code=502, detail="Urgency service unavailable.") from exc
