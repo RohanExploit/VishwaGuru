@@ -74,7 +74,7 @@ export class TrendAnalyzer {
     });
   }
 
-  public close() {
-    this.db.close();
+  public close(callback?: (err: Error | null) => void) {
+    this.db.close(callback);
   }
 }
