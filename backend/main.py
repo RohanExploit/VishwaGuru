@@ -9,6 +9,7 @@ start at all.
 """
 
 import asyncio
+import inspect
 import io
 import json
 import logging
@@ -51,7 +52,10 @@ from backend.bot import application  # Telegram Application
 from backend.cache import recent_issues_cache
 from backend.hf_api_service import (
     analyze_urgency_text,
+    detect_accessibility_issue_clip,
+    detect_audio_event,
     detect_blocked_road_clip,
+    detect_crowd_density_clip,
     detect_civic_eye_clip,
     detect_depth_map,
     detect_fire_clip,
@@ -63,6 +67,7 @@ from backend.hf_api_service import (
     detect_street_light_clip,
     detect_tree_hazard_clip,
     detect_waste_clip,
+    detect_water_leak_clip,
     generate_image_caption,
     transcribe_audio,
     verify_resolution_vqa,
@@ -81,7 +86,6 @@ from backend.maharashtra_locator import (
 )
 from backend.models import Issue
 from backend.pothole_detection import detect_potholes
-from backend.responsibility_mapper import get_responsible_authority
 from backend.schemas import (
     HealthResponse,
     MLStatusResponse,
@@ -194,6 +198,12 @@ def _allowed_origins() -> List[str]:
 
 ALLOWED_ORIGINS = _allowed_origins()
 logger.info("CORS allowed origins: %s", ALLOWED_ORIGINS)
+
+# The grievance/escalation service layer existed but was never mounted, so
+# every path frontend/src/api/grievances.js calls returned 404.
+from backend.grievance_routes import router as grievance_router  # noqa: E402
+
+app.include_router(grievance_router)
 
 app.add_middleware(
     CORSMiddleware,
@@ -471,49 +481,62 @@ async def get_maharashtra_rep_contacts_logic(pincode: str):
 async def get_districts():
     return {"districts": [d[2] for d in DISTRICT_RANGES]} if 'DISTRICT_RANGES' in globals() else {"districts": []}
 
+# The four original detector handlers, rewritten to share one code path.
+#
+# They had three defects between them. detect_vandalism and detect_flooding are
+# coroutine functions, but the vandalism handler called detect_vandalism inside
+# a sync function handed to run_in_threadpool, so it produced an un-awaited
+# coroutine that failed serialisation with a 500 on every request. The flooding
+# handler awaited correctly but opened the image on the event loop. And none of
+# the four enforced MAX_UPLOAD_SIZE_MB, so a phone photo above the limit was
+# accepted here while the generated endpoints correctly rejected it.
+#
+# Detector callables are resolved through _service() so monkeypatching
+# backend.main.<name> in tests still works, and both sync and async
+# implementations are supported.
+
+
+async def _run_image_detector(service_name: str, upload: UploadFile) -> dict:
+    contents = await _read_upload(upload)
+    try:
+        pil_image = await run_in_threadpool(Image.open, io.BytesIO(contents))
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Invalid image file.") from exc
+
+    detector = _service(service_name)
+    try:
+        result = detector(pil_image)
+        if inspect.isawaitable(result):
+            result = await result
+        elif callable(getattr(result, "__await__", None)):  # pragma: no cover
+            result = await result
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("%s failed", service_name)
+        raise HTTPException(status_code=502, detail="Detection service unavailable.")
+    return {"detections": result}
+
+
 @app.post("/api/detect-pothole")
 async def api_detect_pothole(image: UploadFile = File(...)):
-    try:
-        def process_image():
-            img = Image.open(image.file)
-            return detect_potholes(img)
-        result = await run_in_threadpool(process_image)
-        return {"detections": result}
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
+    return await _run_image_detector("detect_potholes", image)
+
 
 @app.post("/api/detect-garbage")
 async def api_detect_garbage(image: UploadFile = File(...)):
-    try:
-        def process_image():
-            img = Image.open(image.file)
-            return detect_garbage(img)
-        result = await run_in_threadpool(process_image)
-        return {"detections": result}
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
+    return await _run_image_detector("detect_garbage", image)
+
 
 @app.post("/api/detect-vandalism")
 async def api_detect_vandalism(image: UploadFile = File(...)):
-    try:
-        if not os.getenv("HF_TOKEN") and not os.getenv("HUGGINGFACE_HUB_TOKEN"):
-             print("Warning: HF_TOKEN not set.")
-        def process_image():
-            img = Image.open(image.file)
-            return detect_vandalism(img)
-        result = await run_in_threadpool(process_image)
-        return {"detections": result}
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
+    return await _run_image_detector("detect_vandalism", image)
+
 
 @app.post("/api/detect-flooding")
 async def api_detect_flooding(image: UploadFile = File(...)):
-    try:
-        img = Image.open(image.file)
-        result = await detect_flooding(img)
-        return {"detections": result}
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
+    return await _run_image_detector("detect_flooding", image)
+
 
 @app.post("/api/chat")
 async def chat_endpoint(request: ChatRequest):
@@ -581,7 +604,59 @@ MAX_UPLOAD_BYTES = int(os.getenv("MAX_UPLOAD_SIZE_MB", "10")) * 1024 * 1024
 
 
 class UrgencyRequest(BaseModel):
-    text: str
+    """frontend/src/views/ReportForm.jsx posts {"description": ...}.
+
+    This model originally declared a single required `text` field, so every
+    request from the report form was rejected with 422 and the urgency panel
+    silently never populated -- ReportForm's catch only console.errors.
+    `text` is kept as an accepted alias.
+    """
+
+    description: Optional[str] = None
+    text: Optional[str] = None
+
+    @property
+    def content(self) -> str:
+        value = self.description or self.text
+        if not value or not value.strip():
+            raise HTTPException(
+                status_code=422,
+                detail="Provide a non-empty 'description' (or 'text').",
+            )
+        return value
+
+
+# Detector implementations are dispatched by name through _service() so that
+# tests can monkeypatch backend.main.<name>. Listing them here makes that
+# indirection explicit: without it the imports read as dead to both linters and
+# reviewers, and deleting one would break a route with nothing to catch it.
+DETECTOR_IMPLEMENTATIONS = (
+    detect_potholes,
+    detect_garbage,
+    detect_vandalism,
+    detect_flooding,
+    detect_infrastructure_local,
+    detect_accessibility_issue_clip,
+    detect_audio_event,
+    detect_blocked_road_clip,
+    detect_civic_eye_clip,
+    detect_crowd_density_clip,
+    detect_depth_map,
+    detect_fire_clip,
+    detect_illegal_parking_clip,
+    detect_pest_clip,
+    detect_severity_clip,
+    detect_smart_scan_clip,
+    detect_stray_animal_clip,
+    detect_street_light_clip,
+    detect_tree_hazard_clip,
+    detect_waste_clip,
+    detect_water_leak_clip,
+    generate_image_caption,
+    transcribe_audio,
+    verify_resolution_vqa,
+    analyze_urgency_text,
+)
 
 
 def _service(name: str):
@@ -631,6 +706,9 @@ DETECTOR_ENDPOINTS = [
     ("/api/detect-blocked-road", "detect_blocked_road_clip", True),
     ("/api/detect-tree-hazard", "detect_tree_hazard_clip", True),
     ("/api/detect-pest", "detect_pest_clip", True),
+    ("/api/detect-accessibility", "detect_accessibility_issue_clip", True),
+    ("/api/detect-crowd", "detect_crowd_density_clip", True),
+    ("/api/detect-water-leak", "detect_water_leak_clip", True),
     ("/api/detect-severity", "detect_severity_clip", False),
     ("/api/detect-smart-scan", "detect_smart_scan_clip", False),
     ("/api/detect-waste", "detect_waste_clip", False),
@@ -690,6 +768,19 @@ async def transcribe_audio_endpoint(request: Request, file: UploadFile = File(..
     return {"text": text}
 
 
+@app.post("/api/detect-audio")
+async def detect_audio_endpoint(request: Request, file: UploadFile = File(...)):
+    """Noise classification. NoiseDetector.jsx posts the recording as `file`
+    and reads `data.detections`."""
+    contents = await _read_upload(file)
+    try:
+        detections = await detect_audio_event(contents, client=_http_client(request))
+    except Exception:
+        logger.exception("Audio event detection failed")
+        raise HTTPException(status_code=502, detail="Audio detection service unavailable.")
+    return {"detections": detections}
+
+
 @app.post("/api/generate-description")
 async def generate_description_endpoint(request: Request, image: UploadFile = File(...)):
     contents = await _read_upload(image)
@@ -704,7 +795,7 @@ async def generate_description_endpoint(request: Request, image: UploadFile = Fi
 @app.post("/api/analyze-urgency")
 async def analyze_urgency_endpoint(request: Request, payload: UrgencyRequest):
     try:
-        return await analyze_urgency_text(payload.text, client=_http_client(request))
+        return await analyze_urgency_text(payload.content, client=_http_client(request))
     except Exception:
         logger.exception("Urgency analysis failed")
         raise HTTPException(status_code=502, detail="Urgency service unavailable.")
@@ -740,11 +831,18 @@ def get_leaderboard(limit: int = Query(20, ge=1, le=100), db: Session = Depends(
 
 @app.post("/api/issues/{issue_id}/verify")
 async def verify_issue_resolution(
+    request: Request,
     issue_id: int,
     image: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
-    """Citizen uploads a photo; a VQA model judges whether the issue is fixed."""
+    """Citizen uploads a photo; a VQA model judges whether the issue is fixed.
+
+    The response carries `confidence` and `question_asked` because
+    frontend/src/views/VerifyView.jsx renders both directly -- it computes
+    `(result.confidence * 100).toFixed(1)`, which shows "NaN%" if the field is
+    absent, and interpolates `result.question_asked` into its summary line.
+    """
     issue = db.query(Issue).filter(Issue.id == issue_id).first()
     if issue is None:
         raise HTTPException(status_code=404, detail="Issue not found.")
@@ -753,16 +851,28 @@ async def verify_issue_resolution(
 
     question = f"Is this {issue.category or 'civic issue'} still present in the image?"
     try:
-        answer = await verify_resolution_vqa(contents, question)
+        answer = await verify_resolution_vqa(contents, question, client=_http_client(request))
     except Exception:
         logger.exception("Resolution verification failed")
         raise HTTPException(status_code=502, detail="Verification service unavailable.")
 
-    raw_answer = answer.get("answer") if isinstance(answer, dict) else answer
+    if isinstance(answer, dict):
+        raw_answer = answer.get("answer")
+        confidence = answer.get("confidence", 0)
+    else:
+        raw_answer = answer
+        confidence = 0
+
     ai_answer = str(raw_answer).strip().lower()
     is_resolved = ai_answer == "no"
 
     issue.status = "verified" if is_resolved else "open"
     db.commit()
 
-    return {"is_resolved": is_resolved, "ai_answer": ai_answer, "issue_id": issue_id}
+    return {
+        "issue_id": issue_id,
+        "is_resolved": is_resolved,
+        "ai_answer": ai_answer,
+        "confidence": float(confidence or 0),
+        "question_asked": question,
+    }

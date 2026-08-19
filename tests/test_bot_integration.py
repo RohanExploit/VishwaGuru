@@ -12,14 +12,11 @@ import time
 backend_path = os.path.join(os.path.dirname(__file__), '..')
 sys.path.insert(0, backend_path)
 
-from backend.bot import (
-    start_bot_thread,
-    stop_bot_thread,
-    _bot_thread,
-    _shutdown_event,
-    _bot_application,
-    run_bot
-)
+# The module itself is imported so that `bot._bot_thread` reads the live
+# global. `from backend.bot import _bot_thread` binds a snapshot, so the
+# assertions below could never observe the thread the runner actually created.
+from backend import bot
+from backend.bot import run_bot, start_bot_thread, stop_bot_thread
 
 
 class TestBotAsyncIntegration:
@@ -27,13 +24,12 @@ class TestBotAsyncIntegration:
 
     def setup_method(self):
         """Setup before each test"""
-        # Reset global state
-        global _bot_thread, _shutdown_event, _bot_application
-        if _bot_thread and _bot_thread.is_alive():
+        # Reset global state on the module, not on local rebindings.
+        if bot._bot_thread and bot._bot_thread.is_alive():
             stop_bot_thread()
-        _bot_thread = None
-        _shutdown_event = threading.Event()
-        _bot_application = None
+        bot._bot_thread = None
+        bot._shutdown_event = threading.Event()
+        bot._bot_application = None
 
         # Set test token
         os.environ['TELEGRAM_BOT_TOKEN'] = 'test_token_123'
@@ -59,8 +55,8 @@ class TestBotAsyncIntegration:
         stop_bot_thread()
 
         # Verify cleanup
-        assert _bot_thread is None
-        assert _bot_application is None
+        assert bot._bot_thread is None
+        assert bot._bot_application is None
 
     def test_bot_without_token(self):
         """Test bot behavior when no token is provided"""
@@ -81,7 +77,7 @@ class TestBotAsyncIntegration:
         stop_bot_thread()
 
         # Verify cleanup
-        assert _bot_thread is None
+        assert bot._bot_thread is None
 
     def test_multiple_bot_starts(self):
         """Test that starting bot multiple times doesn't create multiple threads"""
@@ -106,7 +102,7 @@ class TestBotAsyncIntegration:
         asyncio.run(test_run())
 
         # Verify bot thread was started
-        assert _bot_thread is not None
+        assert bot._bot_thread is not None
 
         # Stop
         stop_bot_thread()

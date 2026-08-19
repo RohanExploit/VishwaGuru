@@ -38,6 +38,18 @@ def get_model():
                 _model = load_model()
     return _model
 
+def reset_model():
+    """Reset the model singleton. For tests only.
+
+    Mirrors backend.pothole_detection.reset_model so both detection modules
+    expose the same testing seam.
+    """
+    global _model
+
+    with _model_lock:
+        _model = None
+
+
 def detect_garbage(image_source):
     """
     Detects garbage in an image.

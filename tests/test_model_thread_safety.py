@@ -12,8 +12,12 @@ def test_garbage_detection_thread_safety():
     """Test that garbage detection model loading is thread-safe"""
     # Import the module
     from backend import garbage_detection
-    # Reset the model to None to simulate first-time loading
-    garbage_detection._model = None
+    # Reset via the module's own helper. Setting _model = None is not enough:
+    # get_model() takes its fast path on _model_initialized, so a module left
+    # initialised by an earlier test returns immediately and load_model is never
+    # called -- the load count comes back 0 and the test fails only when run
+    # after its neighbours.
+    garbage_detection.reset_model()
     
     # Track how many times the model was loaded and ensure sequential execution
     load_count = [0]
@@ -73,8 +77,12 @@ def test_pothole_detection_thread_safety():
     """Test that pothole detection model loading is thread-safe"""
     # Import the module
     from backend import pothole_detection
-    # Reset the model to None to simulate first-time loading
-    pothole_detection._model = None
+    # Reset via the module's own helper. Setting _model = None is not enough:
+    # get_model() takes its fast path on _model_initialized, so a module left
+    # initialised by an earlier test returns immediately and load_model is never
+    # called -- the load count comes back 0 and the test fails only when run
+    # after its neighbours.
+    pothole_detection.reset_model()
     
     # Track how many times the model was loaded and ensure sequential execution
     load_count = [0]

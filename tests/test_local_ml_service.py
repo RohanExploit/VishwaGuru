@@ -265,15 +265,42 @@ class TestIntegrationWithMain:
         return img_byte_arr.getvalue()
     
     def test_main_imports_unified_service(self):
-        """Test that main.py correctly imports the unified detection service."""
+        """backend.main must expose the detector callables its routes dispatch to.
+
+        This previously asserted that main imported detect_vandalism_local,
+        detect_flooding_local and detect_infrastructure_local. main only routes
+        infrastructure through the local model; vandalism and flooding go via
+        backend.vandalism_detection / backend.flood_detection, which fall back
+        to the hosted API. Importing the other two purely to satisfy the
+        assertion would have added dead names to the module. The check now
+        covers the functions the routes actually resolve, which is what would
+        break a request if it regressed.
+        """
         try:
-            # This should not raise an ImportError
-            from backend.main import detect_vandalism_local, detect_flooding_local, detect_infrastructure_local
-            assert callable(detect_vandalism_local)
-            assert callable(detect_flooding_local)
-            assert callable(detect_infrastructure_local)
+            from backend.main import (
+                detect_flooding,
+                detect_garbage,
+                detect_infrastructure_local,
+                detect_potholes,
+                detect_vandalism,
+            )
         except ImportError as e:
-            pytest.fail(f"Failed to import detection functions from main: {e}")
+            pytest.fail(f"Failed to import detection functions from backend.main: {e}")
+
+        for fn in (
+            detect_potholes,
+            detect_garbage,
+            detect_vandalism,
+            detect_flooding,
+            detect_infrastructure_local,
+        ):
+            assert callable(fn)
+
+        # The unified service, which provides the local-then-hosted fallback,
+        # must remain importable in its own right.
+        from backend.unified_detection_service import get_detection_service
+
+        assert callable(get_detection_service)
 
 
 if __name__ == "__main__":

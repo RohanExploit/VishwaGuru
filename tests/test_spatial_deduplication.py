@@ -156,41 +156,40 @@ def test_deduplication_api():
     finally:
         db.close()
 
-def test_verification_endpoint():
-    """Test the manual verification endpoint"""
-    print("Testing verification endpoint...")
+def test_upvote_endpoint():
+    """Community corroboration goes through /upvote.
 
+    This replaces an earlier test_verification_endpoint which POSTed to
+    /api/issues/{id}/verify with no body and asserted upvotes rose by 2. That
+    contract collided with the real /verify feature, which is AI resolution
+    checking: frontend/src/views/VerifyView.jsx requires an image (it returns
+    early on `if (!image) return;`) and renders is_resolved, confidence and
+    question_asked. Nothing in the frontend ever called /verify for
+    corroboration -- Home.jsx's upvote button calls /upvote, which already
+    existed. The bare-POST/+2 contract had no product surface, so the coverage
+    is kept here against the endpoint that is actually shipped.
+    """
     db = SessionLocal()
     try:
         test_issues = setup_test_issues(db)
-
-        # Get the first issue
         issue = test_issues[0]
         original_upvotes = issue.upvotes or 0
 
         with TestClient(app) as client:
-            response = client.post(f"/api/issues/{issue.id}/verify")
+            response = client.post(f"/api/issues/{issue.id}/upvote")
 
-        print(f"Verify API status: {response.status_code}")
         assert response.status_code == 200
-
         response_data = response.json()
-        print(f"Verification response: {response_data}")
+        assert response_data["upvotes"] == original_upvotes + 1
 
-        # Check that upvotes increased by 2
-        assert response_data["upvotes"] == original_upvotes + 2
-
-        # Verify in database
         db.refresh(issue)
-        assert issue.upvotes == original_upvotes + 2
-
-        print("✓ Verification endpoint test passed")
-
+        assert issue.upvotes == original_upvotes + 1
     finally:
         db.close()
 
+
 if __name__ == "__main__":
-    print("Running spatial deduplication tests...\n")
+    print("Running spatial deduplication tests...")
 
     test_spatial_utils()
     print()
@@ -198,7 +197,7 @@ if __name__ == "__main__":
     test_deduplication_api()
     print()
 
-    test_verification_endpoint()
+    test_upvote_endpoint()
     print()
 
-    print("All tests passed! ✓")
+    print("All tests passed!")

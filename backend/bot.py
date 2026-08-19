@@ -196,10 +196,14 @@ except Exception:
 
 
 async def run_bot():
-    """Legacy entry point, reused if needed."""
-    if application:
-        return application
-    return await build_app()
+    """Legacy entry point: start the polling loop on its own thread.
+
+    Returns None because the bot runs in `_bot_thread`, not in the caller's
+    event loop. It previously returned the module-level `application`, which
+    handed callers an object whose lifecycle nothing owned.
+    """
+    start_bot_thread()
+    return None
 
 
 # --- Threaded runner ----------------------------------------------------------
@@ -257,7 +261,7 @@ def start_bot_thread():
 
 def stop_bot_thread(timeout: float = 10.0) -> None:
     """Signal the polling loop to finish and wait for the thread to exit."""
-    global _bot_thread
+    global _bot_thread, _bot_application
 
     if _shutdown_event is not None:
         _shutdown_event.set()
@@ -268,6 +272,9 @@ def stop_bot_thread(timeout: float = 10.0) -> None:
             logger.error("Telegram bot thread did not stop within %ss", timeout)
 
     _bot_thread = None
+    # The Application has been shut down by the thread's finally block; holding
+    # a reference to a dead one lets callers use it as though it were live.
+    _bot_application = None
 
 
 if __name__ == "__main__":
