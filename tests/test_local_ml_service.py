@@ -12,13 +12,13 @@ This test file covers:
 Issue #76: Create a Local Machine Learning model
 """
 
-import pytest
-import asyncio
-import sys
-import os
-from unittest.mock import Mock, patch, MagicMock
-from PIL import Image
 import io
+import os
+import sys
+from unittest.mock import MagicMock, patch
+
+import pytest
+from PIL import Image
 
 # Add backend to path
 
@@ -37,8 +37,7 @@ class TestLocalMLService:
         mock_torch = MagicMock()
         mock_torch.load = MagicMock()
 
-        with patch.dict(sys.modules, {'ultralytics': mock_ultralytics, 'torch': mock_torch}):
-
+        with patch.dict(sys.modules, {"ultralytics": mock_ultralytics, "torch": mock_torch}):
             # Setup mock model
             mock_model_instance = MagicMock()
             mock_yolo.return_value = mock_model_instance
@@ -48,7 +47,11 @@ class TestLocalMLService:
 
             # Create box mock separately to avoid keyword argument conflict with 'cls'
             box_mock = MagicMock()
-            box_mock.xyxy = [MagicMock(cpu=lambda: MagicMock(numpy=lambda: MagicMock(tolist=lambda: [0, 0, 100, 100])))]
+            box_mock.xyxy = [
+                MagicMock(
+                    cpu=lambda: MagicMock(numpy=lambda: MagicMock(tolist=lambda: [0, 0, 100, 100]))
+                )
+            ]
             box_mock.conf = [MagicMock(cpu=lambda: MagicMock(numpy=lambda: 0.9))]
             box_mock.cls = [MagicMock(cpu=lambda: MagicMock(numpy=lambda: 0))]
 
@@ -62,38 +65,38 @@ class TestLocalMLService:
     def sample_image(self):
         """Create a sample test image."""
         return Image.new("RGB", (224, 224), color="red")
-    
+
     @pytest.fixture
     def sample_image_bytes(self, sample_image):
         """Convert sample image to bytes."""
         img_byte_arr = io.BytesIO()
-        sample_image.save(img_byte_arr, format='JPEG')
+        sample_image.save(img_byte_arr, format="JPEG")
         img_byte_arr.seek(0)
         return img_byte_arr.getvalue()
-    
+
     def test_get_general_model_returns_instance(self):
         """Test that get_general_model returns the model instance."""
         from backend.local_ml_service import get_general_model
-        
+
         model = get_general_model()
-        
+
         assert model is not None
-    
+
     @pytest.mark.asyncio
     async def test_detection_status_structure(self):
         """Test that get_detection_status returns expected structure."""
         from backend.local_ml_service import get_detection_status
-        
+
         status = await get_detection_status()
-        
+
         assert "model_loaded" in status
         assert "backend" in status
-    
+
     @pytest.mark.asyncio
     async def test_detect_vandalism_local_returns_list(self, sample_image):
         """Test that detect_vandalism_local returns a list."""
         from backend.local_ml_service import detect_vandalism_local
-        
+
         # May return empty list if model not loaded, but should not error
         try:
             result = await detect_vandalism_local(sample_image)
@@ -101,111 +104,110 @@ class TestLocalMLService:
         except Exception as e:
             # Expected if transformers not installed
             pytest.skip(f"Model dependencies not available: {e}")
-    
+
     @pytest.mark.asyncio
     async def test_detect_infrastructure_local_returns_list(self, sample_image):
         """Test that detect_infrastructure_local returns a list."""
         from backend.local_ml_service import detect_infrastructure_local
-        
+
         try:
             result = await detect_infrastructure_local(sample_image)
             assert isinstance(result, list)
         except Exception as e:
             pytest.skip(f"Model dependencies not available: {e}")
-    
+
     @pytest.mark.asyncio
     async def test_detect_flooding_local_returns_list(self, sample_image):
         """Test that detect_flooding_local returns a list."""
         from backend.local_ml_service import detect_flooding_local
-        
+
         try:
             result = await detect_flooding_local(sample_image)
             assert isinstance(result, list)
         except Exception as e:
             pytest.skip(f"Model dependencies not available: {e}")
-    
 
 
 class TestUnifiedDetectionService:
     """Tests for the unified_detection_service module."""
-    
+
     @pytest.fixture
     def sample_image(self):
         """Create a sample test image."""
         return Image.new("RGB", (224, 224), color="blue")
-    
+
     def test_get_detection_service_returns_instance(self):
         """Test that get_detection_service returns a UnifiedDetectionService instance."""
-        from backend.unified_detection_service import get_detection_service, UnifiedDetectionService
-        
+        from backend.unified_detection_service import UnifiedDetectionService, get_detection_service
+
         service = get_detection_service()
-        
+
         assert isinstance(service, UnifiedDetectionService)
-    
+
     def test_detection_backend_enum(self):
         """Test DetectionBackend enum values."""
         from backend.unified_detection_service import DetectionBackend
-        
+
         assert DetectionBackend.LOCAL.value == "local"
         assert DetectionBackend.HUGGINGFACE.value == "huggingface"
         assert DetectionBackend.AUTO.value == "auto"
-    
+
     @pytest.mark.asyncio
     async def test_detect_vandalism_returns_list(self, sample_image):
         """Test that detect_vandalism returns a list."""
         from backend.unified_detection_service import detect_vandalism
-        
+
         try:
             result = await detect_vandalism(sample_image)
             assert isinstance(result, list)
-        except Exception:
-            # Expected if dependencies not installed
-            pass
-    
+        except Exception as exc:
+            # The optional local ML stack may not be installed in this environment.
+            pytest.skip(f"local ML dependencies unavailable: {exc}")
+
     @pytest.mark.asyncio
     async def test_detect_infrastructure_returns_list(self, sample_image):
         """Test that detect_infrastructure returns a list."""
         from backend.unified_detection_service import detect_infrastructure
-        
+
         try:
             result = await detect_infrastructure(sample_image)
             assert isinstance(result, list)
-        except Exception:
-            pass
-    
+        except Exception as exc:
+            pytest.skip(f"local ML dependencies unavailable: {exc}")
+
     @pytest.mark.asyncio
     async def test_detect_flooding_returns_list(self, sample_image):
         """Test that detect_flooding returns a list."""
         from backend.unified_detection_service import detect_flooding
-        
+
         try:
             result = await detect_flooding(sample_image)
             assert isinstance(result, list)
-        except Exception:
-            pass
-    
+        except Exception as exc:
+            pytest.skip(f"local ML dependencies unavailable: {exc}")
+
     @pytest.mark.asyncio
     async def test_detect_all_returns_dict(self, sample_image):
         """Test that detect_all returns a dictionary with all detection types."""
         from backend.unified_detection_service import detect_all
-        
+
         try:
             result = await detect_all(sample_image)
-            
+
             assert isinstance(result, dict)
             assert "vandalism" in result
             assert "infrastructure" in result
             assert "flooding" in result
-        except Exception:
-            pass
-    
+        except Exception as exc:
+            pytest.skip(f"local ML dependencies unavailable: {exc}")
+
     @pytest.mark.asyncio
     async def test_get_detection_status_structure(self):
         """Test that get_detection_status returns expected structure."""
         from backend.unified_detection_service import get_detection_status
-        
+
         status = await get_detection_status()
-        
+
         assert isinstance(status, dict)
         assert "use_local_model" in status
         assert "enable_hf_fallback" in status
@@ -216,35 +218,39 @@ class TestUnifiedDetectionService:
 
 class TestEnvironmentConfiguration:
     """Tests for environment variable configuration."""
-    
+
     def test_use_local_ml_default(self):
         """Test default value for USE_LOCAL_ML."""
         # Clear env var if set
         original = os.environ.pop("USE_LOCAL_ML", None)
-        
+
         try:
             # Reload module to pick up default
             import importlib
+
             from backend import unified_detection_service
+
             importlib.reload(unified_detection_service)
-            
+
             # Default should be true
-            assert unified_detection_service.USE_LOCAL_MODEL == True
+            assert unified_detection_service.USE_LOCAL_MODEL is True
         finally:
             if original:
                 os.environ["USE_LOCAL_ML"] = original
-    
+
     def test_use_local_ml_env_override(self):
         """Test that USE_LOCAL_ML can be overridden via environment."""
         original = os.environ.get("USE_LOCAL_ML")
         os.environ["USE_LOCAL_ML"] = "false"
-        
+
         try:
             import importlib
+
             from backend import unified_detection_service
+
             importlib.reload(unified_detection_service)
-            
-            assert unified_detection_service.USE_LOCAL_MODEL == False
+
+            assert unified_detection_service.USE_LOCAL_MODEL is False
         finally:
             if original:
                 os.environ["USE_LOCAL_ML"] = original
@@ -254,16 +260,16 @@ class TestEnvironmentConfiguration:
 
 class TestIntegrationWithMain:
     """Integration tests with main.py endpoints."""
-    
+
     @pytest.fixture
     def sample_image_bytes(self):
         """Create sample image bytes for upload testing."""
         image = Image.new("RGB", (224, 224), color="green")
         img_byte_arr = io.BytesIO()
-        image.save(img_byte_arr, format='JPEG')
+        image.save(img_byte_arr, format="JPEG")
         img_byte_arr.seek(0)
         return img_byte_arr.getvalue()
-    
+
     def test_main_imports_unified_service(self):
         """backend.main must expose the detector callables its routes dispatch to.
 

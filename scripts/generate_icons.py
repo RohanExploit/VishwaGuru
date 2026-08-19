@@ -6,6 +6,7 @@ icon. This script produces them reproducibly.
 
 Run:  python scripts/generate_icons.py
 """
+
 from __future__ import annotations
 
 from pathlib import Path

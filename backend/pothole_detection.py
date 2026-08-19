@@ -1,38 +1,41 @@
 import logging
 import threading
-from typing import Optional, Any
+from typing import Any
 
-from backend.exceptions import ModelLoadException, DetectionException
+from backend.exceptions import DetectionException, ModelLoadException
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
 # Thread-safe singleton pattern for model loading
 # This prevents race conditions when multiple threads try to load the model simultaneously
-_model: Optional[Any] = None
+_model: Any | None = None
 _model_lock: threading.Lock = threading.Lock()
-_model_loading_error: Optional[Exception] = None
+_model_loading_error: Exception | None = None
 _model_initialized: bool = False
+
 
 def is_model_available():
     """
     Checks if the model dependencies are available.
     """
     try:
-        import ultralyticsplus
+        import ultralyticsplus  # noqa: F401 - imported only to probe availability
+
         return True
     except ImportError:
         return False
+
 
 def load_model():
     """
     Loads the YOLO model lazily.
     The model file will be downloaded on the first call if not cached.
     This prevents blocking the application startup.
-    
+
     Returns:
         The loaded YOLO model instance.
-        
+
     Raises:
         Exception: If model loading fails.
     """
@@ -41,13 +44,13 @@ def load_model():
         # Move import here to prevent blocking startup with heavy imports/checks
         from ultralyticsplus import YOLO
 
-        model = YOLO('keremberke/yolov8n-pothole-segmentation')
+        model = YOLO("keremberke/yolov8n-pothole-segmentation")
 
         # set model parameters
-        model.overrides['conf'] = 0.25  # NMS confidence threshold
-        model.overrides['iou'] = 0.45  # NMS IoU threshold
-        model.overrides['agnostic_nms'] = False  # NMS class-agnostic
-        model.overrides['max_det'] = 1000  # maximum number of detections per image
+        model.overrides["conf"] = 0.25  # NMS confidence threshold
+        model.overrides["iou"] = 0.45  # NMS IoU threshold
+        model.overrides["agnostic_nms"] = False  # NMS class-agnostic
+        model.overrides["max_det"] = 1000  # maximum number of detections per image
 
         logger.info("Model loaded successfully.")
         return model
@@ -62,30 +65,30 @@ def load_model():
 def get_model():
     """
     Thread-safe singleton accessor for the pothole detection model.
-    
+
     Uses double-checked locking pattern to ensure:
     1. Only one model instance is ever created
     2. Concurrent requests don't trigger multiple model loads
     3. Minimal lock contention after initialization
-    
+
     Returns:
         The loaded YOLO model instance.
-        
+
     Raises:
         Exception: If model loading previously failed or fails on this attempt.
-        
+
     Thread Safety:
         This function is thread-safe and can be called from multiple threads
         simultaneously without causing race conditions or redundant model loads.
     """
     global _model, _model_initialized, _model_loading_error
-    
+
     # First check (without lock) - fast path for already initialized model
     if _model_initialized:
         if _model_loading_error is not None:
             raise _model_loading_error
         return _model
-    
+
     # Acquire lock for thread-safe initialization
     with _model_lock:
         # Second check (with lock) - prevent multiple initializations
@@ -94,7 +97,7 @@ def get_model():
             if _model_loading_error is not None:
                 raise _model_loading_error
             return _model
-        
+
         try:
             logger.info("Initializing model (thread-safe singleton)...")
             _model = load_model()
@@ -106,29 +109,32 @@ def get_model():
             _model_loading_error = e
             _model_initialized = True  # Mark as initialized (even though it failed)
             logger.error(f"Model initialization failed: {e}")
-            raise ModelLoadException("keremberke/yolov8n-pothole-segmentation", details={"error": str(e)}) from e
+            raise ModelLoadException(
+                "keremberke/yolov8n-pothole-segmentation", details={"error": str(e)}
+            ) from e
 
 
 def reset_model():
     """
     Resets the model singleton state. Primarily for testing purposes.
-    
+
     Warning:
         This function should only be used in testing scenarios.
         Using it in production while requests are being processed
         could lead to race conditions.
-        
+
     Thread Safety:
         This function is thread-safe but should be used with caution
         in multi-threaded environments.
     """
     global _model, _model_initialized, _model_loading_error
-    
+
     with _model_lock:
         _model = None
         _model_initialized = False
         _model_loading_error = None
         logger.info("Model singleton state has been reset.")
+
 
 def validate_image_for_processing(image):
     """
@@ -140,7 +146,10 @@ def validate_image_for_processing(image):
         return True
     except Exception as e:
         logger.error(f"Image validation failed: {e}")
-        raise DetectionException("Invalid image content for pothole detection", "pothole", details={"error": str(e)}) from e
+        raise DetectionException(
+            "Invalid image content for pothole detection", "pothole", details={"error": str(e)}
+        ) from e
+
 
 def detect_potholes(image_source):
     """
@@ -165,12 +174,12 @@ def detect_potholes(image_source):
         results = model.predict(image_source, stream=False)
 
         # observe results
-        result = results[0] # Single image
+        result = results[0]  # Single image
 
         detections = []
 
-        if hasattr(result, 'boxes'):
-            for i, box in enumerate(result.boxes):
+        if hasattr(result, "boxes"):
+            for box in result.boxes:
                 # box.xyxy is [x1, y1, x2, y2] tensor
                 # Convert to list
                 coords = box.xyxy[0].cpu().numpy().tolist()
@@ -178,13 +187,17 @@ def detect_potholes(image_source):
                 cls_id = int(box.cls[0].cpu().numpy())
                 label = result.names[cls_id]
 
-                detections.append({
-                    "box": coords, # [x1, y1, x2, y2]
-                    "confidence": conf,
-                    "label": label
-                })
+                detections.append(
+                    {
+                        "box": coords,  # [x1, y1, x2, y2]
+                        "confidence": conf,
+                        "label": label,
+                    }
+                )
 
         return detections
     except Exception as e:
         logger.error(f"Pothole detection failed: {e}")
-        raise DetectionException("Failed to detect potholes in image", "pothole", details={"error": str(e)}) from e
+        raise DetectionException(
+            "Failed to detect potholes in image", "pothole", details={"error": str(e)}
+        ) from e

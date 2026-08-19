@@ -15,6 +15,7 @@ requests. Three separate classes of breakage are covered:
 
 All three had live instances in this codebase.
 """
+
 import io
 import re
 from pathlib import Path
@@ -94,7 +95,7 @@ def _matches(called: str, declared: dict[str, set[str]]) -> str | None:
             continue
         if all(
             (t.startswith("{") and t.endswith("}") and c) or t == c
-            for t, c in zip(template_parts, called_parts)
+            for t, c in zip(template_parts, called_parts, strict=True)
         ):
             return template
     return None
@@ -174,7 +175,9 @@ def test_detector_routes_accept_the_field_name_callers_send(path, monkeypatch):
     payload = b"fake-audio" if field == "file" else _jpeg()
 
     with TestClient(app) as client:
-        response = client.post(path, files={field: (f"upload.bin", payload, "application/octet-stream")})
+        response = client.post(
+            path, files={field: ("upload.bin", payload, "application/octet-stream")}
+        )
 
     assert response.status_code != 422, (
         f"{path} rejected a `{field}` upload with 422. The handler's parameter name "

@@ -4,10 +4,11 @@ Maharashtra Locator Service
 Provides functions to lookup constituency and MLA information
 based on pincode for Maharashtra state.
 """
+
 import json
 import os
 from functools import lru_cache
-from typing import Optional, Dict, Any
+from typing import Any
 
 # District Pincode Ranges (Fallback data)
 # Format: (start, end, district)
@@ -46,50 +47,43 @@ DISTRICT_RANGES = [
     (441601, 441911, "Gondia"),
     (442605, 442709, "Gadchiroli"),
     (444105, 444512, "Washim"),
-    (443001, 443403, "Buldhana")
+    (443001, 443403, "Buldhana"),
 ]
 
+
 @lru_cache(maxsize=1)
-def load_maharashtra_pincode_data() -> Dict[str, Dict[str, Any]]:
+def load_maharashtra_pincode_data() -> dict[str, dict[str, Any]]:
     """
     Load and cache Maharashtra pincode to constituency mapping data.
-    
+
     Returns:
         dict: Dictionary mapping pincode to data
     """
-    file_path = os.path.join(
-        os.path.dirname(__file__),
-        "data",
-        "mh_pincode_sample.json"
-    )
-    
-    with open(file_path, "r", encoding="utf-8") as f:
+    file_path = os.path.join(os.path.dirname(__file__), "data", "mh_pincode_sample.json")
+
+    with open(file_path, encoding="utf-8") as f:
         data_list = json.load(f)
         # Convert list to dictionary for O(1) lookup
         return {item["pincode"]: item for item in data_list}
 
 
 @lru_cache(maxsize=1)
-def load_maharashtra_mla_data() -> Dict[str, Dict[str, Any]]:
+def load_maharashtra_mla_data() -> dict[str, dict[str, Any]]:
     """
     Load and cache Maharashtra MLA information data.
-    
+
     Returns:
         dict: Dictionary mapping constituency to MLA data
     """
-    file_path = os.path.join(
-        os.path.dirname(__file__),
-        "data",
-        "mh_mla_sample.json"
-    )
-    
-    with open(file_path, "r", encoding="utf-8") as f:
+    file_path = os.path.join(os.path.dirname(__file__), "data", "mh_mla_sample.json")
+
+    with open(file_path, encoding="utf-8") as f:
         data_list = json.load(f)
         # Convert list to dictionary for O(1) lookup
         return {item["assembly_constituency"]: item for item in data_list}
 
 
-def get_district_by_pincode_range(pincode: int) -> Optional[str]:
+def get_district_by_pincode_range(pincode: int) -> str | None:
     """
     Find district by checking pincode ranges.
     This is an O(N) fallback where N is number of ranges (~35).
@@ -101,7 +95,7 @@ def get_district_by_pincode_range(pincode: int) -> Optional[str]:
 
 
 @lru_cache(maxsize=1)
-def _load_maharashtra_pincode_map() -> Dict[str, Dict[str, Any]]:
+def _load_maharashtra_pincode_map() -> dict[str, dict[str, Any]]:
     """
     Load and cache Maharashtra pincode to constituency mapping as a dict for O(1) lookup.
     """
@@ -113,7 +107,7 @@ def _load_maharashtra_pincode_map() -> Dict[str, Dict[str, Any]]:
 
 
 @lru_cache(maxsize=1)
-def _load_maharashtra_mla_map() -> Dict[str, Dict[str, Any]]:
+def _load_maharashtra_mla_map() -> dict[str, dict[str, Any]]:
     """
     Load and cache Maharashtra MLA information as a dict for O(1) lookup.
     """
@@ -121,57 +115,57 @@ def _load_maharashtra_mla_map() -> Dict[str, Dict[str, Any]]:
     return load_maharashtra_mla_data()
 
 
-def find_constituency_by_pincode(pincode: str) -> Optional[Dict[str, Any]]:
+def find_constituency_by_pincode(pincode: str) -> dict[str, Any] | None:
     """
     Find constituency information by pincode.
-    
+
     Args:
         pincode: 6-digit pincode string
-        
+
     Returns:
         Dictionary with district, state, and assembly_constituency or None if not found
     """
     if not pincode or len(pincode) != 6 or not pincode.isdigit():
         return None
-    
+
     # Use O(1) map lookup instead of O(n) list iteration
     pincode_map = _load_maharashtra_pincode_map()
     entry = pincode_map.get(pincode)
-    
+
     if entry:
         return {
             "district": entry.get("district"),
             "state": entry.get("state"),
-            "assembly_constituency": entry.get("assembly_constituency")
+            "assembly_constituency": entry.get("assembly_constituency"),
         }
-    
+
     return None
 
 
-def find_mla_by_constituency(constituency_name: str) -> Optional[Dict[str, Any]]:
+def find_mla_by_constituency(constituency_name: str) -> dict[str, Any] | None:
     """
     Find MLA information by assembly constituency name.
-    
+
     Args:
         constituency_name: Name of the assembly constituency
-        
+
     Returns:
         Dictionary with mla_name, party, phone, email or None if not found
     """
     if not constituency_name:
         return None
-    
+
     # Use O(1) map lookup instead of O(n) list iteration
     mla_map = _load_maharashtra_mla_map()
     entry = mla_map.get(constituency_name)
-    
+
     if entry:
         return {
             "mla_name": entry.get("mla_name"),
             "party": entry.get("party"),
             "phone": entry.get("phone"),
             "email": entry.get("email"),
-            "twitter": entry.get("twitter")
+            "twitter": entry.get("twitter"),
         }
-    
+
     return None

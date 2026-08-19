@@ -1,11 +1,12 @@
 """
 Mock implementations of AI service interfaces for testing and development.
 """
-from typing import Dict, Optional
+
 import asyncio
 
 from backend.ai_interfaces import ActionPlanService, ChatService, MLASummaryService
 from backend.ai_service import build_x_post
+
 
 class MockActionPlanService(ActionPlanService):
     """Mock implementation that returns predefined responses."""
@@ -14,9 +15,9 @@ class MockActionPlanService(ActionPlanService):
         self,
         issue_description: str,
         category: str,
-        language: str = 'en',
-        image_path: Optional[str] = None
-    ) -> Dict[str, str]:
+        language: str = "en",
+        image_path: str | None = None,
+    ) -> dict[str, str]:
         # Simulate async operation
         await asyncio.sleep(0.1)
         return {
@@ -44,7 +45,7 @@ class MockMLASummaryService(MLASummaryService):
         district: str,
         assembly_constituency: str,
         mla_name: str,
-        issue_category: Optional[str] = None
+        issue_category: str | None = None,
     ) -> str:
         # Simulate async operation
         await asyncio.sleep(0.1)

@@ -6,6 +6,7 @@ path lets `models` and `backend.models` both import as separate modules, which
 registers every SQLAlchemy table twice and made `backend.main` fail at import.
 Individual test files used to do this themselves with sys.path hacks.
 """
+
 import sys
 from pathlib import Path
 

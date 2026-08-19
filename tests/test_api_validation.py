@@ -1,22 +1,25 @@
 """
 Tests for API schema validation and error handling improvements.
 """
+
 import os
 import sys
-import pytest
-from fastapi.testclient import TestClient
-from fastapi import HTTPException
 
 # Add backend to path
-backend_path = os.path.join(os.path.dirname(__file__), '..')
+backend_path = os.path.join(os.path.dirname(__file__), "..")
 sys.path.insert(0, backend_path)
 
 # Test schemas directly without importing the full app
 from backend.schemas import (
-    ChatRequest, ChatResponse, ErrorResponse, SuccessResponse, HealthResponse,
-    IssueCreateRequest, IssueCreateResponse, VoteResponse, DetectionResponse,
-    UrgencyAnalysisRequest, UrgencyAnalysisResponse, IssueCategory
+    ChatRequest,
+    ChatResponse,
+    ErrorResponse,
+    HealthResponse,
+    IssueCategory,
+    IssueCreateRequest,
+    SuccessResponse,
 )
+
 
 class TestSchemaValidation:
     """Test Pydantic schema validation"""
@@ -45,8 +48,7 @@ class TestSchemaValidation:
         """Test IssueCreateRequest schema validation"""
         # Valid request
         request = IssueCreateRequest(
-            description="This is a test issue",
-            category=IssueCategory.ROAD
+            description="This is a test issue", category=IssueCategory.ROAD
         )
         assert request.description == "This is a test issue"
         assert request.category == IssueCategory.ROAD
@@ -68,27 +70,19 @@ class TestSchemaValidation:
     def test_response_models(self):
         """Test response model creation"""
         # Test ErrorResponse
-        error = ErrorResponse(
-            error="Test error",
-            error_code="TEST_ERROR",
-            details={"test": "data"}
-        )
+        error = ErrorResponse(error="Test error", error_code="TEST_ERROR", details={"test": "data"})
         assert error.error == "Test error"
         assert error.error_code == "TEST_ERROR"
 
         # Test SuccessResponse
-        success = SuccessResponse(
-            message="Success",
-            data={"result": "ok"}
-        )
+        success = SuccessResponse(message="Success", data={"result": "ok"})
         assert success.message == "Success"
 
         # Test HealthResponse (with required timestamp)
         import datetime
+
         health = HealthResponse(
-            status="healthy",
-            services={"db": "ok"},
-            timestamp=datetime.datetime.now()
+            status="healthy", services={"db": "ok"}, timestamp=datetime.datetime.now()
         )
         assert health.status == "healthy"
 
@@ -100,10 +94,18 @@ class TestSchemaValidation:
         """Test enum validation for categories"""
         # Valid categories
         for category in IssueCategory:
-            assert category.value in ["Road", "Water", "Streetlight", "Garbage", "College Infra", "Women Safety"]
+            assert category.value in [
+                "Road",
+                "Water",
+                "Streetlight",
+                "Garbage",
+                "College Infra",
+                "Women Safety",
+            ]
 
         # Test that we have all expected categories
         assert len(IssueCategory) == 6
+
 
 class TestErrorHandling:
     """Test centralized error handling"""
@@ -142,6 +144,7 @@ class TestErrorHandling:
     #     assert "error" in data
     #     assert "error_code" in data
 
+
 class TestResponseModels:
     """Test that endpoints use proper response models"""
 
@@ -170,6 +173,7 @@ class TestResponseModels:
     #         data = response.json()
     #         assert "status" in data
     #         assert "models_loaded" in data
+
 
 if __name__ == "__main__":
     # Run basic tests

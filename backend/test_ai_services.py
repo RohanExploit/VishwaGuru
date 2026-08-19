@@ -1,22 +1,23 @@
 """
 Test script to verify AI service dependency injection works correctly.
 """
+
 import asyncio
-import pytest
-import os
 import sys
 from pathlib import Path
+
+import pytest
 
 # Ensure repository root on sys.path so backend package resolves
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from backend.ai_interfaces import initialize_ai_services, get_ai_services
+from backend.ai_interfaces import get_ai_services, initialize_ai_services
 from backend.mock_services import (
     create_mock_action_plan_service,
     create_mock_chat_service,
-    create_mock_mla_summary_service
+    create_mock_mla_summary_service,
 )
 
 
@@ -54,9 +55,7 @@ async def test_ai_services():
     print("✓ Chat service works")
 
     # Test MLA summary service
-    summary = await services.mla_summary_service.generate_mla_summary(
-        "Mumbai", "Dadar", "John Doe"
-    )
+    summary = await services.mla_summary_service.generate_mla_summary("Mumbai", "Dadar", "John Doe")
     print(f"MLA summary: {summary[:50]}...")
     assert isinstance(summary, str)
     assert len(summary) > 0

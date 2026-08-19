@@ -18,9 +18,8 @@ import shutil
 import sys
 import uuid
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from functools import lru_cache
-from typing import List, Optional
 
 import httpx
 from fastapi import (
@@ -50,13 +49,16 @@ from backend.ai_service import (
 )
 from backend.bot import application  # Telegram Application
 from backend.cache import recent_issues_cache
+from backend.database import Base, SessionLocal, engine
+from backend.flood_detection import detect_flooding
+from backend.garbage_detection import detect_garbage
 from backend.hf_api_service import (
     analyze_urgency_text,
     detect_accessibility_issue_clip,
     detect_audio_event,
     detect_blocked_road_clip,
-    detect_crowd_density_clip,
     detect_civic_eye_clip,
+    detect_crowd_density_clip,
     detect_depth_map,
     detect_fire_clip,
     detect_illegal_parking_clip,
@@ -74,9 +76,6 @@ from backend.hf_api_service import (
 )
 from backend.image_validator import validate_image_file
 from backend.local_ml_service import detect_infrastructure_local
-from backend.database import Base, SessionLocal, engine
-from backend.flood_detection import detect_flooding
-from backend.garbage_detection import detect_garbage
 from backend.maharashtra_locator import (
     DISTRICT_RANGES,
     find_constituency_by_pincode,
@@ -99,6 +98,7 @@ logger = logging.getLogger(__name__)
 
 # Create the database tables
 Base.metadata.create_all(bind=engine)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -139,24 +139,34 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Error pre-loading Maharashtra data: {e}")
 
-    # Run database migrations
+    # Run database migrations.
+    #
+    # These statements are expected to fail once the schema already has the
+    # column or index, which is why each is tolerated individually. They used to
+    # be swallowed by a bare `except Exception: pass`, so a migration that
+    # failed for a real reason -- wrong dialect, locked table, permissions --
+    # was indistinguishable from one that was simply already applied, and left
+    # no trace anywhere. Each outcome is now logged.
+    #
+    # This is still not a migration system. Adopting Alembic is tracked
+    # separately; until then this at least fails loudly enough to diagnose.
+    _MIGRATIONS = (
+        ("index ix_issues_created_at", "CREATE INDEX ix_issues_created_at ON issues (created_at)"),
+        ("index ix_issues_status", "CREATE INDEX ix_issues_status ON issues (status)"),
+        ("column issues.upvotes", "ALTER TABLE issues ADD COLUMN upvotes INTEGER DEFAULT 0"),
+        ("column issues.user_email", "ALTER TABLE issues ADD COLUMN user_email VARCHAR"),
+    )
     try:
         with engine.connect() as conn:
-            try:
-                conn.execute(text("CREATE INDEX ix_issues_created_at ON issues (created_at)"))
-            except Exception: pass
-            try:
-                conn.execute(text("CREATE INDEX ix_issues_status ON issues (status)"))
-            except Exception: pass
-            try:
-                conn.execute(text("ALTER TABLE issues ADD COLUMN upvotes INTEGER DEFAULT 0"))
-            except Exception: pass
-            try:
-                conn.execute(text("ALTER TABLE issues ADD COLUMN user_email VARCHAR"))
-            except Exception: pass
+            for description, statement in _MIGRATIONS:
+                try:
+                    conn.execute(text(statement))
+                    logger.info("Applied migration: %s", description)
+                except Exception as exc:
+                    logger.debug("Migration skipped (%s): %s", description, exc)
             conn.commit()
-    except Exception as e:
-        print(f"Migration warning: {e}")
+    except Exception:
+        logger.exception("Database migration step failed")
 
     yield
 
@@ -174,6 +184,7 @@ async def lifespan(app: FastAPI):
         print("Telegram bot stopped.")
     except Exception as e:
         print(f"Error stopping Telegram bot: {e}")
+
 
 app = FastAPI(lifespan=lifespan)
 
@@ -205,7 +216,7 @@ LOCAL_DEV_ORIGINS = [
 ]
 
 
-def _allowed_origins() -> List[str]:
+def _allowed_origins() -> list[str]:
     raw = os.getenv("CORS_ORIGINS", "").strip()
     if raw:
         configured = [o.strip() for o in raw.split(",") if o.strip()]
@@ -214,7 +225,7 @@ def _allowed_origins() -> List[str]:
         configured = [frontend_url] if frontend_url else list(LOCAL_DEV_ORIGINS)
 
     seen: set[str] = set()
-    origins: List[str] = []
+    origins: list[str] = []
     for origin in [*configured, *MOBILE_APP_ORIGINS]:
         if origin not in seen:
             seen.add(origin)
@@ -239,6 +250,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # Dependency to get the database session
 def get_db():
     db = SessionLocal()
@@ -247,34 +259,32 @@ def get_db():
     finally:
         db.close()
 
+
 class PincodeRequest(BaseModel):
     pincode: str
 
+
 class ChatRequest(BaseModel):
     message: str
-    history: List[dict] = []
+    history: list[dict] = []
+
 
 @app.get("/", response_model=SuccessResponse)
 def root():
     return SuccessResponse(
-        message="VishwaGuru API is running",
-        data={
-            "service": "VishwaGuru API",
-            "version": "1.0.0"
-        }
+        message="VishwaGuru API is running", data={"service": "VishwaGuru API", "version": "1.0.0"}
     )
+
 
 @app.get("/health", response_model=HealthResponse)
 def health():
     return HealthResponse(
         status="healthy",
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
         version="1.0.0",
-        services={
-            "database": "connected",
-            "ai_services": "initialized"
-        }
+        services={"database": "connected", "ai_services": "initialized"},
     )
+
 
 @app.get("/api/stats", response_model=StatsResponse)
 def get_stats(db: Session = Depends(get_db)):
@@ -283,25 +293,28 @@ def get_stats(db: Session = Depends(get_db)):
         return JSONResponse(content=cached_stats)
 
     total = db.query(func.count(Issue.id)).scalar()
-    resolved = db.query(func.count(Issue.id)).filter(Issue.status.in_(['resolved', 'verified'])).scalar()
+    resolved = (
+        db.query(func.count(Issue.id)).filter(Issue.status.in_(["resolved", "verified"])).scalar()
+    )
     # Pending is everything else
     pending = total - resolved
 
     # By category
     cat_counts = db.query(Issue.category, func.count(Issue.id)).group_by(Issue.category).all()
-    issues_by_category = {cat: count for cat, count in cat_counts}
+    issues_by_category = dict(cat_counts)
 
     response = StatsResponse(
         total_issues=total,
         resolved_issues=resolved,
         pending_issues=pending,
-        issues_by_category=issues_by_category
+        issues_by_category=issues_by_category,
     )
 
-    data = response.model_dump(mode='json')
+    data = response.model_dump(mode="json")
     recent_issues_cache.set(data, "stats")
 
     return response
+
 
 @app.get("/api/ml-status", response_model=MLStatusResponse)
 async def ml_status():
@@ -313,8 +326,9 @@ async def ml_status():
     return MLStatusResponse(
         status="ok",
         models_loaded=status.get("models_loaded", []),
-        memory_usage=status.get("memory_usage")
+        memory_usage=status.get("memory_usage"),
     )
+
 
 def save_file_blocking(file_obj, path):
     """
@@ -338,14 +352,15 @@ def save_file_blocking(file_obj, path):
             shutil.copyfileobj(file_obj, buffer)
         logger.info(f"Saved file {path} as binary (not an image or PIL failed)")
 
+
 @app.post("/api/issues")
 async def create_issue(
     description: str = Form(...),
     category: str = Form(...),
     source: str = Form("web"),
-    user_email: Optional[str] = Form(None),
+    user_email: str | None = Form(None),
     image: UploadFile = File(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     try:
         # Save the uploaded image
@@ -366,7 +381,7 @@ async def create_issue(
                 category=category,
                 image_path=file_location,
                 source=source,
-                user_email=user_email
+                user_email=user_email,
             )
             db.add(db_issue)
             db.commit()
@@ -378,20 +393,24 @@ async def create_issue(
         return {
             "id": new_issue.id,
             "message": "Issue reported successfully",
-            "action_plan": action_plan
+            "action_plan": action_plan,
         }
-    except Exception as e:
+    except Exception:
         logger.exception("Error creating issue")
         return JSONResponse(status_code=500, content={"message": "An internal error occurred"})
+
 
 @lru_cache(maxsize=1)
 def _load_responsibility_map():
     # Assuming the data folder is at the root level relative to where backend is run
     # Adjust path as necessary. If running from root, it is "data/responsibility_map.json"
-    file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "responsibility_map.json")
+    file_path = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)), "data", "responsibility_map.json"
+    )
 
-    with open(file_path, "r") as f:
+    with open(file_path) as f:
         return json.load(f)
+
 
 @app.get("/api/responsibility-map")
 def get_responsibility_map():
@@ -402,6 +421,7 @@ def get_responsibility_map():
     except FileNotFoundError:
         return {"error": "Data file not found"}
 
+
 @app.get("/api/issues/recent")
 def get_recent_issues(db: Session = Depends(get_db)):
     # Fetch last 10 issues
@@ -411,60 +431,62 @@ def get_recent_issues(db: Session = Depends(get_db)):
         {
             "id": i.id,
             "category": i.category,
-            "description": i.description[:100] + "..." if len(i.description) > 100 else i.description,
+            "description": i.description[:100] + "..."
+            if len(i.description) > 100
+            else i.description,
             "created_at": i.created_at,
             "image_path": i.image_path,
-            "status": i.status
+            "status": i.status,
         }
         for i in issues
     ]
 
+
 @app.get("/api/issues")
-def get_issues(
-    skip: int = 0,
-    limit: int = 100,
-    db: Session = Depends(get_db)
-):
+def get_issues(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     # Added pagination
     issues = db.query(Issue).offset(skip).limit(limit).all()
     return issues
+
 
 @app.post("/api/mh/rep-contacts")
 async def get_rep_contacts_post(request: PincodeRequest):
     return await get_maharashtra_rep_contacts_logic(request.pincode)
 
+
 @app.get("/api/mh/rep-contacts")
 async def get_rep_contacts_get(pincode: str = Query(..., min_length=6, max_length=6)):
     return await get_maharashtra_rep_contacts_logic(pincode)
+
 
 async def get_maharashtra_rep_contacts_logic(pincode: str):
     # Logic extracted to support both GET and POST
     if not pincode.isdigit():
         raise HTTPException(status_code=400, detail="Invalid pincode")
-    
+
     constituency_info = find_constituency_by_pincode(pincode)
-    
+
     if not constituency_info:
         # Fallback to just district check
-         raise HTTPException(status_code=404, detail="Unknown pincode")
+        raise HTTPException(status_code=404, detail="Unknown pincode")
 
     assembly_constituency = constituency_info.get("assembly_constituency")
     mla_info = None
 
     if assembly_constituency:
         mla_info = find_mla_by_constituency(assembly_constituency)
-    
+
     if not mla_info:
         mla_info = {
             "mla_name": "MLA Info Unavailable",
             "party": "N/A",
             "phone": "N/A",
             "email": "N/A",
-            "twitter": "Not Available"
+            "twitter": "Not Available",
         }
         if not assembly_constituency:
-             constituency_info["assembly_constituency"] = "Unknown (District Found)"
-    
+            constituency_info["assembly_constituency"] = "Unknown (District Found)"
+
     description = None
     try:
         if assembly_constituency and mla_info["mla_name"] != "MLA Info Unavailable":
@@ -472,11 +494,15 @@ async def get_maharashtra_rep_contacts_logic(pincode: str):
             description = await ai_services.mla_summary_service.generate_mla_summary(
                 district=constituency_info["district"],
                 assembly_constituency=assembly_constituency,
-                mla_name=mla_info["mla_name"]
+                mla_name=mla_info["mla_name"],
             )
     except Exception:
-        pass
-    
+        # The AI-written summary is optional garnish on the representative
+        # lookup; the contact details below are the answer. A failure here was
+        # silently discarded, so an outage in the summary service looked like
+        # the feature simply not having a description.
+        logger.warning("MLA summary generation failed", exc_info=True)
+
     response = {
         "pincode": pincode,
         "state": constituency_info["state"],
@@ -487,25 +513,33 @@ async def get_maharashtra_rep_contacts_logic(pincode: str):
             "party": mla_info["party"],
             "phone": mla_info["phone"],
             "email": mla_info["email"],
-            "twitter": mla_info.get("twitter")
+            "twitter": mla_info.get("twitter"),
         },
         "grievance_links": {
             "central_cpgrams": "https://pgportal.gov.in/",
             "maharashtra_portal": "https://aaplesarkar.mahaonline.gov.in/en",
-            "note": "This is an MVP; data may not be fully accurate."
-        }
+            "note": "This is an MVP; data may not be fully accurate.",
+        },
     }
-    
+
     if description:
         response["description"] = description
     elif mla_info["mla_name"] == "MLA Info Unavailable":
-        response["description"] = f"We found that {pincode} belongs to {constituency_info['district']} district."
+        response["description"] = (
+            f"We found that {pincode} belongs to {constituency_info['district']} district."
+        )
 
     return response
 
+
 @app.get("/api/mh/districts")
 async def get_districts():
-    return {"districts": [d[2] for d in DISTRICT_RANGES]} if 'DISTRICT_RANGES' in globals() else {"districts": []}
+    return (
+        {"districts": [d[2] for d in DISTRICT_RANGES]}
+        if "DISTRICT_RANGES" in globals()
+        else {"districts": []}
+    )
+
 
 # The four original detector handlers, rewritten to share one code path.
 #
@@ -538,9 +572,9 @@ async def _run_image_detector(service_name: str, upload: UploadFile) -> dict:
             result = await result
     except HTTPException:
         raise
-    except Exception:
+    except Exception as exc:
         logger.exception("%s failed", service_name)
-        raise HTTPException(status_code=502, detail="Detection service unavailable.")
+        raise HTTPException(status_code=502, detail="Detection service unavailable.") from exc
     return {"detections": result}
 
 
@@ -572,10 +606,10 @@ async def chat_endpoint(request: ChatRequest):
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
+
 @app.post("/api/analyze-issue")
 async def analyze_issue_endpoint(
-    description: str = Form(...),
-    image: Optional[UploadFile] = File(None)
+    description: str = Form(...), image: UploadFile | None = File(None)
 ):
     try:
         image_path = None
@@ -595,6 +629,7 @@ async def analyze_issue_endpoint(
     except Exception as e:
         print(f"Analysis error: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
+
 
 @app.post("/api/issues/{issue_id}/upvote")
 def upvote_issue(issue_id: int, db: Session = Depends(get_db)):
@@ -638,8 +673,8 @@ class UrgencyRequest(BaseModel):
     `text` is kept as an accepted alias.
     """
 
-    description: Optional[str] = None
-    text: Optional[str] = None
+    description: str | None = None
+    text: str | None = None
 
     @property
     def content(self) -> str:
@@ -750,9 +785,9 @@ def _make_detector_route(service_name: str, wrap: bool):
             result = await _service(service_name)(contents, client=_http_client(request))
         except HTTPException:
             raise
-        except Exception:
+        except Exception as exc:
             logger.exception("%s failed", service_name)
-            raise HTTPException(status_code=502, detail="Detection service unavailable.")
+            raise HTTPException(status_code=502, detail="Detection service unavailable.") from exc
         return {"detections": result} if wrap else result
 
     endpoint.__name__ = f"{service_name}_endpoint"
@@ -774,9 +809,9 @@ async def detect_infrastructure_endpoint(image: UploadFile = File(...)):
 
     try:
         detections = await detect_infrastructure_local(pil_image)
-    except Exception:
+    except Exception as exc:
         logger.exception("Infrastructure detection failed")
-        raise HTTPException(status_code=502, detail="Detection service unavailable.")
+        raise HTTPException(status_code=502, detail="Detection service unavailable.") from exc
     return {"detections": detections}
 
 
@@ -788,9 +823,9 @@ async def transcribe_audio_endpoint(request: Request, file: UploadFile = File(..
     contents = await _read_upload(file)
     try:
         text = await transcribe_audio(contents, client=_http_client(request))
-    except Exception:
+    except Exception as exc:
         logger.exception("Audio transcription failed")
-        raise HTTPException(status_code=502, detail="Transcription service unavailable.")
+        raise HTTPException(status_code=502, detail="Transcription service unavailable.") from exc
     return {"text": text}
 
 
@@ -801,9 +836,9 @@ async def detect_audio_endpoint(request: Request, file: UploadFile = File(...)):
     contents = await _read_upload(file)
     try:
         detections = await detect_audio_event(contents, client=_http_client(request))
-    except Exception:
+    except Exception as exc:
         logger.exception("Audio event detection failed")
-        raise HTTPException(status_code=502, detail="Audio detection service unavailable.")
+        raise HTTPException(status_code=502, detail="Audio detection service unavailable.") from exc
     return {"detections": detections}
 
 
@@ -812,9 +847,9 @@ async def generate_description_endpoint(request: Request, image: UploadFile = Fi
     contents = await _read_upload(image)
     try:
         caption = await generate_image_caption(contents, client=_http_client(request))
-    except Exception:
+    except Exception as exc:
         logger.exception("Caption generation failed")
-        raise HTTPException(status_code=502, detail="Captioning service unavailable.")
+        raise HTTPException(status_code=502, detail="Captioning service unavailable.") from exc
     return {"description": caption}
 
 
@@ -822,9 +857,9 @@ async def generate_description_endpoint(request: Request, image: UploadFile = Fi
 async def analyze_urgency_endpoint(request: Request, payload: UrgencyRequest):
     try:
         return await analyze_urgency_text(payload.content, client=_http_client(request))
-    except Exception:
+    except Exception as exc:
         logger.exception("Urgency analysis failed")
-        raise HTTPException(status_code=502, detail="Urgency service unavailable.")
+        raise HTTPException(status_code=502, detail="Urgency service unavailable.") from exc
 
 
 @app.get("/api/leaderboard")
@@ -878,9 +913,9 @@ async def verify_issue_resolution(
     question = f"Is this {issue.category or 'civic issue'} still present in the image?"
     try:
         answer = await verify_resolution_vqa(contents, question, client=_http_client(request))
-    except Exception:
+    except Exception as exc:
         logger.exception("Resolution verification failed")
-        raise HTTPException(status_code=502, detail="Verification service unavailable.")
+        raise HTTPException(status_code=502, detail="Verification service unavailable.") from exc
 
     if isinstance(answer, dict):
         raw_answer = answer.get("answer")

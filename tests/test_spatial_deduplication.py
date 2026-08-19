@@ -1,20 +1,19 @@
-import asyncio
 import os
-import tempfile
+from unittest.mock import AsyncMock, patch
+
 from fastapi.testclient import TestClient
-from unittest.mock import patch, AsyncMock
+
+from backend.database import SessionLocal, engine
 
 # Note: This test requires PYTHONPATH=. to be set to import backend modules
 # Run with: PYTHONPATH=. python tests/test_spatial_deduplication.py
-import sys
-
 from backend.main import app
 from backend.models import Base, Issue
-from backend.database import engine, SessionLocal
 from backend.spatial_utils import find_nearby_issues, haversine_distance
 
 # Setup test DB
 Base.metadata.create_all(bind=engine)
+
 
 def setup_test_issues(db_session):
     """Create test issues with known coordinates for testing deduplication"""
@@ -32,7 +31,7 @@ def setup_test_issues(db_session):
             status="open",
             latitude=19.0760,
             longitude=72.8777,
-            upvotes=2
+            upvotes=2,
         ),
         Issue(
             reference_id="test-2",
@@ -41,7 +40,7 @@ def setup_test_issues(db_session):
             status="open",
             latitude=19.0761,  # ~11 meters away
             longitude=72.8778,
-            upvotes=1
+            upvotes=1,
         ),
         Issue(
             reference_id="test-3",
@@ -50,7 +49,7 @@ def setup_test_issues(db_session):
             status="open",
             latitude=19.0860,  # ~1.1 km away
             longitude=72.8877,
-            upvotes=0
+            upvotes=0,
         ),
         Issue(
             reference_id="test-4",
@@ -59,8 +58,8 @@ def setup_test_issues(db_session):
             status="resolved",
             latitude=19.0760,
             longitude=72.8777,
-            upvotes=5
-        )
+            upvotes=5,
+        ),
     ]
 
     for issue in test_issues:
@@ -68,6 +67,7 @@ def setup_test_issues(db_session):
     db_session.commit()
 
     return test_issues
+
 
 def test_spatial_utils():
     """Test the spatial utility functions"""
@@ -82,7 +82,7 @@ def test_spatial_utils():
     issues = [
         Issue(id=1, latitude=19.0760, longitude=72.8777),
         Issue(id=2, latitude=19.0761, longitude=72.8778),
-        Issue(id=3, latitude=19.0860, longitude=72.8877)
+        Issue(id=3, latitude=19.0860, longitude=72.8877),
     ]
 
     nearby = find_nearby_issues(issues, 19.0760, 72.8777, radius_meters=50)
@@ -90,6 +90,7 @@ def test_spatial_utils():
     assert len(nearby) == 2, f"Expected 2 nearby issues, got {len(nearby)}"
 
     print("✓ Spatial utilities test passed")
+
 
 def test_deduplication_api():
     """Test the deduplication API endpoints"""
@@ -101,18 +102,13 @@ def test_deduplication_api():
     # Create test database session
     db = SessionLocal()
     try:
-        test_issues = setup_test_issues(db)
+        setup_test_issues(db)
 
         # Test nearby issues endpoint
         with TestClient(app) as client:
             response = client.get(
                 "/api/issues/nearby",
-                params={
-                    "latitude": 19.0760,
-                    "longitude": 72.8777,
-                    "radius": 50,
-                    "limit": 10
-                }
+                params={"latitude": 19.0760, "longitude": 72.8777, "radius": 50, "limit": 10},
             )
 
         print(f"Nearby issues API status: {response.status_code}")
@@ -136,8 +132,8 @@ def test_deduplication_api():
                         "category": "Road",
                         "latitude": 19.07605,  # Very close to existing issues
                         "longitude": 72.87775,
-                        "user_email": "test@example.com"
-                    }
+                        "user_email": "test@example.com",
+                    },
                 )
 
         print(f"Create issue API status: {response.status_code}")
@@ -147,7 +143,7 @@ def test_deduplication_api():
         # Should trigger deduplication
         assert response.status_code == 201
         assert "deduplication_info" in response_data
-        assert response_data["deduplication_info"]["has_nearby_issues"] == True
+        assert response_data["deduplication_info"]["has_nearby_issues"] is True
         assert len(response_data["deduplication_info"]["nearby_issues"]) > 0
         assert response_data["linked_issue_id"] is not None
 
@@ -155,6 +151,7 @@ def test_deduplication_api():
 
     finally:
         db.close()
+
 
 def test_upvote_endpoint():
     """Community corroboration goes through /upvote.

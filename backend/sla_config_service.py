@@ -3,10 +3,11 @@ Grievance Escalation Engine - SLA Configuration Service
 Manages SLA rules and configurations for different scenarios.
 """
 
-from typing import Optional
 from sqlalchemy.orm import Session
-from backend.models import SLAConfig, JurisdictionLevel, SeverityLevel
+
 from backend.database import SessionLocal
+from backend.models import JurisdictionLevel, SeverityLevel, SLAConfig
+
 
 class SLAConfigService:
     """
@@ -22,8 +23,13 @@ class SLAConfigService:
         """
         self.default_sla_hours = default_sla_hours
 
-    def get_sla_hours(self, severity: SeverityLevel, jurisdiction_level: JurisdictionLevel,
-                     department: str, db: Session = None) -> int:
+    def get_sla_hours(
+        self,
+        severity: SeverityLevel,
+        jurisdiction_level: JurisdictionLevel,
+        department: str,
+        db: Session = None,
+    ) -> int:
         """
         Get SLA hours for specific combination of severity, jurisdiction, and department.
 
@@ -41,41 +47,57 @@ class SLAConfigService:
 
         try:
             # Try to find exact match
-            sla_config = db.query(SLAConfig).filter(
-                SLAConfig.severity == severity,
-                SLAConfig.jurisdiction_level == jurisdiction_level,
-                SLAConfig.department == department
-            ).first()
+            sla_config = (
+                db.query(SLAConfig)
+                .filter(
+                    SLAConfig.severity == severity,
+                    SLAConfig.jurisdiction_level == jurisdiction_level,
+                    SLAConfig.department == department,
+                )
+                .first()
+            )
 
             if sla_config:
                 return sla_config.sla_hours
 
             # Try department and severity only
-            sla_config = db.query(SLAConfig).filter(
-                SLAConfig.severity == severity,
-                SLAConfig.department == department,
-                SLAConfig.jurisdiction_level.is_(None)
-            ).first()
+            sla_config = (
+                db.query(SLAConfig)
+                .filter(
+                    SLAConfig.severity == severity,
+                    SLAConfig.department == department,
+                    SLAConfig.jurisdiction_level.is_(None),
+                )
+                .first()
+            )
 
             if sla_config:
                 return sla_config.sla_hours
 
             # Try severity and jurisdiction only
-            sla_config = db.query(SLAConfig).filter(
-                SLAConfig.severity == severity,
-                SLAConfig.jurisdiction_level == jurisdiction_level,
-                SLAConfig.department.is_(None)
-            ).first()
+            sla_config = (
+                db.query(SLAConfig)
+                .filter(
+                    SLAConfig.severity == severity,
+                    SLAConfig.jurisdiction_level == jurisdiction_level,
+                    SLAConfig.department.is_(None),
+                )
+                .first()
+            )
 
             if sla_config:
                 return sla_config.sla_hours
 
             # Try severity only
-            sla_config = db.query(SLAConfig).filter(
-                SLAConfig.severity == severity,
-                SLAConfig.jurisdiction_level.is_(None),
-                SLAConfig.department.is_(None)
-            ).first()
+            sla_config = (
+                db.query(SLAConfig)
+                .filter(
+                    SLAConfig.severity == severity,
+                    SLAConfig.jurisdiction_level.is_(None),
+                    SLAConfig.department.is_(None),
+                )
+                .first()
+            )
 
             if sla_config:
                 return sla_config.sla_hours
@@ -87,8 +109,14 @@ class SLAConfigService:
             if db is not SessionLocal():
                 db.close()
 
-    def create_sla_config(self, severity: SeverityLevel, jurisdiction_level: JurisdictionLevel,
-                         department: str, sla_hours: int, db: Session = None) -> SLAConfig:
+    def create_sla_config(
+        self,
+        severity: SeverityLevel,
+        jurisdiction_level: JurisdictionLevel,
+        department: str,
+        sla_hours: int,
+        db: Session = None,
+    ) -> SLAConfig:
         """
         Create a new SLA configuration.
 
@@ -110,7 +138,7 @@ class SLAConfigService:
                 severity=severity,
                 jurisdiction_level=jurisdiction_level,
                 department=department,
-                sla_hours=sla_hours
+                sla_hours=sla_hours,
             )
 
             db.add(sla_config)

@@ -24,8 +24,16 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S101"]          # assert is the point of a test
-"backend/tests/*" = ["S101"]
+# Test code legitimately does things the security rules flag: `assert` is the
+# point of a test (S101/B011), fixture tokens are not real credentials
+# (S105/S106), and sample data does not need a cryptographic RNG (S311).
+# E402 is unavoidable in tests that must set environment variables or install
+# module mocks before importing the application.
+"tests/**" = ["S101", "S105", "S106", "S311", "B011", "E402"]
+"backend/tests/**" = ["S101", "S105", "S106", "S311", "B011", "E402"]
+"backend/test_*.py" = ["S101", "S105", "S106", "S311", "B011", "E402"]
+# One-off setup script: its output is the log.
+"scripts/*" = ["T201"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"

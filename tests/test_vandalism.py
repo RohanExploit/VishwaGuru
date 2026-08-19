@@ -4,6 +4,7 @@ Rewritten: the previous version declared four @patch decorators but only three
 parameters, and patched `backend.main.magic` / `backend.main.detect_vandalism_local`
 -- neither of which exists on the current module. It could never run.
 """
+
 import io
 
 import pytest

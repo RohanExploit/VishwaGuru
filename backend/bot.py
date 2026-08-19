@@ -1,18 +1,24 @@
-import os
-import logging
 import asyncio
+import logging
+import os
 import threading
-from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
-from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters, ConversationHandler
-from backend.database import engine, SessionLocal
 
+from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    ContextTypes,
+    ConversationHandler,
+    MessageHandler,
+    filters,
+)
+
+from backend.database import SessionLocal, engine
 from backend.models import Base, Issue
-
 
 # Enable logging
 logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 
 # States for ConversationHandler
@@ -24,6 +30,7 @@ Base.metadata.create_all(bind=engine)
 # Create a global application instance placeholder
 application = None
 
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Namaste! Welcome to VishwaGuru.\n"
@@ -31,6 +38,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Please send me a photo of the issue you want to report."
     )
     return PHOTO
+
 
 async def receive_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.message.from_user
@@ -45,24 +53,26 @@ async def receive_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await photo_file.download_to_drive(filename)
 
     # Store filename in context to save later
-    context.user_data['photo_path'] = filename
+    context.user_data["photo_path"] = filename
 
     await update.message.reply_text(
         "Photo received! Now, please describe the issue in a few words."
     )
     return DESCRIPTION
 
+
 async def receive_description(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
-    context.user_data['description'] = text
+    context.user_data["description"] = text
 
     categories = [["Road", "Water"], ["Streetlight", "Garbage"], ["College Infra", "Women Safety"]]
 
     await update.message.reply_text(
         "Got it. Which category does this belong to?",
-        reply_markup=ReplyKeyboardMarkup(categories, one_time_keyboard=True, resize_keyboard=True)
+        reply_markup=ReplyKeyboardMarkup(categories, one_time_keyboard=True, resize_keyboard=True),
     )
     return CATEGORY
+
 
 def save_issue_to_db(description, category, photo_path):
     """
@@ -72,10 +82,7 @@ def save_issue_to_db(description, category, photo_path):
     db = SessionLocal()
     try:
         new_issue = Issue(
-            description=description,
-            category=category,
-            image_path=photo_path,
-            source='telegram'
+            description=description, category=category, image_path=photo_path, source="telegram"
         )
         db.add(new_issue)
         db.commit()
@@ -87,10 +94,11 @@ def save_issue_to_db(description, category, photo_path):
     finally:
         db.close()
 
+
 async def receive_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
     category = update.message.text
-    photo_path = context.user_data.get('photo_path')
-    description = context.user_data.get('description')
+    photo_path = context.user_data.get("photo_path")
+    description = context.user_data.get("description")
 
     try:
         # Save to Database using threadpool to prevent blocking the event loop
@@ -101,7 +109,7 @@ async def receive_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Thank you! Your issue has been reported.\n"
             f"Reference ID: #{issue_id}\n\n"
             f"We will generate an action plan for you soon.",
-            reply_markup=ReplyKeyboardRemove()
+            reply_markup=ReplyKeyboardRemove(),
         )
     except Exception:
         await update.message.reply_text("Sorry, something went wrong while saving your issue.")
@@ -109,11 +117,13 @@ async def receive_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     return ConversationHandler.END
 
+
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Issue reporting cancelled.", reply_markup=ReplyKeyboardRemove()
     )
     return ConversationHandler.END
+
 
 # Global variable to hold the bot application
 # --- Application construction -------------------------------------------------

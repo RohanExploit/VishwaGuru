@@ -1,10 +1,11 @@
-import pytest
-import warnings
-from fastapi.testclient import TestClient
-from unittest.mock import AsyncMock, patch, MagicMock
-import sys
 import os
+import sys
+import warnings
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+from fastapi.testclient import TestClient
 
 # Suppress warnings for clean test output
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -20,27 +21,29 @@ if str(PROJECT_ROOT) not in sys.path:
 # SQLAlchemy table. See conftest.py.
 
 # Set environment variable
-os.environ['FRONTEND_URL'] = 'http://localhost:5173'
+os.environ["FRONTEND_URL"] = "http://localhost:5173"
 
 # Mock magic module
 mock_magic = MagicMock()
 mock_magic.from_buffer.return_value = "image/jpeg"
-sys.modules['magic'] = mock_magic
+sys.modules["magic"] = mock_magic
 
 # Mock telegram
 mock_telegram = MagicMock()
-sys.modules['telegram'] = mock_telegram
-sys.modules['telegram.ext'] = mock_telegram.ext
+sys.modules["telegram"] = mock_telegram
+sys.modules["telegram.ext"] = mock_telegram.ext
 
 from backend.main import app
+
 
 @pytest.mark.asyncio
 async def test_detect_severity_endpoint():
     # Mock AI services initialization to prevent startup failure
-    with patch('backend.main.create_all_ai_services') as mock_create_services, \
-         patch('backend.main.initialize_ai_services') as mock_init_services, \
-         patch('backend.main.detect_severity_clip', new_callable=AsyncMock) as mock_detect:
-
+    with (
+        patch("backend.main.create_all_ai_services") as mock_create_services,
+        patch("backend.main.initialize_ai_services"),
+        patch("backend.main.detect_severity_clip", new_callable=AsyncMock) as mock_detect,
+    ):
         # Setup mocks
         mock_create_services.return_value = (MagicMock(), MagicMock(), MagicMock())
 
@@ -48,7 +51,7 @@ async def test_detect_severity_endpoint():
         mock_detect.return_value = {
             "level": "Critical",
             "raw_label": "critical emergency",
-            "confidence": 0.95
+            "confidence": 0.95,
         }
 
         # Create a dummy image file

@@ -1,178 +1,99 @@
-from sqlalchemy import text
-from backend.database import engine
+"""Best-effort schema migration for the issues and grievances tables.
+
+Each statement is expected to fail once the column or index already exists,
+which is why every one is tolerated individually. Previously each was wrapped
+in a bare `except Exception: pass`, so a statement that failed for a real
+reason -- wrong dialect, locked table, missing permission -- was
+indistinguishable from one that was simply already applied, and left no trace
+anywhere at all. Every outcome is now logged.
+
+This is still not a migration system: there is no ordering, no down path, and
+no record of which revision a database is on. Adopting Alembic is tracked
+separately. Until then this at least fails loudly enough to diagnose.
+"""
+
 import logging
+
+from sqlalchemy import text
+
+from backend.database import engine
 
 logger = logging.getLogger(__name__)
 
-def migrate_db():
-    """
-    Perform database migrations.
-    This is a simple MVP migration strategy.
-    """
+# (description, SQL). Order matters only in that a column must exist before an
+# index over it, so columns are grouped ahead of their indexes per table.
+MIGRATIONS: tuple[tuple[str, str], ...] = (
+    # issues: columns
+    ("issues.upvotes", "ALTER TABLE issues ADD COLUMN upvotes INTEGER DEFAULT 0"),
+    ("issues.action_plan", "ALTER TABLE issues ADD COLUMN action_plan TEXT"),
+    ("issues.latitude", "ALTER TABLE issues ADD COLUMN latitude FLOAT"),
+    ("issues.longitude", "ALTER TABLE issues ADD COLUMN longitude FLOAT"),
+    ("issues.location", "ALTER TABLE issues ADD COLUMN location VARCHAR"),
+    # issues: indexes
+    ("index ix_issues_upvotes", "CREATE INDEX ix_issues_upvotes ON issues (upvotes)"),
+    ("index ix_issues_created_at", "CREATE INDEX ix_issues_created_at ON issues (created_at)"),
+    ("index ix_issues_status", "CREATE INDEX ix_issues_status ON issues (status)"),
+    ("index ix_issues_user_email", "CREATE INDEX ix_issues_user_email ON issues (user_email)"),
+    ("index ix_issues_source", "CREATE INDEX ix_issues_source ON issues (source)"),
+    ("index ix_issues_latitude", "CREATE INDEX ix_issues_latitude ON issues (latitude)"),
+    ("index ix_issues_longitude", "CREATE INDEX ix_issues_longitude ON issues (longitude)"),
+    (
+        "index ix_issues_status_lat_lon",
+        "CREATE INDEX ix_issues_status_lat_lon ON issues (status, latitude, longitude)",
+    ),
+    # grievances: columns
+    ("grievances.latitude", "ALTER TABLE grievances ADD COLUMN latitude FLOAT"),
+    ("grievances.longitude", "ALTER TABLE grievances ADD COLUMN longitude FLOAT"),
+    ("grievances.address", "ALTER TABLE grievances ADD COLUMN address VARCHAR"),
+    # grievances: indexes
+    (
+        "index ix_grievances_latitude",
+        "CREATE INDEX ix_grievances_latitude ON grievances (latitude)",
+    ),
+    (
+        "index ix_grievances_longitude",
+        "CREATE INDEX ix_grievances_longitude ON grievances (longitude)",
+    ),
+    (
+        "index ix_grievances_status_lat_lon",
+        "CREATE INDEX ix_grievances_status_lat_lon ON grievances (status, latitude, longitude)",
+    ),
+    (
+        "index ix_grievances_status_jurisdiction",
+        "CREATE INDEX ix_grievances_status_jurisdiction ON grievances (status, current_jurisdiction_id)",
+    ),
+)
+
+
+def migrate_db() -> dict[str, int]:
+    """Apply every pending statement. Returns counts of applied vs skipped."""
+    applied = 0
+    skipped = 0
+
     try:
         with engine.connect() as conn:
-            # Check for upvotes column and add if missing
-            try:
-                # SQLite doesn't support IF NOT EXISTS in ALTER TABLE
-                # So we just try to add it and ignore error if it exists
-                conn.execute(text("ALTER TABLE issues ADD COLUMN upvotes INTEGER DEFAULT 0"))
-                logger.info("Migrated database: Added upvotes column.")
-            except Exception:
-                pass
-
-            # Check if index exists or create it
-            try:
-                conn.execute(text("CREATE INDEX ix_issues_upvotes ON issues (upvotes)"))
-                logger.info("Migrated database: Added index on upvotes column.")
-            except Exception:
-                pass
-
-            # Add index on created_at for faster sorting
-            try:
-                conn.execute(text("CREATE INDEX ix_issues_created_at ON issues (created_at)"))
-                logger.info("Migrated database: Added index on created_at column.")
-            except Exception:
-                pass
-
-            # Add index on status for faster filtering
-            try:
-                conn.execute(text("CREATE INDEX ix_issues_status ON issues (status)"))
-                logger.info("Migrated database: Added index on status column.")
-            except Exception:
-                pass
-
-            # --- New Migrations ---
-
-            # Add action_plan column
-            try:
-                conn.execute(text("ALTER TABLE issues ADD COLUMN action_plan TEXT"))
-                print("Migrated database: Added action_plan column.")
-            except Exception:
-                pass
-
-            # Add index on user_email
-            try:
-                conn.execute(text("CREATE INDEX ix_issues_user_email ON issues (user_email)"))
-                print("Migrated database: Added index on user_email column.")
-            except Exception:
-                pass
-
-            # Add index on source
-            try:
-                conn.execute(text("CREATE INDEX ix_issues_source ON issues (source)"))
-                print("Migrated database: Added index on source column.")
-            except Exception:
-                pass
-
-            # Add latitude column
-            try:
-                conn.execute(text("ALTER TABLE issues ADD COLUMN latitude FLOAT"))
-                print("Migrated database: Added latitude column.")
-            except Exception:
-                pass
-
-            # Add longitude column
-            try:
-                conn.execute(text("ALTER TABLE issues ADD COLUMN longitude FLOAT"))
-                print("Migrated database: Added longitude column.")
-            except Exception:
-                pass
-
-            # Add index on latitude for faster spatial queries
-            try:
-                conn.execute(text("CREATE INDEX ix_issues_latitude ON issues (latitude)"))
-                logger.info("Migrated database: Added index on latitude column.")
-            except Exception:
-                # Index likely already exists
-                pass
-
-            # Add index on longitude for faster spatial queries
-            try:
-                conn.execute(text("CREATE INDEX ix_issues_longitude ON issues (longitude)"))
-                logger.info("Migrated database: Added index on longitude column.")
-            except Exception:
-                # Index likely already exists
-                pass
-
-            # Add composite index for optimized spatial+status queries
-            try:
-                conn.execute(text("CREATE INDEX ix_issues_status_lat_lon ON issues (status, latitude, longitude)"))
-                logger.info("Migrated database: Added composite index on status, latitude, longitude.")
-            except Exception:
-                # Index likely already exists
-                pass
-
-            # Add location column
-            try:
-                conn.execute(text("ALTER TABLE issues ADD COLUMN location VARCHAR"))
-                print("Migrated database: Added location column.")
-            except Exception:
-                pass
-
-            # Add action_plan column
-            try:
-                conn.execute(text("ALTER TABLE issues ADD COLUMN action_plan TEXT"))
-                print("Migrated database: Added action_plan column.")
-            except Exception:
-                pass
-
-            # Add index on user_email
-            try:
-                conn.execute(text("CREATE INDEX ix_issues_user_email ON issues (user_email)"))
-                logger.info("Migrated database: Added index on user_email column.")
-            except Exception:
-                # Index likely already exists
-                pass
-
-            # --- Grievance Migrations ---
-            # Add latitude column to grievances
-            try:
-                conn.execute(text("ALTER TABLE grievances ADD COLUMN latitude FLOAT"))
-                logger.info("Migrated database: Added latitude column to grievances.")
-            except Exception:
-                pass
-
-            # Add longitude column to grievances
-            try:
-                conn.execute(text("ALTER TABLE grievances ADD COLUMN longitude FLOAT"))
-                logger.info("Migrated database: Added longitude column to grievances.")
-            except Exception:
-                pass
-
-            # Add address column to grievances
-            try:
-                conn.execute(text("ALTER TABLE grievances ADD COLUMN address VARCHAR"))
-                logger.info("Migrated database: Added address column to grievances.")
-            except Exception:
-                pass
-
-            # Add index on latitude (grievances)
-            try:
-                conn.execute(text("CREATE INDEX ix_grievances_latitude ON grievances (latitude)"))
-            except Exception:
-                pass
-
-            # Add index on longitude (grievances)
-            try:
-                conn.execute(text("CREATE INDEX ix_grievances_longitude ON grievances (longitude)"))
-            except Exception:
-                pass
-
-            # Add composite index for spatial+status (grievances)
-            try:
-                conn.execute(text("CREATE INDEX ix_grievances_status_lat_lon ON grievances (status, latitude, longitude)"))
-                logger.info("Migrated database: Added composite index on status, latitude, longitude for grievances.")
-            except Exception:
-                pass
-
-            # Add composite index for status+jurisdiction (grievances)
-            try:
-                conn.execute(text("CREATE INDEX ix_grievances_status_jurisdiction ON grievances (status, current_jurisdiction_id)"))
-                logger.info("Migrated database: Added composite index on status, jurisdiction for grievances.")
-            except Exception:
-                pass
-
+            for description, statement in MIGRATIONS:
+                try:
+                    conn.execute(text(statement))
+                except Exception as exc:
+                    skipped += 1
+                    logger.debug("Migration skipped (%s): %s", description, exc)
+                else:
+                    applied += 1
+                    logger.info("Applied migration: %s", description)
             conn.commit()
-            logger.info("Database migration check completed.")
-    except Exception as e:
-        logger.error(f"Database migration error: {e}")
+    except Exception:
+        logger.exception("Database migration failed")
+        raise
+
+    logger.info(
+        "Database migration check complete: %d applied, %d already present.",
+        applied,
+        skipped,
+    )
+    return {"applied": applied, "skipped": skipped}
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    migrate_db()

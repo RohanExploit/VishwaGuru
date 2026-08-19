@@ -1,18 +1,19 @@
-import time
+import os
 import random
 import sys
-import os
+import time
 
 # Ensure backend modules can be imported
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from sqlalchemy import create_engine, Column, Integer, String, Float, text
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy import Column, Float, Integer, String, create_engine, text
+from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 # Define a local Base and Model to ensure we start WITHOUT indexes
 # regardless of what's in backend/models.py
 Base = declarative_base()
+
 
 class BenchmarkIssue(Base):
     __tablename__ = "benchmark_issues"
@@ -23,14 +24,13 @@ class BenchmarkIssue(Base):
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
 
+
 def run_benchmark():
     print("⚡ Bolt Spatial Index Benchmark ⚡")
 
     # Use in-memory SQLite with StaticPool to share connection
     engine = create_engine(
-        "sqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool
+        "sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool
     )
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -44,7 +44,7 @@ def run_benchmark():
     # Spread them around a center point (e.g., Mumbai 19.0760, 72.8777)
     # +/- 0.1 degree is roughly +/- 11km
     issues = []
-    for i in range(10000):
+    for _i in range(10000):
         lat = 19.0760 + random.uniform(-0.1, 0.1)
         lon = 72.8777 + random.uniform(-0.1, 0.1)
         issues.append(BenchmarkIssue(latitude=lat, longitude=lon, status="open"))
@@ -70,12 +70,17 @@ def run_benchmark():
     """)
 
     # Warmup
-    db.execute(query_sql, {"min_lat": min_lat, "max_lat": max_lat, "min_lon": min_lon, "max_lon": max_lon})
+    db.execute(
+        query_sql, {"min_lat": min_lat, "max_lat": max_lat, "min_lon": min_lon, "max_lon": max_lon}
+    )
 
     # Measure BEFORE
     start_time = time.time()
     for _ in range(100):
-        db.execute(query_sql, {"min_lat": min_lat, "max_lat": max_lat, "min_lon": min_lon, "max_lon": max_lon})
+        db.execute(
+            query_sql,
+            {"min_lat": min_lat, "max_lat": max_lat, "min_lon": min_lon, "max_lon": max_lon},
+        )
     end_time = time.time()
     avg_time_before = (end_time - start_time) / 100
     print(f"Average query time (NO INDEX): {avg_time_before * 1000:.4f} ms")
@@ -92,7 +97,10 @@ def run_benchmark():
     # Measure AFTER
     start_time = time.time()
     for _ in range(100):
-        db.execute(query_sql, {"min_lat": min_lat, "max_lat": max_lat, "min_lon": min_lon, "max_lon": max_lon})
+        db.execute(
+            query_sql,
+            {"min_lat": min_lat, "max_lat": max_lat, "min_lon": min_lon, "max_lon": max_lon},
+        )
     end_time = time.time()
     avg_time_after = (end_time - start_time) / 100
     print(f"Average query time (WITH INDEX): {avg_time_after * 1000:.4f} ms")
@@ -104,6 +112,7 @@ def run_benchmark():
         print("✅ SUCCESS: Indexing improved performance.")
     else:
         print("❌ FAILURE: No improvement observed.")
+
 
 if __name__ == "__main__":
     run_benchmark()

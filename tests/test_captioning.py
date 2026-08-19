@@ -1,7 +1,10 @@
-from fastapi.testclient import TestClient
-from unittest.mock import patch, AsyncMock
-from backend.main import app
+from unittest.mock import AsyncMock, patch
+
 import pytest
+from fastapi.testclient import TestClient
+
+from backend.main import app
+
 
 @pytest.mark.asyncio
 async def test_generate_description_endpoint():

@@ -1,21 +1,24 @@
-import pytest
-from unittest.mock import AsyncMock, MagicMock
-from backend.hf_api_service import detect_smart_scan_clip
-from PIL import Image
 import io
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+from PIL import Image
+
+from backend.hf_api_service import detect_smart_scan_clip
+
 
 @pytest.mark.asyncio
 async def test_detect_smart_scan_clip_success():
     # Create a dummy image
-    img = Image.new('RGB', (100, 100), color='red')
+    img = Image.new("RGB", (100, 100), color="red")
     img_byte_arr = io.BytesIO()
-    img.save(img_byte_arr, format='JPEG')
+    img.save(img_byte_arr, format="JPEG")
     mock_image_bytes = img_byte_arr.getvalue()
 
     mock_response_data = [
         {"label": "pothole", "score": 0.95},
         {"label": "garbage", "score": 0.03},
-        {"label": "normal street", "score": 0.02}
+        {"label": "normal street", "score": 0.02},
     ]
 
     # Create a Mock Response object
@@ -36,6 +39,7 @@ async def test_detect_smart_scan_clip_success():
     assert result["category"] == "pothole"
     assert result["confidence"] == 0.95
     assert len(result["all_scores"]) == 3
+
 
 @pytest.mark.asyncio
 async def test_detect_smart_scan_clip_api_failure():

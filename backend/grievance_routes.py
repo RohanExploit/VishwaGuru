@@ -6,12 +6,13 @@ plus frontend/src/views/GrievanceView.jsx were written against them -- but no
 router was ever mounted, so every one of these paths returned 404. This module
 wires the existing service layer to the paths the frontend already calls.
 """
+
 from __future__ import annotations
 
 import logging
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
@@ -95,8 +96,8 @@ def _serialise_grievance(grievance: Grievance) -> dict[str, Any]:
 
 @router.get("/grievances")
 def list_grievances(
-    status: Optional[str] = Query(None),
-    category: Optional[str] = Query(None),
+    status: str | None = Query(None),
+    category: str | None = Query(None),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
@@ -106,14 +107,12 @@ def list_grievances(
     if status:
         try:
             query = query.filter(Grievance.status == GrievanceStatus(status))
-        except ValueError:
-            raise HTTPException(status_code=422, detail=f"Unknown status: {status}")
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=f"Unknown status: {status}") from exc
     if category:
         query = query.filter(Grievance.category == category)
 
-    rows = (
-        query.order_by(Grievance.created_at.desc()).offset(offset).limit(limit).all()
-    )
+    rows = query.order_by(Grievance.created_at.desc()).offset(offset).limit(limit).all()
     return [_serialise_grievance(row) for row in rows]
 
 
@@ -143,12 +142,7 @@ def escalation_stats(db: Session = Depends(get_db)):
         if hasattr(GrievanceStatus, "RESOLVED")
         else 0
     )
-    escalated = (
-        db.query(Grievance.id)
-        .join(Grievance.audit_logs)
-        .distinct()
-        .count()
-    )
+    escalated = db.query(Grievance.id).join(Grievance.audit_logs).distinct().count()
     active = total - resolved
 
     return {
@@ -172,9 +166,9 @@ def escalate_grievance(
 
     try:
         escalated = get_grievance_service().manual_escalate(grievance_id, reason)
-    except Exception:
+    except Exception as exc:
         logger.exception("Manual escalation failed for grievance %s", grievance_id)
-        raise HTTPException(status_code=502, detail="Escalation service unavailable.")
+        raise HTTPException(status_code=502, detail="Escalation service unavailable.") from exc
 
     if not escalated:
         raise HTTPException(

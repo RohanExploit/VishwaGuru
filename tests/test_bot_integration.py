@@ -2,14 +2,15 @@
 Tests for Telegram Bot functionality and async integration.
 Tests verify that bot commands respond under load and don't block FastAPI.
 """
+
+import asyncio
 import os
 import sys
-import asyncio
 import threading
 import time
 
 # Add backend to path
-backend_path = os.path.join(os.path.dirname(__file__), '..')
+backend_path = os.path.join(os.path.dirname(__file__), "..")
 sys.path.insert(0, backend_path)
 
 # The module itself is imported so that `bot._bot_thread` reads the live
@@ -32,13 +33,13 @@ class TestBotAsyncIntegration:
         bot._bot_application = None
 
         # Set test token
-        os.environ['TELEGRAM_BOT_TOKEN'] = 'test_token_123'
+        os.environ["TELEGRAM_BOT_TOKEN"] = "test_token_123"
 
     def teardown_method(self):
         """Cleanup after each test"""
         stop_bot_thread()
-        if 'TELEGRAM_BOT_TOKEN' in os.environ:
-            del os.environ['TELEGRAM_BOT_TOKEN']
+        if "TELEGRAM_BOT_TOKEN" in os.environ:
+            del os.environ["TELEGRAM_BOT_TOKEN"]
 
     def test_bot_thread_management(self):
         """Test basic bot thread management without actual polling"""
@@ -61,8 +62,8 @@ class TestBotAsyncIntegration:
     def test_bot_without_token(self):
         """Test bot behavior when no token is provided"""
         # Remove token
-        if 'TELEGRAM_BOT_TOKEN' in os.environ:
-            del os.environ['TELEGRAM_BOT_TOKEN']
+        if "TELEGRAM_BOT_TOKEN" in os.environ:
+            del os.environ["TELEGRAM_BOT_TOKEN"]
 
         # Start bot thread (should not actually start polling)
         start_bot_thread()
@@ -94,6 +95,7 @@ class TestBotAsyncIntegration:
 
     def test_run_bot_legacy_function(self):
         """Test the legacy run_bot function still works"""
+
         async def test_run():
             result = await run_bot()
             # Should return None since it starts in thread
@@ -113,13 +115,13 @@ class TestBotLoadHandling:
 
     def setup_method(self):
         """Setup before each test"""
-        os.environ['TELEGRAM_BOT_TOKEN'] = 'test_token_123'
+        os.environ["TELEGRAM_BOT_TOKEN"] = "test_token_123"
 
     def teardown_method(self):
         """Cleanup after each test"""
         stop_bot_thread()
-        if 'TELEGRAM_BOT_TOKEN' in os.environ:
-            del os.environ['TELEGRAM_BOT_TOKEN']
+        if "TELEGRAM_BOT_TOKEN" in os.environ:
+            del os.environ["TELEGRAM_BOT_TOKEN"]
 
     def test_concurrent_operations_simulation(self):
         """Test that bot thread doesn't interfere with main thread operations"""
@@ -130,7 +132,7 @@ class TestBotLoadHandling:
         start_time = time.time()
 
         # Simulate main thread work (like FastAPI requests)
-        for i in range(100):
+        for _i in range(100):
             time.sleep(0.001)  # Small delay to simulate work
             # Check that we can still do other operations
             assert True
@@ -145,6 +147,7 @@ class TestBotLoadHandling:
 
     def test_async_event_loop_isolation(self):
         """Test that bot thread doesn't interfere with async event loop"""
+
         async def test_async_operations():
             """Test that async operations work while bot is running"""
             # Start bot
@@ -152,7 +155,7 @@ class TestBotLoadHandling:
 
             # Should be able to run async operations concurrently
             tasks = []
-            for i in range(10):
+            for _i in range(10):
                 task = asyncio.create_task(asyncio.sleep(0.01))
                 tasks.append(task)
 
@@ -170,13 +173,13 @@ class TestBotErrorHandling:
 
     def setup_method(self):
         """Setup before each test"""
-        os.environ['TELEGRAM_BOT_TOKEN'] = 'test_token_123'
+        os.environ["TELEGRAM_BOT_TOKEN"] = "test_token_123"
 
     def teardown_method(self):
         """Cleanup after each test"""
         stop_bot_thread()
-        if 'TELEGRAM_BOT_TOKEN' in os.environ:
-            del os.environ['TELEGRAM_BOT_TOKEN']
+        if "TELEGRAM_BOT_TOKEN" in os.environ:
+            del os.environ["TELEGRAM_BOT_TOKEN"]
 
     def test_bot_graceful_shutdown(self):
         """Test bot shuts down gracefully"""

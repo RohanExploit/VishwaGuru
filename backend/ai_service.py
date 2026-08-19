@@ -1,16 +1,15 @@
-import json
-import os
 import base64
-import asyncio
+import json
 import logging
+import os
 import warnings
-from typing import Optional, List, Dict, Any
 from functools import lru_cache
+from typing import Any
 
 import httpx
 
-from backend.retry_utils import exponential_backoff_retry
 from backend.exceptions import AIServiceException
+from backend.retry_utils import exponential_backoff_retry
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -31,8 +30,7 @@ if NVIDIA_API_KEY:
     MODEL_NAME = NVIDIA_TEXT_MODEL
     VISION_MODEL = NVIDIA_VISION_MODEL
     logger.info(
-        f"AI Service: Using NVIDIA NIM — "
-        f"Text: {NVIDIA_TEXT_MODEL}, Vision: {NVIDIA_VISION_MODEL}"
+        f"AI Service: Using NVIDIA NIM — Text: {NVIDIA_TEXT_MODEL}, Vision: {NVIDIA_VISION_MODEL}"
     )
 elif GEMINI_API_KEY:
     API_MODE = "gemini"
@@ -42,6 +40,7 @@ elif GEMINI_API_KEY:
     VISION_MODEL = "gemini-1.5-flash"
     try:
         import google.generativeai as genai
+
         genai.configure(api_key=GEMINI_API_KEY)
         warnings.filterwarnings("ignore", category=FutureWarning, module="google.generativeai")
         warnings.filterwarnings("ignore", category=DeprecationWarning, module="google.generativeai")
@@ -74,7 +73,7 @@ _MAX_IMAGE_DIM = 1024
 def _load_responsibility_map() -> dict:
     """Load responsibility map for authority tagging."""
     try:
-        with open(RESPONSIBILITY_MAP_PATH, "r") as f:
+        with open(RESPONSIBILITY_MAP_PATH) as f:
             return json.load(f)
     except Exception:
         return {}
@@ -109,13 +108,15 @@ def _get_fallback_action_plan(issue_description: str, category: str) -> dict:
 
 # ── Image helpers ──────────────────────────────────────────────────────────────
 
+
 def _encode_image_to_base64(image_path: str) -> tuple[str, str]:
     """
     Read an image from disk, optionally resize to save bandwidth, and
     return (base64_string, mime_type).
     """
-    import PIL.Image
     import io
+
+    import PIL.Image
 
     img = PIL.Image.open(image_path)
     # Convert RGBA → RGB (JPEG doesn't support alpha)
@@ -149,6 +150,7 @@ def _encode_pil_image_to_base64(pil_image) -> tuple[str, str]:
 
 
 # ── NVIDIA NIM helpers ─────────────────────────────────────────────────────────
+
 
 async def _nvidia_chat_completion(prompt: str, max_tokens: int = 1024) -> str:
     """Call NVIDIA NIM OpenAI-compatible chat completions (text-only)."""
@@ -233,6 +235,7 @@ def _clean_json_response(text: str) -> str:
 
 # ── Action Plan ────────────────────────────────────────────────────────────────
 
+
 @exponential_backoff_retry(max_retries=3, base_delay=1.0, max_delay=10.0)
 async def _generate_action_plan_with_retry(
     issue_description: str, category: str, language: str = "en"
@@ -277,28 +280,25 @@ async def generate_action_plan(
         logger.warning("No API key configured, using fallback action plan")
         return _get_fallback_action_plan(issue_description, category)
 
+    # Callers pass an image path positionally or by keyword, but the action-plan
+    # prompt built by _generate_action_plan_with_retry is text-only, so the
+    # image is accepted and ignored. It was previously parsed into a local that
+    # nothing ever read, which made it look as though the image informed the
+    # plan. Image analysis lives in analyze_issue_image().
     language = "en"
-    image_path = None
 
     if len(args) == 1:
         arg = args[0]
         if isinstance(arg, str) and len(arg) == 2:
             language = arg
-        else:
-            image_path = arg
     elif len(args) >= 2:
         language = args[0]
-        image_path = args[1]
 
     if "language" in kwargs:
         language = kwargs["language"]
-    if "image_path" in kwargs:
-        image_path = kwargs["image_path"]
 
     try:
-        plan = await _generate_action_plan_with_retry(
-            issue_description, category, language
-        )
+        plan = await _generate_action_plan_with_retry(issue_description, category, language)
         if "x_post" not in plan or not plan.get("x_post"):
             plan["x_post"] = build_x_post(issue_description, category)
         return plan
@@ -309,10 +309,9 @@ async def generate_action_plan(
 
 # ── Chat Assistant ─────────────────────────────────────────────────────────────
 
+
 @exponential_backoff_retry(max_retries=3, base_delay=1.0, max_delay=10.0)
-async def _chat_with_civic_assistant_with_retry(
-    query: str, history_context: str = ""
-) -> str:
+async def _chat_with_civic_assistant_with_retry(query: str, history_context: str = "") -> str:
     prompt = f"""You are VishwaGuru, a helpful civic assistant for Indian citizens.
 {history_context}
 User Query: {query}
@@ -333,9 +332,7 @@ Keep answers concise and helpful."""
         raise AIServiceException("No AI backend configured")
 
 
-async def chat_with_civic_assistant(
-    query: str, history: Optional[List[dict]] = None
-) -> str:
+async def chat_with_civic_assistant(query: str, history: list[dict] | None = None) -> str:
     """Chat with the civic assistant. Includes retry logic with exponential backoff."""
     if API_MODE == "none":
         logger.warning("No API key configured, chat assistant offline")
@@ -393,7 +390,7 @@ Do not use markdown code blocks. Just the raw JSON string."""
 
 
 @exponential_backoff_retry(max_retries=2, base_delay=2.0, max_delay=15.0)
-async def analyze_issue_image(image_path: str) -> Dict[str, Any]:
+async def analyze_issue_image(image_path: str) -> dict[str, Any]:
     """
     Analyze an uploaded image using NVIDIA NIM vision model
     (meta/llama-3.2-90b-vision-instruct) or Gemini multimodal.
@@ -423,14 +420,12 @@ async def analyze_issue_image(image_path: str) -> Dict[str, Any]:
 
         elif API_MODE == "gemini":
             # ── Gemini multimodal ──────────────────────────────────────────
-            import PIL.Image
             import google.generativeai as genai
+            import PIL.Image
 
             img = PIL.Image.open(image_path)
             model = genai.GenerativeModel("gemini-1.5-flash")
-            response = await model.generate_content_async(
-                [_IMAGE_ANALYSIS_PROMPT, img]
-            )
+            response = await model.generate_content_async([_IMAGE_ANALYSIS_PROMPT, img])
             text_response = response.text.strip()
         else:
             raise AIServiceException("No AI backend configured")
@@ -455,9 +450,7 @@ async def analyze_issue_image(image_path: str) -> Dict[str, Any]:
 
 
 @exponential_backoff_retry(max_retries=2, base_delay=2.0, max_delay=15.0)
-async def analyze_issue_with_ai(
-    description: str, image_path: Optional[str] = None
-) -> Dict[str, Any]:
+async def analyze_issue_with_ai(description: str, image_path: str | None = None) -> dict[str, Any]:
     """
     Analyze a civic issue description with optional image.
     Uses NVIDIA Vision model when image is provided.
@@ -478,9 +471,7 @@ async def analyze_issue_with_ai(
             if has_image:
                 # ── Vision model for image + text ──────────────────────────
                 image_b64, mime = _encode_image_to_base64(image_path)
-                prompt = _ISSUE_ANALYSIS_WITH_IMAGE_PROMPT.format(
-                    description=description
-                )
+                prompt = _ISSUE_ANALYSIS_WITH_IMAGE_PROMPT.format(description=description)
                 text_response = await _nvidia_vision_completion(
                     prompt=prompt,
                     image_b64=image_b64,

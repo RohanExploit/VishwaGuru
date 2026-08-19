@@ -1,11 +1,14 @@
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
 from fastapi.testclient import TestClient
+
 from backend.main import app, get_db
 from backend.models import Issue
 
 # Create a mock database session
 mock_db = MagicMock()
+
 
 # Override the get_db dependency
 def override_get_db():
@@ -13,6 +16,7 @@ def override_get_db():
         yield mock_db
     finally:
         pass
+
 
 @pytest.fixture(scope="module", autouse=True)
 def setup_overrides():
@@ -22,7 +26,9 @@ def setup_overrides():
     yield
     app.dependency_overrides = {}
 
+
 client = TestClient(app)
+
 
 @patch("backend.main.validate_uploaded_file", new_callable=AsyncMock)
 @patch("backend.main.verify_resolution_vqa", new_callable=AsyncMock)
@@ -51,6 +57,7 @@ def test_verify_issue_resolution_resolved(mock_verify, mock_validate):
     # Verify DB commit was called
     mock_db.commit.assert_called()
     assert mock_issue.status == "verified"
+
 
 @patch("backend.main.validate_uploaded_file", new_callable=AsyncMock)
 @patch("backend.main.verify_resolution_vqa", new_callable=AsyncMock)
