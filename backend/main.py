@@ -14,12 +14,14 @@ import json
 import logging
 import os
 import shutil
+import sys
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from functools import lru_cache
 from typing import List, Optional
 
+import httpx
 from fastapi import (
     Depends,
     FastAPI,
@@ -27,6 +29,7 @@ from fastapi import (
     Form,
     HTTPException,
     Query,
+    Request,
     UploadFile,
 )
 from fastapi.concurrency import run_in_threadpool
@@ -46,6 +49,26 @@ from backend.ai_service import (
 )
 from backend.bot import application  # Telegram Application
 from backend.cache import recent_issues_cache
+from backend.hf_api_service import (
+    analyze_urgency_text,
+    detect_blocked_road_clip,
+    detect_civic_eye_clip,
+    detect_depth_map,
+    detect_fire_clip,
+    detect_illegal_parking_clip,
+    detect_pest_clip,
+    detect_severity_clip,
+    detect_smart_scan_clip,
+    detect_stray_animal_clip,
+    detect_street_light_clip,
+    detect_tree_hazard_clip,
+    detect_waste_clip,
+    generate_image_caption,
+    transcribe_audio,
+    verify_resolution_vqa,
+)
+from backend.image_validator import validate_image_file
+from backend.local_ml_service import detect_infrastructure_local
 from backend.database import Base, SessionLocal, engine
 from backend.flood_detection import detect_flooding
 from backend.garbage_detection import detect_garbage
@@ -77,6 +100,10 @@ Base.metadata.create_all(bind=engine)
 async def lifespan(app: FastAPI):
     # --- Startup ---
     logger.info("Starting up backend...")
+
+    # One shared httpx client for all outbound model calls. Opening a client
+    # per request exhausts sockets under load and loses connection reuse.
+    app.state.http_client = httpx.AsyncClient(timeout=30.0)
 
     # Initialize the AI service container. get_ai_services() raises
     # RuntimeError until this runs, which made /api/mh/rep-contacts fail.
@@ -128,7 +155,13 @@ async def lifespan(app: FastAPI):
         print(f"Migration warning: {e}")
 
     yield
+
     # --- Shutdown ---
+    try:
+        await app.state.http_client.aclose()
+    except Exception:
+        logger.exception("Error closing HTTP client")
+
     print("Shutting down backend...")
     try:
         await application.updater.stop()
@@ -526,3 +559,210 @@ def upvote_issue(issue_id: int, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(issue)
     return {"status": "success", "upvotes": issue.upvotes}
+
+
+# =============================================================================
+# Detector endpoints
+# =============================================================================
+#
+# Every service function called below already existed in
+# backend/hf_api_service.py and backend/local_ml_service.py. None of them was
+# ever routed, so the frontend called 15 endpoints that returned 404 in
+# production. tests/test_api_contract.py now fails if that gap reopens.
+#
+# The handlers are generated from a table instead of being copy-pasted. The
+# copy-paste approach is what produced four handlers that declared their upload
+# field as `file` while every caller posted `image`.
+#
+# `service` is stored as a NAME and resolved from this module at request time,
+# so tests that monkeypatch backend.main.<name> take effect.
+
+MAX_UPLOAD_BYTES = int(os.getenv("MAX_UPLOAD_SIZE_MB", "10")) * 1024 * 1024
+
+
+class UrgencyRequest(BaseModel):
+    text: str
+
+
+def _service(name: str):
+    """Resolve a service function from this module at call time."""
+    return getattr(sys.modules[__name__], name)
+
+
+async def _read_upload(upload: UploadFile) -> bytes:
+    """Read an upload, enforcing the configured size ceiling.
+
+    MAX_UPLOAD_SIZE_MB was declared in render.yaml and parsed in config.py but
+    was never actually enforced on any request path.
+    """
+    contents = await upload.read()
+    if not contents:
+        raise HTTPException(status_code=400, detail="Empty upload.")
+    if len(contents) > MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Upload exceeds the {MAX_UPLOAD_BYTES // (1024 * 1024)}MB limit.",
+        )
+    return contents
+
+
+async def validate_uploaded_file(upload: UploadFile) -> bytes:
+    """Read and validate an uploaded image, returning its bytes."""
+    contents = await _read_upload(upload)
+    try:
+        validate_image_file(contents)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid image: {exc}") from exc
+    return contents
+
+
+def _http_client(request: Request):
+    return getattr(request.app.state, "http_client", None)
+
+
+# (route path, service function name, wrap result as {"detections": ...})
+DETECTOR_ENDPOINTS = [
+    ("/api/detect-fire", "detect_fire_clip", True),
+    ("/api/detect-illegal-parking", "detect_illegal_parking_clip", True),
+    ("/api/detect-street-light", "detect_street_light_clip", True),
+    ("/api/detect-stray-animal", "detect_stray_animal_clip", True),
+    ("/api/detect-blocked-road", "detect_blocked_road_clip", True),
+    ("/api/detect-tree-hazard", "detect_tree_hazard_clip", True),
+    ("/api/detect-pest", "detect_pest_clip", True),
+    ("/api/detect-severity", "detect_severity_clip", False),
+    ("/api/detect-smart-scan", "detect_smart_scan_clip", False),
+    ("/api/detect-waste", "detect_waste_clip", False),
+    ("/api/detect-civic-eye", "detect_civic_eye_clip", False),
+    ("/api/analyze-depth", "detect_depth_map", False),
+]
+
+
+def _make_detector_route(service_name: str, wrap: bool):
+    async def endpoint(request: Request, image: UploadFile = File(...)):
+        contents = await _read_upload(image)
+        try:
+            result = await _service(service_name)(contents, client=_http_client(request))
+        except HTTPException:
+            raise
+        except Exception:
+            logger.exception("%s failed", service_name)
+            raise HTTPException(status_code=502, detail="Detection service unavailable.")
+        return {"detections": result} if wrap else result
+
+    endpoint.__name__ = f"{service_name}_endpoint"
+    return endpoint
+
+
+for _path, _service_name, _wrap in DETECTOR_ENDPOINTS:
+    app.post(_path)(_make_detector_route(_service_name, _wrap))
+
+
+@app.post("/api/detect-infrastructure")
+async def detect_infrastructure_endpoint(image: UploadFile = File(...)):
+    """Infrastructure damage runs through the local YOLO model, not CLIP."""
+    contents = await _read_upload(image)
+    try:
+        pil_image = await run_in_threadpool(Image.open, io.BytesIO(contents))
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Invalid image file.") from exc
+
+    try:
+        detections = await detect_infrastructure_local(pil_image)
+    except Exception:
+        logger.exception("Infrastructure detection failed")
+        raise HTTPException(status_code=502, detail="Detection service unavailable.")
+    return {"detections": detections}
+
+
+@app.post("/api/transcribe-audio")
+async def transcribe_audio_endpoint(request: Request, file: UploadFile = File(...)):
+    """The upload field is `file` here, matching the audio caller; image
+    endpoints use `image`. transcribe_audio() returns a bare string, so it is
+    wrapped rather than returned directly."""
+    contents = await _read_upload(file)
+    try:
+        text = await transcribe_audio(contents, client=_http_client(request))
+    except Exception:
+        logger.exception("Audio transcription failed")
+        raise HTTPException(status_code=502, detail="Transcription service unavailable.")
+    return {"text": text}
+
+
+@app.post("/api/generate-description")
+async def generate_description_endpoint(request: Request, image: UploadFile = File(...)):
+    contents = await _read_upload(image)
+    try:
+        caption = await generate_image_caption(contents, client=_http_client(request))
+    except Exception:
+        logger.exception("Caption generation failed")
+        raise HTTPException(status_code=502, detail="Captioning service unavailable.")
+    return {"description": caption}
+
+
+@app.post("/api/analyze-urgency")
+async def analyze_urgency_endpoint(request: Request, payload: UrgencyRequest):
+    try:
+        return await analyze_urgency_text(payload.text, client=_http_client(request))
+    except Exception:
+        logger.exception("Urgency analysis failed")
+        raise HTTPException(status_code=502, detail="Urgency service unavailable.")
+
+
+@app.get("/api/leaderboard")
+def get_leaderboard(limit: int = Query(20, ge=1, le=100), db: Session = Depends(get_db)):
+    """Top reporters by number of issues filed, with their total upvotes."""
+    rows = (
+        db.query(
+            Issue.user_email.label("user_email"),
+            func.count(Issue.id).label("reports_count"),
+            func.coalesce(func.sum(Issue.upvotes), 0).label("upvotes"),
+        )
+        .filter(Issue.user_email.isnot(None))
+        .group_by(Issue.user_email)
+        .order_by(func.count(Issue.id).desc(), func.sum(Issue.upvotes).desc())
+        .limit(limit)
+        .all()
+    )
+    return {
+        "leaderboard": [
+            {
+                "rank": index,
+                "user_email": row.user_email,
+                "reports_count": int(row.reports_count or 0),
+                "upvotes": int(row.upvotes or 0),
+            }
+            for index, row in enumerate(rows, start=1)
+        ]
+    }
+
+
+@app.post("/api/issues/{issue_id}/verify")
+async def verify_issue_resolution(
+    issue_id: int,
+    image: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    """Citizen uploads a photo; a VQA model judges whether the issue is fixed."""
+    issue = db.query(Issue).filter(Issue.id == issue_id).first()
+    if issue is None:
+        raise HTTPException(status_code=404, detail="Issue not found.")
+
+    contents = await validate_uploaded_file(image)
+
+    question = f"Is this {issue.category or 'civic issue'} still present in the image?"
+    try:
+        answer = await verify_resolution_vqa(contents, question)
+    except Exception:
+        logger.exception("Resolution verification failed")
+        raise HTTPException(status_code=502, detail="Verification service unavailable.")
+
+    raw_answer = answer.get("answer") if isinstance(answer, dict) else answer
+    ai_answer = str(raw_answer).strip().lower()
+    is_resolved = ai_answer == "no"
+
+    issue.status = "verified" if is_resolved else "open"
+    db.commit()
+
+    return {"is_resolved": is_resolved, "ai_answer": ai_answer, "issue_id": issue_id}

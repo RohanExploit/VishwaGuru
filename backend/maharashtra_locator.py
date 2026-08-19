@@ -105,8 +105,11 @@ def _load_maharashtra_pincode_map() -> Dict[str, Dict[str, Any]]:
     """
     Load and cache Maharashtra pincode to constituency mapping as a dict for O(1) lookup.
     """
-    pincode_data = load_maharashtra_pincode_data()
-    return {entry["pincode"]: entry for entry in pincode_data if "pincode" in entry}
+    # load_maharashtra_pincode_data() already returns {pincode: entry}. The
+    # previous body re-keyed it as though it were still a list, and iterating a
+    # dict yields its string keys -- so `entry["pincode"]` never matched and this
+    # returned an empty map. Every constituency and MLA lookup answered None.
+    return load_maharashtra_pincode_data()
 
 
 @lru_cache(maxsize=1)
@@ -114,8 +117,8 @@ def _load_maharashtra_mla_map() -> Dict[str, Dict[str, Any]]:
     """
     Load and cache Maharashtra MLA information as a dict for O(1) lookup.
     """
-    mla_data = load_maharashtra_mla_data()
-    return {entry["assembly_constituency"]: entry for entry in mla_data if "assembly_constituency" in entry}
+    # Same double-conversion bug as the pincode map above.
+    return load_maharashtra_mla_data()
 
 
 def find_constituency_by_pincode(pincode: str) -> Optional[Dict[str, Any]]:

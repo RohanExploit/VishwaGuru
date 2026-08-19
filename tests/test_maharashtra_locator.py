@@ -8,9 +8,8 @@ import sys
 import os
 
 # Add backend to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
 
-from maharashtra_locator import (
+from backend.maharashtra_locator import (
     find_constituency_by_pincode,
     find_mla_by_constituency,
     load_maharashtra_pincode_data,

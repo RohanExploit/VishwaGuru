@@ -21,7 +21,6 @@ from PIL import Image
 import io
 
 # Add backend to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
 
 
 class TestLocalMLService:
@@ -74,7 +73,7 @@ class TestLocalMLService:
     
     def test_get_general_model_returns_instance(self):
         """Test that get_general_model returns the model instance."""
-        from local_ml_service import get_general_model
+        from backend.local_ml_service import get_general_model
         
         model = get_general_model()
         
@@ -83,7 +82,7 @@ class TestLocalMLService:
     @pytest.mark.asyncio
     async def test_detection_status_structure(self):
         """Test that get_detection_status returns expected structure."""
-        from local_ml_service import get_detection_status
+        from backend.local_ml_service import get_detection_status
         
         status = await get_detection_status()
         
@@ -93,7 +92,7 @@ class TestLocalMLService:
     @pytest.mark.asyncio
     async def test_detect_vandalism_local_returns_list(self, sample_image):
         """Test that detect_vandalism_local returns a list."""
-        from local_ml_service import detect_vandalism_local
+        from backend.local_ml_service import detect_vandalism_local
         
         # May return empty list if model not loaded, but should not error
         try:
@@ -106,7 +105,7 @@ class TestLocalMLService:
     @pytest.mark.asyncio
     async def test_detect_infrastructure_local_returns_list(self, sample_image):
         """Test that detect_infrastructure_local returns a list."""
-        from local_ml_service import detect_infrastructure_local
+        from backend.local_ml_service import detect_infrastructure_local
         
         try:
             result = await detect_infrastructure_local(sample_image)
@@ -117,7 +116,7 @@ class TestLocalMLService:
     @pytest.mark.asyncio
     async def test_detect_flooding_local_returns_list(self, sample_image):
         """Test that detect_flooding_local returns a list."""
-        from local_ml_service import detect_flooding_local
+        from backend.local_ml_service import detect_flooding_local
         
         try:
             result = await detect_flooding_local(sample_image)
@@ -137,7 +136,7 @@ class TestUnifiedDetectionService:
     
     def test_get_detection_service_returns_instance(self):
         """Test that get_detection_service returns a UnifiedDetectionService instance."""
-        from unified_detection_service import get_detection_service, UnifiedDetectionService
+        from backend.unified_detection_service import get_detection_service, UnifiedDetectionService
         
         service = get_detection_service()
         
@@ -145,7 +144,7 @@ class TestUnifiedDetectionService:
     
     def test_detection_backend_enum(self):
         """Test DetectionBackend enum values."""
-        from unified_detection_service import DetectionBackend
+        from backend.unified_detection_service import DetectionBackend
         
         assert DetectionBackend.LOCAL.value == "local"
         assert DetectionBackend.HUGGINGFACE.value == "huggingface"
@@ -154,7 +153,7 @@ class TestUnifiedDetectionService:
     @pytest.mark.asyncio
     async def test_detect_vandalism_returns_list(self, sample_image):
         """Test that detect_vandalism returns a list."""
-        from unified_detection_service import detect_vandalism
+        from backend.unified_detection_service import detect_vandalism
         
         try:
             result = await detect_vandalism(sample_image)
@@ -166,7 +165,7 @@ class TestUnifiedDetectionService:
     @pytest.mark.asyncio
     async def test_detect_infrastructure_returns_list(self, sample_image):
         """Test that detect_infrastructure returns a list."""
-        from unified_detection_service import detect_infrastructure
+        from backend.unified_detection_service import detect_infrastructure
         
         try:
             result = await detect_infrastructure(sample_image)
@@ -177,7 +176,7 @@ class TestUnifiedDetectionService:
     @pytest.mark.asyncio
     async def test_detect_flooding_returns_list(self, sample_image):
         """Test that detect_flooding returns a list."""
-        from unified_detection_service import detect_flooding
+        from backend.unified_detection_service import detect_flooding
         
         try:
             result = await detect_flooding(sample_image)
@@ -188,7 +187,7 @@ class TestUnifiedDetectionService:
     @pytest.mark.asyncio
     async def test_detect_all_returns_dict(self, sample_image):
         """Test that detect_all returns a dictionary with all detection types."""
-        from unified_detection_service import detect_all
+        from backend.unified_detection_service import detect_all
         
         try:
             result = await detect_all(sample_image)
@@ -203,7 +202,7 @@ class TestUnifiedDetectionService:
     @pytest.mark.asyncio
     async def test_get_detection_status_structure(self):
         """Test that get_detection_status returns expected structure."""
-        from unified_detection_service import get_detection_status
+        from backend.unified_detection_service import get_detection_status
         
         status = await get_detection_status()
         
@@ -226,7 +225,7 @@ class TestEnvironmentConfiguration:
         try:
             # Reload module to pick up default
             import importlib
-            import unified_detection_service
+            from backend import unified_detection_service
             importlib.reload(unified_detection_service)
             
             # Default should be true
@@ -242,7 +241,7 @@ class TestEnvironmentConfiguration:
         
         try:
             import importlib
-            import unified_detection_service
+            from backend import unified_detection_service
             importlib.reload(unified_detection_service)
             
             assert unified_detection_service.USE_LOCAL_MODEL == False
@@ -269,7 +268,7 @@ class TestIntegrationWithMain:
         """Test that main.py correctly imports the unified detection service."""
         try:
             # This should not raise an ImportError
-            from main import detect_vandalism_local, detect_flooding_local, detect_infrastructure_local
+            from backend.main import detect_vandalism_local, detect_flooding_local, detect_infrastructure_local
             assert callable(detect_vandalism_local)
             assert callable(detect_flooding_local)
             assert callable(detect_infrastructure_local)

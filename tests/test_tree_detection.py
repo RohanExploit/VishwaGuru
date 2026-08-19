@@ -6,9 +6,8 @@ import sys
 import os
 
 # Ensure backend path is in sys.path
-sys.path.append(os.path.join(os.getcwd(), 'backend'))
 
-from main import app
+from backend.main import app
 
 @pytest.fixture
 def client():
@@ -19,7 +18,7 @@ def client():
 
 def test_detect_tree_hazard(client):
     # Mock the detect_tree_clip function in main.py
-    with patch("main.detect_tree_clip", new_callable=AsyncMock) as mock_detect:
+    with patch("backend.main.detect_tree_hazard_clip", new_callable=AsyncMock) as mock_detect:
         # Define what the mock should return
         mock_detect.return_value = [
             {"label": "fallen tree", "confidence": 0.9, "box": []}
@@ -44,7 +43,7 @@ def test_detect_tree_hazard(client):
             assert data["detections"][0]["confidence"] == 0.9
 
 def test_detect_tree_hazard_no_hazard(client):
-     with patch("main.detect_tree_clip", new_callable=AsyncMock) as mock_detect:
+     with patch("backend.main.detect_tree_hazard_clip", new_callable=AsyncMock) as mock_detect:
         # Return empty list (no hazard detected)
         mock_detect.return_value = []
 

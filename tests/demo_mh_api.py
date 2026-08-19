@@ -5,14 +5,13 @@ import json
 import sys
 import os
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
 
 from fastapi.testclient import TestClient
 
 os.environ['TELEGRAM_BOT_TOKEN'] = 'test_token'
 os.environ['GEMINI_API_KEY'] = ''
 
-from main import app
+from backend.main import app
 
 client = TestClient(app, raise_server_exceptions=False)
 

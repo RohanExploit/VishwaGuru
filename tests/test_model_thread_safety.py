@@ -7,13 +7,11 @@ import os
 import threading
 import time
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'backend'))
 
 def test_garbage_detection_thread_safety():
     """Test that garbage detection model loading is thread-safe"""
     # Import the module
-    import garbage_detection
-    
+    from backend import garbage_detection
     # Reset the model to None to simulate first-time loading
     garbage_detection._model = None
     
@@ -74,8 +72,7 @@ def test_garbage_detection_thread_safety():
 def test_pothole_detection_thread_safety():
     """Test that pothole detection model loading is thread-safe"""
     # Import the module
-    import pothole_detection
-    
+    from backend import pothole_detection
     # Reset the model to None to simulate first-time loading
     pothole_detection._model = None
     

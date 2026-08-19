@@ -5,10 +5,9 @@ This test ensures that the bot initialization doesn't block the web server start
 import sys
 import os
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'backend'))
 
 from fastapi.testclient import TestClient
-from main import app
+from backend.main import app
 
 def test_health_endpoint():
     """Test that the health endpoint is accessible immediately"""

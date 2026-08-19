@@ -6,13 +6,12 @@ import os
 from fastapi.testclient import TestClient
 
 # Add backend to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
 
 # Import the app without starting the bot
 os.environ['TELEGRAM_BOT_TOKEN'] = 'test_token'
 os.environ['GEMINI_API_KEY'] = ''  # Test without Gemini
 
-from main import app
+from backend.main import app
 
 client = TestClient(app, raise_server_exceptions=False)
 

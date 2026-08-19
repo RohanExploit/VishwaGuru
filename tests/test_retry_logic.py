@@ -12,9 +12,8 @@ import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
 # Add backend directory to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
 
-from retry_utils import exponential_backoff_retry, sync_exponential_backoff_retry
+from backend.retry_utils import exponential_backoff_retry, sync_exponential_backoff_retry
 
 
 class TestExponentialBackoffRetry:

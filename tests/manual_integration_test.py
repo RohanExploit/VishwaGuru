@@ -8,9 +8,8 @@ import sys
 import os
 
 # Add backend to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
 
-from retry_utils import exponential_backoff_retry
+from backend.retry_utils import exponential_backoff_retry
 
 
 async def test_retry_with_transient_failure():

@@ -8,11 +8,11 @@ from fastapi.testclient import TestClient
 from fastapi import HTTPException
 
 # Add backend to path
-backend_path = os.path.join(os.path.dirname(__file__), '..', 'backend')
+backend_path = os.path.join(os.path.dirname(__file__), '..')
 sys.path.insert(0, backend_path)
 
 # Test schemas directly without importing the full app
-from schemas import (
+from backend.schemas import (
     ChatRequest, ChatResponse, ErrorResponse, SuccessResponse, HealthResponse,
     IssueCreateRequest, IssueCreateResponse, VoteResponse, DetectionResponse,
     UrgencyAnalysisRequest, UrgencyAnalysisResponse, IssueCategory
