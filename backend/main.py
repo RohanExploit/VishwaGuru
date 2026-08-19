@@ -37,6 +37,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from PIL import Image
 from pydantic import BaseModel
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from slowapi.util import get_remote_address
 from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 
@@ -47,7 +51,11 @@ from backend.ai_service import (
     chat_with_civic_assistant,
     generate_action_plan,
 )
-from backend.bot import application  # Telegram Application
+from backend.bot import (
+    application,  # noqa: F401 - re-exported for callers
+    start_bot_thread,
+    stop_bot_thread,
+)
 from backend.cache import recent_issues_cache
 from backend.database import Base, SessionLocal, engine
 from backend.flood_detection import detect_flooding
@@ -109,6 +117,9 @@ from backend.vandalism_detection import detect_vandalism
 
 logger = logging.getLogger(__name__)
 
+# Only the process with this set runs the Telegram poller; see the lifespan.
+RUN_TELEGRAM_BOT = os.getenv("RUN_TELEGRAM_BOT", "").lower() in {"1", "true", "yes"}
+
 # Create the database tables
 Base.metadata.create_all(bind=engine)
 
@@ -135,14 +146,23 @@ async def lifespan(app: FastAPI):
     except Exception:
         logger.exception("Failed to initialize AI services")
 
-    # Initialize the Telegram bot
-    try:
-        await application.initialize()
-        await application.updater.start_polling()
-        await application.start()
-        print("Telegram bot started.")
-    except Exception as e:
-        print(f"Error starting Telegram bot: {e}")
+    # Telegram bot.
+    #
+    # Polling used to run inside this lifespan, which meant every uvicorn worker
+    # opened its own long-poll against Telegram. Telegram rejects the extras
+    # with HTTP 409, so the API could never be scaled past a single worker.
+    #
+    # The poller now runs on its own thread and only in the process that opts in
+    # via RUN_TELEGRAM_BOT. Run the web service with it unset and one dedicated
+    # worker with it set, and the API scales horizontally.
+    if RUN_TELEGRAM_BOT:
+        if start_bot_thread() is None:
+            logger.warning(
+                "RUN_TELEGRAM_BOT is set but the bot did not start; "
+                "TELEGRAM_BOT_TOKEN is probably missing."
+            )
+    else:
+        logger.info("RUN_TELEGRAM_BOT is not set; this process serves the API only.")
 
     # Preload data
     try:
@@ -189,17 +209,50 @@ async def lifespan(app: FastAPI):
     except Exception:
         logger.exception("Error closing HTTP client")
 
-    print("Shutting down backend...")
-    try:
-        await application.updater.stop()
-        await application.stop()
-        await application.shutdown()
-        print("Telegram bot stopped.")
-    except Exception as e:
-        print(f"Error stopping Telegram bot: {e}")
+    logger.info("Shutting down backend...")
+    if RUN_TELEGRAM_BOT:
+        try:
+            await run_in_threadpool(stop_bot_thread)
+        except Exception:
+            logger.exception("Error stopping the Telegram bot thread")
 
+
+# Rate limiting.
+#
+# RATE_LIMIT_ENABLED and MAX_REQUESTS_PER_MINUTE were declared in render.yaml
+# and parsed in config.py, but nothing ever enforced them, so every endpoint was
+# unmetered. That matters here beyond the usual denial-of-service concern: the
+# detector and chat endpoints call paid inference APIs on every request, so an
+# unmetered endpoint is a billing exposure as much as an availability one.
+#
+# AI-backed routes get a tighter bucket than plain reads. Storage is in-process,
+# which is correct for a single service instance; a multi-instance deployment
+# needs a shared backend (RATE_LIMIT_STORAGE_URI, e.g. redis://...).
+RATE_LIMIT_ENABLED = os.getenv("RATE_LIMIT_ENABLED", "true").lower() == "true"
+MAX_REQUESTS_PER_MINUTE = int(os.getenv("MAX_REQUESTS_PER_MINUTE", "60"))
+AI_REQUESTS_PER_MINUTE = int(os.getenv("AI_REQUESTS_PER_MINUTE", "12"))
+RATE_LIMIT_STORAGE_URI = os.getenv("RATE_LIMIT_STORAGE_URI", "memory://")
+
+DEFAULT_RATE_LIMIT = f"{MAX_REQUESTS_PER_MINUTE}/minute"
+AI_RATE_LIMIT = f"{AI_REQUESTS_PER_MINUTE}/minute"
+
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=[DEFAULT_RATE_LIMIT] if RATE_LIMIT_ENABLED else [],
+    storage_uri=RATE_LIMIT_STORAGE_URI,
+    enabled=RATE_LIMIT_ENABLED,
+)
 
 app = FastAPI(lifespan=lifespan)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+logger.info(
+    "Rate limiting %s (default %s, AI %s)",
+    "enabled" if RATE_LIMIT_ENABLED else "disabled",
+    DEFAULT_RATE_LIMIT,
+    AI_RATE_LIMIT,
+)
 
 # CORS.
 #
@@ -290,6 +343,7 @@ def root():
 
 
 @app.get("/health", response_model=HealthResponse)
+@limiter.exempt
 def health():
     return HealthResponse(
         status="healthy",
@@ -759,22 +813,26 @@ async def _run_image_detector(service_name: str, upload: UploadFile) -> dict:
 
 
 @app.post("/api/detect-pothole")
-async def api_detect_pothole(image: UploadFile = File(...)):
+@limiter.limit(AI_RATE_LIMIT)
+async def api_detect_pothole(request: Request, image: UploadFile = File(...)):
     return await _run_image_detector("detect_potholes", image)
 
 
 @app.post("/api/detect-garbage")
-async def api_detect_garbage(image: UploadFile = File(...)):
+@limiter.limit(AI_RATE_LIMIT)
+async def api_detect_garbage(request: Request, image: UploadFile = File(...)):
     return await _run_image_detector("detect_garbage", image)
 
 
 @app.post("/api/detect-vandalism")
-async def api_detect_vandalism(image: UploadFile = File(...)):
+@limiter.limit(AI_RATE_LIMIT)
+async def api_detect_vandalism(request: Request, image: UploadFile = File(...)):
     return await _run_image_detector("detect_vandalism_unified", image)
 
 
 @app.post("/api/detect-flooding")
-async def api_detect_flooding(image: UploadFile = File(...)):
+@limiter.limit(AI_RATE_LIMIT)
+async def api_detect_flooding(request: Request, image: UploadFile = File(...)):
     return await _run_image_detector("detect_flooding", image)
 
 
@@ -1000,11 +1058,13 @@ def _make_detector_route(service_name: str, wrap: bool):
 
 
 for _path, _service_name, _wrap in DETECTOR_ENDPOINTS:
-    app.post(_path)(_make_detector_route(_service_name, _wrap))
+    # Each of these calls a paid inference API, so they use the tighter bucket.
+    app.post(_path)(limiter.limit(AI_RATE_LIMIT)(_make_detector_route(_service_name, _wrap)))
 
 
 @app.post("/api/detect-infrastructure")
-async def detect_infrastructure_endpoint(image: UploadFile = File(...)):
+@limiter.limit(AI_RATE_LIMIT)
+async def detect_infrastructure_endpoint(request: Request, image: UploadFile = File(...)):
     """Infrastructure damage goes through the unified service.
 
     This used to call detect_infrastructure_local directly, so a deployment
@@ -1014,6 +1074,7 @@ async def detect_infrastructure_endpoint(image: UploadFile = File(...)):
 
 
 @app.post("/api/transcribe-audio")
+@limiter.limit(AI_RATE_LIMIT)
 async def transcribe_audio_endpoint(request: Request, file: UploadFile = File(...)):
     """The upload field is `file` here, matching the audio caller; image
     endpoints use `image`. transcribe_audio() returns a bare string, so it is
@@ -1028,6 +1089,7 @@ async def transcribe_audio_endpoint(request: Request, file: UploadFile = File(..
 
 
 @app.post("/api/detect-audio")
+@limiter.limit(AI_RATE_LIMIT)
 async def detect_audio_endpoint(request: Request, file: UploadFile = File(...)):
     """Noise classification. NoiseDetector.jsx posts the recording as `file`
     and reads `data.detections`."""
@@ -1041,6 +1103,7 @@ async def detect_audio_endpoint(request: Request, file: UploadFile = File(...)):
 
 
 @app.post("/api/generate-description")
+@limiter.limit(AI_RATE_LIMIT)
 async def generate_description_endpoint(request: Request, image: UploadFile = File(...)):
     contents = await _read_upload(image)
     try:
@@ -1052,6 +1115,7 @@ async def generate_description_endpoint(request: Request, image: UploadFile = Fi
 
 
 @app.post("/api/analyze-urgency")
+@limiter.limit(AI_RATE_LIMIT)
 async def analyze_urgency_endpoint(request: Request, payload: UrgencyRequest):
     try:
         return await analyze_urgency_text(payload.content, client=_http_client(request))
@@ -1089,6 +1153,7 @@ def get_leaderboard(limit: int = Query(20, ge=1, le=100), db: Session = Depends(
 
 
 @app.post("/api/issues/{issue_id}/verify")
+@limiter.limit(AI_RATE_LIMIT)
 async def verify_issue_resolution(
     request: Request,
     issue_id: int,

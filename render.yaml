@@ -55,11 +55,24 @@ services:
         value: 10
       - key: ALLOWED_FILE_TYPES
         value: image/jpeg,image/png,image/jpg,video/mp4
-      # Rate limiting
+      # Rate limiting. These were declared here long before anything enforced
+      # them; slowapi now reads them at startup.
       - key: RATE_LIMIT_ENABLED
         value: true
       - key: MAX_REQUESTS_PER_MINUTE
         value: 60
+      # Routes that call a paid inference API get a tighter bucket.
+      - key: AI_REQUESTS_PER_MINUTE
+        value: 12
+      # Counters live in-process, which is correct for one instance. Point this
+      # at redis:// before scaling to more than one.
+      - key: RATE_LIMIT_STORAGE_URI
+        value: memory://
+      # Leave unset on the web service. The Telegram poller must run in exactly
+      # one process: Telegram answers HTTP 409 to a second long-poll on the same
+      # token, so setting this on a multi-worker web service breaks the bot.
+      - key: RUN_TELEGRAM_BOT
+        value: false
     healthCheckPath: /health
     # Add disk for SQLite database (if using SQLite)
     disk:
