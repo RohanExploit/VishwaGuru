@@ -15,7 +15,10 @@ import uvicorn
 if __name__ == "__main__":
     # Get the port from environment variable (Render provides PORT)
     port = int(os.environ.get("PORT", 8000))
-    host = os.environ.get("HOST", "0.0.0.0")  # noqa: S104 - the container binds all interfaces by design
+    # nosec B104 / noqa: S104 - binding all interfaces is required inside a
+    # container or on Render, where the platform routes external traffic to the
+    # published port. Override with HOST to bind more narrowly.
+    host = os.environ.get("HOST", "0.0.0.0")  # noqa: S104  # nosec B104
 
     # Determine the correct module path based on where we're running from
     # If we're in the backend directory, use "main:app"
