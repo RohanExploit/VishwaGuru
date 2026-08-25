@@ -60,7 +60,7 @@ from backend.bot import (
     stop_bot_thread,
 )
 from backend.cache import recent_issues_cache
-from backend.database import SessionLocal, engine
+from backend.database import USING_SQLITE_FALLBACK, SessionLocal, engine
 from backend.flood_detection import detect_flooding
 from backend.garbage_detection import detect_garbage
 from backend.hf_api_service import (
@@ -363,6 +363,11 @@ def _database_status() -> tuple[bool, str]:
     try:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
+        if USING_SQLITE_FALLBACK:
+            # Reachable, but not the database this deployment was configured to
+            # use. Reported distinctly so a working service is not mistaken for
+            # a correctly configured one -- data here may not survive a restart.
+            return False, "sqlite-fallback: configured database unreachable"
         return True, "connected"
     except Exception as exc:
         # The message is kept short: this is a public endpoint and the driver's
