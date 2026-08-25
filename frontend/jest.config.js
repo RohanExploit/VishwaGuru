@@ -4,8 +4,12 @@ export default {
   moduleNameMapper: {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
     '\\.(jpg|jpeg|png|gif|svg)$': '<rootDir>/src/__mocks__/fileMock.js',
-    '^\\./client$': '<rootDir>/src/__mocks__/client.js',
-    '^../client$': '<rootDir>/src/__mocks__/client.js',
+    // No global redirect for ./client. It pointed every importer at
+    // src/__mocks__/client.js, so api/__tests__/client.test.js asserted
+    // against a hand-written fixture instead of the real client -- eleven
+    // tests that could not fail if the client broke. Suites that do want a
+    // stub call jest.mock('../client', ...) with their own factory, and
+    // import.meta.env is handled by babel-plugin-transform-vite-meta-env.
     '^\\./location$': '<rootDir>/src/__mocks__/location.js',
     '^../location$': '<rootDir>/src/__mocks__/location.js'
   },
