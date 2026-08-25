@@ -269,7 +269,11 @@ function AppContent() {
 
       <FloatingButtonsManager setView={navigateToView} />
 
-      <div className="relative z-10">
+      {/* pb-40 clears the fixed buttons stacked in the bottom-right corner
+          (quick actions, chat, scroll-to-top). Without it the last row of the
+          home grid sits underneath them and cannot be tapped -- "Report Issue"
+          was unreachable on a 1080x2400 screen. */}
+      <div className="relative z-10 pb-40">
         <AppHeader />
 
         {/* Alert banners */}
