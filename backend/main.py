@@ -30,7 +30,9 @@ from fastapi import (
     HTTPException,
     Query,
     Request,
+    Response,
     UploadFile,
+    status,
 )
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
@@ -41,7 +43,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
-from sqlalchemy import func
+from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 
 from backend.ai_factory import create_all_ai_services
@@ -58,7 +60,7 @@ from backend.bot import (
     stop_bot_thread,
 )
 from backend.cache import recent_issues_cache
-from backend.database import Base, SessionLocal, engine
+from backend.database import SessionLocal, engine
 from backend.flood_detection import detect_flooding
 from backend.garbage_detection import detect_garbage
 from backend.hf_api_service import (
@@ -121,8 +123,17 @@ logger = logging.getLogger(__name__)
 # Only the process with this set runs the Telegram poller; see the lifespan.
 RUN_TELEGRAM_BOT = os.getenv("RUN_TELEGRAM_BOT", "").lower() in {"1", "true", "yes"}
 
-# Create the database tables
-Base.metadata.create_all(bind=engine)
+# Schema creation deliberately does NOT happen here.
+#
+# Base.metadata.create_all(bind=engine) used to run at import time, which meant
+# an unreachable database took the whole process down before it could serve a
+# single request -- including /health, so the platform could not even report
+# what was wrong. It also created tables implicitly and unversioned, which is
+# precisely what Alembic now owns.
+#
+# Migrations run as part of the start command (see render.yaml). A deploy that
+# cannot migrate fails visibly instead of serving 500s against a schema that was
+# never created.
 
 
 @asynccontextmanager
@@ -347,14 +358,71 @@ def root():
     )
 
 
+def _database_status() -> tuple[bool, str]:
+    """Actually open a connection and run a statement."""
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return True, "connected"
+    except Exception as exc:
+        # The message is kept short: this is a public endpoint and the driver's
+        # full error carries the host name and connection string.
+        logger.error("Database health check failed: %s", exc)
+        return False, f"unreachable: {type(exc).__name__}"
+
+
+def _ai_status() -> tuple[bool, str]:
+    try:
+        get_ai_services()
+        return True, "initialized"
+    except Exception:
+        return False, "not initialized"
+
+
 @app.get("/health", response_model=HealthResponse)
 @limiter.exempt
 def health():
+    """Liveness. 200 whenever the process can serve, so the platform does not
+    restart a service whose only problem is a dependency it cannot fix by
+    restarting.
+
+    It used to report {"database": "connected"} as a hard-coded string without
+    ever opening a connection. The deployed Postgres instance was deleted and
+    every database-backed endpoint returned 500 for days, while this endpoint
+    kept answering "healthy" -- so the platform health gate passed and nothing
+    surfaced the outage. It now reports what it actually finds.
+    """
+    db_ok, db_detail = _database_status()
+    ai_ok, ai_detail = _ai_status()
+
     return HealthResponse(
-        status="healthy",
+        status="healthy" if (db_ok and ai_ok) else "degraded",
         timestamp=datetime.now(UTC),
         version="1.0.0",
-        services={"database": "connected", "ai_services": "initialized"},
+        services={"database": db_detail, "ai_services": ai_detail},
+    )
+
+
+@app.get("/health/ready", response_model=HealthResponse)
+@limiter.exempt
+def readiness(response: Response):
+    """Readiness. 503 when a dependency the service needs is unavailable.
+
+    Point alerting and load-balancer membership at this, not at /health: a
+    process that is alive but cannot reach its database should be taken out of
+    rotation, but restarting it will not bring the database back.
+    """
+    db_ok, db_detail = _database_status()
+    ai_ok, ai_detail = _ai_status()
+
+    if not db_ok:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+
+    return HealthResponse(
+        status="healthy" if (db_ok and ai_ok) else "unhealthy" if not db_ok else "degraded",
+        timestamp=datetime.now(UTC),
+        version="1.0.0",
+        services={"database": db_detail, "ai_services": ai_detail},
     )
 
 

@@ -15,11 +15,15 @@ services:
     name: vishwaguru-backend
     runtime: python
     buildCommand: "pip install -r backend/requirements.txt"
-    # Migrations run once per deploy, before any instance starts, so a booting
-    # worker can assume the schema is correct. They are deliberately NOT run in
-    # the application lifespan: every worker would race to apply them.
-    preDeployCommand: "alembic upgrade head"
-    startCommand: "python start-backend.py"
+    # Migrations run before the server starts, and a failure aborts the boot
+    # rather than letting the service answer 500s against a schema that was
+    # never created.
+    #
+    # NOT preDeployCommand: Render only honours that on paid instance types and
+    # silently ignores it on the free tier, so the migrations never ran at all.
+    # On a paid plan, move this to preDeployCommand -- it belongs there, and
+    # running it in startCommand means every replica races to apply it.
+    startCommand: "alembic upgrade head && python start-backend.py"
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.0

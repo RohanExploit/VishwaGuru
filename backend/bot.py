@@ -13,8 +13,8 @@ from telegram.ext import (
     filters,
 )
 
-from backend.database import SessionLocal, engine
-from backend.models import Base, Issue
+from backend.database import SessionLocal
+from backend.models import Issue
 
 # Enable logging
 logging.basicConfig(
@@ -24,8 +24,12 @@ logging.basicConfig(
 # States for ConversationHandler
 PHOTO, DESCRIPTION, CATEGORY = range(3)
 
-# Initialize Database
-Base.metadata.create_all(bind=engine)
+# Schema creation is Alembic's job, not an import side effect.
+#
+# This ran at import time, and backend.main imports this module, so an
+# unreachable database took the entire API process down before it could serve
+# anything -- /health included. The bot writes to tables the migrations create;
+# it does not create them.
 
 # Create a global application instance placeholder
 application = None
