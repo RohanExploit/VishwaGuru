@@ -105,10 +105,9 @@ def test_importing_the_app_does_not_require_a_database():
     import backend.bot
     import backend.main
 
-    source = (
-        __import__("pathlib").Path(backend.main.__file__).read_text(encoding="utf-8")
-        + __import__("pathlib").Path(backend.bot.__file__).read_text(encoding="utf-8")
-    )
+    source = __import__("pathlib").Path(backend.main.__file__).read_text(
+        encoding="utf-8"
+    ) + __import__("pathlib").Path(backend.bot.__file__).read_text(encoding="utf-8")
     for line in source.splitlines():
         stripped = line.strip()
         if stripped.startswith("#"):

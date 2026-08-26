@@ -45,7 +45,11 @@ def stub_models(monkeypatch):
 
 # (path, body, the component that sends exactly this)
 FRONTEND_JSON_BODIES = [
-    ("/api/analyze-urgency", {"description": "Large pothole near the school gate"}, "views/ReportForm.jsx"),
+    (
+        "/api/analyze-urgency",
+        {"description": "Large pothole near the school gate"},
+        "views/ReportForm.jsx",
+    ),
     ("/api/chat", {"query": "Who fixes broken streetlights?"}, "components/ChatWidget.jsx"),
     ("/api/mh/rep-contacts", {"pincode": "411001"}, "api/location.js"),
 ]
@@ -55,8 +59,7 @@ FRONTEND_JSON_BODIES = [
 def test_frontend_json_body_is_accepted(client, path, body, source):
     response = client.post(path, json=body)
     assert response.status_code != 422, (
-        f"{path} rejected the body {source} actually sends: {body}\n"
-        f"Response: {response.text[:300]}"
+        f"{path} rejected the body {source} actually sends: {body}\nResponse: {response.text[:300]}"
     )
 
 
