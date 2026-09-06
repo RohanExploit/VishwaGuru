@@ -10,7 +10,18 @@ on:
 jobs:
   auto-deploy:
     runs-on: ubuntu-latest
-    
+
+    # The pipeline squash-merges open PRs through the REST API. Without these
+    # the default GITHUB_TOKEN is read-only and every merge came back
+    # "Resource not accessible by integration".
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
     steps:
       - name: Checkout repository with full history
         uses: actions/checkout@v4
@@ -45,8 +56,12 @@ jobs:
             pipeline_execution.log
             pipeline_report.json
             
+      # Skipped unless SLACK_WEBHOOK_URL is set. Previously this ran on every
+      # failure and, with no webhook configured, died with "Need to provide at
+      # least one botToken or webhookUrl" -- turning one red step into two.
       - name: Send Slack Notification on Failure
-        if: failure()
+        if: failure() && env.SLACK_WEBHOOK_URL != ''
+        continue-on-error: true
         uses: slackapi/slack-github-action@v1.24.0
         with:
           payload: |
@@ -54,4 +69,6 @@ jobs:
               "text": "🚨 *VishwaGuru Auto-Deploy Pipeline Failed!*\nCheck the logs for security violations or test failures: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Pipeline Run>"
             }
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} # Requires configuring SLACK_WEBHOOK_URL in repository secrets
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          # Required by the action when posting to an incoming webhook.
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
