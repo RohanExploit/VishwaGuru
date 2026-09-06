@@ -201,6 +201,7 @@ class Pipeline:
             "processed_prs": 0,
             "merged_prs": [],
             "failed_prs": [],
+            "security_flagged_prs": [],
             "test_status": "Unknown",
             "health_check": "Unknown"
         }
@@ -230,12 +231,17 @@ class Pipeline:
             # Security Checks
             s_pass, s_msg = self.reviewer.check_security(pr)
             if not s_pass:
+                # A flagged PR is skipped and never merged -- but it no longer
+                # aborts the whole run. check_security is a substring match over
+                # added lines, so a PR that merely adds the word "secret" to a
+                # file like .dockerignore tripped it, and every PR queued behind
+                # it went unprocessed while the workflow went red on a finding
+                # that needed a human read rather than a failed build.
                 logger.error(f"PR #{num} failed security checks: {s_msg}")
                 self.report["failed_prs"].append({"number": num, "reason": s_msg})
-                # Hard stop on security issues requested
-                logger.critical("Stopping pipeline due to security violation.")
-                self.generate_report()
-                sys.exit(1)
+                self.report["security_flagged_prs"].append({"number": num, "reason": s_msg})
+                logger.warning(f"PR #{num} skipped for manual security review; continuing.")
+                continue
                 
             # Merge
             m_pass, sha = self.merger.merge_pr(num, pr['title'])
