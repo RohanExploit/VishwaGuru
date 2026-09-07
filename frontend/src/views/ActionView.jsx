@@ -5,18 +5,13 @@ import StatusTracker from '../components/StatusTracker';
 const API_URL = import.meta.env.VITE_API_URL || '';
 
 const ActionView = ({ actionPlan, setActionPlan, setView }) => {
-  if (!actionPlan) {
-    return (
-      <div className="mt-6 text-center p-8">
-        <h2 className="text-xl font-bold text-gray-800 mb-2">No action plan found</h2>
-        <p className="text-gray-600 mb-4">Please submit a complaint first to generate an action plan.</p>
-        <button onClick={() => setView('report')} className="text-blue-600 underline">Go to Report Form</button>
-      </div>
-    );
-  }
+  // This effect must run before any early return. It previously sat below the
+  // `if (!actionPlan)` bail-out, so the component called a different number of
+  // hooks depending on its props -- once actionPlan went from null to set,
+  // React threw "Rendered more hooks than during the previous render".
   useEffect(() => {
     let interval;
-    if (actionPlan.status === 'generating' && actionPlan.id) {
+    if (actionPlan && actionPlan.status === 'generating' && actionPlan.id) {
       interval = setInterval(async () => {
         try {
           const res = await fetch(`${API_URL}/api/issues/recent`);
@@ -39,6 +34,16 @@ if (issue && issue.action_plan && issue.action_plan.whatsapp) {
     }
     return () => clearInterval(interval);
   }, [actionPlan, setActionPlan]);
+
+  if (!actionPlan) {
+    return (
+      <div className="mt-6 text-center p-8">
+        <h2 className="text-xl font-bold text-gray-800 mb-2">No action plan found</h2>
+        <p className="text-gray-600 mb-4">Please submit a complaint first to generate an action plan.</p>
+        <button onClick={() => setView('report')} className="text-blue-600 underline">Go to Report Form</button>
+      </div>
+    );
+  }
 
   if (actionPlan.status === 'generating') {
       return (

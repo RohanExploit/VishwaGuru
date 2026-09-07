@@ -120,7 +120,7 @@ describe('issuesApi', () => {
 
       const result = await issuesApi.vote(issueId);
 
-      expect(apiClient.post).toHaveBeenCalledWith('/api/issues/123/vote', {});
+      expect(apiClient.post).toHaveBeenCalledWith('/api/issues/123/upvote', {});
       expect(result).toEqual(mockResponse);
     });
 
@@ -132,7 +132,7 @@ describe('issuesApi', () => {
 
         await issuesApi.vote(issueId);
 
-        expect(apiClient.post).toHaveBeenCalledWith(`/api/issues/${issueId}/vote`, {});
+        expect(apiClient.post).toHaveBeenCalledWith(`/api/issues/${issueId}/upvote`, {});
       }
     });
 

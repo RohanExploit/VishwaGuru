@@ -2,14 +2,18 @@ import json
 import os
 from functools import lru_cache
 
+
 @lru_cache(maxsize=1)
 def _load_responsibility_map():
-    file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "responsibility_map.json")
+    file_path = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)), "data", "responsibility_map.json"
+    )
     try:
-        with open(file_path, "r") as f:
+        with open(file_path) as f:
             return json.load(f)
     except FileNotFoundError:
         return {}
+
 
 def get_responsible_authority():
     """

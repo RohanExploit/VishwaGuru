@@ -1,15 +1,18 @@
 """
 Spatial utilities for geospatial operations and deduplication.
 """
+
 import math
-from typing import List, Tuple, Optional
-from sklearn.cluster import DBSCAN
+
 import numpy as np
+from sklearn.cluster import DBSCAN
 
 from backend.models import Issue
 
 
-def get_bounding_box(lat: float, lon: float, radius_meters: float) -> Tuple[float, float, float, float]:
+def get_bounding_box(
+    lat: float, lon: float, radius_meters: float
+) -> tuple[float, float, float, float]:
     """
     Calculate the bounding box coordinates for a given radius.
     Returns (min_lat, max_lat, min_lon, max_lon).
@@ -50,18 +53,15 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     dlambda = math.radians(lon2 - lon1)
 
     # Haversine formula
-    a = math.sin(dphi / 2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2)**2
+    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
     return R * c
 
 
 def find_nearby_issues(
-    issues: List[Issue],
-    target_lat: float,
-    target_lon: float,
-    radius_meters: float = 50.0
-) -> List[Tuple[Issue, float]]:
+    issues: list[Issue], target_lat: float, target_lon: float, radius_meters: float = 50.0
+) -> list[tuple[Issue, float]]:
     """
     Find issues within a specified radius of a target location.
 
@@ -78,9 +78,7 @@ def find_nearby_issues(
 
     # Fast bounding box pre-filter with a 5% epsilon to optimize expensive haversine calculations
     epsilon_radius = radius_meters * 1.05
-    min_lat, max_lat, min_lon, max_lon = get_bounding_box(
-        target_lat, target_lon, epsilon_radius
-    )
+    min_lat, max_lat, min_lon, max_lon = get_bounding_box(target_lat, target_lon, epsilon_radius)
 
     for issue in issues:
         if issue.latitude is None or issue.longitude is None:
@@ -89,15 +87,13 @@ def find_nearby_issues(
         # Skip issues outside the bounding box
         lon_delta = (issue.longitude - target_lon + 180) % 360 - 180
         lon_half_width = max(target_lon - min_lon, max_lon - target_lon)
-        if not (min_lat <= issue.latitude <= max_lat and (
-            abs(target_lat) >= 89.9 or abs(lon_delta) <= lon_half_width
-        )):
+        if not (
+            min_lat <= issue.latitude <= max_lat
+            and (abs(target_lat) >= 89.9 or abs(lon_delta) <= lon_half_width)
+        ):
             continue
 
-        distance = haversine_distance(
-            target_lat, target_lon,
-            issue.latitude, issue.longitude
-        )
+        distance = haversine_distance(target_lat, target_lon, issue.latitude, issue.longitude)
 
         if distance <= radius_meters:
             nearby_issues.append((issue, distance))
@@ -108,7 +104,7 @@ def find_nearby_issues(
     return nearby_issues
 
 
-def cluster_issues_dbscan(issues: List[Issue], eps_meters: float = 30.0) -> List[List[Issue]]:
+def cluster_issues_dbscan(issues: list[Issue], eps_meters: float = 30.0) -> list[list[Issue]]:
     """
     Cluster issues using DBSCAN algorithm based on spatial proximity.
 
@@ -122,17 +118,14 @@ def cluster_issues_dbscan(issues: List[Issue], eps_meters: float = 30.0) -> List
     """
     # Filter issues with valid coordinates
     valid_issues = [
-        issue for issue in issues
-        if issue.latitude is not None and issue.longitude is not None
+        issue for issue in issues if issue.latitude is not None and issue.longitude is not None
     ]
 
     if not valid_issues:
         return []
 
     # Convert to numpy array for DBSCAN
-    coordinates = np.array([
-        [issue.latitude, issue.longitude] for issue in valid_issues
-    ])
+    coordinates = np.array([[issue.latitude, issue.longitude] for issue in valid_issues])
 
     # Convert eps from meters to degrees (approximate)
     # 1 degree latitude ≈ 111,000 meters
@@ -140,9 +133,7 @@ def cluster_issues_dbscan(issues: List[Issue], eps_meters: float = 30.0) -> List
     eps_degrees = eps_meters / 111000  # Rough approximation
 
     # Perform DBSCAN clustering
-    db = DBSCAN(eps=eps_degrees, min_samples=1, metric='haversine').fit(
-        np.radians(coordinates)
-    )
+    db = DBSCAN(eps=eps_degrees, min_samples=1, metric="haversine").fit(np.radians(coordinates))
 
     # Group issues by cluster
     clusters = {}
@@ -155,7 +146,7 @@ def cluster_issues_dbscan(issues: List[Issue], eps_meters: float = 30.0) -> List
     return [cluster for label, cluster in clusters.items() if label != -1]
 
 
-def get_cluster_representative(cluster: List[Issue]) -> Issue:
+def get_cluster_representative(cluster: list[Issue]) -> Issue:
     """
     Get the representative issue from a cluster.
     Uses the issue with the most upvotes, or the oldest if tie.
@@ -170,15 +161,12 @@ def get_cluster_representative(cluster: List[Issue]) -> Issue:
         raise ValueError("Cluster cannot be empty")
 
     # Sort by upvotes (descending), then by creation date (ascending)
-    sorted_issues = sorted(
-        cluster,
-        key=lambda x: (-(x.upvotes or 0), x.created_at)
-    )
+    sorted_issues = sorted(cluster, key=lambda x: (-(x.upvotes or 0), x.created_at))
 
     return sorted_issues[0]
 
 
-def calculate_cluster_centroid(cluster: List[Issue]) -> Tuple[float, float]:
+def calculate_cluster_centroid(cluster: list[Issue]) -> tuple[float, float]:
     """
     Calculate the centroid (average position) of a cluster of issues.
 
@@ -189,8 +177,7 @@ def calculate_cluster_centroid(cluster: List[Issue]) -> Tuple[float, float]:
         Tuple of (latitude, longitude) representing the centroid
     """
     valid_issues = [
-        issue for issue in cluster
-        if issue.latitude is not None and issue.longitude is not None
+        issue for issue in cluster if issue.latitude is not None and issue.longitude is not None
     ]
 
     if not valid_issues:

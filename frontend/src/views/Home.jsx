@@ -1,11 +1,11 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
 import {
   AlertTriangle, MapPin, Search, Activity, Camera, Trash2, ThumbsUp,
   Brush, Droplets, Zap, Truck, Flame, Dog, XCircle, Lightbulb, TreePine,
   ChevronRight, ChevronUp, Shield, Monitor, Scan, Trophy,
-  LayoutGrid, Leaf, Bug, Volume2, Users, Waves, Recycle, Eye, CheckCircle
+  LayoutGrid, Leaf, Bug, Volume2, Users, Waves, Recycle, Eye, CheckCircle,
+  Accessibility, Gauge
 } from 'lucide-react';
 
 // ─── Camera Check Modal ────────────────────────────────────────────────────────
@@ -57,7 +57,6 @@ const CameraCheckModal = ({ onClose }) => {
 
 // ─── Home Component ────────────────────────────────────────────────────────────
 const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote }) => {
-  const navigate = useNavigate();
   const [showCameraCheck, setShowCameraCheck] = React.useState(false);
   const [showScrollTop, setShowScrollTop] = React.useState(false);
   const totalImpact = 1240 + (recentIssues ? recentIssues.length : 0);
@@ -96,6 +95,22 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote }) =
         { id: 'animal', label: 'Stray Animal', icon: <Dog size={24} />, color: 'text-amber-600', bg: 'bg-amber-50' },
         { id: 'infrastructure', label: 'Broken Infra', icon: <Zap size={24} />, color: 'text-yellow-600', bg: 'bg-yellow-50' },
         { id: 'vandalism', label: 'Graffiti', icon: <Brush size={24} />, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+        { id: 'waste', label: 'Waste Type', icon: <Recycle size={24} />, color: 'text-lime-600', bg: 'bg-lime-50' },
+        { id: 'water-leak', label: 'Water Leak', icon: <Waves size={24} />, color: 'text-sky-600', bg: 'bg-sky-50' },
+        { id: 'pest', label: 'Pest / Mosquito', icon: <Bug size={24} />, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+        { id: 'noise', label: 'Noise', icon: <Volume2 size={24} />, color: 'text-fuchsia-600', bg: 'bg-fuchsia-50' },
+      ]
+    },
+    {
+      // These four components were written but never routed or linked, so no
+      // user could reach them. Their backend endpoints exist now.
+      title: 'Community & Access',
+      icon: <Users size={20} className="text-blue-600" />,
+      items: [
+        { id: 'accessibility', label: 'Accessibility', icon: <Accessibility size={24} />, color: 'text-blue-600', bg: 'bg-blue-50' },
+        { id: 'crowd', label: 'Crowd Density', icon: <Users size={24} />, color: 'text-violet-600', bg: 'bg-violet-50' },
+        { id: 'civic-eye', label: 'Civic Eye', icon: <Eye size={24} />, color: 'text-teal-600', bg: 'bg-teal-50' },
+        { id: 'severity', label: 'Severity Check', icon: <Gauge size={24} />, color: 'text-red-600', bg: 'bg-red-50' },
       ]
     },
     {
@@ -133,9 +148,12 @@ const Home = ({ setView, fetchResponsibilityMap, recentIssues, handleUpvote }) =
             </div>
           </button>
 
-          {/* Smart Scanner CTA */}
+          {/* Smart Scanner CTA.
+              This opened the pothole detector, so the app's most prominent
+              call to action -- "AI-powered issue detection" -- led somewhere
+              else entirely, and the Smart Scanner screen was unreachable. */}
           <button
-            onClick={() => setView('pothole')}
+            onClick={() => setView('smart-scan')}
             className="w-full bg-gradient-to-br from-blue-500 to-cyan-600 p-6 rounded-2xl shadow-lg flex items-center justify-between text-white hover:opacity-95 transition transform hover:scale-[1.02] active:scale-95 group"
           >
             <div className="flex items-center gap-4">

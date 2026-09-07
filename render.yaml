@@ -15,7 +15,15 @@ services:
     name: vishwaguru-backend
     runtime: python
     buildCommand: "pip install -r backend/requirements.txt"
-    startCommand: "pip install uvicorn && python start-backend.py"
+    # Migrations run before the server starts, and a failure aborts the boot
+    # rather than letting the service answer 500s against a schema that was
+    # never created.
+    #
+    # NOT preDeployCommand: Render only honours that on paid instance types and
+    # silently ignores it on the free tier, so the migrations never ran at all.
+    # On a paid plan, move this to preDeployCommand -- it belongs there, and
+    # running it in startCommand means every replica races to apply it.
+    startCommand: "alembic upgrade head && python start-backend.py"
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.0
@@ -24,8 +32,19 @@ services:
           type: web
           name: vishwaguru-backend
           property: port
+      # Repo root, not backend/. Every intra-project import is now fully
+      # qualified as `backend.x`, so backend/ must NOT be on sys.path -- having
+      # it there let the same module load twice under two names.
       - key: PYTHONPATH
-        value: backend
+        value: .
+      # Administrative key for the two endpoints that change state officials
+      # act on (grievance escalation, issue verification). At least 32
+      # characters. If unset, those endpoints fail closed with 503.
+      - key: ADMIN_API_KEY
+        sync: false
+      # Optional: verifies bearer tokens used for user attribution.
+      - key: JWT_SECRET
+        sync: false
       # Required API Keys (must be set in Render dashboard)
       - key: GEMINI_API_KEY
         sync: false
@@ -52,11 +71,24 @@ services:
         value: 10
       - key: ALLOWED_FILE_TYPES
         value: image/jpeg,image/png,image/jpg,video/mp4
-      # Rate limiting
+      # Rate limiting. These were declared here long before anything enforced
+      # them; slowapi now reads them at startup.
       - key: RATE_LIMIT_ENABLED
         value: true
       - key: MAX_REQUESTS_PER_MINUTE
         value: 60
+      # Routes that call a paid inference API get a tighter bucket.
+      - key: AI_REQUESTS_PER_MINUTE
+        value: 12
+      # Counters live in-process, which is correct for one instance. Point this
+      # at redis:// before scaling to more than one.
+      - key: RATE_LIMIT_STORAGE_URI
+        value: memory://
+      # Leave unset on the web service. The Telegram poller must run in exactly
+      # one process: Telegram answers HTTP 409 to a second long-poll on the same
+      # token, so setting this on a multi-worker web service breaks the bot.
+      - key: RUN_TELEGRAM_BOT
+        value: false
     healthCheckPath: /health
     # Add disk for SQLite database (if using SQLite)
     disk:

@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Mic, MicOff, Loader2 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 
 const VoiceInput = ({ onTranscript, language = 'en' }) => {
-  const { t } = useTranslation();
   const [isListening, setIsListening] = useState(false);
   const [recognition, setRecognition] = useState(null);
   const [error, setError] = useState(null);

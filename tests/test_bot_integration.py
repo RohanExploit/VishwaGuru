@@ -2,24 +2,22 @@
 Tests for Telegram Bot functionality and async integration.
 Tests verify that bot commands respond under load and don't block FastAPI.
 """
+
+import asyncio
 import os
 import sys
-import asyncio
 import threading
 import time
 
 # Add backend to path
-backend_path = os.path.join(os.path.dirname(__file__), '..', 'backend')
+backend_path = os.path.join(os.path.dirname(__file__), "..")
 sys.path.insert(0, backend_path)
 
-from bot import (
-    start_bot_thread,
-    stop_bot_thread,
-    _bot_thread,
-    _shutdown_event,
-    _bot_application,
-    run_bot
-)
+# The module itself is imported so that `bot._bot_thread` reads the live
+# global. `from backend.bot import _bot_thread` binds a snapshot, so the
+# assertions below could never observe the thread the runner actually created.
+from backend import bot
+from backend.bot import run_bot, start_bot_thread, stop_bot_thread
 
 
 class TestBotAsyncIntegration:
@@ -27,22 +25,21 @@ class TestBotAsyncIntegration:
 
     def setup_method(self):
         """Setup before each test"""
-        # Reset global state
-        global _bot_thread, _shutdown_event, _bot_application
-        if _bot_thread and _bot_thread.is_alive():
+        # Reset global state on the module, not on local rebindings.
+        if bot._bot_thread and bot._bot_thread.is_alive():
             stop_bot_thread()
-        _bot_thread = None
-        _shutdown_event = threading.Event()
-        _bot_application = None
+        bot._bot_thread = None
+        bot._shutdown_event = threading.Event()
+        bot._bot_application = None
 
         # Set test token
-        os.environ['TELEGRAM_BOT_TOKEN'] = 'test_token_123'
+        os.environ["TELEGRAM_BOT_TOKEN"] = "test_token_123"
 
     def teardown_method(self):
         """Cleanup after each test"""
         stop_bot_thread()
-        if 'TELEGRAM_BOT_TOKEN' in os.environ:
-            del os.environ['TELEGRAM_BOT_TOKEN']
+        if "TELEGRAM_BOT_TOKEN" in os.environ:
+            del os.environ["TELEGRAM_BOT_TOKEN"]
 
     def test_bot_thread_management(self):
         """Test basic bot thread management without actual polling"""
@@ -59,14 +56,14 @@ class TestBotAsyncIntegration:
         stop_bot_thread()
 
         # Verify cleanup
-        assert _bot_thread is None
-        assert _bot_application is None
+        assert bot._bot_thread is None
+        assert bot._bot_application is None
 
     def test_bot_without_token(self):
         """Test bot behavior when no token is provided"""
         # Remove token
-        if 'TELEGRAM_BOT_TOKEN' in os.environ:
-            del os.environ['TELEGRAM_BOT_TOKEN']
+        if "TELEGRAM_BOT_TOKEN" in os.environ:
+            del os.environ["TELEGRAM_BOT_TOKEN"]
 
         # Start bot thread (should not actually start polling)
         start_bot_thread()
@@ -81,7 +78,7 @@ class TestBotAsyncIntegration:
         stop_bot_thread()
 
         # Verify cleanup
-        assert _bot_thread is None
+        assert bot._bot_thread is None
 
     def test_multiple_bot_starts(self):
         """Test that starting bot multiple times doesn't create multiple threads"""
@@ -98,6 +95,7 @@ class TestBotAsyncIntegration:
 
     def test_run_bot_legacy_function(self):
         """Test the legacy run_bot function still works"""
+
         async def test_run():
             result = await run_bot()
             # Should return None since it starts in thread
@@ -106,7 +104,7 @@ class TestBotAsyncIntegration:
         asyncio.run(test_run())
 
         # Verify bot thread was started
-        assert _bot_thread is not None
+        assert bot._bot_thread is not None
 
         # Stop
         stop_bot_thread()
@@ -117,13 +115,13 @@ class TestBotLoadHandling:
 
     def setup_method(self):
         """Setup before each test"""
-        os.environ['TELEGRAM_BOT_TOKEN'] = 'test_token_123'
+        os.environ["TELEGRAM_BOT_TOKEN"] = "test_token_123"
 
     def teardown_method(self):
         """Cleanup after each test"""
         stop_bot_thread()
-        if 'TELEGRAM_BOT_TOKEN' in os.environ:
-            del os.environ['TELEGRAM_BOT_TOKEN']
+        if "TELEGRAM_BOT_TOKEN" in os.environ:
+            del os.environ["TELEGRAM_BOT_TOKEN"]
 
     def test_concurrent_operations_simulation(self):
         """Test that bot thread doesn't interfere with main thread operations"""
@@ -134,7 +132,7 @@ class TestBotLoadHandling:
         start_time = time.time()
 
         # Simulate main thread work (like FastAPI requests)
-        for i in range(100):
+        for _i in range(100):
             time.sleep(0.001)  # Small delay to simulate work
             # Check that we can still do other operations
             assert True
@@ -149,6 +147,7 @@ class TestBotLoadHandling:
 
     def test_async_event_loop_isolation(self):
         """Test that bot thread doesn't interfere with async event loop"""
+
         async def test_async_operations():
             """Test that async operations work while bot is running"""
             # Start bot
@@ -156,7 +155,7 @@ class TestBotLoadHandling:
 
             # Should be able to run async operations concurrently
             tasks = []
-            for i in range(10):
+            for _i in range(10):
                 task = asyncio.create_task(asyncio.sleep(0.01))
                 tasks.append(task)
 
@@ -174,13 +173,13 @@ class TestBotErrorHandling:
 
     def setup_method(self):
         """Setup before each test"""
-        os.environ['TELEGRAM_BOT_TOKEN'] = 'test_token_123'
+        os.environ["TELEGRAM_BOT_TOKEN"] = "test_token_123"
 
     def teardown_method(self):
         """Cleanup after each test"""
         stop_bot_thread()
-        if 'TELEGRAM_BOT_TOKEN' in os.environ:
-            del os.environ['TELEGRAM_BOT_TOKEN']
+        if "TELEGRAM_BOT_TOKEN" in os.environ:
+            del os.environ["TELEGRAM_BOT_TOKEN"]
 
     def test_bot_graceful_shutdown(self):
         """Test bot shuts down gracefully"""

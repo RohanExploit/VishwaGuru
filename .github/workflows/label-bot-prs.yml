@@ -1,0 +1,31 @@
+name: Label bot PRs
+
+# Replaces auto-merge-jules.yml (deleted 2026-08-19).
+# The old workflow squash-merged every google-labs-jules PR automatically with
+# elevated write permissions on a fork-PR trigger, gated on
+# wait-on-check-action -- but the repository had no CI checks at the time, so the
+# gate passed vacuously and unreviewed code landed on main daily.
+# Bot PRs are now labelled only. A human merges them, after CI passes.
+
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  label:
+    if: startsWith(github.event.pull_request.user.login, 'google-labs-jules')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add review-required label
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              labels: ['bot-generated', 'needs-human-review'],
+            });

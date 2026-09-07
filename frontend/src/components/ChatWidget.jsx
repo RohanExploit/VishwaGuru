@@ -53,7 +53,12 @@ const ChatWidget = () => {
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end">
+    // Positioning is owned by the parent (EnhancedChatWidget in App.jsx), which
+    // is itself `fixed`. This element used to be fixed too, at a 16px offset
+    // against the wrapper's 32px, so the button escaped the wrapper while the
+    // hover tooltip and the green status dot stayed anchored to it -- they
+    // rendered detached from the control they describe.
+    <div className="flex flex-col items-end">
       {/* Chat Window */}
       {isOpen && (
         <div className="bg-white rounded-lg shadow-xl w-80 sm:w-96 h-[500px] flex flex-col mb-4 border border-gray-200 overflow-hidden transition-all duration-300 ease-in-out">

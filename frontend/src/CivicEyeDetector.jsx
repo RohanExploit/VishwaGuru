@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Camera, Eye, Activity, Shield, Sparkles, MapPin, RefreshCw, AlertTriangle } from 'lucide-react';
 import { detectorsApi } from './api';
 
-const CivicEyeDetector = ({ onBack }) => {
+const CivicEyeDetector = ({ onBack: _onBack }) => {
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
     const [stream, setStream] = useState(null);

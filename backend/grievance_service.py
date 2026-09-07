@@ -3,20 +3,27 @@ Grievance Service - Main Interface
 Provides the main interface for grievance management and escalation.
 """
 
-import json
-import uuid
 import hashlib
+import json
 import threading
-from typing import Dict, Any, Optional, List
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import and_, desc
-from datetime import datetime, timezone, timedelta
+import uuid
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
-from backend.models import Grievance, Jurisdiction, GrievanceStatus, SeverityLevel, GrievanceFollower
+from sqlalchemy import and_, desc
+from sqlalchemy.orm import Session, joinedload
+
 from backend.database import SessionLocal
+from backend.escalation_engine import EscalationEngine
+from backend.models import (
+    Grievance,
+    GrievanceFollower,
+    GrievanceStatus,
+    SeverityLevel,
+)
 from backend.routing_service import RoutingService
 from backend.sla_config_service import SLAConfigService
-from backend.escalation_engine import EscalationEngine
+
 
 class GrievanceService:
     """
@@ -35,20 +42,20 @@ class GrievanceService:
         Args:
             rules_config_path: Path to the rules configuration file
         """
-        with open(rules_config_path, 'r') as f:
+        with open(rules_config_path) as f:
             self.rules_config = json.load(f)
 
         self.routing_service = RoutingService(self.rules_config)
         self.sla_service = SLAConfigService(
-            default_sla_hours=self.rules_config.get('sla_defaults', {}).get('default_hours', 48)
+            default_sla_hours=self.rules_config.get("sla_defaults", {}).get("default_hours", 48)
         )
         self.escalation_engine = EscalationEngine(
-            self.routing_service,
-            self.sla_service,
-            self.rules_config
+            self.routing_service, self.sla_service, self.rules_config
         )
 
-    def create_grievance(self, grievance_data: Dict[str, Any], db: Session = None) -> Optional[Grievance]:
+    def create_grievance(
+        self, grievance_data: dict[str, Any], db: Session = None
+    ) -> Grievance | None:
         """
         Create a new grievance with automatic routing and SLA assignment.
 
@@ -73,47 +80,46 @@ class GrievanceService:
 
             # Assign authority
             assigned_authority = self.routing_service.assign_authority(
-                jurisdiction,
-                grievance_data.get('category', 'general')
+                jurisdiction, grievance_data.get("category", "general")
             )
 
             # Calculate SLA
-            severity = SeverityLevel(grievance_data.get('severity', 'medium'))
+            severity = SeverityLevel(grievance_data.get("severity", "medium"))
             sla_hours = self.sla_service.get_sla_hours(
                 severity=severity,
                 jurisdiction_level=jurisdiction.level,
-                department=grievance_data.get('category', 'general'),
-                db=db
+                department=grievance_data.get("category", "general"),
+                db=db,
             )
 
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             sla_deadline = now + timedelta(hours=sla_hours)
 
             # Generate unique ID
             unique_id = str(uuid.uuid4())[:8].upper()
 
             # Extract location data
-            location_data = grievance_data.get('location', {})
-            latitude = location_data.get('latitude') if isinstance(location_data, dict) else None
-            longitude = location_data.get('longitude') if isinstance(location_data, dict) else None
-            address = location_data.get('address') if isinstance(location_data, dict) else None
+            location_data = grievance_data.get("location", {})
+            latitude = location_data.get("latitude") if isinstance(location_data, dict) else None
+            longitude = location_data.get("longitude") if isinstance(location_data, dict) else None
+            address = location_data.get("address") if isinstance(location_data, dict) else None
 
             # Create grievance
             grievance = Grievance(
                 unique_id=unique_id,
-                category=grievance_data.get('category', 'general'),
+                category=grievance_data.get("category", "general"),
                 severity=severity,
-                pincode=grievance_data.get('pincode'),
-                city=grievance_data.get('city'),
-                district=grievance_data.get('district'),
-                state=grievance_data.get('state'),
+                pincode=grievance_data.get("pincode"),
+                city=grievance_data.get("city"),
+                district=grievance_data.get("district"),
+                state=grievance_data.get("state"),
                 latitude=latitude,
                 longitude=longitude,
                 address=address,
                 current_jurisdiction_id=jurisdiction.id,
                 assigned_authority=assigned_authority,
                 sla_deadline=sla_deadline,
-                status=GrievanceStatus.OPEN
+                status=GrievanceStatus.OPEN,
             )
 
             db.add(grievance)
@@ -130,7 +136,9 @@ class GrievanceService:
             if is_local_session:
                 db.close()
 
-    def follow_grievance(self, grievance_id: int, user_email: str, db: Session = None) -> Optional[GrievanceFollower]:
+    def follow_grievance(
+        self, grievance_id: int, user_email: str, db: Session = None
+    ) -> GrievanceFollower | None:
         """
         Add a follower to a grievance with blockchain-style integrity hash.
         Optimized with O(1) hash cache to avoid expensive DB scans.
@@ -142,12 +150,16 @@ class GrievanceService:
 
         try:
             # Check if already following
-            existing = db.query(GrievanceFollower).filter(
-                and_(
-                    GrievanceFollower.grievance_id == grievance_id,
-                    GrievanceFollower.user_email == user_email
+            existing = (
+                db.query(GrievanceFollower)
+                .filter(
+                    and_(
+                        GrievanceFollower.grievance_id == grievance_id,
+                        GrievanceFollower.user_email == user_email,
+                    )
                 )
-            ).first()
+                .first()
+            )
             if existing:
                 return existing
 
@@ -162,7 +174,7 @@ class GrievanceService:
                 grievance_id=grievance_id,
                 user_email=user_email,
                 integrity_hash=new_hash,
-                previous_integrity_hash=prev_hash
+                previous_integrity_hash=prev_hash,
             )
 
             db.add(follower)
@@ -183,7 +195,7 @@ class GrievanceService:
             if is_local_session:
                 db.close()
 
-    def _get_last_integrity_hash(self, grievance_id: int, db: Session) -> Optional[str]:
+    def _get_last_integrity_hash(self, grievance_id: int, db: Session) -> str | None:
         """
         Retrieves the last integrity hash for a grievance.
         Bolt Optimization: Uses thread-safe memory cache for O(1) lookup.
@@ -193,10 +205,12 @@ class GrievanceService:
                 return self._follower_last_hash_cache[grievance_id]
 
         # Cache miss: Fallback to indexed DB query
-        last_follower = db.query(GrievanceFollower)\
-            .filter(GrievanceFollower.grievance_id == grievance_id)\
-            .order_by(desc(GrievanceFollower.id))\
+        last_follower = (
+            db.query(GrievanceFollower)
+            .filter(GrievanceFollower.grievance_id == grievance_id)
+            .order_by(desc(GrievanceFollower.id))
             .first()
+        )
 
         last_hash = last_follower.integrity_hash if last_follower else None
 
@@ -207,7 +221,7 @@ class GrievanceService:
 
         return last_hash
 
-    def verify_follower_integrity(self, follower_id: int, db: Session = None) -> Dict[str, Any]:
+    def verify_follower_integrity(self, follower_id: int, db: Session = None) -> dict[str, Any]:
         """
         Verify the blockchain-style integrity of a follower record.
         """
@@ -217,7 +231,9 @@ class GrievanceService:
             is_local_session = True
 
         try:
-            follower = db.query(GrievanceFollower).filter(GrievanceFollower.id == follower_id).first()
+            follower = (
+                db.query(GrievanceFollower).filter(GrievanceFollower.id == follower_id).first()
+            )
             if not follower:
                 return {"is_valid": False, "message": "Follower record not found"}
 
@@ -225,20 +241,20 @@ class GrievanceService:
             hash_input = f"{follower.grievance_id}|{follower.user_email}|{follower.previous_integrity_hash or 'GENESIS'}"
             calculated_hash = hashlib.sha256(hash_input.encode()).hexdigest()
 
-            is_valid = (calculated_hash == follower.integrity_hash)
+            is_valid = calculated_hash == follower.integrity_hash
 
             return {
                 "is_valid": is_valid,
                 "current_hash": follower.integrity_hash,
                 "calculated_hash": calculated_hash,
                 "previous_hash": follower.previous_integrity_hash,
-                "message": "Integrity verified" if is_valid else "INTEGRITY BREACH DETECTED"
+                "message": "Integrity verified" if is_valid else "INTEGRITY BREACH DETECTED",
             }
         finally:
             if is_local_session:
                 db.close()
 
-    def get_grievance(self, grievance_id: int, db: Session = None) -> Optional[Grievance]:
+    def get_grievance(self, grievance_id: int, db: Session = None) -> Grievance | None:
         """
         Get a grievance by ID.
 
@@ -255,17 +271,20 @@ class GrievanceService:
             is_local_session = True
 
         try:
-            return db.query(Grievance).options(
-                joinedload(Grievance.jurisdiction),
-                joinedload(Grievance.audit_logs)
-            ).filter(Grievance.id == grievance_id).first()
+            return (
+                db.query(Grievance)
+                .options(joinedload(Grievance.jurisdiction), joinedload(Grievance.audit_logs))
+                .filter(Grievance.id == grievance_id)
+                .first()
+            )
 
         finally:
             if is_local_session:
                 db.close()
 
-    def update_grievance_status(self, grievance_id: int, status: GrievanceStatus,
-                               db: Session = None) -> bool:
+    def update_grievance_status(
+        self, grievance_id: int, status: GrievanceStatus, db: Session = None
+    ) -> bool:
         """
         Update the status of a grievance.
 
@@ -288,10 +307,10 @@ class GrievanceService:
                 return False
 
             grievance.status = status
-            grievance.updated_at = datetime.now(timezone.utc)
+            grievance.updated_at = datetime.now(UTC)
 
             if status == GrievanceStatus.RESOLVED:
-                grievance.resolved_at = datetime.now(timezone.utc)
+                grievance.resolved_at = datetime.now(UTC)
 
             db.commit()
             return True
@@ -304,8 +323,9 @@ class GrievanceService:
             if is_local_session:
                 db.close()
 
-    def escalate_grievance_severity(self, grievance_id: int, new_severity: SeverityLevel,
-                                   reason: str = "") -> bool:
+    def escalate_grievance_severity(
+        self, grievance_id: int, new_severity: SeverityLevel, reason: str = ""
+    ) -> bool:
         """
         Escalate grievance severity.
 
@@ -317,7 +337,9 @@ class GrievanceService:
         Returns:
             True if escalation successful
         """
-        return self.escalation_engine.escalate_grievance_severity(grievance_id, new_severity, reason)
+        return self.escalation_engine.escalate_grievance_severity(
+            grievance_id, new_severity, reason
+        )
 
     def manual_escalate(self, grievance_id: int, reason: str = "") -> bool:
         """
@@ -332,7 +354,7 @@ class GrievanceService:
         """
         return self.escalation_engine.manual_escalate(grievance_id, reason)
 
-    def run_escalation_check(self) -> Dict[str, int]:
+    def run_escalation_check(self) -> dict[str, int]:
         """
         Run periodic escalation evaluation for all grievances.
 
@@ -341,7 +363,9 @@ class GrievanceService:
         """
         return self.escalation_engine.evaluate_and_escalate_grievances()
 
-    def get_grievance_audit_trail(self, grievance_id: int, db: Session = None) -> List[Dict[str, Any]]:
+    def get_grievance_audit_trail(
+        self, grievance_id: int, db: Session = None
+    ) -> list[dict[str, Any]]:
         """
         Get the complete audit trail for a grievance.
 
@@ -364,13 +388,15 @@ class GrievanceService:
 
             audit_trail = []
             for audit in grievance.audit_logs:
-                audit_trail.append({
-                    "timestamp": audit.timestamp.isoformat(),
-                    "previous_authority": audit.previous_authority,
-                    "new_authority": audit.new_authority,
-                    "reason": audit.reason.value,
-                    "notes": audit.notes
-                })
+                audit_trail.append(
+                    {
+                        "timestamp": audit.timestamp.isoformat(),
+                        "previous_authority": audit.previous_authority,
+                        "new_authority": audit.new_authority,
+                        "reason": audit.reason.value,
+                        "notes": audit.notes,
+                    }
+                )
 
             return audit_trail
 
@@ -378,7 +404,9 @@ class GrievanceService:
             if is_local_session:
                 db.close()
 
-    def get_active_grievances_by_jurisdiction(self, jurisdiction_id: int, db: Session = None) -> List[Grievance]:
+    def get_active_grievances_by_jurisdiction(
+        self, jurisdiction_id: int, db: Session = None
+    ) -> list[Grievance]:
         """
         Get active grievances for a specific jurisdiction.
 
@@ -395,12 +423,22 @@ class GrievanceService:
             is_local_session = True
 
         try:
-            return db.query(Grievance).filter(
-                and_(
-                    Grievance.current_jurisdiction_id == jurisdiction_id,
-                    Grievance.status.in_([GrievanceStatus.OPEN, GrievanceStatus.IN_PROGRESS, GrievanceStatus.ESCALATED])
+            return (
+                db.query(Grievance)
+                .filter(
+                    and_(
+                        Grievance.current_jurisdiction_id == jurisdiction_id,
+                        Grievance.status.in_(
+                            [
+                                GrievanceStatus.OPEN,
+                                GrievanceStatus.IN_PROGRESS,
+                                GrievanceStatus.ESCALATED,
+                            ]
+                        ),
+                    )
                 )
-            ).all()
+                .all()
+            )
 
         finally:
             if is_local_session:

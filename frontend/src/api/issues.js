@@ -17,6 +17,7 @@ export const issuesApi = {
   },
 
   vote: async (id) => {
-    return await apiClient.post(`/api/issues/${id}/vote`, {}); // The backend endpoint might not require a body for upvote
+    // The served route is /upvote. This called /vote and 404'd on every press.
+    return await apiClient.post(`/api/issues/${id}/upvote`, {});
   }
 };

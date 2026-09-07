@@ -1,20 +1,340 @@
-fastapi
-uvicorn
-python-dotenv
-sqlalchemy
-python-telegram-bot
-google-generativeai
-python-multipart
-psycopg2-binary
-async-lru
-huggingface-hub
-httpx
-python-magic
-pywebpush
-Pillow
-firebase-functions
-firebase-admin
-a2wsgi
-# Spatial deduplication dependencies
-scikit-learn
-numpy
+# Locked with: uv pip compile backend/requirements.in --python-version 3.12 --python-platform linux -o backend/requirements.txt
+# Do not edit by hand. Edit backend/requirements.in and re-run the command above.
+a2wsgi==1.10.10
+    # via -r backend/requirements.in
+aiohappyeyeballs==2.7.1
+    # via aiohttp
+aiohttp==3.14.3
+    # via pywebpush
+aiosignal==1.4.0
+    # via aiohttp
+alembic==1.19.1
+    # via -r backend/requirements.in
+annotated-doc==0.0.5
+    # via fastapi
+annotated-types==0.8.0
+    # via pydantic
+anyio==4.14.2
+    # via
+    #   httpx
+    #   starlette
+async-lru==2.3.0
+    # via -r backend/requirements.in
+attrs==26.1.0
+    # via aiohttp
+blinker==1.9.0
+    # via flask
+cachecontrol==0.14.4
+    # via firebase-admin
+certifi==2026.7.22
+    # via
+    #   httpcore
+    #   httpx
+    #   requests
+cffi==2.1.1
+    # via cryptography
+charset-normalizer==3.5.1
+    # via requests
+click==8.4.2
+    # via
+    #   flask
+    #   functions-framework
+    #   huggingface-hub
+    #   uvicorn
+cloudevents==1.12.0
+    # via
+    #   firebase-functions
+    #   functions-framework
+cryptography==50.0.0
+    # via
+    #   google-auth
+    #   http-ece
+    #   py-vapid
+    #   pyjwt
+    #   pywebpush
+deprecated==1.3.1
+    # via limits
+deprecation==2.1.0
+    # via cloudevents
+fastapi==0.141.1
+    # via -r backend/requirements.in
+filelock==3.32.3
+    # via huggingface-hub
+firebase-admin==7.5.0
+    # via
+    #   -r backend/requirements.in
+    #   firebase-functions
+firebase-functions==0.6.0
+    # via -r backend/requirements.in
+flask==3.1.3
+    # via
+    #   firebase-functions
+    #   flask-cors
+    #   functions-framework
+flask-cors==6.0.5
+    # via firebase-functions
+frozenlist==1.8.0
+    # via
+    #   aiohttp
+    #   aiosignal
+fsspec==2026.7.0
+    # via huggingface-hub
+functions-framework==3.10.2
+    # via firebase-functions
+google-ai-generativelanguage==0.6.15
+    # via google-generativeai
+google-api-core==2.33.0
+    # via
+    #   firebase-admin
+    #   google-ai-generativelanguage
+    #   google-api-python-client
+    #   google-cloud-core
+    #   google-cloud-firestore
+    #   google-cloud-storage
+    #   google-generativeai
+google-api-python-client==2.198.0
+    # via google-generativeai
+google-auth==2.56.3
+    # via
+    #   google-ai-generativelanguage
+    #   google-api-core
+    #   google-api-python-client
+    #   google-auth-httplib2
+    #   google-cloud-core
+    #   google-cloud-firestore
+    #   google-cloud-storage
+    #   google-generativeai
+google-auth-httplib2==0.4.1
+    # via google-api-python-client
+google-cloud-core==2.6.1
+    # via
+    #   google-cloud-firestore
+    #   google-cloud-storage
+google-cloud-firestore==2.27.0
+    # via
+    #   firebase-admin
+    #   firebase-functions
+google-cloud-storage==3.13.1
+    # via firebase-admin
+google-crc32c==1.8.0
+    # via
+    #   google-cloud-storage
+    #   google-resumable-media
+google-events==0.5.0
+    # via firebase-functions
+google-generativeai==0.8.6
+    # via -r backend/requirements.in
+google-resumable-media==2.10.1
+    # via google-cloud-storage
+googleapis-common-protos==1.75.0
+    # via
+    #   google-api-core
+    #   grpcio-status
+greenlet==3.5.5
+    # via sqlalchemy
+grpcio==1.83.0
+    # via
+    #   google-api-core
+    #   google-cloud-firestore
+    #   grpcio-status
+grpcio-status==1.71.2
+    # via google-api-core
+gunicorn==26.1.0
+    # via
+    #   functions-framework
+    #   uvicorn-worker
+h11==0.16.0
+    # via
+    #   httpcore
+    #   uvicorn
+h2==4.4.1
+    # via httpx
+hf-xet==1.6.0
+    # via huggingface-hub
+hpack==4.2.0
+    # via h2
+http-ece==1.2.1
+    # via pywebpush
+httpcore==1.0.9
+    # via httpx
+httplib2==0.32.0
+    # via
+    #   google-api-python-client
+    #   google-auth-httplib2
+httpx==0.28.1
+    # via
+    #   -r backend/requirements.in
+    #   firebase-admin
+    #   huggingface-hub
+    #   python-telegram-bot
+huggingface-hub==1.28.0
+    # via -r backend/requirements.in
+hyperframe==6.1.0
+    # via h2
+idna==3.19
+    # via
+    #   anyio
+    #   httpx
+    #   requests
+    #   yarl
+itsdangerous==2.2.0
+    # via flask
+jinja2==3.1.6
+    # via flask
+joblib==1.5.3
+    # via scikit-learn
+limits==5.8.0
+    # via slowapi
+mako==1.4.1
+    # via alembic
+markupsafe==3.0.3
+    # via
+    #   flask
+    #   jinja2
+    #   mako
+    #   werkzeug
+msgpack==1.2.1
+    # via cachecontrol
+multidict==6.7.1
+    # via
+    #   aiohttp
+    #   yarl
+narwhals==2.24.0
+    # via scikit-learn
+numpy==2.5.2
+    # via
+    #   -r backend/requirements.in
+    #   scikit-learn
+    #   scipy
+packaging==26.3
+    # via
+    #   deprecation
+    #   huggingface-hub
+    #   limits
+pillow==12.3.0
+    # via -r backend/requirements.in
+propcache==0.5.2
+    # via
+    #   aiohttp
+    #   yarl
+proto-plus==1.28.2
+    # via
+    #   google-ai-generativelanguage
+    #   google-api-core
+    #   google-cloud-firestore
+    #   google-events
+protobuf==5.29.6
+    # via
+    #   google-ai-generativelanguage
+    #   google-api-core
+    #   google-cloud-firestore
+    #   google-events
+    #   google-generativeai
+    #   googleapis-common-protos
+    #   grpcio-status
+    #   proto-plus
+psycopg2-binary==2.9.12
+    # via -r backend/requirements.in
+py-vapid==1.9.4
+    # via pywebpush
+pyasn1==0.6.4
+    # via pyasn1-modules
+pyasn1-modules==0.4.2
+    # via google-auth
+pycparser==3.0
+    # via cffi
+pydantic==2.13.4
+    # via
+    #   fastapi
+    #   google-generativeai
+pydantic-core==2.46.4
+    # via pydantic
+pyjwt==2.13.0
+    # via
+    #   firebase-admin
+    #   firebase-functions
+pyparsing==3.3.2
+    # via httplib2
+python-dotenv==1.2.3
+    # via -r backend/requirements.in
+python-magic==0.4.27
+    # via -r backend/requirements.in
+python-multipart==0.0.32
+    # via -r backend/requirements.in
+python-telegram-bot==22.8
+    # via -r backend/requirements.in
+pywebpush==2.4.0
+    # via -r backend/requirements.in
+pyyaml==6.0.3
+    # via
+    #   firebase-functions
+    #   huggingface-hub
+requests==2.34.2
+    # via
+    #   cachecontrol
+    #   google-api-core
+    #   google-cloud-storage
+    #   pywebpush
+scikit-learn==1.9.0
+    # via -r backend/requirements.in
+scipy==1.18.0
+    # via scikit-learn
+slowapi==0.1.10
+    # via -r backend/requirements.in
+sqlalchemy==2.0.52
+    # via
+    #   -r backend/requirements.in
+    #   alembic
+starlette==1.6.0
+    # via
+    #   fastapi
+    #   functions-framework
+threadpoolctl==3.6.0
+    # via scikit-learn
+tqdm==4.70.0
+    # via
+    #   google-generativeai
+    #   huggingface-hub
+typing-extensions==4.16.0
+    # via
+    #   aiohttp
+    #   aiosignal
+    #   alembic
+    #   anyio
+    #   fastapi
+    #   firebase-functions
+    #   google-generativeai
+    #   grpcio
+    #   huggingface-hub
+    #   limits
+    #   pydantic
+    #   pydantic-core
+    #   sqlalchemy
+    #   starlette
+    #   typing-inspection
+typing-inspection==0.4.4
+    # via
+    #   fastapi
+    #   pydantic
+uritemplate==4.2.0
+    # via google-api-python-client
+urllib3==2.7.0
+    # via requests
+uvicorn==0.52.4
+    # via
+    #   -r backend/requirements.in
+    #   functions-framework
+    #   uvicorn-worker
+uvicorn-worker==0.4.0
+    # via functions-framework
+watchdog==6.0.0
+    # via functions-framework
+werkzeug==3.1.8
+    # via
+    #   flask
+    #   flask-cors
+    #   functions-framework
+wrapt==2.3.0
+    # via deprecated
+yarl==1.24.5
+    # via aiohttp

@@ -1,177 +1,145 @@
-import { apiClient, getApiUrl } from '../client';
+/**
+ * Tests for the real API client.
+ *
+ * This file previously imported '../client', which jest.config.js redirected to
+ * src/__mocks__/client.js. Every assertion here described a hand-written
+ * fixture rather than the client the application ships, so the suite could not
+ * have failed if the client broke -- and it encoded the fixture's behaviour
+ * (reading process.env, sending a JSON Content-Type on GET) rather than the
+ * client's. The redirect is gone; these now exercise the real module.
+ *
+ * Retry, timeout and cold-start behaviour live in retry.test.js.
+ */
+import { apiClient, getApiUrl, retryConfig } from '../client';
 
-// Mock fetch globally
-global.fetch = jest.fn();
+// babel-plugin-transform-vite-meta-env replaces import.meta.env at transform
+// time, so the base URL is fixed for the whole run rather than read from the
+// environment. Assertions therefore go through getApiUrl() instead of assuming
+// a value.
+const BASE = getApiUrl();
 
-describe('apiClient', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    // Reset environment variable
-    delete process.env.VITE_API_URL;
+const original = { ...retryConfig };
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  global.fetch = jest.fn();
+  // Keep failure cases from spending real backoff time.
+  retryConfig.totalBudgetMs = 200;
+  retryConfig.backoffMs = [1];
+});
+
+afterEach(() => {
+  Object.assign(retryConfig, original);
+});
+
+const jsonResponse = (body, { ok = true, status = 200 } = {}) => ({
+  ok,
+  status,
+  json: jest.fn().mockResolvedValue(body),
+});
+
+/** The URL and options fetch was actually called with. */
+const lastCall = () => global.fetch.mock.calls[global.fetch.mock.calls.length - 1];
+
+describe('getApiUrl', () => {
+  it('returns the configured base URL', () => {
+    expect(typeof getApiUrl()).toBe('string');
+  });
+});
+
+describe('get', () => {
+  it('returns the decoded body on success', async () => {
+    global.fetch.mockResolvedValue(jsonResponse({ data: 'test' }));
+
+    await expect(apiClient.get('/test-endpoint')).resolves.toEqual({ data: 'test' });
   });
 
-  describe('getApiUrl', () => {
-    it('should return empty string when VITE_API_URL is not set', () => {
-      expect(getApiUrl()).toBe('');
-    });
+  it('requests the endpoint under the configured base URL', async () => {
+    global.fetch.mockResolvedValue(jsonResponse({}));
 
-    it('should return the VITE_API_URL when set', () => {
-      process.env.VITE_API_URL = 'https://api.example.com';
-      expect(getApiUrl()).toBe('https://api.example.com');
-    });
+    await apiClient.get('/api/stats');
+
+    expect(lastCall()[0]).toBe(`${BASE}/api/stats`);
   });
 
-  describe('get', () => {
-    it('should make a GET request and return JSON data on success', async () => {
-      const mockResponse = { data: 'test' };
-      const mockFetchResponse = {
-        ok: true,
-        json: jest.fn().mockResolvedValue(mockResponse)
-      };
+  it('does not send a JSON Content-Type on a request with no body', async () => {
+    global.fetch.mockResolvedValue(jsonResponse({}));
 
-      global.fetch.mockResolvedValue(mockFetchResponse);
+    await apiClient.get('/api/stats');
 
-      const result = await apiClient.get('/test-endpoint');
-
-      expect(global.fetch).toHaveBeenCalledWith('/test-endpoint', {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      expect(result).toEqual(mockResponse);
-    });
-
-    it('should throw an error when response is not ok', async () => {
-      const mockFetchResponse = {
-        ok: false,
-        status: 404
-      };
-
-      global.fetch.mockResolvedValue(mockFetchResponse);
-
-      await expect(apiClient.get('/test-endpoint')).rejects.toThrow('HTTP error! status: 404');
-    });
-
-    it('should use the API URL prefix when VITE_API_URL is set', async () => {
-      process.env.VITE_API_URL = 'https://api.example.com';
-      const mockResponse = { data: 'test' };
-      const mockFetchResponse = {
-        ok: true,
-        json: jest.fn().mockResolvedValue(mockResponse)
-      };
-
-      global.fetch.mockResolvedValue(mockFetchResponse);
-
-      await apiClient.get('/test-endpoint');
-
-      expect(global.fetch).toHaveBeenCalledWith('https://api.example.com/test-endpoint', {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-    });
+    expect(lastCall()[1].headers).toBeUndefined();
   });
 
-  describe('post', () => {
-    it('should make a POST request with JSON data and return response', async () => {
-      const mockResponse = { success: true };
-      const mockFetchResponse = {
-        ok: true,
-        json: jest.fn().mockResolvedValue(mockResponse)
-      };
+  it('attaches an abort signal so a request cannot hang forever', async () => {
+    global.fetch.mockResolvedValue(jsonResponse({}));
 
-      global.fetch.mockResolvedValue(mockFetchResponse);
+    await apiClient.get('/api/stats');
 
-      const testData = { name: 'test' };
-      const result = await apiClient.post('/test-endpoint', testData);
-
-      expect(global.fetch).toHaveBeenCalledWith('/test-endpoint', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(testData),
-      });
-      expect(result).toEqual(mockResponse);
-    });
-
-    it('should throw an error when POST response is not ok', async () => {
-      const mockFetchResponse = {
-        ok: false,
-        status: 500
-      };
-
-      global.fetch.mockResolvedValue(mockFetchResponse);
-
-      await expect(apiClient.post('/test-endpoint', {})).rejects.toThrow('HTTP error! status: 500');
-    });
-
-    it('should use the API URL prefix for POST requests', async () => {
-      process.env.VITE_API_URL = 'https://api.example.com';
-      const mockResponse = { success: true };
-      const mockFetchResponse = {
-        ok: true,
-        json: jest.fn().mockResolvedValue(mockResponse)
-      };
-
-      global.fetch.mockResolvedValue(mockFetchResponse);
-
-      await apiClient.post('/test-endpoint', {});
-
-      expect(global.fetch).toHaveBeenCalledWith('https://api.example.com/test-endpoint', expect.any(Object));
-    });
+    // The absence of this is what let cold-start requests hang indefinitely.
+    expect(lastCall()[1].signal).toBeDefined();
   });
 
-  describe('postForm', () => {
-    it('should make a POST request with FormData and return response', async () => {
-      const mockResponse = { success: true };
-      const mockFetchResponse = {
-        ok: true,
-        json: jest.fn().mockResolvedValue(mockResponse)
-      };
+  it('throws when the response is not ok', async () => {
+    global.fetch.mockResolvedValue(jsonResponse({}, { ok: false, status: 404 }));
 
-      global.fetch.mockResolvedValue(mockFetchResponse);
+    await expect(apiClient.get('/missing')).rejects.toThrow('404');
+  });
+});
 
-      const formData = new FormData();
-      formData.append('file', new Blob(['test']), 'test.txt');
+describe('post', () => {
+  it('sends JSON and returns the decoded body', async () => {
+    global.fetch.mockResolvedValue(jsonResponse({ id: 1 }));
 
-      const result = await apiClient.postForm('/upload-endpoint', formData);
+    await expect(apiClient.post('/api/chat', { query: 'hello' })).resolves.toEqual({ id: 1 });
 
-      expect(global.fetch).toHaveBeenCalledWith('/upload-endpoint', {
-        method: 'POST',
-        body: formData,
-      });
-      expect(result).toEqual(mockResponse);
+    const [, options] = lastCall();
+    expect(options.method).toBe('POST');
+    expect(options.headers['Content-Type']).toBe('application/json');
+    expect(JSON.parse(options.body)).toEqual({ query: 'hello' });
+  });
+
+  it('posts to the endpoint under the configured base URL', async () => {
+    global.fetch.mockResolvedValue(jsonResponse({}));
+
+    await apiClient.post('/api/issues', {});
+
+    expect(lastCall()[0]).toBe(`${BASE}/api/issues`);
+  });
+
+  it('throws when the response is not ok', async () => {
+    global.fetch.mockResolvedValue(jsonResponse({}, { ok: false, status: 422 }));
+
+    await expect(apiClient.post('/api/chat', {})).rejects.toThrow('422');
+  });
+});
+
+describe('postForm', () => {
+  it('sends the FormData unchanged and returns the decoded body', async () => {
+    global.fetch.mockResolvedValue(jsonResponse({ detections: [] }));
+    const form = new FormData();
+    form.append('image', 'blob');
+
+    await expect(apiClient.postForm('/api/detect-pothole', form)).resolves.toEqual({
+      detections: [],
     });
 
-    it('should throw an error when FormData POST response is not ok', async () => {
-      const mockFetchResponse = {
-        ok: false,
-        status: 400
-      };
+    const [, options] = lastCall();
+    expect(options.method).toBe('POST');
+    expect(options.body).toBe(form);
+  });
 
-      global.fetch.mockResolvedValue(mockFetchResponse);
+  it('does not set Content-Type, so fetch can add the multipart boundary', async () => {
+    global.fetch.mockResolvedValue(jsonResponse({}));
 
-      const formData = new FormData();
+    await apiClient.postForm('/api/detect-pothole', new FormData());
 
-      await expect(apiClient.postForm('/upload-endpoint', formData)).rejects.toThrow('HTTP error! status: 400');
-    });
+    // Setting it by hand omits the boundary and the server rejects the upload.
+    expect(lastCall()[1].headers).toBeUndefined();
+  });
 
-    it('should use the API URL prefix for FormData POST requests', async () => {
-      process.env.VITE_API_URL = 'https://api.example.com';
-      const mockResponse = { success: true };
-      const mockFetchResponse = {
-        ok: true,
-        json: jest.fn().mockResolvedValue(mockResponse)
-      };
+  it('throws when the response is not ok', async () => {
+    global.fetch.mockResolvedValue(jsonResponse({}, { ok: false, status: 413 }));
 
-      global.fetch.mockResolvedValue(mockFetchResponse);
-
-      const formData = new FormData();
-
-      await apiClient.postForm('/upload-endpoint', formData);
-
-      expect(global.fetch).toHaveBeenCalledWith('https://api.example.com/upload-endpoint', expect.any(Object));
-    });
+    await expect(apiClient.postForm('/api/detect-pothole', new FormData())).rejects.toThrow('413');
   });
 });

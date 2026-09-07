@@ -4,9 +4,8 @@ AI Service Interfaces and Dependency Injection
 This module defines abstract interfaces for AI services to reduce tight coupling
 and enable easier testing, mocking, and service provider switching.
 """
-from abc import ABC, abstractmethod
-from typing import Dict, Optional, Protocol
-import asyncio
+
+from typing import Protocol
 
 
 class ActionPlanService(Protocol):
@@ -16,9 +15,9 @@ class ActionPlanService(Protocol):
         self,
         issue_description: str,
         category: str,
-        language: str = 'en',
-        image_path: Optional[str] = None
-    ) -> Dict[str, str]:
+        language: str = "en",
+        image_path: str | None = None,
+    ) -> dict[str, str]:
         """
         Generate action plan with WhatsApp message and email draft.
 
@@ -57,7 +56,7 @@ class MLASummaryService(Protocol):
         district: str,
         assembly_constituency: str,
         mla_name: str,
-        issue_category: Optional[str] = None
+        issue_category: str | None = None,
     ) -> str:
         """
         Generate a human-readable summary about an MLA.
@@ -81,7 +80,7 @@ class AIServiceContainer:
         self,
         action_plan_service: ActionPlanService,
         chat_service: ChatService,
-        mla_summary_service: MLASummaryService
+        mla_summary_service: MLASummaryService,
     ):
         self.action_plan_service = action_plan_service
         self.chat_service = chat_service
@@ -89,7 +88,7 @@ class AIServiceContainer:
 
 
 # Global service container instance
-_ai_services: Optional[AIServiceContainer] = None
+_ai_services: AIServiceContainer | None = None
 
 
 def get_ai_services() -> AIServiceContainer:
@@ -102,12 +101,12 @@ def get_ai_services() -> AIServiceContainer:
 def initialize_ai_services(
     action_plan_service: ActionPlanService,
     chat_service: ChatService,
-    mla_summary_service: MLASummaryService
+    mla_summary_service: MLASummaryService,
 ) -> None:
     """Initialize the global AI services container."""
     global _ai_services
     _ai_services = AIServiceContainer(
         action_plan_service=action_plan_service,
         chat_service=chat_service,
-        mla_summary_service=mla_summary_service
+        mla_summary_service=mla_summary_service,
     )

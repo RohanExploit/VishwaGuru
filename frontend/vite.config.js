@@ -31,18 +31,18 @@ export default defineConfig({
         name: 'VishwaGuru - Smart City Reporter',
         short_name: 'VishwaGuru',
         description: 'Report civic issues with AI-powered smart scanning',
-        theme_color: '#000000',
+        theme_color: '#0D1117',
+        background_color: '#0D1117',
+        display: 'standalone',
+        orientation: 'portrait-primary',
+        lang: 'en-IN',
+        // These files did not exist until scripts/generate_icons.py was added,
+        // so Chrome refused the install prompt and Android had no launcher icon.
         icons: [
-          {
-            src: '/icon-192.png',
-            sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: '/icon-512.png',
-            sizes: '512x512',
-            type: 'image/png'
-          }
+          { src: '/icon-96.png', sizes: '96x96', type: 'image/png', purpose: 'any' },
+          { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: '/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
         ]
       },
       devOptions: {

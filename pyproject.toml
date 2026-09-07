@@ -1,0 +1,46 @@
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+exclude = [
+    "frontend",
+    "node_modules",
+    "data",
+    ".venv",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "C4",  # comprehensions
+    "S",   # bandit-style security
+]
+ignore = [
+    "E501",  # line length handled by the formatter
+    "B008",  # FastAPI Depends()/File() in defaults is the documented idiom
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Test code legitimately does things the security rules flag: `assert` is the
+# point of a test (S101/B011), fixture tokens are not real credentials
+# (S105/S106), and sample data does not need a cryptographic RNG (S311).
+# E402 is unavoidable in tests that must set environment variables or install
+# module mocks before importing the application.
+# S603/S607: the migration tests shell out to alembic with a fixed argv built
+# from constants, not from request data.
+"tests/**" = ["S101", "S105", "S106", "S311", "B011", "E402", "S603", "S607"]
+"backend/tests/**" = ["S101", "S105", "S106", "S311", "B011", "E402"]
+"backend/test_*.py" = ["S101", "S105", "S106", "S311", "B011", "E402"]
+# One-off setup script: its output is the log.
+"scripts/*" = ["T201"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["backend/tests", "tests"]
+python_files = ["test_*.py"]
+addopts = "-q --strict-markers"
+asyncio_mode = "auto"
+filterwarnings = ["ignore::DeprecationWarning"]

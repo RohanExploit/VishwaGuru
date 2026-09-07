@@ -4,6 +4,7 @@ AI Service Factory for configuring different service implementations.
 This module provides a factory pattern to easily switch between different
 AI service implementations (Gemini, Mock, etc.) based on configuration.
 """
+
 import os
 from typing import Literal
 

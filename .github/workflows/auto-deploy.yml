@@ -1,10 +1,29 @@
 name: Automated CI/CD Pipeline
 
+# DISABLED daily cron on 2026-08-19.
+#
+# This workflow ran vishwaguru_pipeline.py, which squash-merges open pull
+# requests through the GitHub API. Its gate did not check what it appeared to:
+#
+#   * quality check = PR title >= 5 characters and body >= 10 characters
+#   * security check = grep the diff for a keyword list
+#   * "run tests" = `npm test` against the ROOT package.json, whose script is
+#     `jest tests/`. That collects one TypeScript file. It never ran the backend
+#     pytest suite or the frontend Jest suite.
+#   * "deploy and health check" = no docker-compose.yml and no manage.py exist,
+#     so it fell through to `python -m http.server`, then confirmed that static
+#     file server answered 200 -- and treated that as the application being
+#     healthy.
+#
+# So it merged to main daily on evidence that proved nothing. Together with
+# auto-merge-jules.yml (deleted in the same pass) this is how the repository
+# reached a state where the backend could not import, the frontend could not
+# build, and 15 endpoints the frontend called did not exist.
+#
+# Merges now go through .github/workflows/ci.yml and human review. This is kept
+# for manual dispatch only, for the deployment steps.
+
 on:
-  schedule:
-    # Trigger at 2 AM UTC daily
-    - cron: '0 2 * * *'
-  # Allow manual triggering
   workflow_dispatch:
 
 jobs:

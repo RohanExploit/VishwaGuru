@@ -1,7 +1,7 @@
-import io
-import httpx
 from PIL import Image
-from hf_service import detect_flooding_clip
+
+from backend.hf_service import detect_flooding_clip
+
 
 async def detect_flooding(image: Image.Image):
     """

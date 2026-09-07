@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { grievancesApi } from '../api';
 
-const GrievanceView = ({ setView }) => {
+const GrievanceView = ({ setView: _setView }) => {
   const [grievances, setGrievances] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);

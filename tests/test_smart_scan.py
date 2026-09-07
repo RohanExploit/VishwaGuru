@@ -1,7 +1,9 @@
+from unittest.mock import AsyncMock, patch
+
 from fastapi.testclient import TestClient
-from unittest.mock import patch, AsyncMock
+
 from backend.main import app
-import pytest
+
 
 def test_smart_scan_endpoint():
     with TestClient(app) as client:
@@ -11,8 +13,7 @@ def test_smart_scan_endpoint():
             file_content = b"fakeimagebytes"
 
             response = client.post(
-                "/api/detect-smart-scan",
-                files={"image": ("test.jpg", file_content, "image/jpeg")}
+                "/api/detect-smart-scan", files={"image": ("test.jpg", file_content, "image/jpeg")}
             )
 
             assert response.status_code == 200

@@ -1,7 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import * as tf from '@tensorflow/tfjs';
-import * as mobilenet from '@tensorflow-models/mobilenet';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
@@ -11,23 +9,9 @@ const SmartScanner = ({ onBack }) => {
     const [isDetecting, setIsDetecting] = useState(false);
     const [detection, setDetection] = useState(null);
     const [error, setError] = useState(null);
-    const [model, setModel] = useState(null);
     const [previousFrame, setPreviousFrame] = useState(null);
     const lastSentRef = useRef(0);
     const navigate = useNavigate();
-
-    useEffect(() => {
-        const loadModel = async () => {
-            try {
-                await tf.ready();
-                const loadedModel = await mobilenet.load();
-                setModel(loadedModel);
-            } catch (err) {
-                console.error('Failed to load model:', err);
-            }
-        };
-        loadModel();
-    }, []);
 
     useEffect(() => {
         let interval;
@@ -83,7 +67,7 @@ const SmartScanner = ({ onBack }) => {
     };
 
     const detectFrame = async () => {
-        if (!videoRef.current || !canvasRef.current || !isDetecting || !model) return;
+        if (!videoRef.current || !canvasRef.current || !isDetecting) return;
 
         const video = videoRef.current;
         if (video.readyState !== 4) return;
@@ -117,14 +101,13 @@ const SmartScanner = ({ onBack }) => {
             return;
         }
 
-        // Run local inference
-        const predictions = await model.classify(canvas);
-        const topPrediction = predictions[0];
-
-        // If frame changed and local model has high confidence, send to backend
-        if (topPrediction.probability > 0.5) {
-            lastSentRef.current = now; // Update timestamp
-            // Proceed to backend detection
+        // Upload throttling is handled by the frame-difference check above and
+        // the two-second cooldown. This used to also run MobileNet in the page
+        // as a confidence gate, which meant shipping a model and the TensorFlow
+        // runtime to a device on a metered connection to decide whether to make
+        // a request the backend classifies properly anyway.
+        {
+            lastSentRef.current = now;
             canvas.toBlob(async (blob) => {
                 if (!blob) return;
 
@@ -145,9 +128,6 @@ const SmartScanner = ({ onBack }) => {
                     console.error("Detection error:", err);
                 }
             }, 'image/jpeg', 0.8);
-        } else {
-            // Local detection: low confidence, consider safe
-            setDetection({ label: 'Safe', score: topPrediction.probability });
         }
     };
 

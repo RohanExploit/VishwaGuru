@@ -5,9 +5,9 @@ Uses NVIDIA NIM (primary) or Gemini AI (fallback) to generate human-readable
 summaries about MLAs and their roles.
 Includes retry logic with exponential backoff for handling transient failures.
 """
-import os
+
 import logging
-from typing import Optional
+import os
 
 import httpx
 
@@ -31,8 +31,10 @@ elif GEMINI_API_KEY:
     _API_BASE = None
     _MODEL_NAME = "gemini-1.5-flash"
     try:
-        import google.generativeai as genai
         import warnings
+
+        import google.generativeai as genai
+
         genai.configure(api_key=GEMINI_API_KEY)
         warnings.filterwarnings("ignore", category=FutureWarning, module="google.generativeai")
     except ImportError:
@@ -80,10 +82,7 @@ async def _nvidia_chat(prompt: str) -> str:
 
 @exponential_backoff_retry(max_retries=3, base_delay=1.0, max_delay=10.0)
 async def _generate_mla_summary_with_retry(
-    district: str,
-    assembly_constituency: str,
-    mla_name: str,
-    issue_category: Optional[str] = None
+    district: str, assembly_constituency: str, mla_name: str, issue_category: str | None = None
 ) -> str:
     """Internal function that generates MLA summary with retry logic."""
     issue_context = f" particularly regarding {issue_category} issues" if issue_category else ""
@@ -100,7 +99,8 @@ Keep it factual, helpful, and encouraging for civic engagement."""
         return await _nvidia_chat(prompt)
     elif _API_MODE == "gemini":
         import google.generativeai as genai
-        model = genai.GenerativeModel('gemini-1.5-flash')
+
+        model = genai.GenerativeModel("gemini-1.5-flash")
         response = await model.generate_content_async(prompt)
         return response.text.strip()
     else:
@@ -108,10 +108,7 @@ Keep it factual, helpful, and encouraging for civic engagement."""
 
 
 async def generate_mla_summary(
-    district: str,
-    assembly_constituency: str,
-    mla_name: str,
-    issue_category: Optional[str] = None
+    district: str, assembly_constituency: str, mla_name: str, issue_category: str | None = None
 ) -> str:
     """
     Generate a human-readable summary about an MLA using AI.

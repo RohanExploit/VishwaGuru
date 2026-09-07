@@ -1,14 +1,11 @@
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import MagicMock, AsyncMock, patch
-import sys
-import os
 
 # Ensure backend path is in sys.path
-sys.path.append(os.path.join(os.getcwd(), 'backend'))
+from backend.main import app
 
-from main import app
 
 @pytest.fixture
 def client():
@@ -17,13 +14,12 @@ def client():
     with TestClient(app) as client:
         yield client
 
+
 def test_detect_tree_hazard(client):
     # Mock the detect_tree_clip function in main.py
-    with patch("main.detect_tree_clip", new_callable=AsyncMock) as mock_detect:
+    with patch("backend.main.detect_tree_hazard_clip", new_callable=AsyncMock) as mock_detect:
         # Define what the mock should return
-        mock_detect.return_value = [
-            {"label": "fallen tree", "confidence": 0.9, "box": []}
-        ]
+        mock_detect.return_value = [{"label": "fallen tree", "confidence": 0.9, "box": []}]
 
         # Create a dummy image file
         file_content = b"fake image content"
@@ -32,7 +28,7 @@ def test_detect_tree_hazard(client):
         # Since we are mocking detect_tree_clip, we also need to ensure PIL doesn't fail
         # but the endpoint calls run_in_threadpool(Image.open, ...), so we should mock Image.open
         with patch("PIL.Image.open") as mock_open:
-            mock_open.return_value = MagicMock() # Mock image object
+            mock_open.return_value = MagicMock()  # Mock image object
 
             response = client.post("/api/detect-tree-hazard", files=files)
 
@@ -43,8 +39,9 @@ def test_detect_tree_hazard(client):
             assert data["detections"][0]["label"] == "fallen tree"
             assert data["detections"][0]["confidence"] == 0.9
 
+
 def test_detect_tree_hazard_no_hazard(client):
-     with patch("main.detect_tree_clip", new_callable=AsyncMock) as mock_detect:
+    with patch("backend.main.detect_tree_hazard_clip", new_callable=AsyncMock) as mock_detect:
         # Return empty list (no hazard detected)
         mock_detect.return_value = []
 

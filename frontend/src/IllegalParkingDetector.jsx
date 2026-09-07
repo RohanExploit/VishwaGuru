@@ -1,5 +1,10 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import Webcam from 'react-webcam';
+
+// Relative '/api/...' only resolved via Vite's dev proxy and Netlify's
+// redirect. Neither exists inside a Capacitor WebView, where the page is
+// served from capacitor://localhost, so the request had no backend to reach.
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 const IllegalParkingDetector = ({ onBack }) => {
   const webcamRef = useRef(null);
@@ -33,7 +38,7 @@ const IllegalParkingDetector = ({ onBack }) => {
         formData.append('image', file);
 
         // Call Backend API
-        const response = await fetch('/api/detect-illegal-parking', {
+        const response = await fetch(`${API_URL}/api/detect-illegal-parking`, {
             method: 'POST',
             body: formData,
         });
@@ -77,7 +82,7 @@ const IllegalParkingDetector = ({ onBack }) => {
                   ref={webcamRef}
                   screenshotFormat="image/jpeg"
                   className="w-full h-full object-cover"
-                  onUserMediaError={(err) => setCameraError("Could not access camera. Please check permissions.")}
+                  onUserMediaError={() => setCameraError("Could not access camera. Please check permissions.")}
                 />
               ) : (
                 <div className="relative">

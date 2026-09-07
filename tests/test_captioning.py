@@ -1,12 +1,15 @@
-from fastapi.testclient import TestClient
-from unittest.mock import patch, AsyncMock
-from main import app
+from unittest.mock import AsyncMock, patch
+
 import pytest
+from fastapi.testclient import TestClient
+
+from backend.main import app
+
 
 @pytest.mark.asyncio
 async def test_generate_description_endpoint():
     # Mock the generate_image_caption function in 'main' module
-    with patch("main.generate_image_caption", new_callable=AsyncMock) as mock_caption:
+    with patch("backend.main.generate_image_caption", new_callable=AsyncMock) as mock_caption:
         mock_caption.return_value = "A photo of a pothole on the road"
 
         with TestClient(app) as client:

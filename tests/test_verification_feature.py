@@ -1,11 +1,16 @@
+import os
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
 from fastapi.testclient import TestClient
+
+from backend.auth import ADMIN_API_KEY_ENV, MIN_API_KEY_LENGTH
 from backend.main import app, get_db
 from backend.models import Issue
 
 # Create a mock database session
 mock_db = MagicMock()
+
 
 # Override the get_db dependency
 def override_get_db():
@@ -14,15 +19,29 @@ def override_get_db():
     finally:
         pass
 
+
+# /verify writes issue.status, so it now requires an administrative key.
+API_KEY = "t" * MIN_API_KEY_LENGTH
+AUTH_HEADERS = {"X-API-Key": API_KEY}
+
+
 @pytest.fixture(scope="module", autouse=True)
 def setup_overrides():
     app.dependency_overrides[get_db] = override_get_db
     # Mock http_client in app state
     app.state.http_client = MagicMock()
+    previous = os.environ.get(ADMIN_API_KEY_ENV)
+    os.environ[ADMIN_API_KEY_ENV] = API_KEY
     yield
     app.dependency_overrides = {}
+    if previous is None:
+        os.environ.pop(ADMIN_API_KEY_ENV, None)
+    else:
+        os.environ[ADMIN_API_KEY_ENV] = previous
+
 
 client = TestClient(app)
+
 
 @patch("backend.main.validate_uploaded_file", new_callable=AsyncMock)
 @patch("backend.main.verify_resolution_vqa", new_callable=AsyncMock)
@@ -41,7 +60,7 @@ def test_verify_issue_resolution_resolved(mock_verify, mock_validate):
     files = {"image": ("test.jpg", b"fake_image_bytes", "image/jpeg")}
 
     # Use patch context to handle validation bypass if needed, but we mocked validate_uploaded_file
-    response = client.post("/api/issues/1/verify", files=files)
+    response = client.post("/api/issues/1/verify", files=files, headers=AUTH_HEADERS)
 
     assert response.status_code == 200
     data = response.json()
@@ -51,6 +70,7 @@ def test_verify_issue_resolution_resolved(mock_verify, mock_validate):
     # Verify DB commit was called
     mock_db.commit.assert_called()
     assert mock_issue.status == "verified"
+
 
 @patch("backend.main.validate_uploaded_file", new_callable=AsyncMock)
 @patch("backend.main.verify_resolution_vqa", new_callable=AsyncMock)
@@ -68,7 +88,7 @@ def test_verify_issue_resolution_not_resolved(mock_verify, mock_validate):
     # Make request
     files = {"image": ("test.jpg", b"fake_image_bytes", "image/jpeg")}
 
-    response = client.post("/api/issues/1/verify", files=files)
+    response = client.post("/api/issues/1/verify", files=files, headers=AUTH_HEADERS)
 
     assert response.status_code == 200
     data = response.json()
