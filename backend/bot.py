@@ -18,8 +18,7 @@ logging.basicConfig(
 # States for ConversationHandler
 PHOTO, DESCRIPTION, CATEGORY = range(3)
 
-# Initialize Database
-Base.metadata.create_all(bind=engine)
+# Initialize Database (handled in main.py / init_db.py)
 
 # Create a global application instance placeholder
 application = None

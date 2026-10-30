@@ -2,12 +2,6 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
-from database import engine, get_db
-from models import Base, Issue
-from ai_service import generate_action_plan, chat_with_civic_assistant
-from maharashtra_locator import find_constituency_by_pincode, find_mla_by_constituency
-from pydantic import BaseModel
-from gemini_summary import generate_mla_summary
 import json
 import os
 import io
@@ -22,9 +16,12 @@ from fastapi.responses import JSONResponse
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from database import SessionLocal, engine, Base
-from schemas import SuccessResponse, HealthResponse, StatsResponse, MLStatusResponse
-from models import Issue
+from backend.database import SessionLocal, engine, Base, get_db
+from backend.schemas import SuccessResponse, HealthResponse, StatsResponse, MLStatusResponse
+from backend.models import Issue, Base
+from backend.ai_service import generate_action_plan, chat_with_civic_assistant
+from backend.maharashtra_locator import find_constituency_by_pincode, find_mla_by_constituency
+from backend.gemini_summary import generate_mla_summary
 from contextlib import asynccontextmanager
 import shutil
 import datetime
@@ -153,7 +150,7 @@ def root():
 def health():
     return HealthResponse(
         status="healthy",
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.datetime.now(datetime.timezone.utc),
         version="1.0.0",
         services={
             "database": "connected",

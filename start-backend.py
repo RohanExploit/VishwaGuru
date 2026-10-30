@@ -18,11 +18,11 @@ backend_path = Path(__file__).parent / "backend"
 sys.path.insert(0, str(backend_path))
 
 def validate_environment():
-    """Validate required environment variables"""
-    required_vars = ["TELEGRAM_BOT_TOKEN", "FRONTEND_URL"]
+    """Validate environment variables and provide safe fallbacks."""
+    recommended_vars = ["TELEGRAM_BOT_TOKEN", "FRONTEND_URL"]
     missing_vars = []
 
-    for var in required_vars:
+    for var in recommended_vars:
         if not os.getenv(var):
             missing_vars.append(var)
 
@@ -31,14 +31,15 @@ def validate_environment():
         missing_vars.append("NVIDIA_API_KEY or GEMINI_API_KEY")
 
     if missing_vars:
-        print("❌ Missing required environment variables:")
+        print("⚠️  Missing recommended environment variables:")
         for var in missing_vars:
             print(f"   - {var}")
-        print("\nPlease set these variables or create a .env file.")
-        print("See backend/.env.example for reference.")
-        return False
+        print("Proceeding with default fallbacks...")
 
-    # Set defaults for optional variables
+    # Set defaults for optional/missing variables
+    if not os.getenv("FRONTEND_URL"):
+        os.environ["FRONTEND_URL"] = "*"
+
     if not os.getenv("DATABASE_URL"):
         os.environ["DATABASE_URL"] = "sqlite:///./data/issues.db"
 
@@ -54,7 +55,7 @@ def validate_environment():
     else:
         print("✅ HF_TOKEN found")
 
-    print("✅ Environment validation passed")
+    print("✅ Environment validation completed")
     return True
 
 def create_data_directory():
