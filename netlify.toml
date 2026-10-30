@@ -2,9 +2,6 @@
   publish = "frontend/dist"
   command = "npm install --prefix frontend && npm run build --prefix frontend"
 
-[build.environment]
-  NODE_VERSION = "20"
-
 [[redirects]]
   from = "/api/*"
   to = "https://vishwaguru-backend.onrender.com/api/:splat"
@@ -15,3 +12,6 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+[build.environment]
+  NODE_VERSION = "20"
