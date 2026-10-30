@@ -72,12 +72,15 @@ def test_escalation():
 
     print()
 
-    # Show audit trail
+    # Show audit trail & verify blockchain integrity
     print("Audit Trail:")
     audit_trail = service.get_grievance_audit_trail(grievance.id)
+    assert len(audit_trail) > 0
     for i, entry in enumerate(audit_trail, 1):
         print(f"{i}. {entry['timestamp'][:19]}: {entry['previous_authority']} → {entry['new_authority']}")
         print(f"   Reason: {entry['reason']}, Notes: {entry.get('notes', 'N/A')}")
+        verify_res = service.escalation_engine.verify_audit_integrity(entry['id'])
+        assert verify_res['valid'] is True
 
     print()
 

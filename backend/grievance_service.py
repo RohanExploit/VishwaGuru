@@ -169,8 +169,10 @@ class GrievanceService:
             db.commit()
             db.refresh(follower)
 
-            # Update O(1) cache for next follower
+            # Update O(1) cache for next follower, bounded at 1000 items
             with self._cache_lock:
+                if len(self._follower_last_hash_cache) >= 1000:
+                    self._follower_last_hash_cache.pop(next(iter(self._follower_last_hash_cache)))
                 self._follower_last_hash_cache[grievance_id] = new_hash
 
             return follower
@@ -200,9 +202,11 @@ class GrievanceService:
 
         last_hash = last_follower.integrity_hash if last_follower else None
 
-        # Update cache for next time
+        # Update cache for next time, bounded at 1000 items
         if last_hash:
             with self._cache_lock:
+                if len(self._follower_last_hash_cache) >= 1000:
+                    self._follower_last_hash_cache.pop(next(iter(self._follower_last_hash_cache)))
                 self._follower_last_hash_cache[grievance_id] = last_hash
 
         return last_hash

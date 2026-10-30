@@ -4,9 +4,11 @@ Core engine for evaluating and performing grievance escalations based on SLA and
 """
 
 import datetime
+import hashlib
+import threading
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, desc
 from backend.models import Grievance, Jurisdiction, EscalationAudit, GrievanceStatus, JurisdictionLevel, EscalationReason, SeverityLevel
 from backend.database import SessionLocal
 from backend.routing_service import RoutingService
@@ -15,7 +17,13 @@ from backend.sla_config_service import SLAConfigService
 class EscalationEngine:
     """
     Engine for handling grievance escalations based on SLA breaches and severity changes.
+    Optimized with O(1) blockchain hash chaining for tamper-evident audit logs.
     """
+
+    # Cache for O(1) blockchain integrity hash lookups
+    # Stores {grievance_id: last_integrity_hash}
+    _audit_last_hash_cache = {}
+    _cache_lock = threading.Lock()
 
     def __init__(self, routing_service: RoutingService, sla_service: SLAConfigService,
                  rules_config: Dict[str, Any]):
@@ -41,8 +49,10 @@ class EscalationEngine:
         Returns:
             Dictionary with escalation statistics
         """
+        is_local_session = False
         if db is None:
             db = SessionLocal()
+            is_local_session = True
 
         try:
             # Get grievances that need evaluation
@@ -63,7 +73,7 @@ class EscalationEngine:
             }
 
         finally:
-            if db is not SessionLocal():
+            if is_local_session:
                 db.close()
 
     def escalate_grievance_severity(self, grievance_id: int, new_severity: SeverityLevel,
@@ -80,8 +90,10 @@ class EscalationEngine:
         Returns:
             True if escalation successful
         """
+        is_local_session = False
         if db is None:
             db = SessionLocal()
+            is_local_session = True
 
         try:
             grievance = db.query(Grievance).filter(Grievance.id == grievance_id).first()
@@ -108,7 +120,7 @@ class EscalationEngine:
             print(f"Error escalating grievance severity: {e}")
             return False
         finally:
-            if db is not SessionLocal():
+            if is_local_session:
                 db.close()
 
     def manual_escalate(self, grievance_id: int, reason: str = "", db: Session = None) -> bool:
@@ -123,8 +135,10 @@ class EscalationEngine:
         Returns:
             True if escalation successful
         """
+        is_local_session = False
         if db is None:
             db = SessionLocal()
+            is_local_session = True
 
         try:
             grievance = db.query(Grievance).filter(Grievance.id == grievance_id).first()
@@ -134,7 +148,7 @@ class EscalationEngine:
             return self._escalate_grievance(grievance, EscalationReason.MANUAL, db, reason)
 
         finally:
-            if db is not SessionLocal():
+            if is_local_session:
                 db.close()
 
     def _get_grievances_for_evaluation(self, db: Session) -> List[Grievance]:
@@ -248,17 +262,33 @@ class EscalationEngine:
             # Recalculate SLA
             self._recalculate_sla(grievance, db)
 
-            # Create audit log
+            # Get previous hash (O(1) from cache or O(log N) from indexed DB)
+            prev_hash = self._get_last_integrity_hash(grievance.id, db)
+
+            # Calculate new integrity hash: SHA256(grievance_id | reason.value | prev_hash)
+            reason_str = reason.value if hasattr(reason, 'value') else str(reason)
+            hash_input = f"{grievance.id}|{reason_str}|{prev_hash or 'GENESIS'}"
+            new_hash = hashlib.sha256(hash_input.encode()).hexdigest()
+
+            # Create audit log with blockchain integrity hash
             audit_log = EscalationAudit(
                 grievance_id=grievance.id,
                 previous_authority=previous_authority,
                 new_authority=grievance.assigned_authority,
                 reason=reason,
-                notes=notes
+                notes=notes,
+                integrity_hash=new_hash,
+                previous_integrity_hash=prev_hash
             )
 
             db.add(audit_log)
             db.commit()
+
+            # Update O(1) cache for next audit log, bounded at 1000 items
+            with self._cache_lock:
+                if len(self._audit_last_hash_cache) >= 1000:
+                    self._audit_last_hash_cache.pop(next(iter(self._audit_last_hash_cache)))
+                self._audit_last_hash_cache[grievance.id] = new_hash
 
             return True
 
@@ -284,3 +314,62 @@ class EscalationEngine:
 
         now = datetime.datetime.now(datetime.timezone.utc)
         grievance.sla_deadline = now + datetime.timedelta(hours=sla_hours)
+
+    def _get_last_integrity_hash(self, grievance_id: int, db: Session) -> Optional[str]:
+        """
+        Retrieves the last integrity hash for an escalation audit log.
+        Bolt Optimization: Uses thread-safe memory cache for O(1) lookup.
+        """
+        with self._cache_lock:
+            if grievance_id in self._audit_last_hash_cache:
+                return self._audit_last_hash_cache[grievance_id]
+
+        # Cache miss: Fallback to indexed DB query
+        last_audit = db.query(EscalationAudit)\
+            .filter(EscalationAudit.grievance_id == grievance_id)\
+            .order_by(desc(EscalationAudit.id))\
+            .first()
+
+        last_hash = last_audit.integrity_hash if last_audit else None
+
+        # Update cache for next time with size limit 1000
+        if last_hash:
+            with self._cache_lock:
+                if len(self._audit_last_hash_cache) >= 1000:
+                    self._audit_last_hash_cache.pop(next(iter(self._audit_last_hash_cache)))
+                self._audit_last_hash_cache[grievance_id] = last_hash
+
+        return last_hash
+
+    def verify_audit_integrity(self, audit_id: int, db: Session = None) -> Dict[str, Any]:
+        """
+        Verify the blockchain-style integrity of an escalation audit record.
+        """
+        is_local_session = False
+        if db is None:
+            db = SessionLocal()
+            is_local_session = True
+
+        try:
+            audit = db.query(EscalationAudit).filter(EscalationAudit.id == audit_id).first()
+            if not audit:
+                return {"valid": False, "error": "Audit log not found"}
+
+            reason_str = audit.reason.value if hasattr(audit.reason, 'value') else str(audit.reason)
+            hash_input = f"{audit.grievance_id}|{reason_str}|{audit.previous_integrity_hash or 'GENESIS'}"
+            calculated_hash = hashlib.sha256(hash_input.encode()).hexdigest()
+
+            is_valid = (calculated_hash == audit.integrity_hash)
+
+            return {
+                "valid": is_valid,
+                "audit_id": audit.id,
+                "grievance_id": audit.grievance_id,
+                "current_hash": audit.integrity_hash,
+                "calculated_hash": calculated_hash,
+                "previous_hash": audit.previous_integrity_hash,
+                "tampered": not is_valid
+            }
+        finally:
+            if is_local_session:
+                db.close()
