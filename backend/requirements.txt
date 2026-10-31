@@ -6,6 +6,7 @@ python-telegram-bot
 google-generativeai
 python-multipart
 psycopg2-binary
+psycopg[binary]
 async-lru
 huggingface-hub
 httpx

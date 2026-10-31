@@ -45,6 +45,7 @@ class EscalationReason(enum.Enum):
 
 class Jurisdiction(Base):
     __tablename__ = "jurisdictions"
+    __table_args__ = {"extend_existing": True}
 
     id = Column(Integer, primary_key=True, index=True)
     level = Column(Enum(JurisdictionLevel), nullable=False, index=True)
@@ -60,6 +61,7 @@ class Grievance(Base):
     __table_args__ = (
         Index("ix_grievances_status_lat_lon", "status", "latitude", "longitude"),
         Index("ix_grievances_status_jurisdiction", "status", "current_jurisdiction_id"),
+        {"extend_existing": True}
     )
 
     id = Column(Integer, primary_key=True, index=True)
@@ -87,6 +89,7 @@ class Grievance(Base):
 
 class SLAConfig(Base):
     __tablename__ = "sla_configs"
+    __table_args__ = {"extend_existing": True}
 
     id = Column(Integer, primary_key=True, index=True)
     severity = Column(Enum(SeverityLevel), nullable=False, index=True)
@@ -96,6 +99,7 @@ class SLAConfig(Base):
 
 class EscalationAudit(Base):
     __tablename__ = "escalation_audits"
+    __table_args__ = {"extend_existing": True}
 
     id = Column(Integer, primary_key=True, index=True)
     grievance_id = Column(Integer, ForeignKey("grievances.id"), nullable=False)
@@ -112,6 +116,7 @@ class Issue(Base):
     __tablename__ = "issues"
     __table_args__ = (
         Index("ix_issues_status_lat_lon", "status", "latitude", "longitude"),
+        {"extend_existing": True}
     )
 
     id = Column(Integer, primary_key=True, index=True)
@@ -151,4 +156,5 @@ class GrievanceFollower(Base):
 
     __table_args__ = (
         Index("ix_follower_grievance_email", "grievance_id", "user_email", unique=True),
+        {"extend_existing": True}
     )
