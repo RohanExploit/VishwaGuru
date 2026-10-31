@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_, desc
 from datetime import datetime, timezone, timedelta
 
-from backend.models import Grievance, Jurisdiction, GrievanceStatus, SeverityLevel, GrievanceFollower
+from backend.models import Grievance, Jurisdiction, GrievanceStatus, SeverityLevel, GrievanceFollower, EscalationAudit
 from backend.database import SessionLocal
 from backend.routing_service import RoutingService
 from backend.sla_config_service import SLAConfigService
@@ -169,8 +169,10 @@ class GrievanceService:
             db.commit()
             db.refresh(follower)
 
-            # Update O(1) cache for next follower
+            # Update O(1) cache for next follower (with max size limit to prevent memory leak)
             with self._cache_lock:
+                if len(self._follower_last_hash_cache) >= 1000:
+                    self._follower_last_hash_cache.clear()
                 self._follower_last_hash_cache[grievance_id] = new_hash
 
             return follower
@@ -192,17 +194,19 @@ class GrievanceService:
             if grievance_id in self._follower_last_hash_cache:
                 return self._follower_last_hash_cache[grievance_id]
 
-        # Cache miss: Fallback to indexed DB query
-        last_follower = db.query(GrievanceFollower)\
+        # Cache miss: Fallback to indexed DB query using optimized single-column selection
+        last_follower_hash = db.query(GrievanceFollower.integrity_hash)\
             .filter(GrievanceFollower.grievance_id == grievance_id)\
             .order_by(desc(GrievanceFollower.id))\
             .first()
 
-        last_hash = last_follower.integrity_hash if last_follower else None
+        last_hash = last_follower_hash[0] if last_follower_hash else None
 
-        # Update cache for next time
+        # Update cache for next time (with max size limit to prevent memory leak)
         if last_hash:
             with self._cache_lock:
+                if len(self._follower_last_hash_cache) >= 1000:
+                    self._follower_last_hash_cache.clear()
                 self._follower_last_hash_cache[grievance_id] = last_hash
 
         return last_hash
@@ -232,6 +236,38 @@ class GrievanceService:
                 "current_hash": follower.integrity_hash,
                 "calculated_hash": calculated_hash,
                 "previous_hash": follower.previous_integrity_hash,
+                "message": "Integrity verified" if is_valid else "INTEGRITY BREACH DETECTED"
+            }
+        finally:
+            if is_local_session:
+                db.close()
+
+    def verify_audit_integrity(self, audit_id: int, db: Session = None) -> Dict[str, Any]:
+        """
+        Verify the blockchain-style integrity of an escalation audit record.
+        """
+        is_local_session = False
+        if db is None:
+            db = SessionLocal()
+            is_local_session = True
+
+        try:
+            audit = db.query(EscalationAudit).filter(EscalationAudit.id == audit_id).first()
+            if not audit:
+                return {"is_valid": False, "message": "Audit record not found"}
+
+            # Re-calculate hash: SHA256(grievance_id | reason.value | prev_hash)
+            reason_val = audit.reason.value if hasattr(audit.reason, "value") else str(audit.reason)
+            hash_input = f"{audit.grievance_id}|{reason_val}|{audit.previous_integrity_hash or 'GENESIS'}"
+            calculated_hash = hashlib.sha256(hash_input.encode()).hexdigest()
+
+            is_valid = (calculated_hash == audit.integrity_hash)
+
+            return {
+                "is_valid": is_valid,
+                "current_hash": audit.integrity_hash,
+                "calculated_hash": calculated_hash,
+                "previous_hash": audit.previous_integrity_hash,
                 "message": "Integrity verified" if is_valid else "INTEGRITY BREACH DETECTED"
             }
         finally:
@@ -305,7 +341,7 @@ class GrievanceService:
                 db.close()
 
     def escalate_grievance_severity(self, grievance_id: int, new_severity: SeverityLevel,
-                                   reason: str = "") -> bool:
+                                   reason: str = "", db: Session = None) -> bool:
         """
         Escalate grievance severity.
 
@@ -313,24 +349,26 @@ class GrievanceService:
             grievance_id: Grievance ID
             new_severity: New severity level
             reason: Reason for escalation
+            db: Database session
 
         Returns:
             True if escalation successful
         """
-        return self.escalation_engine.escalate_grievance_severity(grievance_id, new_severity, reason)
+        return self.escalation_engine.escalate_grievance_severity(grievance_id, new_severity, reason, db)
 
-    def manual_escalate(self, grievance_id: int, reason: str = "") -> bool:
+    def manual_escalate(self, grievance_id: int, reason: str = "", db: Session = None) -> bool:
         """
         Manually escalate a grievance.
 
         Args:
             grievance_id: Grievance ID
             reason: Reason for escalation
+            db: Database session
 
         Returns:
             True if escalation successful
         """
-        return self.escalation_engine.manual_escalate(grievance_id, reason)
+        return self.escalation_engine.manual_escalate(grievance_id, reason, db)
 
     def run_escalation_check(self) -> Dict[str, int]:
         """
