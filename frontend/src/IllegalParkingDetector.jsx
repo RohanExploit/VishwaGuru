@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Webcam from 'react-webcam';
 
+const API_URL = import.meta.env.VITE_API_URL || '';
+
 const IllegalParkingDetector = ({ onBack }) => {
   const webcamRef = useRef(null);
   const [imgSrc, setImgSrc] = useState(null);
@@ -33,7 +35,7 @@ const IllegalParkingDetector = ({ onBack }) => {
         formData.append('image', file);
 
         // Call Backend API
-        const response = await fetch('/api/detect-illegal-parking', {
+        const response = await fetch(`${API_URL}/api/detect-illegal-parking`, {
             method: 'POST',
             body: formData,
         });

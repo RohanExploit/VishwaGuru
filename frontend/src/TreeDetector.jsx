@@ -1,6 +1,8 @@
 import { useState, useRef, useCallback } from 'react';
 import Webcam from 'react-webcam';
 
+const API_URL = import.meta.env.VITE_API_URL || '';
+
 const TreeDetector = ({ onBack }) => {
   const webcamRef = useRef(null);
   const [imgSrc, setImgSrc] = useState(null);
@@ -33,7 +35,7 @@ const TreeDetector = ({ onBack }) => {
         formData.append('image', file);
 
         // Call Backend API
-        const response = await fetch('/api/detect-tree-hazard', {
+        const response = await fetch(`${API_URL}/api/detect-tree-hazard`, {
             method: 'POST',
             body: formData,
         });
