@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Webcam from 'react-webcam';
 
+const API_URL = import.meta.env.VITE_API_URL || '';
+
 const StreetLightDetector = ({ onBack }) => {
   const webcamRef = useRef(null);
   const [imgSrc, setImgSrc] = useState(null);
@@ -31,7 +33,7 @@ const StreetLightDetector = ({ onBack }) => {
         const formData = new FormData();
         formData.append('image', file);
 
-        const response = await fetch('/api/detect-street-light', {
+        const response = await fetch(`${API_URL}/api/detect-street-light`, {
             method: 'POST',
             body: formData,
         });

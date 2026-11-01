@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Webcam from 'react-webcam';
 
+const API_URL = import.meta.env.VITE_API_URL || '';
+
 const FireDetector = ({ onBack }) => {
   const webcamRef = useRef(null);
   const [imgSrc, setImgSrc] = useState(null);
@@ -31,7 +33,7 @@ const FireDetector = ({ onBack }) => {
         const formData = new FormData();
         formData.append('image', file);
 
-        const response = await fetch('/api/detect-fire', {
+        const response = await fetch(`${API_URL}/api/detect-fire`, {
             method: 'POST',
             body: formData,
         });
