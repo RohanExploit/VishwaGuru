@@ -4,9 +4,11 @@ Core engine for evaluating and performing grievance escalations based on SLA and
 """
 
 import datetime
+import hashlib
+import threading
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, desc
 from backend.models import Grievance, Jurisdiction, EscalationAudit, GrievanceStatus, JurisdictionLevel, EscalationReason, SeverityLevel
 from backend.database import SessionLocal
 from backend.routing_service import RoutingService
@@ -16,6 +18,9 @@ class EscalationEngine:
     """
     Engine for handling grievance escalations based on SLA breaches and severity changes.
     """
+
+    _audit_last_hash_cache = {}
+    _cache_lock = threading.Lock()
 
     def __init__(self, routing_service: RoutingService, sla_service: SLAConfigService,
                  rules_config: Dict[str, Any]):
@@ -249,16 +254,33 @@ class EscalationEngine:
             self._recalculate_sla(grievance, db)
 
             # Create audit log
+
+            # Get previous hash
+            prev_hash = self._get_last_integrity_hash(grievance.id, db)
+
+            # Calculate new integrity hash: SHA256(grievance_id | reason.value | prev_hash)
+            hash_input = f"{grievance.id}|{reason.value}|{prev_hash or 'GENESIS'}"
+            new_hash = hashlib.sha256(hash_input.encode()).hexdigest()
+
             audit_log = EscalationAudit(
                 grievance_id=grievance.id,
                 previous_authority=previous_authority,
                 new_authority=grievance.assigned_authority,
                 reason=reason,
-                notes=notes
+                notes=notes,
+                integrity_hash=new_hash,
+                previous_integrity_hash=prev_hash
             )
 
             db.add(audit_log)
             db.commit()
+
+            # Update cache, maintaining max size of 1000
+            with self._cache_lock:
+                if len(self._audit_last_hash_cache) >= 1000 and grievance.id not in self._audit_last_hash_cache:
+                    # Remove random/first item if over limit
+                    self._audit_last_hash_cache.pop(next(iter(self._audit_last_hash_cache)))
+                self._audit_last_hash_cache[grievance.id] = new_hash
 
             return True
 
@@ -266,6 +288,31 @@ class EscalationEngine:
             db.rollback()
             print(f"Error during escalation: {e}")
             return False
+
+    def _get_last_integrity_hash(self, grievance_id: int, db: Session) -> Optional[str]:
+        """
+        Retrieves the last integrity hash for a grievance's audit trail.
+        """
+        with self._cache_lock:
+            if grievance_id in self._audit_last_hash_cache:
+                return self._audit_last_hash_cache[grievance_id]
+
+        # Cache miss: Fallback to indexed DB query
+        last_audit = db.query(EscalationAudit)\
+            .filter(EscalationAudit.grievance_id == grievance_id)\
+            .order_by(desc(EscalationAudit.id))\
+            .first()
+
+        last_hash = last_audit.integrity_hash if last_audit else None
+
+        # Update cache for next time
+        if last_hash:
+            with self._cache_lock:
+                if len(self._audit_last_hash_cache) >= 1000 and grievance_id not in self._audit_last_hash_cache:
+                    self._audit_last_hash_cache.pop(next(iter(self._audit_last_hash_cache)))
+                self._audit_last_hash_cache[grievance_id] = last_hash
+
+        return last_hash
 
     def _recalculate_sla(self, grievance: Grievance, db: Session) -> None:
         """
