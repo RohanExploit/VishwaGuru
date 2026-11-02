@@ -4,9 +4,11 @@ Core engine for evaluating and performing grievance escalations based on SLA and
 """
 
 import datetime
+import hashlib
+import threading
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, desc
 from backend.models import Grievance, Jurisdiction, EscalationAudit, GrievanceStatus, JurisdictionLevel, EscalationReason, SeverityLevel
 from backend.database import SessionLocal
 from backend.routing_service import RoutingService
@@ -30,6 +32,8 @@ class EscalationEngine:
         self.routing_service = routing_service
         self.sla_service = sla_service
         self.rules_config = rules_config
+        self._audit_last_hash_cache = {}
+        self._cache_lock = threading.Lock()
 
     def evaluate_and_escalate_grievances(self, db: Session = None) -> Dict[str, int]:
         """
@@ -204,6 +208,21 @@ class EscalationEngine:
 
         return False
 
+    def _get_last_audit_hash(self, grievance_id: int, db: Session) -> str:
+        with self._cache_lock:
+            if grievance_id in self._audit_last_hash_cache:
+                return self._audit_last_hash_cache[grievance_id]
+
+        last_audit = db.query(EscalationAudit).filter(EscalationAudit.grievance_id == grievance_id).order_by(desc(EscalationAudit.id)).first()
+        last_hash = last_audit.integrity_hash if last_audit else None
+
+        if last_hash:
+            with self._cache_lock:
+                if len(self._audit_last_hash_cache) >= 1000:
+                    self._audit_last_hash_cache.clear()
+                self._audit_last_hash_cache[grievance_id] = last_hash
+        return last_hash
+
     def _escalate_grievance(self, grievance: Grievance, reason: EscalationReason,
                            db: Session, notes: str = "") -> bool:
         """
@@ -249,16 +268,27 @@ class EscalationEngine:
             self._recalculate_sla(grievance, db)
 
             # Create audit log
+            prev_hash = self._get_last_audit_hash(grievance.id, db)
+            hash_input = f"{grievance.id}|{reason.value}|{prev_hash or 'GENESIS'}"
+            new_hash = hashlib.sha256(hash_input.encode()).hexdigest()
+
             audit_log = EscalationAudit(
                 grievance_id=grievance.id,
                 previous_authority=previous_authority,
                 new_authority=grievance.assigned_authority,
                 reason=reason,
-                notes=notes
+                notes=notes,
+                integrity_hash=new_hash,
+                previous_integrity_hash=prev_hash
             )
 
             db.add(audit_log)
             db.commit()
+
+            with self._cache_lock:
+                if len(self._audit_last_hash_cache) >= 1000:
+                    self._audit_last_hash_cache.clear()
+                self._audit_last_hash_cache[grievance.id] = new_hash
 
             return True
 
