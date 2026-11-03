@@ -19,7 +19,7 @@ logging.basicConfig(
 PHOTO, DESCRIPTION, CATEGORY = range(3)
 
 # Initialize Database
-Base.metadata.create_all(bind=engine)
+Base.metadata.create_all(bind=engine, checkfirst=True)
 
 # Create a global application instance placeholder
 application = None

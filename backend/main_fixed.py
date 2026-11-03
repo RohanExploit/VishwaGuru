@@ -136,7 +136,7 @@ async def validate_uploaded_file(file: UploadFile) -> None:
     await run_in_threadpool(_validate_uploaded_file_sync, file)
 
 # Create tables if they don't exist
-Base.metadata.create_all(bind=engine)
+Base.metadata.create_all(bind=engine, checkfirst=True)
 
 async def process_action_plan_background(issue_id: int, description: str, category: str, image_path: str):
     db = SessionLocal()
