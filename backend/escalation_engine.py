@@ -4,9 +4,11 @@ Core engine for evaluating and performing grievance escalations based on SLA and
 """
 
 import datetime
+import hashlib
+import threading
 from typing import List, Dict, Any, Optional
-from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import and_, or_, desc
 from backend.models import Grievance, Jurisdiction, EscalationAudit, GrievanceStatus, JurisdictionLevel, EscalationReason, SeverityLevel
 from backend.database import SessionLocal
 from backend.routing_service import RoutingService
@@ -16,6 +18,9 @@ class EscalationEngine:
     """
     Engine for handling grievance escalations based on SLA breaches and severity changes.
     """
+
+    _audit_last_hash_cache = {}
+    _cache_lock = threading.Lock()
 
     def __init__(self, routing_service: RoutingService, sla_service: SLAConfigService,
                  rules_config: Dict[str, Any]):
@@ -150,7 +155,7 @@ class EscalationEngine:
         now = datetime.datetime.now(datetime.timezone.utc)
 
         # Get grievances that are active and past SLA deadline
-        return db.query(Grievance).filter(
+        return db.query(Grievance).options(joinedload(Grievance.jurisdiction)).filter(
             and_(
                 Grievance.status.in_([GrievanceStatus.OPEN, GrievanceStatus.IN_PROGRESS, GrievanceStatus.ESCALATED]),
                 Grievance.sla_deadline < now
@@ -248,17 +253,40 @@ class EscalationEngine:
             # Recalculate SLA
             self._recalculate_sla(grievance, db)
 
+            # Blockchain integrity calculation
+            with self._cache_lock:
+                prev_hash = self._audit_last_hash_cache.get(grievance.id)
+
+            if not prev_hash:
+                last_audit = db.query(EscalationAudit)\
+                    .filter(EscalationAudit.grievance_id == grievance.id)\
+                    .order_by(desc(EscalationAudit.id))\
+                    .first()
+                prev_hash = last_audit.integrity_hash if last_audit else 'GENESIS'
+
+            hash_input = f"{grievance.id}|{reason.value}|{prev_hash}"
+            new_hash = hashlib.sha256(hash_input.encode()).hexdigest()
+
             # Create audit log
             audit_log = EscalationAudit(
                 grievance_id=grievance.id,
                 previous_authority=previous_authority,
                 new_authority=grievance.assigned_authority,
                 reason=reason,
-                notes=notes
+                notes=notes,
+                integrity_hash=new_hash,
+                previous_integrity_hash=prev_hash
             )
 
             db.add(audit_log)
             db.commit()
+
+            # Update cache, limit to 1000 items
+            with self._cache_lock:
+                if len(self._audit_last_hash_cache) >= 1000:
+                    # Remove an arbitrary item to keep cache bounded
+                    self._audit_last_hash_cache.pop(next(iter(self._audit_last_hash_cache)))
+                self._audit_last_hash_cache[grievance.id] = new_hash
 
             return True
 

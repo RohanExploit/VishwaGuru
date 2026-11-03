@@ -105,6 +105,10 @@ class EscalationAudit(Base):
     reason = Column(Enum(EscalationReason), nullable=False)
     notes = Column(Text, nullable=True)  # Additional context
 
+    # Blockchain-style integrity fields
+    integrity_hash = Column(String, nullable=False, index=True, default='GENESIS')
+    previous_integrity_hash = Column(String, nullable=True)
+
     # Relationships
     grievance = relationship("Grievance", back_populates="audit_logs")
 
