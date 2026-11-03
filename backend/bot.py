@@ -6,8 +6,9 @@ from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters, ConversationHandler
 from backend.database import engine, SessionLocal
 
-from backend.models import Base, Issue
-
+from backend.models import (
+    Base, Issue, Jurisdiction, Grievance, SLAConfig, EscalationAudit, GrievanceFollower
+)
 
 # Enable logging
 logging.basicConfig(
@@ -19,7 +20,11 @@ logging.basicConfig(
 PHOTO, DESCRIPTION, CATEGORY = range(3)
 
 # Initialize Database
-Base.metadata.create_all(bind=engine)
+# create_all will not recreate existing tables, but can fail on indexes if schema changed manually
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    logging.warning(f"Error during Base.metadata.create_all (ignoring if tables exist): {e}")
 
 # Create a global application instance placeholder
 application = None

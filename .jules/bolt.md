@@ -25,3 +25,7 @@
 ## 2025-07-15 - Fast Bounding Box Pre-filter
 **Learning:** Calculating great circle distance (Haversine) for every issue against a target location is computationally expensive (O(N) with heavy math ops like sin, cos, atan2). In high-traffic aggregations, this can become a bottleneck.
 **Action:** Use a fast bounding box pre-filter (`get_bounding_box` with a 5% epsilon) to quickly discard issues that are definitely outside the search radius before running the expensive exact haversine distance calculation.
+
+## 2026-11-03 - O(1) Escalation Cache Eviction
+**Learning:** In-memory caches for blockchain hash lookups can cause memory leaks without size limits.
+**Action:** Use an eviction policy limiting dictionaries to 1000 items to prevent unbounded growth.

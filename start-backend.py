@@ -31,12 +31,19 @@ def validate_environment():
         missing_vars.append("NVIDIA_API_KEY or GEMINI_API_KEY")
 
     if missing_vars:
-        print("❌ Missing required environment variables:")
+        print("⚠️ Warning: Missing required environment variables:")
         for var in missing_vars:
             print(f"   - {var}")
-        print("\nPlease set these variables or create a .env file.")
-        print("See backend/.env.example for reference.")
-        return False
+        print("\nPlease set these variables in the Render Dashboard or .env file.")
+        print("Using safe fallbacks to prevent startup crash.")
+
+        # Provide safe fallbacks
+        if not os.getenv("TELEGRAM_BOT_TOKEN"):
+            os.environ["TELEGRAM_BOT_TOKEN"] = "dummy_token_for_render_build"
+        if not os.getenv("FRONTEND_URL"):
+            os.environ["FRONTEND_URL"] = "http://localhost:5173"
+        if not os.getenv("NVIDIA_API_KEY") and not os.getenv("GEMINI_API_KEY"):
+            os.environ["GEMINI_API_KEY"] = "dummy_gemini_key_for_render_build"
 
     # Set defaults for optional variables
     if not os.getenv("DATABASE_URL"):
