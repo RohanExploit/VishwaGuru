@@ -171,6 +171,8 @@ class GrievanceService:
 
             # Update O(1) cache for next follower
             with self._cache_lock:
+                if len(self._follower_last_hash_cache) > 1000:
+                    self._follower_last_hash_cache.clear()
                 self._follower_last_hash_cache[grievance_id] = new_hash
 
             return follower
@@ -203,6 +205,8 @@ class GrievanceService:
         # Update cache for next time
         if last_hash:
             with self._cache_lock:
+                if len(self._follower_last_hash_cache) > 1000:
+                    self._follower_last_hash_cache.clear()
                 self._follower_last_hash_cache[grievance_id] = last_hash
 
         return last_hash
