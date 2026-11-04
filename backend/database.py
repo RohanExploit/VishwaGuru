@@ -5,9 +5,11 @@ import os
 # Check for DATABASE_URL (Render/Postgres) or fall back to SQLite
 SQLALCHEMY_DATABASE_URL = os.environ.get("DATABASE_URL")
 
-if SQLALCHEMY_DATABASE_URL and (SQLALCHEMY_DATABASE_URL.startswith("postgres://") or SQLALCHEMY_DATABASE_URL.startswith("postgresql://")):
-    # Fix for SQLAlchemy requiring postgresql+psycopg2:// scheme when using psycopg2-binary
-    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1).replace("postgresql://", "postgresql+psycopg2://", 1)
+if SQLALCHEMY_DATABASE_URL:
+    if SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
+        SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1)
+    elif SQLALCHEMY_DATABASE_URL.startswith("postgresql://") and not SQLALCHEMY_DATABASE_URL.startswith("postgresql+psycopg2://"):
+        SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
 
 if not SQLALCHEMY_DATABASE_URL:
     SQLALCHEMY_DATABASE_URL = "sqlite:///./data/issues.db"
