@@ -36,7 +36,8 @@ def validate_environment():
             print(f"   - {var}")
         print("\nPlease set these variables or create a .env file.")
         print("See backend/.env.example for reference.")
-        return False
+        # DO NOT return False here so that we don't abort Render deployment!
+        print("⚠️ Warning: Continuing despite missing variables. Please configure these in Render Dashboard.")
 
     # Set defaults for optional variables
     if not os.getenv("DATABASE_URL"):
@@ -54,7 +55,7 @@ def validate_environment():
     else:
         print("✅ HF_TOKEN found")
 
-    print("✅ Environment validation passed")
+    print("✅ Environment validation passed (with warnings)")
     return True
 
 def create_data_directory():

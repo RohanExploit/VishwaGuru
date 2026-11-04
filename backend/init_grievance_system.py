@@ -14,7 +14,7 @@ def initialize_grievance_system():
     """
     # Create tables
     from backend.models import Base
-    Base.metadata.create_all(bind=engine)
+    Base.metadata.create_all(bind=engine, checkfirst=True)
 
     db = SessionLocal()
 

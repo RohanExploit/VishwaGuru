@@ -29,7 +29,7 @@ from backend.main import app
 @pytest.fixture
 def client_with_mock_http():
     # Patch create_all_ai_services where it is used (in backend.main)
-    with patch.object(backend.main, "create_all_ai_services") as mock_create:
+    with patch("backend.ai_factory.create_all_ai_services") as mock_create:
          mock_create.return_value = (AsyncMock(), AsyncMock(), AsyncMock())
 
          # Mock http client

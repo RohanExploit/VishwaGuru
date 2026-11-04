@@ -34,7 +34,7 @@ sys.modules['telegram'] = mock_telegram
 sys.modules['telegram.ext'] = mock_telegram.ext
 
 # Mock dependencies before importing app
-with patch("backend.main.create_all_ai_services") as mock_create_ai:
+with patch("backend.ai_factory.create_all_ai_services") as mock_create_ai:
     mock_action = AsyncMock()
     mock_chat = AsyncMock()
     mock_summary = AsyncMock()
