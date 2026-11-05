@@ -51,7 +51,10 @@ from bot import application  # Import the Telegram Application
 from gemini_summary import generate_mla_summary
 
 # Create the database tables
-Base.metadata.create_all(bind=engine, checkfirst=True)
+try:
+    Base.metadata.create_all(bind=engine, checkfirst=True)
+except Exception as e:
+    logger.warning(f"Failed to initialize database on startup: {e}")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
