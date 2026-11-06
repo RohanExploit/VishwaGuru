@@ -25,3 +25,6 @@
 ## 2025-07-15 - Fast Bounding Box Pre-filter
 **Learning:** Calculating great circle distance (Haversine) for every issue against a target location is computationally expensive (O(N) with heavy math ops like sin, cos, atan2). In high-traffic aggregations, this can become a bottleneck.
 **Action:** Use a fast bounding box pre-filter (`get_bounding_box` with a 5% epsilon) to quickly discard issues that are definitely outside the search radius before running the expensive exact haversine distance calculation.
+## 2026-11-06 - O(1) EscalationAudit Cache with Limits
+**Learning:** In-memory caches for integrity hashes grow without bounds in long-running processes.
+**Action:** Implemented a max-size limit of 1000 for _follower_last_hash_cache and _audit_last_hash_cache with a simple clear eviction policy.

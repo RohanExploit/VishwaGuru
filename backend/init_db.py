@@ -172,6 +172,26 @@ def migrate_db():
             except Exception:
                 pass
 
+            # Add integrity_hash column to escalation_audits
+            try:
+                conn.execute(text("ALTER TABLE escalation_audits ADD COLUMN integrity_hash VARCHAR DEFAULT 'GENESIS' NOT NULL"))
+                logger.info("Migrated database: Added integrity_hash column to escalation_audits.")
+            except Exception:
+                pass
+
+            # Add index on integrity_hash (escalation_audits)
+            try:
+                conn.execute(text("CREATE INDEX ix_escalation_audits_integrity_hash ON escalation_audits (integrity_hash)"))
+            except Exception:
+                pass
+
+            # Add previous_integrity_hash column to escalation_audits
+            try:
+                conn.execute(text("ALTER TABLE escalation_audits ADD COLUMN previous_integrity_hash VARCHAR"))
+                logger.info("Migrated database: Added previous_integrity_hash column to escalation_audits.")
+            except Exception:
+                pass
+
             conn.commit()
             logger.info("Database migration check completed.")
     except Exception as e:
