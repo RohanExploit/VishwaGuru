@@ -19,7 +19,10 @@ logging.basicConfig(
 PHOTO, DESCRIPTION, CATEGORY = range(3)
 
 # Initialize Database
-Base.metadata.create_all(bind=engine, checkfirst=True)
+try:
+    Base.metadata.create_all(bind=engine, checkfirst=True)
+except Exception as e:
+    logging.warning(f"Failed to initialize database on startup: {e}")
 
 # Create a global application instance placeholder
 application = None
