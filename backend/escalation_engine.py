@@ -41,8 +41,10 @@ class EscalationEngine:
         Returns:
             Dictionary with escalation statistics
         """
+        is_local_session = False
         if db is None:
             db = SessionLocal()
+            is_local_session = True
 
         try:
             # Get grievances that need evaluation
@@ -63,7 +65,7 @@ class EscalationEngine:
             }
 
         finally:
-            if db is not SessionLocal():
+            if is_local_session:
                 db.close()
 
     def escalate_grievance_severity(self, grievance_id: int, new_severity: SeverityLevel,
@@ -80,8 +82,10 @@ class EscalationEngine:
         Returns:
             True if escalation successful
         """
+        is_local_session = False
         if db is None:
             db = SessionLocal()
+            is_local_session = True
 
         try:
             grievance = db.query(Grievance).filter(Grievance.id == grievance_id).first()
@@ -108,7 +112,7 @@ class EscalationEngine:
             print(f"Error escalating grievance severity: {e}")
             return False
         finally:
-            if db is not SessionLocal():
+            if is_local_session:
                 db.close()
 
     def manual_escalate(self, grievance_id: int, reason: str = "", db: Session = None) -> bool:
@@ -123,8 +127,10 @@ class EscalationEngine:
         Returns:
             True if escalation successful
         """
+        is_local_session = False
         if db is None:
             db = SessionLocal()
+            is_local_session = True
 
         try:
             grievance = db.query(Grievance).filter(Grievance.id == grievance_id).first()
@@ -134,7 +140,7 @@ class EscalationEngine:
             return self._escalate_grievance(grievance, EscalationReason.MANUAL, db, reason)
 
         finally:
-            if db is not SessionLocal():
+            if is_local_session:
                 db.close()
 
     def _get_grievances_for_evaluation(self, db: Session) -> List[Grievance]:
