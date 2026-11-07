@@ -36,8 +36,10 @@ class SLAConfigService:
         Returns:
             SLA hours
         """
+        is_local_session = False
         if db is None:
             db = SessionLocal()
+            is_local_session = True
 
         try:
             # Try to find exact match
@@ -84,7 +86,7 @@ class SLAConfigService:
             return self.default_sla_hours
 
         finally:
-            if db is not SessionLocal():
+            if is_local_session:
                 db.close()
 
     def create_sla_config(self, severity: SeverityLevel, jurisdiction_level: JurisdictionLevel,
@@ -102,8 +104,10 @@ class SLAConfigService:
         Returns:
             Created SLAConfig object
         """
+        is_local_session = False
         if db is None:
             db = SessionLocal()
+            is_local_session = True
 
         try:
             sla_config = SLAConfig(
@@ -120,7 +124,7 @@ class SLAConfigService:
             return sla_config
 
         finally:
-            if db is not SessionLocal():
+            if is_local_session:
                 db.close()
 
     def get_all_sla_configs(self, db: Session = None) -> list[SLAConfig]:
@@ -133,12 +137,14 @@ class SLAConfigService:
         Returns:
             List of SLAConfig objects
         """
+        is_local_session = False
         if db is None:
             db = SessionLocal()
+            is_local_session = True
 
         try:
             return db.query(SLAConfig).all()
 
         finally:
-            if db is not SessionLocal():
+            if is_local_session:
                 db.close()
