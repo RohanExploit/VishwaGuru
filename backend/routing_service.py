@@ -111,8 +111,10 @@ class RoutingService:
         Returns:
             Matching Jurisdiction or None
         """
+        is_local_session = False
         if db is None:
             db = SessionLocal()
+            is_local_session = True
 
         try:
             # Query for jurisdictions matching the criteria
@@ -142,7 +144,7 @@ class RoutingService:
             return best_match
 
         finally:
-            if db is not SessionLocal():
+            if is_local_session:
                 db.close()
 
     def get_next_jurisdiction_level(self, current_level: JurisdictionLevel) -> Optional[JurisdictionLevel]:
