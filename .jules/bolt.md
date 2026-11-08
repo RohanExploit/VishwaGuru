@@ -29,3 +29,7 @@
 ## 2025-07-20 - Redundant Code
 **Learning:** When tasked to implement a feature that is already fully present, do not make redundant code changes or empty pull requests.
 **Action:** Submit the task after verifying tests if the feature is fully implemented.
+
+## 2025-05-30 - Escalation Engine N+1
+**Learning:** Evaluating grievances one-by-one and lazy-loading relationships in loops leads to severe N+1 query bottlenecks during SLA and severity checks.
+**Action:** Apply joinedload when fetching batches of entities that will definitely require their relationships in the subsequent loop.
