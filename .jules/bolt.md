@@ -29,3 +29,6 @@
 ## 2025-07-20 - Redundant Code
 **Learning:** When tasked to implement a feature that is already fully present, do not make redundant code changes or empty pull requests.
 **Action:** Submit the task after verifying tests if the feature is fully implemented.
+## 2026-11-08 - [EscalationEngine N+1 Query Fix]
+ **Learning:** Evaluating SLA breaches without eager loading relationships like grievance.jurisdiction creates severe N+1 bottlenecks in periodic evaluation loops.
+ **Action:** Always use joinedload() when querying lists of items if their relationships will be accessed during subsequent logic/iteration.
