@@ -33,3 +33,7 @@
 ## 2025-05-30 - Escalation Engine N+1
 **Learning:** Evaluating grievances one-by-one and lazy-loading relationships in loops leads to severe N+1 query bottlenecks during SLA and severity checks.
 **Action:** Apply joinedload when fetching batches of entities that will definitely require their relationships in the subsequent loop.
+
+## 2024-05-30 - Session Management Anti-Pattern
+**Learning:** Using `if db is not SessionLocal(): db.close()` to manage session lifecycle is flawed because `SessionLocal` is a factory, and instances will never match it. This leads to premature closure of injected sessions.
+**Action:** Use an `is_local_session` flag to track if the session was created within the method and should be closed by it.
