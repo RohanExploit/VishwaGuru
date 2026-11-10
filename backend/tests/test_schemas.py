@@ -1,7 +1,7 @@
 import pytest
 import warnings
 from pydantic import ValidationError
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Suppress warnings for clean test output
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -53,7 +53,7 @@ def test_chat_response():
 
 def test_issue_response():
     issue = IssueResponse(
-        id=1, category="Road", description="Pothole", created_at=datetime.now(),
+        id=1, category="Road", description="Pothole", created_at=datetime.now(timezone.utc),
         status="open", upvotes=0
     )
     assert issue.id == 1
@@ -129,7 +129,7 @@ def test_urgency_analysis_response():
     assert response.urgency_level == "high"
 
 def test_health_response():
-    response = HealthResponse(status="healthy", timestamp=datetime.now())
+    response = HealthResponse(status="healthy", timestamp=datetime.now(timezone.utc))
     assert response.status == "healthy"
 
 def test_ml_status_response():
