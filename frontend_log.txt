@@ -3,26 +3,37 @@
 > vite
 
 
-  VITE v7.3.7  ready in 280 ms
+  VITE v7.3.1  ready in 263 ms
 
   ➜  Local:   http://localhost:5173/
   ➜  Network: use --host to expose
-4:00:50 AM [vite] (client) hmr update /src/index.css
-4:00:50 AM [vite] http proxy error: /api/issues/recent
+10:05:43 AM [vite] (client) ✨ new dependencies optimized: react-router-dom
+10:05:43 AM [vite] (client) ✨ optimized dependencies changed. reloading
+10:05:45 AM [vite] (client) ✨ new dependencies optimized: lucide-react
+10:05:45 AM [vite] (client) ✨ optimized dependencies changed. reloading
+10:05:46 AM [vite] http proxy error: /api/issues/recent
 AggregateError [ECONNREFUSED]:
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
-4:00:50 AM [vite] http proxy error: /api/issues/recent
+10:05:46 AM [vite] http proxy error: /api/issues/recent
 AggregateError [ECONNREFUSED]:
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
-4:00:52 AM [vite] (client) ✨ new dependencies optimized: workbox-precaching, workbox-routing, workbox-strategies, workbox-expiration
-4:00:52 AM [vite] (client) ✨ optimized dependencies changed. reloading
-4:01:12 AM [vite] http proxy error: /api/issues/recent
+10:07:00 AM [vite] http proxy error: /api/issues/recent
 AggregateError [ECONNREFUSED]:
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
-4:01:12 AM [vite] http proxy error: /api/issues/recent
+10:07:00 AM [vite] http proxy error: /api/issues/recent
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+10:07:00 AM [vite] (client) ✨ new dependencies optimized: framer-motion
+10:07:00 AM [vite] (client) ✨ optimized dependencies changed. reloading
+10:07:01 AM [vite] http proxy error: /api/issues/recent
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+10:07:01 AM [vite] http proxy error: /api/issues/recent
 AggregateError [ECONNREFUSED]:
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
